@@ -7,20 +7,24 @@ Writes the set the Play Console asks for, at the sizes it asks for (checked 2026
   play_store_icon_512.png                 512x512, 32-bit PNG
   feature_graphic_1024x500.png            1024x500, 24-bit PNG, no alpha
   screenshots/phone/NN_name.png           1080x1920 (9:16), up to 8
-  screenshots/tablet7/NN_name.png         1080x1920 (7-inch tablets)
-  screenshots/tablet10/NN_name.png        1200x1920 (10-inch tablets)
+  screenshots/tablet7/NN_name.png         1920x1080 (7-inch tablets, 16:9)
+  screenshots/tablet10/NN_name.png        1920x1080 (10-inch tablets, 16:9)
   gpg_pc_feature_1920x1080.png            Google Play Games on PC, 16:9, no text
   gpg_pc_logo_600x400.png                 Google Play Games on PC, transparent wordmark
   listing.md                              title, short and full description, release notes, checked
                                           against Play's length limits
 
-Every screenshot is the same composition: a headline and a muted subline on the brand's background,
-over the real game frame inside a rounded device frame that runs off the bottom edge. The raw frames
-come from the game's own renderer, so nothing in them is mocked up.
+Phone shots put a headline and a muted subline over the real game frame, a rounded card that runs off
+the bottom edge. Tablet shots are landscape, because Play wants tablet shots at 16:9 or 9:16: the
+headline on the left, the game's tablet-shaped frame on the right. The frame is a plain card, not a
+phone, since Play asks for no device imagery. The raw frames come from the game's own renderer, so
+nothing in them is mocked up. Captions are checked against Play's graphic rules: no ranking, no price,
+no call to action.
 """
 
 import json
 import os
+import re
 import sys
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -31,6 +35,11 @@ OUT = "assets/store"
 SUPER = 2  # draw rounded masks at 2x and downsample for clean edges
 
 LIMITS = {"title": 30, "short": 80, "full": 4000}
+TABLET = (1920, 1080)
+# Play's rules for text in graphics (checked 2026-09): nothing that suggests ranking, price, a Play
+# category or a promotion, and no call to action.
+BANNED = [r"\bbest\b", r"#1\b", r"\btop\b", r"\bnew\b", r"\bdiscount", r"\bsale\b", r"\bfree\b",
+          r"\b(download|install|play|try|get it) now\b"]
 
 
 def rgb(hex_colour):
@@ -107,8 +116,22 @@ def wrap(draw, text, face, max_width):
     return lines
 
 
+def balanced(draw, text, face, max_width):
+    """The fewest lines that fit, then as even as those lines allow, so a headline never ends on one
+    stranded word."""
+    lines = wrap(draw, text, face, max_width)
+    low, high = max_width * 0.4, max_width
+    while high - low > 4:
+        mid = (low + high) / 2
+        if len(wrap(draw, text, face, mid)) == len(lines):
+            high = mid
+        else:
+            low = mid
+    return wrap(draw, text, face, high)
+
+
 def centred_text(draw, text, face, y, width, colour, spacing=1.12, max_width=None):
-    lines = wrap(draw, text, face, max_width or width * 0.86)
+    lines = balanced(draw, text, face, max_width or width * 0.86)
     size = face.size
     for i, line in enumerate(lines):
         w = draw.textlength(line, font=face)
@@ -116,19 +139,20 @@ def centred_text(draw, text, face, y, width, colour, spacing=1.12, max_width=Non
     return y + len(lines) * size * spacing
 
 
-def device(raw, screen_width, dark):
-    """The raw frame inside a phone-like frame: a bezel, rounded corners, and nothing else."""
-    scale = screen_width / raw.width
-    screen = raw.resize((screen_width, int(raw.height * scale)), Image.LANCZOS).convert("RGBA")
-    bezel = max(14, screen_width // 38)
-    radius = screen_width // 11
-    w, h = screen.width + bezel * 2, screen.height + bezel * 2
-    frame = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    edge = (22, 24, 30, 255) if not dark else (58, 66, 104, 255)
-    body = Image.new("RGBA", (w, h), edge)
-    frame.paste(body, (0, 0), rounded_mask((w, h), radius + bezel))
-    frame.paste(screen, (bezel, bezel), rounded_mask(screen.size, radius))
-    return frame
+def card(raw, width, colours, dark):
+    """The raw frame as a rounded card with a hairline edge, so it reads as a screen without drawing a
+    phone around it."""
+    scale = width / raw.width
+    screen = raw.resize((width, int(raw.height * scale)), Image.LANCZOS).convert("RGBA")
+    radius = width // 14
+    framed = Image.new("RGBA", screen.size, (0, 0, 0, 0))
+    framed.paste(screen, (0, 0), rounded_mask(screen.size, radius))
+    edge = Image.new("RGBA", (screen.width * SUPER, screen.height * SUPER), (0, 0, 0, 0))
+    ink = colours["ink"] if not dark else (255, 255, 255)
+    ImageDraw.Draw(edge).rounded_rectangle([0, 0, edge.width - 1, edge.height - 1], radius=radius * SUPER,
+                                           outline=ink + (26,), width=2 * SUPER)
+    framed.alpha_composite(edge.resize(screen.size, Image.LANCZOS))
+    return framed
 
 
 def screenshot(spec, shot, canvas_size, raw_name, fonts, colours, dark):
@@ -141,12 +165,41 @@ def screenshot(spec, shot, canvas_size, raw_name, fonts, colours, dark):
     y = centred_text(draw, shot["caption"], head, h * 0.075, w, colours["ink"])
     if shot.get("sub"):
         centred_text(draw, shot["sub"], sub, y + h * 0.012, w, colours["muted"], max_width=w * 0.8)
-    screen_width = int(w * (0.7 if w / h < 0.6 else 0.74))
-    framed = device(raw, screen_width, dark)
+    framed = card(raw, int(w * 0.74), colours, dark)
     x = (w - framed.width) // 2
     top = int(h * 0.285)
-    shadow(canvas, (x, top, x + framed.width, top + framed.height), framed.width // 10, 38, 70 if not dark else 140)
+    shadow(canvas, (x, top, x + framed.width, top + framed.height), framed.width // 14, 38, 60 if not dark else 140)
     canvas.alpha_composite(framed, (x, top))
+    return canvas.convert("RGB")
+
+
+def tablet_screenshot(spec, shot, raw_name, fonts, colours, dark, size=TABLET):
+    """Landscape: the words on the left, the tablet-shaped game frame on the right, running off the
+    bottom edge."""
+    raw = Image.open(os.path.join(RAW, raw_name + ".png")).convert("RGB")
+    w, h = size
+    canvas = background(size, colours, dark).convert("RGBA")
+    draw = ImageDraw.Draw(canvas)
+    frame_h = int(h * 1.08)
+    framed = card(raw, int(raw.width * frame_h / raw.height), colours, dark)
+    x = int(w * 0.93) - framed.width
+    top = int(h * 0.1)
+    shadow(canvas, (x, top, x + framed.width, top + framed.height), framed.width // 14, 38, 60 if not dark else 140)
+    canvas.alpha_composite(framed, (x, top))
+    head = font(fonts["display"], int(h * 0.1))
+    sub = font(fonts["ui"], int(h * 0.036))
+    left, width = int(w * 0.08), x - int(w * 0.14)
+    heads = balanced(draw, shot["caption"], head, width)
+    subs = wrap(draw, shot.get("sub", ""), sub, width) if shot.get("sub") else []
+    block = len(heads) * head.size * 1.12 + (h * 0.03 + len(subs) * sub.size * 1.3 if subs else 0)
+    y = (h - block) / 2
+    for line in heads:
+        draw.text((left, y), line, font=head, fill=colours["ink"])
+        y += head.size * 1.12
+    y += h * 0.03
+    for line in subs:
+        draw.text((left, y), line, font=sub, fill=colours["muted"])
+        y += sub.size * 1.3
     return canvas.convert("RGB")
 
 
@@ -215,6 +268,14 @@ def listing(spec):
     return "\n".join(lines), problems
 
 
+def policy(spec):
+    """Every word that ends up inside a graphic, checked against Play's rules for text in graphics."""
+    texts = [spec["wordmark"], spec["tagline"]]
+    for shot in spec["phone"] + spec["tablet"]:
+        texts += [shot["caption"], shot.get("sub", "")]
+    return ["%r matches %s" % (t, b) for t in texts for b in BANNED if re.search(b, t, re.IGNORECASE)]
+
+
 def main():
     spec = json.load(open(SPEC))
     colours = {k: rgb(v) for k, v in spec["colours"].items()}
@@ -228,9 +289,10 @@ def main():
         print("wrote", path)
     for i, shot in enumerate(spec["tablet"]):
         name = shot["raw"].replace("tablet_", "")
-        for folder, size in (("tablet7", (1080, 1920)), ("tablet10", (1200, 1920))):
+        image = tablet_screenshot(spec, shot, shot["raw"], fonts, colours, dark)
+        for folder in ("tablet7", "tablet10"):
             path = os.path.join(OUT, "screenshots/%s/%02d_%s.png" % (folder, i + 1, name))
-            screenshot(spec, shot, size, shot["raw"], fonts, colours, dark).save(path)
+            image.save(path)
             print("wrote", path)
     feature(spec, fonts, colours, dark).save(os.path.join(OUT, "feature_graphic_1024x500.png"))
     feature(spec, fonts, colours, dark, (1920, 1080), text=False).save(os.path.join(OUT, "gpg_pc_feature_1920x1080.png"))
@@ -240,8 +302,12 @@ def main():
     text, problems = listing(spec)
     open(os.path.join(OUT, "listing.md"), "w").write(text)
     print("wrote feature graphic, pc images, icon and listing.md")
+    words = policy(spec)
+    for problem in words:
+        print("NOT ALLOWED IN A GRAPHIC: %s" % problem)
     if problems:
         print("OVER LIMIT: %s" % ", ".join(problems))
+    if problems or words:
         sys.exit(1)
 
 
