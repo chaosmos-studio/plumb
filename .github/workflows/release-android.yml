@@ -244,18 +244,18 @@ jobs:
           set -euo pipefail
           # A self-signed upload key and AGP's bundle layout always draw jarsigner warnings, so only a failure prints them.
           jarsigner -verify "$AAB" > jarsigner.log 2>&1 || true
-          if ! grep -q "jar verified" jarsigner.log; then
+          if ! grep "jar verified" jarsigner.log; then
             cat jarsigner.log
             exit 1
           fi
-          head -1 jarsigner.log
           keytool -printcert -jarfile "$AAB" | grep "SHA256: $KEY_SHA256"
           manifest() { java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle "$AAB" --xpath "$1"; }
           echo "package $(manifest /manifest/@package), versionCode $(manifest /manifest/@android:versionCode)," \
                "versionName $(manifest /manifest/@android:versionName)," \
                "targetSdkVersion $(manifest /manifest/uses-sdk/@android:targetSdkVersion)," \
                "minSdkVersion $(manifest /manifest/uses-sdk/@android:minSdkVersion)"
-          echo "permissions: $(manifest /manifest/uses-permission/@android:name | tr '\n' ' ')"
+          permissions="$(manifest /manifest/uses-permission/@android:name | tr '\n' ' ')"
+          echo "permissions: ${permissions:-none}"
           test "$(manifest /manifest/@package)" = "$PACKAGE"
           test "$(manifest /manifest/@android:versionCode)" = "$VERSION_CODE"
           test "$(manifest /manifest/@android:versionName)" = "$VERSION_NAME"
