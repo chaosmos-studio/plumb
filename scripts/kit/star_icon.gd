@@ -26,9 +26,12 @@ func _draw() -> void:
 		var r: float = outer if k % 2 == 0 else inner
 		var a: float = -PI * 0.5 + k * PI / 5.0
 		points.append(c + Vector2(cos(a), sin(a)) * r)
+	var loop: PackedVector2Array = points.duplicate()
+	loop.append(points[0])
 	if filled:
+		# A filled polygon has no anti-aliasing; tracing its edge with an antialiased line in the same
+		# colour smooths the stair steps.
 		draw_colored_polygon(points, fill_colour)
+		draw_polyline(loop, fill_colour, 1.5, true)
 	else:
-		var loop: PackedVector2Array = points.duplicate()
-		loop.append(points[0])
 		draw_polyline(loop, empty_colour, maxf(2.0, outer * 0.12), true)
