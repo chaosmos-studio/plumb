@@ -4,6 +4,7 @@ extends Node2D
 
 var _sound: Button
 var _seesaw: Seesaw
+var _stage: Control
 
 func _ready() -> void:
 	var ui: Control = UI.root(self)
@@ -19,9 +20,9 @@ func _ready() -> void:
 	column.add_child(tagline)
 
 	# Room for the seesaw, which is drawn in the world behind the UI.
-	var gap: Control = Control.new()
-	gap.custom_minimum_size = Vector2(0, 250)
-	column.add_child(gap)
+	_stage = Control.new()
+	_stage.custom_minimum_size = Vector2(0, 250)
+	column.add_child(_stage)
 
 	var play_text: String = "Play"
 	var frontier: int = Save.frontier(Pack.count())
@@ -59,12 +60,12 @@ func _ready() -> void:
 
 	_seesaw = Seesaw.new()
 	add_child(_seesaw)
-	get_viewport().size_changed.connect(_place)
+	_stage.resized.connect(_place)
 	_place()
 
+## Centred in the space the column left for it, wherever the layout put that on this screen shape.
 func _place() -> void:
-	var size: Vector2 = get_viewport_rect().size
-	_seesaw.position = Vector2(size.x * 0.5, size.y * 0.5 - 40.0)
+	_seesaw.position = _stage.get_global_rect().get_center() + Vector2(0, 10)
 
 func _centred(column: VBoxContainer, control: Control) -> void:
 	var row: CenterContainer = CenterContainer.new()
