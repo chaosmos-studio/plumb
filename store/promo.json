@@ -38,7 +38,13 @@
 		"win": ["Match par for *three* stars", "Find the *perfect* route", "Fewest moves wins"],
 		"fail": ["Mind the *pits*", "One wrong tilt... then *undo*", "Square pits swallow *any* marble"],
 		"dense": ["It gets *deep*", "Eight marbles. *One* swipe at a time.", "Harder boards, same *one* rule"],
-		"stats": [["*120* levels", "every one solvable"], ["No timers", "no lives, no rush"], ["*3* stars", "for the perfect route"], ["*1* rule", "everything rolls"]],
+		"stats": [
+				["*120* levels", "every one solvable", "A hundred and twenty levels, and every single one is solvable."],
+				["No timers", "no lives, no rush", "No timers, no lives, no rush. Just you and the marbles."],
+				["*3* stars", "for the perfect route", "Three stars wait for the shortest route."],
+				["*1* rule", "everything rolls", "One rule: everything rolls until something stops it."],
+				["*4* directions", "endless consequences", "Four directions, and every one changes the whole board."]
+			],
 		"cta": ["Play free", "Tilt it today", "Try level one"],
 		"vo": {
 			"hook": ["Tilt the board, and every marble rolls at once.", "Here is a puzzle made entirely of gravity.", "One swipe moves every marble on the board.", "Can you roll every marble home?"],
