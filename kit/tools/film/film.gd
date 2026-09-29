@@ -194,8 +194,8 @@ func _perform(p: Dictionary) -> void:
 
 func _caption(c: Dictionary, beat: Dictionary) -> void:
 	await get_tree().create_timer(float(c.get("at", 0.2))).timeout
-	var width: float = frame.x * (0.84 if reel else 0.4)
-	var size_px: int = int(frame.x * (0.075 if reel else 0.04))
+	var width: float = frame.x * (0.84 if reel else 0.38)
+	var size_px: int = int(frame.x * (0.075 if reel else 0.048))
 	var k: Kinetic = Kinetic.new(String(c["text"]), size_px, width, "center" if reel else "left")
 	_fx.add_child(k)
 	await get_tree().process_frame
@@ -228,7 +228,7 @@ func _title(text: String, sub: String) -> void:
 	var line: _Line = _Line.new()
 	line.custom_minimum_size = Vector2(frame.x * (0.28 if reel else 0.16), 8)
 	box.add_child(UI.centred(line))
-	var tag: Label = UI.caption(sub, int(frame.x * (0.036 if reel else 0.019)))
+	var tag: Label = UI.caption(sub, int(frame.x * (0.036 if reel else 0.022)))
 	tag.modulate.a = 0.0
 	box.add_child(tag)
 	_reveal_letters(letters, line, tag)
@@ -249,11 +249,11 @@ func _reveal_letters(letters: Array[Label], line: _Line, tag: Label) -> void:
 
 func _card(text: String, sub: String) -> void:
 	var box: VBoxContainer = _centre_box()
-	var k: Kinetic = Kinetic.new(text, int(frame.x * (0.11 if reel else 0.06)), frame.x * 0.86)
+	var k: Kinetic = Kinetic.new(text, int(frame.x * (0.11 if reel else 0.07)), frame.x * 0.86)
 	box.add_child(k)
 	k.play_in()
 	if sub != "":
-		var s: Label = UI.caption(sub, int(frame.x * (0.036 if reel else 0.019)))
+		var s: Label = UI.caption(sub, int(frame.x * (0.036 if reel else 0.022)))
 		s.modulate.a = 0.0
 		box.add_child(s)
 		create_tween().tween_property(s, "modulate:a", 1.0, 0.4).set_delay(0.45)
