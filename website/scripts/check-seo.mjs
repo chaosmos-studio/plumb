@@ -18,6 +18,11 @@ function pages(dir) {
   });
 }
 
+// Lengths are what a reader sees, so HTML entities count as the one character they stand for.
+function text(html) {
+  return html.replace(/&(#\d+|#x[\da-f]+|\w+);/gi, "_");
+}
+
 function attr(tag, name) {
   const m = tag.match(new RegExp(`${name}="([^"]*)"`));
   return m ? m[1] : null;
@@ -30,8 +35,8 @@ for (const file of htmlFiles) {
   const rel = relative(dist, file);
   const html = readFileSync(file, "utf8");
   const noindex = /<meta name="robots" content="noindex/.test(html);
-  const title = (html.match(/<title>([^<]*)<\/title>/) || [])[1] || "";
-  const desc = attr(html.match(/<meta name="description"[^>]*>/)?.[0] ?? "", "content") || "";
+  const title = text((html.match(/<title>([^<]*)<\/title>/) || [])[1] || "");
+  const desc = text(attr(html.match(/<meta name="description"[^>]*>/)?.[0] ?? "", "content") || "");
   if (!title) problems.push(`${rel}: no <title>`);
   else if (title.length > 65) warnings.push(`${rel}: title is ${title.length} characters (aim for 60 or fewer)`);
   if (desc.length < 70 || desc.length > 170) problems.push(`${rel}: description is ${desc.length} characters (want 70 to 170)`);

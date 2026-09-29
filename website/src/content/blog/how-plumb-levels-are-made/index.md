@@ -1,5 +1,5 @@
 ---
-title: "How Plumb's levels are made: a generator, a solver and no repeats"
+title: "How Plumb levels are made: a generator, a solver, no repeats"
 description: "Behind the scenes: how Plumb's levels are generated, proven solvable, checked so no two are alike, and ordered so the game never gets easier."
 pubDate: 2026-09-30
 authors: [claude, shravan]

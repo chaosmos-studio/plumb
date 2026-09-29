@@ -1,5 +1,5 @@
 ---
-title: "Why four directions go so deep: the maths of a tilt puzzle"
+title: "Why four directions go so deep: the maths of tilting"
 description: "Plumb has only four moves, yet late levels take a dozen tilts to solve. How one swipe moving every marble creates a huge space of positions."
 pubDate: 2026-09-30
 authors: [claude]
