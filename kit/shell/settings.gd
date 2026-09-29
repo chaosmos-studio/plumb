@@ -1,7 +1,8 @@
 class_name Settings
 extends RefCounted
 
-## The settings sheet: switches for sound, music and haptics, a guarded reset, and the version line.
+## The settings sheet: switches for sound, music and haptics, the About and Credits sheets, a guarded
+## reset, and the version line.
 
 const RESET_ARM_TIME: float = 3.0
 
@@ -16,6 +17,16 @@ static func open(host: Node, music: bool = true) -> Sheet:
 		c.add_child(_row(&"music", "Music", Save.music_on, func(on: bool) -> void: Save.set_music(on)))
 	c.add_child(_row(&"haptics", "Vibration", Save.haptics_on, func(on: bool) -> void: Save.set_haptics(on)))
 	c.add_child(UI.spacer(6))
+	var more: HBoxContainer = HBoxContainer.new()
+	more.alignment = BoxContainer.ALIGNMENT_CENTER
+	more.add_theme_constant_override("separation", 20)
+	var about: Button = UI.button("About", UI.Style.SECONDARY)
+	about.pressed.connect(func() -> void: About.open(host))
+	more.add_child(about)
+	var credits: Button = UI.button("Credits", UI.Style.SECONDARY)
+	credits.pressed.connect(func() -> void: Credits.open(host))
+	more.add_child(credits)
+	c.add_child(more)
 	var reset: Button = UI.button("Reset progress", UI.Style.GHOST)
 	var armed: Array[bool] = [false]
 	reset.pressed.connect(func() -> void:
