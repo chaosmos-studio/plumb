@@ -7,15 +7,15 @@ downloads live in the private `game-assets` repo checked out at `faceplant/asset
 
 Only CC0, CC-BY and SIL OFL (fonts) ship. Note every modification (rescaled, recoloured, retimed).
 
-## 3D art
-
-## 2D, icons and UI
-
 ## Fonts
 
-## Music
+| Asset | Author | Licence | Notes |
+| --- | --- | --- | --- |
+| Baloo 2 (`assets/fonts/Baloo2.ttf`) | Ek Type | SIL Open Font License 1.1 (`assets/fonts/Baloo2-OFL.txt`) | Unmodified. |
 
 ## Sound effects
+
+All synthesised by `tools/make_sfx.py`. None are third-party.
 
 ## Everything else
 
