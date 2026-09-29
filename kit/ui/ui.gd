@@ -5,8 +5,8 @@ extends RefCounted
 ## every screen builds from. Colours and fonts come from the game's `Brand`, so the same kit dresses a
 ## warm paper game and a night-sky one.
 ##
-## The kit expects the game to provide: a `Brand` class (see kit/README.md), and the autoloads `Save`,
-## `Pack`, `Screens` and `Audio`.
+## The kit expects the game to provide: a `Brand` class (names, colours, fonts and scene paths, as in
+## any game's brand.gd), and the autoloads `Save`, `Pack`, `Screens` and `Audio`.
 
 enum Style { PRIMARY, SECONDARY, GHOST }
 
