@@ -6,8 +6,12 @@ extends PanelContainer
 
 const HOLD: float = 2.2
 const FROM_BOTTOM: float = 300.0
+const FONT_SIZE: int = 28
+const SIDE_ROOM: float = 80.0
 
 static var _current: Toast
+
+var _label: Label
 
 static func say(host: Node, text: String) -> void:
 	if is_instance_valid(_current):
@@ -32,16 +36,20 @@ func _build(text: String) -> void:
 	style.content_margin_bottom = 20
 	style.anti_aliasing = true
 	add_theme_stylebox_override("panel", style)
-	var l: Label = UI.label(text, 28, Brand.BG)
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.custom_minimum_size.x = 0.0
-	add_child(l)
+	_label = UI.label(text, FONT_SIZE, Brand.BG)
+	_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	add_child(_label)
 	modulate.a = 0.0
 
 func _ready() -> void:
+	# A wrapping label asks for no width of its own, which would leave one letter per line: give it the
+	# text's width, and wrap only what a narrow screen cannot fit.
+	var margins: float = get_theme_stylebox("panel").get_minimum_size().x
+	var text_width: float = UI.ui_font().get_string_size(_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
+	_label.custom_minimum_size.x = minf(ceilf(text_width) + 2.0, get_viewport_rect().size.x - SIDE_ROOM - margins)
 	await get_tree().process_frame
 	var view: Vector2 = get_viewport_rect().size
-	size.x = minf(size.x, view.x - 80.0)
+	size.x = minf(size.x, view.x - SIDE_ROOM)
 	position = Vector2((view.x - size.x) * 0.5, view.y - FROM_BOTTOM)
 	var t: Tween = create_tween()
 	t.tween_property(self, "modulate:a", 1.0, 0.18)
