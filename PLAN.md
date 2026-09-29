@@ -27,7 +27,7 @@ everything, so every move is a small chain of consequences to read before you ma
 - Engine: Godot 4.7, GL Compatibility renderer, 2D.
 - Audience: all ages.
 - Art and audio: drawn and synthesised in code (`tools/make_sfx.py`, `tools/make_icons.py`). One font,
-  Baloo 2 (OFL). See `CREDITS.md`.
+  Outfit (OFL), in two static weights. See `CREDITS.md`.
 - Monetization: section 5, built last.
 
 ### What this is not
