@@ -3,7 +3,7 @@ extends RefCounted
 ## Stages Plumb for stills and films: the kit's capture tool and promo recorder ask for an action by
 ## name and get the real game, driven through its own code paths, in the viewport they pass.
 ##
-## Actions: title, levels, settings, play:N, moves:N:K (after K solver moves), hint:N:K, rolling:N:K,
+## Actions: title, levels, settings, about, credits, play:N, moves:N:K (after K solver moves), hint:N:K, rolling:N:K,
 ## won:N, failed:N (the shortest fall into a pit), hero:N (the board with the HUD hidden), and for the website board:N[:LRUD], boardsolve:N:K and
 ## boardhint:N:K, which also hide the HUD. Levels are 1-based here, as a player counts them.
 ##
@@ -37,6 +37,15 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			host.add_child(title)
 			await _wait(host, 0.3)
 			Settings.open(title)
+			await _wait(host, 0.6)
+		"about", "credits":
+			var home: Node = load(Brand.TITLE_SCENE).instantiate()
+			host.add_child(home)
+			await _wait(host, 0.3)
+			if verb == "about":
+				About.open(home)
+			else:
+				Credits.open(home)
 			await _wait(host, 0.6)
 		"play":
 			await _game(host, n)
