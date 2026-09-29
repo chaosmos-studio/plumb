@@ -228,7 +228,7 @@ func _title(text: String, sub: String) -> void:
 	var line: _Line = _Line.new()
 	line.custom_minimum_size = Vector2(frame.x * (0.28 if reel else 0.16), 8)
 	box.add_child(UI.centred(line))
-	var tag: Label = UI.caption(sub, int(frame.x * (0.026 if reel else 0.014)))
+	var tag: Label = UI.caption(sub, int(frame.x * (0.036 if reel else 0.019)))
 	tag.modulate.a = 0.0
 	box.add_child(tag)
 	_reveal_letters(letters, line, tag)
@@ -253,7 +253,7 @@ func _card(text: String, sub: String) -> void:
 	box.add_child(k)
 	k.play_in()
 	if sub != "":
-		var s: Label = UI.caption(sub, int(frame.x * (0.026 if reel else 0.014)))
+		var s: Label = UI.caption(sub, int(frame.x * (0.036 if reel else 0.019)))
 		s.modulate.a = 0.0
 		box.add_child(s)
 		create_tween().tween_property(s, "modulate:a", 1.0, 0.4).set_delay(0.45)
@@ -275,16 +275,20 @@ func _end(text: String, sub: String, cta: String) -> void:
 	create_tween().tween_property(icon, "modulate:a", 1.0, 0.3)
 	var mark: Label = UI.title(text, int(frame.x * (0.14 if reel else 0.08)))
 	box.add_child(mark)
-	var s: Label = UI.label(sub, int(frame.x * (0.04 if reel else 0.022)), Brand.MUTED)
+	var s: Label = UI.label(sub, int(frame.x * (0.048 if reel else 0.026)), Brand.MUTED)
 	box.add_child(s)
+	var fades: Array[Control] = [mark, s]
 	if cta != "":
 		var pill: Button = UI.button(cta, UI.Style.PRIMARY)
-		pill.add_theme_font_size_override("font_size", int(frame.x * (0.034 if reel else 0.018)))
-		box.add_child(UI.spacer(10))
-		box.add_child(UI.centred(pill))
-	for c: Control in [mark, s]:
-		c.modulate.a = 0.0
-		create_tween().tween_property(c, "modulate:a", 1.0, 0.4).set_delay(0.3)
+		pill.add_theme_font_size_override("font_size", int(frame.x * (0.052 if reel else 0.026)))
+		pill.custom_minimum_size = Vector2(frame.x * (0.5 if reel else 0.24), frame.x * (0.13 if reel else 0.06))
+		box.add_child(UI.spacer(int(frame.y * 0.012)))
+		var holder: Control = UI.centred(pill)
+		box.add_child(holder)
+		fades.append(holder)
+	for k: int in range(fades.size()):
+		fades[k].modulate.a = 0.0
+		create_tween().tween_property(fades[k], "modulate:a", 1.0, 0.4).set_delay(0.3 + k * 0.18)
 	Audio.play(&"win", -10.0)
 
 func _centre_box() -> VBoxContainer:
