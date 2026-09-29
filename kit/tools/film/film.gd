@@ -334,19 +334,19 @@ func _challenge(beat: Dictionary) -> void:
 	var ring: _Countdown = _Countdown.new(int(beat.get("count", 3)), ring_r)
 	if reel:
 		_bg.visible = true
-		_screen.pivot_offset = frame * Vector2(0.5, 0.52)
+		_screen.pivot_offset = frame * Vector2(0.5, 0.47)
 		var m: ShaderMaterial = ShaderMaterial.new()
 		m.shader = _round_shader()
 		m.set_shader_parameter("rect_size", frame)
 		m.set_shader_parameter("radius", 0.0)
 		_screen.material = m
 		var lift: Tween = create_tween().set_parallel(true)
-		lift.tween_property(_screen, "scale", Vector2.ONE * 0.78, 0.6).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		lift.tween_property(_screen, "scale", Vector2.ONE * 0.74, 0.6).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		lift.tween_method(func(r: float) -> void: m.set_shader_parameter("radius", r), 0.0, frame.x * 0.07, 0.6)
 		lift.tween_property(_bg, "card", 1.0, 0.6)
-		lift.chain().tween_property(_screen, "scale", Vector2.ONE * 0.8, maxf(0.5, float(beat.get("dur", 4.0)) - 0.6)).set_trans(Tween.TRANS_SINE)
+		lift.chain().tween_property(_screen, "scale", Vector2.ONE * 0.76, maxf(0.5, float(beat.get("dur", 4.0)) - 0.6)).set_trans(Tween.TRANS_SINE)
 		_bg.card_of = _screen
-		ring.position = Vector2(frame.x * 0.5, frame.y * 0.755)
+		ring.position = Vector2(frame.x * 0.5, frame.y * 0.74)
 	else:
 		var side: String = String(beat.get("side", "left"))
 		ring.position = Vector2(frame.x * (0.56 if side == "left" else 0.07) + ring_r, frame.y * 0.72)
