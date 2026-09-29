@@ -174,6 +174,8 @@ func _tutorial() -> String:
 		return "Every marble rolls until it hits something"
 	if level == 3:
 		return "Par is the fewest moves possible"
+	if _first_sharing_a_hole():
+		return "One hole takes every marble of its colour"
 	if _first_with_pits():
 		return "Square pits swallow any marble"
 	if _first_with_colours(2):
@@ -185,6 +187,14 @@ func _first_with_pits() -> bool:
 		return false
 	for i: int in range(level):
 		if Pack.board(i).cells.has(TiltBoard.Cell.PIT):
+			return false
+	return true
+
+func _first_sharing_a_hole() -> bool:
+	if not _shares_a_hole(start):
+		return false
+	for i: int in range(level):
+		if _shares_a_hole(Pack.board(i)):
 			return false
 	return true
 
@@ -201,6 +211,9 @@ static func _colours(b: TiltBoard) -> int:
 	for c: int in b.marble_colour:
 		seen[c] = true
 	return seen.size()
+
+static func _shares_a_hole(b: TiltBoard) -> bool:
+	return b.marble_cell.size() > _colours(b)
 
 # --- Results ------------------------------------------------------------------------------------------
 
