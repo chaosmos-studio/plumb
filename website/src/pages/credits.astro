@@ -1,38 +1,15 @@
 ---
 import Base from "../layouts/Base.astro";
 import Crumbs from "../components/Crumbs.astro";
-import { site, team } from "../site.config";
+import { credits, site, team } from "../site.config";
 import { breadcrumbs } from "../utils/schema";
 
-// Mirrors the game's CREDITS.md, plus what this website is built with.
-const sections = [
-  {
-    title: "Made by",
-    items: team.map(p => ({ name: p.name, detail: p.role, href: p.url })),
-  },
-  {
-    title: "In the game",
-    items: [
-      { name: "Godot Engine", detail: "The game engine, MIT licence", href: "https://godotengine.org/license/" },
-      { name: "Outfit", detail: "Typeface by the Outfit Project Authors, SIL Open Font License 1.1. Used as two static weights with overlapping contours merged.", href: "https://github.com/Outfitio/Outfit-Fonts" },
-      { name: "Sound and music", detail: "Every sound effect and the ambient music loop are synthesised in code for this game. None are third-party.", href: "" },
-      { name: "Art and levels", detail: "Drawn and generated in code, and every level proven solvable by the game's own solver.", href: "" },
-    ],
-  },
-  {
-    title: "On this website",
-    items: [
-      { name: "Astro", detail: "The site framework, MIT licence", href: "https://astro.build/" },
-      { name: "Pagefind", detail: "Search that runs in your browser, MIT licence", href: "https://pagefind.app/" },
-      { name: "Giscus", detail: "Comments and feedback on GitHub Discussions, MIT licence", href: "https://giscus.app/" },
-      { name: "Outfit", detail: "Served from Fontsource, SIL Open Font License 1.1", href: "https://fontsource.org/fonts/outfit" },
-    ],
-  },
-];
+// Mirrors the game's CREDITS.md and credits.gd, plus what this website is built with.
+const sections = [{ title: "Made by", items: team.map(p => ({ name: p.name, detail: p.role, href: p.url })) }, ...credits];
 ---
 <Base
   title="Credits"
-  description="Everyone and everything behind Plumb: the two-person team, the Godot Engine, the Outfit typeface, and the tools this website is built with."
+  description={`Everyone and everything behind ${site.name}: the two-person team, the Godot Engine, the type, and the tools this website is built with.`}
   path="credits/"
   schema={[breadcrumbs([{ label: "Credits", path: "credits/" }])]}
 >

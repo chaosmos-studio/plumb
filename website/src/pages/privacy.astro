@@ -1,13 +1,13 @@
 ---
 import Base from "../layouts/Base.astro";
 import Crumbs from "../components/Crumbs.astro";
-import { site } from "../site.config";
+import { privacy, site } from "../site.config";
 import { breadcrumbs } from "../utils/schema";
 const effective = new Date(site.launched).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 ---
 <Base
   title="Privacy policy"
-  description="Plumb's privacy policy: the game collects no personal data, has no ads, no analytics and no accounts, and keeps your progress on your own device."
+  description={privacy.description}
   path="privacy/"
   schema={[breadcrumbs([{ label: "Privacy policy", path: "privacy/" }])]}
 >
@@ -15,7 +15,7 @@ const effective = new Date(site.launched).toLocaleDateString("en-GB", { day: "nu
     <Crumbs trail={[{ label: "Privacy policy" }]} />
     <p class="eyebrow">Privacy policy</p>
     <h1>Your game stays <span class="accent">yours</span></h1>
-    <p class="lede">Plumb collects no personal data. There are no ads, no analytics, no accounts, and nothing you do in the game leaves your device.</p>
+    <p class="lede">{site.name} collects no personal data. There are no ads, no analytics, no accounts, and nothing you do in the game leaves your device.</p>
     <p class="muted">Effective {effective}. This policy covers the {site.name} app on Google Play, the web version you can play in a browser, and this website.</p>
 
     <ul class="summary">
@@ -36,8 +36,7 @@ const effective = new Date(site.launched).toLocaleDateString("en-GB", { day: "nu
       <h2>What the app stores on your device</h2>
       <p>To remember your progress, the app keeps a small settings file in its private storage on your phone. It holds:</p>
       <ul>
-        <li>the stars you have earned on each level, which is also how levels unlock;</li>
-        <li>your sound, music and vibration settings.</li>
+        {privacy.stores.map(item => <li>{item}</li>)}
       </ul>
       <p>That file never leaves your device. You can erase it at any time with Settings, Reset progress in the game, or by clearing the app's storage or uninstalling it.</p>
 
@@ -45,7 +44,7 @@ const effective = new Date(site.launched).toLocaleDateString("en-GB", { day: "nu
       <p>When you play in a browser, the same progress and settings are saved in your browser's own storage for this site, on your computer or phone. They are not sent to us. Clearing the site's data in your browser erases them.</p>
 
       <h2>Permissions</h2>
-      <p>The Android app asks for one permission: vibration, so a tap can buzz lightly when vibration is switched on. It asks for no location, camera, microphone, contacts, files or network access.</p>
+      <p>{privacy.permissions}</p>
 
       <h2>Google Play</h2>
       <p>The app is downloaded through Google Play. Google may collect data about installs, devices and app crashes as part of running the store, under <a href="https://policies.google.com/privacy" rel="noopener">Google's privacy policy</a>. That happens outside the app, and we only see anonymous totals such as install counts in the Play Console.</p>
@@ -57,7 +56,7 @@ const effective = new Date(site.launched).toLocaleDateString("en-GB", { day: "nu
       <p>The blog and the support page have an optional comment box powered by Giscus, which stores comments as GitHub Discussions in a public repository. It loads only on those pages, commenting requires you to sign in with GitHub, and anything you post is public and covered by GitHub's terms and privacy statement. If you email us, we use your message and address only to reply.</p>
 
       <h2>Children</h2>
-      <p>Plumb is suitable for everyone. Because the app collects no data from anyone, it collects none from children.</p>
+      <p>{privacy.audience}</p>
 
       <h2>Changes</h2>
       <p>If a future version ever changes what the app does with data, this page will be updated before that version is released, and the effective date above will change.</p>

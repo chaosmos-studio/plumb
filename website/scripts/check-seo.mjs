@@ -4,7 +4,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const dist = new URL("../dist/", import.meta.url).pathname;
-const base = (process.env.BASE_PATH || "/plumb/").replace(/\/?$/, "/");
+const base = (process.env.BASE_PATH || "/" + JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).name.replace(/-website$/, "") + "/").replace(/\/?$/, "/");
 // Paths served by something other than this build, such as the game's own web export.
 const external = [`${base}play/`];
 const problems = [];

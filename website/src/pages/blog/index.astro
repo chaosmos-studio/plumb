@@ -3,7 +3,7 @@ import { getCollection } from "astro:content";
 import Base from "../../layouts/Base.astro";
 import Crumbs from "../../components/Crumbs.astro";
 import PostCard from "../../components/PostCard.astro";
-import { site } from "../../site.config";
+import { blogPage, site } from "../../site.config";
 import { breadcrumbs } from "../../utils/schema";
 import { absolute, href } from "../../utils/url";
 
@@ -23,16 +23,16 @@ const schema = [
 ];
 ---
 <Base
-  title="Blog: tips, strategy and how Plumb is made"
-  description={`Guides, strategy and behind-the-scenes posts about ${site.name}, the calm marble puzzle game: how to play, how to get three stars, and how the levels are made.`}
+  title={blogPage.title}
+  description={blogPage.description}
   path="blog/"
   schema={schema}
 >
   <section class="wrap section top">
     <Crumbs trail={[{ label: "Blog" }]} />
     <p class="eyebrow">The {site.name} blog</p>
-    <h1>Tips, strategy and <span class="accent">how it's made</span></h1>
-    <p class="lede">How to play, how to find the perfect route, and what goes into a puzzle game built by a two-person team.</p>
+    <h1>{blogPage.heading[0]}<span class="accent">{blogPage.heading[1]}</span></h1>
+    <p class="lede">{blogPage.lede}</p>
     <div class="tags">
       {tags.map(t => <a class="chip" href={href(`blog/tags/${t.toLowerCase().replace(/\s+/g, "-")}/`)}>{t}</a>)}
     </div>

@@ -1,4 +1,4 @@
-// The site lives under a base path (/plumb/ on shravangoswami.com), so every link goes through here.
+// The site lives under a base path (/<game>/ on shravangoswami.com), so every link goes through here.
 const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
 
 /** A path inside the site, like "blog/" or "", as a root-relative link with the base in front. */

@@ -6,61 +6,41 @@ import FAQ from "../components/FAQ.astro";
 import PostCard from "../components/PostCard.astro";
 import StoreButtons from "../components/StoreButtons.astro";
 import Video from "../components/Video.astro";
-import { faq, features, site } from "../site.config";
+import { faq, features, home, shots, site } from "../site.config";
 import { faq as faqSchema, game, video } from "../utils/schema";
+import { picture } from "../utils/images";
 import { absoluteFromRoot, href } from "../utils/url";
 
-import heroShot from "../assets/shots/plumb-level-in-play.webp";
-import hintShot from "../assets/shots/plumb-hint-preview.webp";
-import wonShot from "../assets/shots/plumb-level-solved.webp";
-import titleShot from "../assets/shots/plumb-title-screen.webp";
-import levelsShot from "../assets/shots/plumb-level-select.webp";
-import stepStart from "../assets/home/plumb-step-start.webp";
-import stepTilt from "../assets/home/plumb-step-tilt.webp";
-import stepHome from "../assets/home/plumb-step-home.webp";
-
-const shots = [
-  { src: titleShot, alt: "Plumb's title screen with a seesaw of marbles and the Play button" },
-  { src: heroShot, alt: "A Plumb level in play: marbles, walls and coloured holes on a paper board" },
-  { src: hintShot, alt: "Plumb's hint showing ghost marbles and dotted trails for the next tilt" },
-  { src: wonShot, alt: "A solved Plumb level with three gold stars" },
-  { src: levelsShot, alt: "Plumb's level grid with stars earned on the first levels" },
-];
-const steps = [
-  { src: stepStart, title: "Look", body: "Every marble sits on a paper board with walls, holes and, later, pits. Find where each one needs to go." },
-  { src: stepTilt, title: "Tilt", body: "Swipe to tilt the board. Every marble rolls at once, until a wall, the edge or another marble stops it." },
-  { src: stepHome, title: "Drop", body: "A marble that rolls over a hole of its own colour drops in. Get them all home in as few moves as you can." },
-];
-
+const heroShot = picture(home.heroShot);
+const heroAlt = shots.find(s => s.image === home.heroShot)?.alt ?? `${site.name} in play`;
+const gallery = shots.map(s => ({ src: picture(s.image), alt: s.alt }));
+const steps = home.how.steps.map(s => ({ ...s, src: picture(s.image) }));
 const posts = (await getCollection("blog")).sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()).slice(0, 3);
-const screenshotUrls = await Promise.all(shots.map(async s => absoluteFromRoot((await getImage({ src: s.src, width: 540, format: "png" })).src)));
+const screenshotUrls = await Promise.all(gallery.map(async s => absoluteFromRoot((await getImage({ src: s.src, width: 540, format: "png" })).src)));
 const schema = [game(screenshotUrls), video("trailer")!, faqSchema(faq.slice(0, 4))];
 ---
 
 <Base title={site.name} description={site.description} path="" schema={schema}>
   <section class="wrap hero" data-pagefind-body>
     <div class="copy">
-      <p class="eyebrow">A calm marble puzzle for Android and the web</p>
-      <h1>Plumb: roll every marble <span class="accent">home</span></h1>
-      <p class="lede">Tilt the board and every marble rolls at once. Each one has to drop into the hole of its own colour, and square pits swallow any that wander. One swipe, a whole chain of consequences.</p>
+      <p class="eyebrow">{home.eyebrow}</p>
+      <h1>{home.title[0]}<span class="accent">{home.title[1]}</span></h1>
+      <p class="lede">{home.lede}</p>
       <StoreButtons />
       <ul class="facts">
-        <li>Free</li>
-        <li>No ads</li>
-        <li>No timers</li>
-        <li>Plays offline</li>
+        {home.facts.map(f => <li>{f}</li>)}
       </ul>
     </div>
     <div class="phone">
-      <Image src={heroShot} alt={shots[1].alt} widths={[320, 480, 640]} sizes="(min-width: 860px) 360px, 70vw" loading="eager" fetchpriority="high" />
+      <Image src={heroShot} alt={heroAlt} widths={[320, 480, 640]} sizes="(min-width: 860px) 360px, 70vw" loading="eager" fetchpriority="high" />
     </div>
   </section>
 
   <section class="wrap section" data-reveal>
     <div class="section-head">
-      <p class="eyebrow">Watch</p>
-      <h2>Forty seconds of Plumb</h2>
-      <p class="lede">A few levels, the hint, three stars, and one left for you to solve.</p>
+      <p class="eyebrow">{home.watch.eyebrow}</p>
+      <h2>{home.watch.title}</h2>
+      <p class="lede">{home.watch.lede}</p>
     </div>
     <Video id="trailer" />
   </section>
@@ -68,12 +48,12 @@ const schema = [game(screenshotUrls), video("trailer")!, faqSchema(faq.slice(0, 
   <section class="wrap section" data-reveal>
     <div class="section-head">
       <p class="eyebrow">How to play</p>
-      <h2>Look. Tilt. Drop.</h2>
+      <h2>{home.how.title}</h2>
     </div>
     <div class="grid grid-3">
       {steps.map((s, i) => (
         <article class="step card">
-          <Image src={s.src} alt={`Step ${i + 1} of a Plumb level: ${s.title.toLowerCase()}`} widths={[320, 480]} sizes="(min-width: 720px) 33vw, 100vw" />
+          <Image src={s.src} alt={`Step ${i + 1} of a ${site.name} level: ${s.title.toLowerCase()}`} widths={[320, 480]} sizes="(min-width: 720px) 33vw, 100vw" />
           <div class="step-body">
             <p class="num">{i + 1}</p>
             <h3>{s.title}</h3>
@@ -82,13 +62,13 @@ const schema = [game(screenshotUrls), video("trailer")!, faqSchema(faq.slice(0, 
         </article>
       ))}
     </div>
-    <p class="more"><a href={href("blog/how-to-play-plumb/")}>Read the full guide to playing Plumb</a></p>
+    <p class="more"><a href={href(home.how.link.href)}>{home.how.link.label}</a></p>
   </section>
 
   <section class="wrap section" data-reveal>
     <div class="section-head">
       <p class="eyebrow">Why it's good</p>
-      <h2>Simple rules, surprisingly deep</h2>
+      <h2>{home.featuresTitle}</h2>
     </div>
     <div class="grid grid-3">
       {features.map(f => (
@@ -106,7 +86,7 @@ const schema = [game(screenshotUrls), video("trailer")!, faqSchema(faq.slice(0, 
       <h2>See it on a phone</h2>
     </div>
     <div class="gallery" role="list">
-      {shots.map(s => (
+      {gallery.map(s => (
         <figure role="listitem">
           <Image src={s.src} alt={s.alt} widths={[240, 360, 480]} sizes="280px" />
           <figcaption>{s.alt}</figcaption>
@@ -137,8 +117,8 @@ const schema = [game(screenshotUrls), video("trailer")!, faqSchema(faq.slice(0, 
 
   <section class="wrap section" data-reveal>
     <div class="final card">
-      <h2>Ready to roll?</h2>
-      <p class="lede">Plumb is free on Google Play, with no ads and nothing to sign up for.</p>
+      <h2>{home.final.title}</h2>
+      <p class="lede">{home.final.lede}</p>
       <StoreButtons />
     </div>
   </section>

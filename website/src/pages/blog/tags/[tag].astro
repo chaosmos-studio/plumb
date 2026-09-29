@@ -19,7 +19,7 @@ const slug = tag.toLowerCase().replace(/\s+/g, "-");
 ---
 <Base
   title={`${tag} posts`}
-  description={`Every ${site.name} blog post about ${tag.toLowerCase()}: ${posts.length} ${posts.length === 1 ? "article" : "articles"} on the calm marble puzzle game.`}
+  description={`${posts.length} ${site.name} blog ${posts.length === 1 ? "post" : "posts"} about ${tag.toLowerCase()}: guides, tips and stories from the two people who make ${site.name}, a free puzzle game.`}
   path={`blog/tags/${slug}/`}
   schema={[breadcrumbs([{ label: "Blog", path: "blog/" }, { label: tag, path: `blog/tags/${slug}/` }])]}
 >
