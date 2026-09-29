@@ -46,6 +46,17 @@ func show_board(b: TiltBoard, fit: Vector2) -> void:
 	sync(b, false)
 	queue_redraw()
 
+## Marbles arrive one after another when a level opens, which shows how many there are before play.
+func intro() -> void:
+	for i: int in range(_marbles.size()):
+		var marble: Marble = _marbles[i]
+		if not marble.visible:
+			continue
+		marble.scale = Vector2.ZERO
+		var t: Tween = create_tween()
+		t.tween_interval(0.12 + i * 0.07)
+		t.tween_property(marble, "scale", Vector2.ONE, 0.26).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
 ## Puts every marble where the board says, at once: after an undo or a restart.
 func sync(b: TiltBoard, pop_in: bool = true) -> void:
 	board = b
