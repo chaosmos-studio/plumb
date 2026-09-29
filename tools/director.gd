@@ -12,6 +12,8 @@ extends RefCounted
 const SETTLE: float = 0.9
 
 var _settle: float = SETTLE
+## Set by the film runner, which draws the finger for each move; null for stills.
+var film: Object = null
 
 ## `settle` waits for the level's opening animation, which stills want and films do not: a film reveals
 ## the level while its marbles pop in.
@@ -71,7 +73,7 @@ func perform(game: Node, verb: String, arg: Variant) -> void:
 			var path: PackedInt32Array = TiltSolver.new().solve(game.get("board"))
 			var most: int = int(arg) if int(arg) > 0 else path.size()
 			for i: int in range(mini(most, path.size())):
-				game.call("_tilt", path[i])
+				_swipe(game, path[i])
 				while game.get("_view").busy:
 					await game.get_tree().process_frame
 				await game.get_tree().create_timer(0.42).timeout
@@ -80,10 +82,10 @@ func perform(game: Node, verb: String, arg: Variant) -> void:
 			await game.get_tree().create_timer(1.2).timeout
 		"tilt":
 			var dirs: Dictionary = {"L": TiltBoard.LEFT, "R": TiltBoard.RIGHT, "U": TiltBoard.UP, "D": TiltBoard.DOWN}
-			game.call("_tilt", int(dirs.get(String(arg), TiltBoard.DOWN)))
+			_swipe(game, int(dirs.get(String(arg), TiltBoard.DOWN)))
 		"fail":
 			for dir: int in _losing_line(game.get("board"), 4):
-				game.call("_tilt", dir)
+				_swipe(game, dir)
 				while game.get("_view").busy:
 					await game.get_tree().process_frame
 				await game.get_tree().create_timer(0.3).timeout
@@ -91,6 +93,17 @@ func perform(game: Node, verb: String, arg: Variant) -> void:
 			game.call("_on_undo")
 		"wait":
 			await game.get_tree().create_timer(float(arg)).timeout
+
+## Tilts the board the way a player would: a swipe across the middle of the board in that direction,
+## drawn by the film when there is one.
+func _swipe(game: Node, dir: int) -> void:
+	if film != null:
+		var view: Node2D = game.get("_view")
+		var centre: Vector2 = view.get_global_transform_with_canvas().origin
+		var reach: float = float(view.get("cell")) * 1.6
+		var d: Vector2 = Vector2(TiltBoard.DIRS[dir])
+		film.call("touch", "swipe", centre - d * reach, centre + d * reach)
+	game.call("_tilt", dir)
 
 ## The shortest run of tilts, up to `depth`, that drops a marble down a pit.
 func _losing_line(start: TiltBoard, depth: int) -> PackedInt32Array:
