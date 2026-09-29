@@ -17,3 +17,6 @@ assets_incoming/
 # them in .godot/export_credentials.cfg, and CI injects them at build time.
 *.keystore
 *.jks
+
+# Rendered promo videos, made by the promo pipeline in video-making-skills
+/out/
