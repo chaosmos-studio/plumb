@@ -1,0 +1,299 @@
+name: Release Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "Version name players see, e.g. 0.1.0. The release is tagged v<version_name>."
+        required: true
+        type: string
+      version_code:
+        description: "Version code. Blank means the run number + 100. Play rejects a code it has seen before."
+        required: false
+        type: string
+      prerelease:
+        description: "Mark the GitHub release as a prerelease"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-android
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GODOT_RELEASE: "4.7-stable"
+      GODOT_VERSION: "4.7.stable"
+      # What Godot 4.7's Gradle template compiles with (platform/android/java/app/config.gradle).
+      BUILD_TOOLS: "36.1.0"
+      BUNDLETOOL: "1.18.3"
+      GAME: ${{ github.event.repository.name }}
+      VERSION_NAME: ${{ inputs.version_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+
+      # Fails before the long build if the tag is taken or the code would not be new to Play. Earlier codes are
+      # read back from the release notes, which is where this workflow records them.
+      - name: Pick the version
+        env:
+          CODE_INPUT: ${{ inputs.version_code }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$VERSION_NAME" =~ ^[0-9]+(\.[0-9]+){1,3}(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "version_name '$VERSION_NAME' should look like 0.1.0 or 0.1.0-beta.1" >&2
+            exit 1
+          fi
+          code="${CODE_INPUT:-$(( RUN_NUMBER + 100 ))}"
+          if ! [[ "$code" =~ ^[1-9][0-9]{0,9}$ ]] || (( code > 2100000000 )); then
+            echo "version_code '$code' must be a whole number from 1 to 2100000000" >&2
+            exit 1
+          fi
+          tag="v$VERSION_NAME"
+          if [ -n "$(git ls-remote --tags origin "refs/tags/$tag")" ]; then
+            echo "tag $tag already exists: pick a new version_name, or remove it with gh release delete $tag --cleanup-tag" >&2
+            exit 1
+          fi
+          highest="$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate --jq '.[].body' \
+            | grep -oE 'Version code: [0-9]+' | grep -oE '[0-9]+' | sort -n | tail -1 || true)"
+          if [ -n "$highest" ] && (( code <= highest )); then
+            echo "version_code $code is not above $highest, the highest code already released" >&2
+            exit 1
+          fi
+          package="$(sed -n 's/^package\/unique_name="\(.*\)"$/\1/p' export_presets.cfg | sort -u)"
+          title="$(sed -n 's/^config\/name="\(.*\)"$/\1/p' project.godot)"
+          if [ -z "$package" ] || [ "$(echo "$package" | wc -l)" != 1 ] || [ -z "$title" ]; then
+            echo "expected one package/unique_name across the Android presets and a config/name, got '$package' '$title'" >&2
+            exit 1
+          fi
+          {
+            echo "VERSION_CODE=$code"
+            echo "TAG=$tag"
+            echo "PACKAGE=$package"
+            echo "TITLE=$title"
+          } >> "$GITHUB_ENV"
+          echo "releasing $title ($package) $tag with version code $code"
+
+      - name: Install Godot and export templates
+        run: |
+          set -e
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}"
+          wget -qO godot.zip "${base}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          wget -qO templates.tpz "${base}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
+          unzip -q godot.zip
+          bin="$PWD/Godot_v${GODOT_RELEASE}_linux.x86_64"
+          chmod +x "$bin"
+          echo "GODOT_BIN=$bin" >> "$GITHUB_ENV"
+          dest="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}"
+          mkdir -p "$dest"
+          unzip -q templates.tpz
+          mv templates/* "$dest/"
+          rm -f godot.zip templates.tpz
+          # The Gradle build compiles from this source template rather than repacking a prebuilt APK.
+          ls -l "$dest/android_source.zip"
+
+      # Two passes: the first builds .godot/ from a bare checkout and logs font errors because the theme
+      # loads the font before the scan has imported it. The second must be clean, and the font asserted.
+      - name: Import resources
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --import > /dev/null 2>&1 || true
+          "$GODOT_BIN" --headless --import 2>&1 | tee import.log
+          if grep -q "ERROR" import.log; then
+            echo "the second import pass logged errors" >&2
+            exit 1
+          fi
+          ls .godot/imported/Baloo2.ttf-*.fontdata
+
+      - name: Run tests
+        run: |
+          set -e
+          out="$("$GODOT_BIN" --headless -s res://tests/run_tests.gd 2>&1)"
+          echo "$out"
+          echo "$out" | grep -q " 0 failed"
+          smoke="$(timeout 300 "$GODOT_BIN" --headless res://tools/smoke.tscn 2>&1)"
+          echo "$smoke"
+          echo "$smoke" | grep -q "SMOKE_OK"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools platforms;android-36 build-tools;${{ env.BUILD_TOOLS }}"
+
+      - name: Locate the SDK tools and bundletool
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          tools="$sdk/build-tools/$BUILD_TOOLS"
+          test -x "$tools/apksigner"
+          test -x "$tools/aapt2"
+          wget -qO "$RUNNER_TEMP/bundletool.jar" \
+            "https://github.com/google/bundletool/releases/download/${BUNDLETOOL}/bundletool-all-${BUNDLETOOL}.jar"
+          echo "ANDROID_SDK=$sdk" >> "$GITHUB_ENV"
+          echo "SDK_TOOLS=$tools" >> "$GITHUB_ENV"
+
+      # Godot reads the SDK, the JDK and the debug key from editor settings, not from the project. The file is
+      # generated first and then appended to, because its name carries the engine version.
+      - name: Point Godot at the SDK, the JDK and a debug key
+        run: |
+          set -euo pipefail
+          keytool -genkeypair -keyalg RSA -keysize 2048 -validity 10000 -alias androiddebugkey \
+            -keypass android -storepass android -keystore "$RUNNER_TEMP/debug.keystore" \
+            -dname "CN=Android Debug,O=Android,C=US" -noprompt
+          "$GODOT_BIN" --headless --editor --quit > /dev/null 2>&1 || true
+          settings="$(find "$HOME/.config/godot" -name 'editor_settings-*.tres' | head -1)"
+          test -n "$settings"
+          echo "using $settings"
+          cat >> "$settings" <<EOF
+          export/android/android_sdk_path = "${ANDROID_SDK}"
+          export/android/java_sdk_path = "${JAVA_HOME}"
+          export/android/debug_keystore = "${RUNNER_TEMP}/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOF
+
+      # The upload key from secrets when the repository has one, otherwise the debug key made above, which is
+      # new on every run. Godot takes the release key from GODOT_ANDROID_KEYSTORE_RELEASE_* so nothing secret is
+      # written into export_presets.cfg.
+      - name: Choose the signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -n "$KEYSTORE_BASE64$KEYSTORE_ALIAS$KEYSTORE_PASSWORD" ]; then
+            if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_ALIAS" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+              echo "set all three of ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_ALIAS and ANDROID_KEYSTORE_PASSWORD, or none" >&2
+              exit 1
+            fi
+            key="$RUNNER_TEMP/upload.jks"
+            echo "$KEYSTORE_BASE64" | base64 -d > "$key"
+            alias="$KEYSTORE_ALIAS"
+            pass="$KEYSTORE_PASSWORD"
+            upload=true
+          else
+            key="$RUNNER_TEMP/debug.keystore"
+            alias=androiddebugkey
+            pass=android
+            upload=false
+          fi
+          sha="$(keytool -list -v -keystore "$key" -storepass "$pass" -alias "$alias" | sed -n 's/^[[:space:]]*SHA256: //p')"
+          test -n "$sha"
+          {
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$key"
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_USER=$alias"
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=$pass"
+            echo "UPLOAD_KEY=$upload"
+            echo "KEY_SHA256=$sha"
+          } >> "$GITHUB_ENV"
+          echo "upload key: $upload, certificate SHA-256 $sha"
+
+      - name: Stamp the version into the Android presets
+        run: |
+          set -euo pipefail
+          sed -i -e "s/^version\/code=.*/version\/code=${VERSION_CODE}/" \
+                 -e "s/^version\/name=.*/version\/name=\"${VERSION_NAME}\"/" export_presets.cfg
+          test "$(grep -c "^version/code=${VERSION_CODE}$" export_presets.cfg)" = 2
+          test "$(grep -c "^version/name=\"${VERSION_NAME}\"$" export_presets.cfg)" = 2
+
+      # --install-android-build-template unpacks android_source.zip into android/build (gitignored) before the
+      # first export. The second export finds it in place.
+      - name: Export the AAB and the APK
+        run: |
+          set -euo pipefail
+          mkdir -p build/android
+          out="build/android/${GAME}-${VERSION_NAME}"
+          "$GODOT_BIN" --headless --install-android-build-template --export-release "Android AAB" "$out.aab"
+          "$GODOT_BIN" --headless --export-release "Android APK" "$out.apk"
+          ls -l "$out.aab" "$out.apk"
+          echo "AAB=$out.aab" >> "$GITHUB_ENV"
+          echo "APK=$out.apk" >> "$GITHUB_ENV"
+
+      - name: Verify the APK
+        run: |
+          set -euo pipefail
+          "$SDK_TOOLS/apksigner" verify --verbose --print-certs "$APK" | tee apksigner.log
+          digest="$(echo "$KEY_SHA256" | tr -d ':' | tr 'A-F' 'a-f')"
+          grep -q "certificate SHA-256 digest: $digest" apksigner.log
+          badging="$("$SDK_TOOLS/aapt2" dump badging "$APK")"
+          grep -E "^(package|sdkVersion|targetSdkVersion|native-code|application-label):" <<< "$badging"
+          grep -q "^package: name='$PACKAGE' versionCode='$VERSION_CODE' versionName='$VERSION_NAME'" <<< "$badging"
+          grep -q "^targetSdkVersion:'36'" <<< "$badging"
+          grep -q "^native-code: .*'arm64-v8a'" <<< "$badging"
+          unzip -l "$APK" | grep "levels/levels.json"
+
+      - name: Verify the AAB
+        run: |
+          set -euo pipefail
+          jarsigner -verify "$AAB" | tee jarsigner.log
+          grep -q "jar verified" jarsigner.log
+          keytool -printcert -jarfile "$AAB" | grep "SHA256: $KEY_SHA256"
+          manifest() { java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle "$AAB" --xpath "$1"; }
+          echo "package $(manifest /manifest/@package), versionCode $(manifest /manifest/@android:versionCode)," \
+               "versionName $(manifest /manifest/@android:versionName)," \
+               "targetSdkVersion $(manifest /manifest/uses-sdk/@android:targetSdkVersion)," \
+               "minSdkVersion $(manifest /manifest/uses-sdk/@android:minSdkVersion)"
+          echo "permissions: $(manifest /manifest/uses-permission/@android:name | tr '\n' ' ')"
+          test "$(manifest /manifest/@package)" = "$PACKAGE"
+          test "$(manifest /manifest/@android:versionCode)" = "$VERSION_CODE"
+          test "$(manifest /manifest/@android:versionName)" = "$VERSION_NAME"
+          test "$(manifest /manifest/uses-sdk/@android:targetSdkVersion)" = 36
+          unzip -l "$AAB" | grep "lib/.*/libgodot_android.so"
+          unzip -l "$AAB" | grep "levels/levels.json"
+
+      - name: Write the release notes
+        run: |
+          set -euo pipefail
+          if [ "$UPLOAD_KEY" = true ]; then
+            signing="Signed with the upload key from the repository secrets (certificate SHA-256 $KEY_SHA256), so the AAB can go to Google Play."
+          else
+            signing="**Signed with a throwaway key: sideload only, not uploadable to Play.** Each such build has a new key, so uninstall an earlier one before installing this. Run tools/make_upload_key.sh once to sign with a real upload key."
+          fi
+          cat > notes.md <<EOF
+          $TITLE $VERSION_NAME for Android.
+
+          - Version code: $VERSION_CODE
+          - Version name: $VERSION_NAME
+          - Package: $PACKAGE
+          - Target SDK 36, min SDK 24, arm64-v8a and armeabi-v7a
+          - Commit: $GITHUB_SHA
+
+          \`$(basename "$AAB")\` is the bundle for Google Play. \`$(basename "$APK")\` installs straight on a phone.
+
+          $signing
+          EOF
+          cat notes.md
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ${{ github.event.repository.name }}-${{ inputs.version_name }}-android
+          path: |
+            build/android/*.aab
+            build/android/*.apk
+          if-no-files-found: error
+
+      - name: Publish the GitHub release
+        env:
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+          flags=()
+          if [ "$PRERELEASE" = true ]; then
+            flags+=(--prerelease)
+          fi
+          gh release create "$TAG" "$AAB" "$APK" --target "$GITHUB_SHA" --title "$TITLE $VERSION_NAME" \
+            --notes-file notes.md "${flags[@]}"
+          gh release view "$TAG" --json url,assets --jq '.url, (.assets[] | "\(.name) \(.size) bytes")'
