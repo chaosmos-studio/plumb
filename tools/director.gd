@@ -4,7 +4,8 @@ extends RefCounted
 ## name and get the real game, driven through its own code paths, in the viewport they pass.
 ##
 ## Actions: title, levels, settings, play:N, moves:N:K (after K solver moves), hint:N:K, rolling:N:K,
-## won:N, hero:N (the board with the HUD hidden). Levels are 1-based here, as a player counts them.
+## won:N, failed:N (the shortest fall into a pit), hero:N (the board with the HUD hidden), and for the website board:N[:LRUD], boardsolve:N:K and
+## boardhint:N:K, which also hide the HUD. Levels are 1-based here, as a player counts them.
 ##
 ## Films also call perform(game, verb, arg) on a staged game: solve (arg = most moves), hint, tilt
 ## (arg = L, R, U or D), fail (tilts into a pit), undo, wait (arg = seconds).
@@ -57,6 +58,34 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			var game4: Node = await _game(host, n)
 			await _solve(game4, 999)
 			await _wait(host, 1.9)
+		"board":
+			# The board alone, for the website: optionally after a run of tilts given as letters (L R U D).
+			var game6: Node = await _game(host, n)
+			if parts.size() > 2:
+				for letter: String in parts[2].split(""):
+					await _tilt_now(game6, letter)
+			_hide_hud(game6)
+			await _wait(host, 0.3)
+		"boardsolve":
+			var game7: Node = await _game(host, n)
+			await _solve(game7, k)
+			# A finished level raises its result sheet a moment later; wait for it so it is hidden too.
+			await _wait(host, 1.4 if bool(game7.get("finished")) else 0.3)
+			_hide_hud(game7)
+			await _wait(host, 0.1)
+		"boardhint":
+			var game8: Node = await _game(host, n)
+			await _solve(game8, k)
+			_hide_hud(game8)
+			game8.call("_on_hint")
+			await _wait(host, 1.0)
+		"failed":
+			var game9: Node = await _game(host, n)
+			for dir: int in _losing_line(game9.get("board"), 4):
+				game9.call("_tilt", dir)
+				while game9.get("_view").busy:
+					await host.get_tree().process_frame
+			await _wait(host, 1.6)
 		"hero":
 			var game5: Node = await _game(host, n)
 			for child: Node in game5.get_children():
@@ -126,6 +155,20 @@ func _losing_line(start: TiltBoard, depth: int) -> PackedInt32Array:
 		frontier = next_frontier
 		paths = next_paths
 	return PackedInt32Array()
+
+func _hide_hud(game: Node) -> void:
+	for child: Node in game.get_children():
+		if child is CanvasLayer:
+			(child as CanvasLayer).visible = false
+
+func _tilt_now(game: Node, letter: String) -> void:
+	var dirs: Dictionary = {"L": TiltBoard.LEFT, "R": TiltBoard.RIGHT, "U": TiltBoard.UP, "D": TiltBoard.DOWN}
+	if not dirs.has(letter):
+		return
+	game.call("_tilt", int(dirs[letter]))
+	while game.get("_view").busy:
+		await game.get_tree().process_frame
+	await game.get_tree().create_timer(0.05).timeout
 
 func _game(host: Node, level: int) -> Node:
 	Pack.current = level
