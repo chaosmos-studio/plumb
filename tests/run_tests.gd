@@ -14,6 +14,8 @@ func _initialize() -> void:
 	_test_orientation_is_an_int()
 	_test_tilt_rules()
 	_test_solver()
+	_test_difficulty()
+	_test_novelty()
 	_test_serialisation()
 	_test_stars()
 	_test_level_pack()
@@ -91,6 +93,32 @@ func _test_solver() -> void:
 	path = solver.solve(b)
 	_check("the solver never routes through a pit", path.size() == 1 and path[0] == TiltBoard.RIGHT)
 
+func _test_difficulty() -> void:
+	var d: TiltDifficulty = TiltDifficulty.of(_board(["..0"], [[0, 0, 0]]))
+	_check("a forced win needs no luck", d.par == 1 and d.bits == 0.0)
+	d = TiltDifficulty.of(_board(["...", "..0", "..."], [[1, 1, 0]]))
+	_check("one winning tilt in four is two bits", d.par == 1 and is_equal_approx(d.bits, 2.0))
+	var open: TiltDifficulty = TiltDifficulty.of(_board(["...", "...", "..0"], [[1, 1, 0]]))
+	var pit: TiltDifficulty = TiltDifficulty.of(_board(["...", "x..", "..0"], [[1, 1, 0]]))
+	_check("a pit in reach is in play", pit.risk > 0.0 and open.risk == 0.0)
+	_check("the measure finds the solver's route", open.path == TiltSolver.new().solve(_board(["...", "...", "..0"], [[1, 1, 0]])))
+
+func _test_novelty() -> void:
+	var b: TiltBoard = _board(["#.0.", "..x1", "...."], [[0, 2, 1], [3, 2, 0]])
+	var recoloured: TiltBoard = _board(["#.1.", "..x0", "...."], [[0, 2, 0], [3, 2, 1]])
+	var turned: TiltBoard = TiltNovelty.transform(recoloured, 3)
+	_check("a board turned and recoloured is the same level", TiltNovelty.canonical(turned) == TiltNovelty.canonical(b))
+	var views: TiltNovelty.Views = TiltNovelty.views(b, TiltDifficulty.of(b).path)
+	var mirror: TiltBoard = TiltNovelty.transform(b, 1)
+	_check("a mirrored board is a replay", TiltNovelty.clash(views, TiltNovelty.views(mirror, TiltDifficulty.of(mirror).path)) == "layout")
+	var bare: TiltBoard = _board(["...0", "....", "....", "...."], [[0, 0, 0]])
+	var walled: TiltBoard = _board(["...0", "....", "###.", ".###"], [[0, 0, 0]])
+	var other: TiltBoard = _board(["0..#", "#...", ".#..", "..#."], [[3, 3, 0]])
+	var bare_views: TiltNovelty.Views = TiltNovelty.views(bare, TiltDifficulty.of(bare).path)
+	_check("new walls around the same one-tilt route are a replay",
+		TiltNovelty.clash(bare_views, TiltNovelty.views(walled, TiltDifficulty.of(walled).path)) == "route")
+	_check("a different board is new", TiltNovelty.clash(bare_views, TiltNovelty.views(other, TiltDifficulty.of(other).path)) == "")
+
 func _test_serialisation() -> void:
 	var b: TiltBoard = _board(["#.0", ".x1"], [[1, 0, 0], [0, 1, 1]])
 	var again: TiltBoard = TiltBoard.from_dict(b.to_dict())
@@ -105,7 +133,8 @@ func _test_stars() -> void:
 	_check("the two-star leeway grows with par", Stars.leeway(12) > Stars.leeway(4))
 
 # Every shipped level is re-solved against the current rules. If a rule change alters a par or makes a
-# level unsolvable, this fails before a build can ship it.
+# level unsolvable, this fails before a build can ship it. The same measures the generator uses then
+# check the set as a whole: no level repeats another, and none is easier than the one before.
 func _test_level_pack() -> void:
 	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://levels/levels.json"))
 	_check("levels.json parses", typeof(data) == TYPE_DICTIONARY)
@@ -114,10 +143,65 @@ func _test_level_pack() -> void:
 	var levels: Array = (data as Dictionary)["levels"]
 	_check("the pack has every level", levels.size() == TiltGenerator.level_count())
 	var solver: TiltSolver = TiltSolver.new()
+	var boards: Array[TiltBoard] = []
+	var measures: Array[TiltDifficulty] = []
+	var views: Array[TiltNovelty.Views] = []
 	var wrong: Array[int] = []
 	for i: int in range(levels.size()):
 		var level: Dictionary = levels[i]
-		var path: PackedInt32Array = solver.solve(TiltBoard.from_dict(level), 100000)
+		var board: TiltBoard = TiltBoard.from_dict(level)
+		var path: PackedInt32Array = solver.solve(board, 100000)
 		if path.size() != int(level["par"]):
 			wrong.append(i + 1)
+		var measure: TiltDifficulty = TiltDifficulty.of(board)
+		boards.append(board)
+		measures.append(measure)
+		views.append(TiltNovelty.views(board, measure.path))
 	_check("every level solves in exactly its par (wrong: %s)" % str(wrong), wrong.is_empty())
+
+	var same: Array[String] = []
+	var replays: Array[String] = []
+	var seen: Dictionary = {}
+	for i: int in range(levels.size()):
+		var key: String = TiltNovelty.canonical(boards[i])
+		if seen.has(key):
+			same.append("%d=%d" % [int(seen[key]) + 1, i + 1])
+		seen[key] = i
+		for j: int in range(i + 1, levels.size()):
+			var why: String = TiltNovelty.clash(views[i], views[j])
+			if why != "":
+				replays.append("%d-%d %s" % [i + 1, j + 1, why])
+	_check("no two levels are the same level (%s)" % ", ".join(same), same.is_empty())
+	_check("no level is a near replay of another (%s)" % ", ".join(replays), replays.is_empty())
+
+	var easier: Array[int] = []
+	var shorter: Array[int] = []
+	var less: Array[int] = []
+	var tame: Array[int] = []
+	for i: int in range(levels.size()):
+		if _pits(boards[i]) > 0 and measures[i].risk <= 0.0:
+			tame.append(i + 1)
+		if i == 0:
+			continue
+		if measures[i].easier_than(measures[i - 1]):
+			easier.append(i + 1)
+		if measures[i].par < measures[i - 1].par:
+			shorter.append(i + 1)
+		var a: TiltBoard = boards[i - 1]
+		var b: TiltBoard = boards[i]
+		if (b.cells.size() < a.cells.size() or b.marble_cell.size() < a.marble_cell.size()
+				or _colours(b) < _colours(a) or _pits(b) < _pits(a)):
+			less.append(i + 1)
+	_check("no level is easier than the one before (at: %s)" % str(easier), easier.is_empty())
+	_check("par never falls (at: %s)" % str(shorter), shorter.is_empty())
+	_check("no level takes away room, a colour, a marble or a pit (at: %s)" % str(less), less.is_empty())
+	_check("every pit level has a pit in play (not: %s)" % str(tame), tame.is_empty())
+
+static func _colours(b: TiltBoard) -> int:
+	var seen: Dictionary = {}
+	for c: int in b.marble_colour:
+		seen[c] = true
+	return seen.size()
+
+static func _pits(b: TiltBoard) -> int:
+	return b.cells.count(TiltBoard.Cell.PIT)
