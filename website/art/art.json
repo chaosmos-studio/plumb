@@ -1,0 +1,88 @@
+{
+  "game_dir": "..",
+  "fonts": {"display": "assets/fonts/Outfit-Light.ttf", "ui": "assets/fonts/Outfit-Medium.ttf"},
+  "palette": {"bg": "#f4efe7", "surface": "#fffdf9", "ink": "#2f333d", "muted": "#9b9384", "accent": "#ff6b6b", "accent_ink": "#ffffff", "gold": "#ffb627", "teal": "#3bb8a9"},
+  "orbs": ["accent", "gold", "teal"],
+  "crop": "auto",
+  "shots": {
+    "p_title": {"action": "title", "size": [1080, 2340]},
+    "p_play": {"action": "moves:60:2", "size": [1080, 2340]},
+    "p_hint": {"action": "hint:45:0", "size": [1080, 2340]},
+    "p_won": {"action": "won:16", "size": [1080, 2340]},
+    "p_levels": {"action": "levels", "size": [1080, 2340]},
+    "p_settings": {"action": "settings", "size": [1080, 2340]},
+    "p_failed": {"action": "failed:36", "size": [1080, 2340]},
+    "b1": {"action": "board:1"},
+    "b2_0": {"action": "boardsolve:2:0"}, "b2_1": {"action": "boardsolve:2:1"}, "b2_2": {"action": "boardsolve:2:2"},
+    "b9": {"action": "board:9"},
+    "b10_0": {"action": "boardsolve:10:0"}, "b10_1": {"action": "boardsolve:10:1"}, "b10_2": {"action": "boardsolve:10:2"}, "b10_3": {"action": "boardsolve:10:3"},
+    "b17": {"action": "board:17"},
+    "b20": {"action": "board:20"}, "b20_L": {"action": "board:20:L"}, "b20_R": {"action": "board:20:R"}, "b20_U": {"action": "board:20:U"}, "b20_D": {"action": "board:20:D"},
+    "b22_0": {"action": "boardsolve:22:0"}, "b22_1": {"action": "boardsolve:22:1"},
+    "b26": {"action": "board:26"},
+    "b30": {"action": "board:30"},
+    "b35": {"action": "board:35"},
+    "b36": {"action": "board:36"},
+    "b44": {"action": "board:44"},
+    "b45_0": {"action": "boardsolve:45:0"}, "h45": {"action": "boardhint:45:0"},
+    "h55": {"action": "boardhint:55:0"},
+    "h65": {"action": "boardhint:65:0"},
+    "b60": {"action": "board:60"},
+    "b70": {"action": "board:70"},
+    "b90": {"action": "board:90"},
+    "b100": {"action": "board:100"},
+    "b120": {"action": "board:120"}
+  },
+  "images": [
+    {"out": "src/assets/shots/plumb-title-screen.webp", "kind": "phone", "shot": "p_title"},
+    {"out": "src/assets/shots/plumb-level-in-play.webp", "kind": "phone", "shot": "p_play"},
+    {"out": "src/assets/shots/plumb-hint-preview.webp", "kind": "phone", "shot": "p_hint"},
+    {"out": "src/assets/shots/plumb-level-solved.webp", "kind": "phone", "shot": "p_won"},
+    {"out": "src/assets/shots/plumb-level-select.webp", "kind": "phone", "shot": "p_levels"},
+    {"out": "src/assets/home/plumb-step-start.webp", "kind": "board", "shot": "b2_0", "height": 640},
+    {"out": "src/assets/home/plumb-step-tilt.webp", "kind": "board", "shot": "b2_1", "height": 640},
+    {"out": "src/assets/home/plumb-step-home.webp", "kind": "board", "shot": "b2_2", "height": 640},
+
+    {"out": "src/content/blog/how-to-play-plumb/images/cover.webp", "kind": "cover", "shot": "b60", "seed": 1},
+    {"out": "src/content/blog/how-to-play-plumb/images/plumb-two-tilt-solution.webp", "kind": "strip", "shots": ["b2_0", "b2_1", "b2_2"], "labels": ["Start", "First tilt", "Home"]},
+    {"out": "src/content/blog/how-to-play-plumb/images/plumb-two-colours.webp", "kind": "board", "shot": "b17", "note": "Two colours: each marble needs a hole of its own colour"},
+    {"out": "src/content/blog/how-to-play-plumb/images/plumb-first-pit.webp", "kind": "board", "shot": "b35", "note": "A square pit swallows any marble that rolls over it"},
+
+    {"out": "src/content/blog/three-stars-and-par/images/cover.webp", "kind": "cover", "shot": "b90", "seed": 2},
+    {"out": "src/content/blog/three-stars-and-par/images/plumb-three-stars.webp", "kind": "phone", "shot": "p_won", "flatten": true, "width": 900},
+    {"out": "src/content/blog/three-stars-and-par/images/plumb-par-three-route.webp", "kind": "strip", "shots": ["b10_0", "b10_1", "b10_2", "b10_3"], "labels": ["Start", "Move 1", "Move 2", "Move 3"]},
+    {"out": "src/content/blog/three-stars-and-par/images/plumb-par-by-level.webp", "kind": "chart", "series": "par", "title": "Par (fewest moves) by level"},
+
+    {"out": "src/content/blog/beginner-tips/images/cover.webp", "kind": "cover", "shot": "b30", "seed": 3},
+    {"out": "src/content/blog/beginner-tips/images/plumb-read-the-board.webp", "kind": "board", "shot": "b26", "note": "Before you swipe: find the walls each marble will stop against"},
+    {"out": "src/content/blog/beginner-tips/images/plumb-one-tilt-changes-everything.webp", "kind": "compare", "shots": ["b22_0", "b22_1"], "labels": ["Before the tilt", "After the tilt"]},
+    {"out": "src/content/blog/beginner-tips/images/plumb-mind-the-pit.webp", "kind": "board", "shot": "b44", "note": "Late boards hide pits in the rows you want to use"},
+
+    {"out": "src/content/blog/how-the-hint-works/images/cover.webp", "kind": "cover", "shot": "h55", "seed": 4},
+    {"out": "src/content/blog/how-the-hint-works/images/plumb-hint-before-after.webp", "kind": "compare", "shots": ["b45_0", "h45"], "labels": ["Stuck", "With the hint"]},
+    {"out": "src/content/blog/how-the-hint-works/images/plumb-hint-ghost-marbles.webp", "kind": "board", "shot": "h65", "note": "Ghost marbles show where each marble will stop"},
+    {"out": "src/content/blog/how-the-hint-works/images/plumb-hint-phone.webp", "kind": "phone", "shot": "p_hint", "flatten": true, "width": 900},
+
+    {"out": "src/content/blog/pits-undo-and-restart/images/cover.webp", "kind": "cover", "shot": "b44", "seed": 5},
+    {"out": "src/content/blog/pits-undo-and-restart/images/plumb-pit-board.webp", "kind": "board", "shot": "b36", "note": "One pit, three marbles, and only some tilts are safe"},
+    {"out": "src/content/blog/pits-undo-and-restart/images/plumb-down-the-pit.webp", "kind": "phone", "shot": "p_failed", "flatten": true, "width": 900},
+
+    {"out": "src/content/blog/how-plumb-levels-are-made/images/cover.webp", "kind": "cover", "shot": "b120", "seed": 6},
+    {"out": "src/content/blog/how-plumb-levels-are-made/images/plumb-eight-symmetries.webp", "kind": "turns", "shot": "b9"},
+    {"out": "src/content/blog/how-plumb-levels-are-made/images/plumb-difficulty-ramp.webp", "kind": "chart", "series": "par", "title": "Par never drops from one level to the next"},
+    {"out": "src/content/blog/how-plumb-levels-are-made/images/plumb-early-middle-late.webp", "kind": "strip", "shots": ["b10_0", "b60", "b120"], "labels": ["Early", "Middle", "Late"]},
+
+    {"out": "src/content/blog/why-four-directions-go-deep/images/cover.webp", "kind": "cover", "shot": "b20", "seed": 7},
+    {"out": "src/content/blog/why-four-directions-go-deep/images/plumb-four-tilts-tree.webp", "kind": "tree", "root": "b20", "children": ["b20_L", "b20_R", "b20_U", "b20_D"], "labels": ["Left", "Right", "Up", "Down"]},
+    {"out": "src/content/blog/why-four-directions-go-deep/images/plumb-marbles-by-level.webp", "kind": "chart", "series": "marbles", "title": "Marbles on the board, by level"},
+
+    {"out": "src/content/blog/calm-by-design/images/cover.webp", "kind": "cover", "shot": "b70", "seed": 8},
+    {"out": "src/content/blog/calm-by-design/images/plumb-title-screen.webp", "kind": "phone", "shot": "p_title", "flatten": true, "width": 900},
+    {"out": "src/content/blog/calm-by-design/images/plumb-settings.webp", "kind": "phone", "shot": "p_settings", "flatten": true, "width": 900},
+    {"out": "src/content/blog/calm-by-design/images/plumb-level-grid.webp", "kind": "phone", "shot": "p_levels", "flatten": true, "width": 900},
+
+    {"out": "src/content/blog/made-by-a-human-and-an-ai/images/cover.webp", "kind": "cover", "shot": "b100", "seed": 9},
+    {"out": "src/content/blog/made-by-a-human-and-an-ai/images/plumb-from-first-to-last.webp", "kind": "strip", "shots": ["b1", "b35", "b100"], "labels": ["Where it starts", "The first pit", "Late game"]},
+    {"out": "src/content/blog/made-by-a-human-and-an-ai/images/plumb-on-a-phone.webp", "kind": "phone", "shot": "p_play", "flatten": true, "width": 900}
+  ]
+}
