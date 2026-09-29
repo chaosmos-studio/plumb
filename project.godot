@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Tilt"
 config/version="0.1.0"
-run/main_scene="res://scenes/game/game.tscn"
+run/main_scene="res://scenes/shell/title.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/show_image=false
 
@@ -20,7 +20,9 @@ boot_splash/show_image=false
 
 EventBus="*res://autoload/event_bus.gd"
 Save="*res://autoload/save.gd"
+Pack="*res://autoload/pack.gd"
 Audio="*res://autoload/audio.gd"
+Screens="*res://autoload/screens.gd"
 
 [display]
 
@@ -93,6 +95,8 @@ back={
 pointing/emulate_touch_from_mouse=true
 
 [rendering]
+
+environment/defaults/default_clear_color=Color(0.9529412, 0.92941177, 0.8901961, 1)
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
