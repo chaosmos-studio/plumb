@@ -1,4 +1,4 @@
-"""Synthesises every sound in Tilt. Nothing is recorded or downloaded, so there is nothing to license.
+"""Synthesises every sound in Plumb. Nothing is recorded or downloaded, so there is nothing to license.
 
 Run from the project root: python3 tools/make_sfx.py   (needs numpy and ffmpeg with libvorbis)
 

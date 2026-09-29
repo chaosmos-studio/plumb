@@ -1,4 +1,4 @@
-# Tilt - the math and the ideas
+# Plumb - the math and the ideas
 
 Lessons for the systems with a non-obvious idea behind them. Read a section, open the constant it
 names, change it, and run the game. Each section ends with things to try.

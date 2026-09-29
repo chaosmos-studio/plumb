@@ -1,4 +1,4 @@
-# Tilt - game design and build plan
+# Plumb - game design and build plan
 
 The living design document: what we are building, how the code is organised, and the order we build it
 in. When a decision changes, update this file. Shared working rules live in the workspace `CLAUDE.md`;
@@ -89,7 +89,7 @@ web/         the loading page and icons for the web build
 
 The kit (`autoload/`, `scripts/kit/`, `scenes/shell/`, the smoke and shots harnesses, the web shell and
 the deploy workflow) is shared with the other two mini games; only the rules, the board view and the
-generator are Tilt's own.
+generator are Plumb's own.
 
 ## 7. Milestones
 

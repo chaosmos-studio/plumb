@@ -3,7 +3,7 @@ extends Node
 # Progress and settings. ConfigFile rather than a Resource, because the file stays readable and a corrupt
 # or older file degrades to defaults instead of failing to load.
 
-const PATH: String = "user://tilt.cfg"
+const PATH: String = "user://plumb.cfg"
 
 ## Overridable so test robots never touch the player's real progress.
 var path: String = PATH

@@ -1,9 +1,9 @@
-# Tilt
+# Plumb
 
 A minimalist marble-sorting puzzle. Swipe and the whole board tilts: every marble rolls until something
 stops it, and a marble drops into a hole of its own colour. Clear the board in as few tilts as you can.
 
-**Play the web preview: https://shravangoswami.com/tilt/** (swipe, or arrow keys / WASD; Z undo, R restart,
+**Play the web preview: https://shravangoswami.com/plumb/** (swipe, or arrow keys / WASD; Z undo, R restart,
 H hint). The preview updates on every push to `main`.
 
 Godot 4.7, GL Compatibility, 2D, portrait, Android first. 120 levels, every one generated and proven

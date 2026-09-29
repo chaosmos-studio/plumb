@@ -9,12 +9,12 @@ import base64, json, os, subprocess, sys, time, urllib.request
 import websocket
 
 SP = sys.argv[1] if len(sys.argv) > 1 else "build/web_check"
-URL = sys.argv[2] if len(sys.argv) > 2 else "https://shravangoswami.com/tilt/"
+URL = sys.argv[2] if len(sys.argv) > 2 else "https://shravangoswami.com/plumb/"
 W, H = 405, 720
 os.makedirs(SP, exist_ok=True)
 chrome = subprocess.Popen(["google-chrome", "--headless=new", "--no-sandbox", "--use-angle=swiftshader",
     "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--window-size=%d,%d" % (W, H),
-    "--user-data-dir=%s/chrome-tilt-cdp" % SP, "--remote-debugging-port=9334", "--remote-allow-origins=*",
+    "--user-data-dir=%s/chrome-plumb-cdp" % SP, "--remote-debugging-port=9334", "--remote-allow-origins=*",
     "about:blank"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 try:
     for _ in range(50):

@@ -1,4 +1,4 @@
-"""Draws Tilt's icon, a glossy coral marble on warm paper, at every size the web build and stores use.
+"""Draws Plumb's icon, a glossy coral marble on warm paper, at every size the web build and stores use.
 
 Run from the project root: python3 tools/make_icons.py   (needs Pillow)
 

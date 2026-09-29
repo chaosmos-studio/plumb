@@ -15,7 +15,7 @@ func _ready() -> void:
 	column.add_theme_constant_override("separation", 20)
 	ui.add_child(column)
 
-	var logo: Label = UI.label("tilt", 210)
+	var logo: Label = UI.label("plumb", 190)
 	column.add_child(logo)
 	var tagline: Label = UI.label("Roll every marble home", 36, Palette.MUTED)
 	column.add_child(tagline)
