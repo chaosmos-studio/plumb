@@ -80,19 +80,31 @@ func tilt(dir: int) -> TiltMove:
 	var move: TiltMove = TiltMove.new()
 	move.dir = dir
 	var d: Vector2i = DIRS[dir]
-	var occupied: Dictionary = {}
-	for m: int in range(marble_cell.size()):
-		if marble_cell[m] != GONE:
-			occupied[marble_cell[m]] = m
-	var order: Array[int] = []
-	for m: int in range(marble_cell.size()):
-		if marble_cell[m] != GONE:
-			order.append(m)
+	var stride: int = d.x + d.y * width
+	var occupied: PackedInt32Array = PackedInt32Array()
+	occupied.resize(cells.size())
+	occupied.fill(-1)
 	# Front first: the marble furthest along the direction of travel moves before the ones behind it.
-	order.sort_custom(func(a: int, b: int) -> bool:
-		var pa: Vector2i = coords(marble_cell[a])
-		var pb: Vector2i = coords(marble_cell[b])
-		return pa.x * d.x + pa.y * d.y > pb.x * d.x + pb.y * d.y)
+	# An insertion sort, stable, as the few marbles on a board need.
+	var order: PackedInt32Array = PackedInt32Array()
+	var ahead: PackedInt32Array = PackedInt32Array()
+	for m: int in range(marble_cell.size()):
+		var c: int = marble_cell[m]
+		if c == GONE:
+			continue
+		occupied[c] = m
+		var along: int = (c % width) * d.x + (c / width) * d.y
+		var k: int = order.size()
+		order.append(m)
+		ahead.append(along)
+		while k > 0 and ahead[k - 1] < along:
+			order[k] = order[k - 1]
+			ahead[k] = ahead[k - 1]
+			k -= 1
+		order[k] = m
+		ahead[k] = along
+	var rolled: PackedByteArray = PackedByteArray()
+	rolled.resize(marble_cell.size())
 	var step: int = 0
 	while true:
 		var moved: Array[int] = []
@@ -100,14 +112,16 @@ func tilt(dir: int) -> TiltMove:
 			var from: int = marble_cell[m]
 			if from == GONE:
 				continue
-			var to_at: Vector2i = coords(from) + d
-			if not inside(to_at) or cells[index(to_at)] == Cell.WALL:
+			var x: int = from % width + d.x
+			var y: int = from / width + d.y
+			if x < 0 or y < 0 or x >= width or y >= height:
 				continue
-			var to: int = index(to_at)
-			if occupied.has(to):
+			var to: int = from + stride
+			if cells[to] == Cell.WALL or occupied[to] >= 0:
 				continue
-			occupied.erase(from)
+			occupied[from] = -1
 			marble_cell[m] = to
+			rolled[m] = 1
 			moved.append(m)
 			if cells[to] == Cell.PIT:
 				marble_cell[m] = GONE
@@ -123,7 +137,7 @@ func tilt(dir: int) -> TiltMove:
 		move.steps.append(moved)
 		step += 1
 	for m: int in order:
-		if marble_cell[m] != GONE and move.moved(m):
+		if marble_cell[m] != GONE and rolled[m] == 1:
 			move.stopped.append(m)
 	return move
 
