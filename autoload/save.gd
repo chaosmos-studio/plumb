@@ -5,6 +5,9 @@ extends Node
 
 const PATH: String = "user://tilt.cfg"
 
+## Overridable so test robots never touch the player's real progress.
+var path: String = PATH
+
 ## Best stars per level, 0 for not yet solved.
 var stars: PackedByteArray = PackedByteArray()
 var sound_on: bool = true
@@ -55,7 +58,7 @@ func set_haptics(on: bool) -> void:
 
 func restore() -> void:
 	var file: ConfigFile = ConfigFile.new()
-	if file.load(PATH) != OK:
+	if file.load(path) != OK:
 		return
 	var saved: Variant = file.get_value("progress", "stars", PackedByteArray())
 	if saved is PackedByteArray:
@@ -68,4 +71,4 @@ func store() -> void:
 	file.set_value("progress", "stars", stars)
 	file.set_value("settings", "sound_on", sound_on)
 	file.set_value("settings", "haptics_on", haptics_on)
-	file.save(PATH)
+	file.save(path)
