@@ -15,19 +15,24 @@ const DEADZONE: float = 0.2
 # these same actions with Input.action_press / Input.parse_input_event, so they need no bindings here.
 static func bindings() -> Dictionary:
 	return {
-		"move_left": [_key(KEY_A), _key(KEY_LEFT), _axis(JOY_AXIS_LEFT_X, -1.0)],
-		"move_right": [_key(KEY_D), _key(KEY_RIGHT), _axis(JOY_AXIS_LEFT_X, 1.0)],
-		"move_up": [_key(KEY_W), _key(KEY_UP), _axis(JOY_AXIS_LEFT_Y, -1.0)],
-		"move_down": [_key(KEY_S), _key(KEY_DOWN), _axis(JOY_AXIS_LEFT_Y, 1.0)],
-		"jump": [_key(KEY_SPACE), _button(JOY_BUTTON_A)],
-		"action": [_mouse(MOUSE_BUTTON_LEFT), _key(KEY_E), _button(JOY_BUTTON_X)],
-		"pause": [_key(KEY_ESCAPE), _key(KEY_P), _button(JOY_BUTTON_START)],
-		"retry": [_key(KEY_R), _key(KEY_ENTER)],
-		"debug_toggle": [_key(KEY_F3)],
+		"tilt_left": [_key(KEY_A), _key(KEY_LEFT), _axis(JOY_AXIS_LEFT_X, -1.0)],
+		"tilt_right": [_key(KEY_D), _key(KEY_RIGHT), _axis(JOY_AXIS_LEFT_X, 1.0)],
+		"tilt_up": [_key(KEY_W), _key(KEY_UP), _axis(JOY_AXIS_LEFT_Y, -1.0)],
+		"tilt_down": [_key(KEY_S), _key(KEY_DOWN), _axis(JOY_AXIS_LEFT_Y, 1.0)],
+		"undo": [_key(KEY_Z), _key(KEY_BACKSPACE), _button(JOY_BUTTON_B)],
+		"retry": [_key(KEY_R), _button(JOY_BUTTON_Y)],
+		"hint": [_key(KEY_H), _button(JOY_BUTTON_X)],
+		"back": [_key(KEY_ESCAPE), _button(JOY_BUTTON_BACK)],
 	}
 
 func _initialize() -> void:
 	var table: Dictionary = bindings()
+	# Drop actions no longer in the table, so a renamed action does not linger in project.godot. The
+	# built-in ui_* actions are left alone.
+	for property: Dictionary in ProjectSettings.get_property_list():
+		var setting: String = property["name"]
+		if setting.begins_with("input/") and not setting.begins_with("input/ui_") and not table.has(setting.substr(6)):
+			ProjectSettings.set_setting(setting, null)
 	for action: String in table:
 		var events: Array[InputEvent] = []
 		for event: InputEvent in table[action]:
