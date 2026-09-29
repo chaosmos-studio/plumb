@@ -29,3 +29,32 @@ python3 tools/make_font.py                                    # the seam-free st
 
 `PLAN.md` is the design and the roadmap, `MATH.md` explains the rules, the solver and the generator,
 and `CREDITS.md` lists the one third-party asset (the font).
+
+## Releasing
+
+Android builds come from the **Release Android** workflow, started by hand from the Actions tab or with:
+
+```
+gh workflow run release-android.yml -f version_name=0.1.0                      # a prerelease
+gh workflow run release-android.yml -f version_name=1.0.0 -f prerelease=false  # a full release
+```
+
+It runs the tests and the smoke robot, exports a signed AAB and APK through the Gradle build (target SDK 36,
+arm64-v8a and armeabi-v7a), checks both, and publishes them on a GitHub release tagged `v<version_name>`.
+The same two files are kept on the run as a workflow artifact. Google Play takes the AAB; the APK is for
+installing straight on a phone.
+
+`version_code` defaults to the run number + 100. Play rejects any code it has already seen, even on a test
+track, so the workflow refuses a code that is not above every earlier release's, and a tag that exists.
+
+Until the repository has an upload key, builds are signed with a throwaway key and the release notes say so:
+fine for sideloading, not uploadable to Play. To switch to a real upload key, run once:
+
+```
+tools/make_upload_key.sh
+```
+
+It creates `~/.android-keys/plumb-upload.jks` with a random password kept beside it in
+`plumb-upload.txt`, prints the certificate's SHA-256, and after asking, sets the `ANDROID_KEYSTORE_BASE64`,
+`ANDROID_KEYSTORE_ALIAS` and `ANDROID_KEYSTORE_PASSWORD` secrets the workflow signs with. Back up
+`~/.android-keys`: losing the upload key means a slow reset through Play support.
