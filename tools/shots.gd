@@ -9,7 +9,8 @@ func _ready() -> void:
 	Save.stars = PackedByteArray([3, 3, 2, 1, 3])
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://shots"))
 	await _shoot_scene("res://scenes/shell/title.tscn", "title", 70)
-	await _shoot_scene("res://scenes/shell/levels.tscn", "levels", 20)
+	await _shoot_scene("res://kit/shell/levels.tscn", "levels", 20)
+	await _shoot_settings()
 	await _shoot_level(0, "level_001", false, false)
 	await _shoot_level(_first_pit_level(), "level_pits", false, false)
 	await _shoot_level(110, "level_111_hint", true, false)
@@ -41,8 +42,10 @@ func _shoot_level(level: int, name: String, hint: bool, solve: bool) -> void:
 	for i: int in range(10):
 		await get_tree().process_frame
 	if hint:
+		for i: int in range(40):
+			await get_tree().process_frame
 		game.call("_on_hint")
-		for i: int in range(12):
+		for i: int in range(24):
 			await get_tree().process_frame
 	if solve:
 		for dir: int in TiltSolver.new().solve(game.board):
@@ -52,6 +55,18 @@ func _shoot_level(level: int, name: String, hint: bool, solve: bool) -> void:
 		await get_tree().create_timer(1.6).timeout
 	await _save(name)
 	game.queue_free()
+	await get_tree().process_frame
+
+func _shoot_settings() -> void:
+	var node: Node = load("res://scenes/shell/title.tscn").instantiate()
+	add_child(node)
+	for i: int in range(10):
+		await get_tree().process_frame
+	Settings.open(node)
+	for i: int in range(40):
+		await get_tree().process_frame
+	await _save("settings")
+	node.queue_free()
 	await get_tree().process_frame
 
 ## Tilts the first pit level the way that loses a marble, then shoots the banner.

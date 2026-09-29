@@ -27,7 +27,7 @@ func _ready() -> void:
 			failures += 1
 		game.queue_free()
 		await get_tree().process_frame
-	for scene: String in ["res://scenes/shell/title.tscn", "res://scenes/shell/levels.tscn"]:
+	for scene: String in ["res://scenes/shell/title.tscn", "res://kit/shell/levels.tscn"]:
 		var node: Node = load(scene).instantiate()
 		add_child(node)
 		for i: int in range(30):
