@@ -101,7 +101,8 @@ jobs:
           ls -l "$dest/android_source.zip"
 
       # Two passes: the first builds .godot/ from a bare checkout and logs font errors because the theme
-      # loads the font before the scan has imported it. The second must be clean, and the font asserted.
+      # loads the font before the scan has imported it. The second must be clean, and every tracked font's
+      # imported file must exist, so a font cannot silently drop out of the build.
       - name: Import resources
         run: |
           set -euo pipefail
@@ -111,7 +112,9 @@ jobs:
             echo "the second import pass logged errors" >&2
             exit 1
           fi
-          ls .godot/imported/Baloo2.ttf-*.fontdata
+          for meta in $(git ls-files '*.ttf.import' '*.otf.import'); do
+            ls -l "$(sed -n 's/^dest_files=\["res:\/\/\(.*\)"\]$/\1/p' "$meta")"
+          done
 
       - name: Run tests
         run: |
