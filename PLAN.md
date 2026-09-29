@@ -48,14 +48,26 @@ same rules. No timers, no lives, no energy. No hand-made levels.
 
 ## 3. Difficulty
 
-Nine tiers in `scripts/tilt/generator.gd`: board size, colours, marbles per colour, wall density, pits,
-and a par window. A random board is kept only if the solver proves it solvable with a par inside the
-window, so difficulty is the par curve (1 at level 1, 13 by level 120), not a guess. Within a tier,
-levels are sorted by par.
+Thirteen phases in `scripts/tilt/generator.gd` fix the board size, colours, marbles, wall density, pits
+and a par window, and from phase to phase each only grows: one marble on 4x4 at level 1, a second marble
+sharing its hole at level 9, a second colour at 17, the first pit at 35, and four colours, eight marbles
+and three pits on 7x8 from level 105. A random board is kept only if the solver proves it solvable
+inside the window.
 
-The fairness invariant: every shipped level solves in exactly its stated par under the current rules.
-`tests/run_tests.gd` re-solves all 120 on every run, so a rule change can never silently break the
-level set.
+Difficulty is measured, not guessed. The score is the bits of luck a player tilting at random needs to
+clear the board in par (`scripts/tilt/difficulty.gd`, `MATH.md` section 5). Each phase pools candidates
+and keeps the run that follows a ramp in both par and bits, par 1 to 13 and 1.6 to 18.4 bits over the
+120 levels, so neither ever falls from one level to the next. Each new mechanic arrives on a level no
+harder than the one before it.
+
+No level repeats another. Compared over the eight rotations and mirrors with colour ignored, two boards
+of one size must differ in 30% of their cells, or in half of them when one solution clears both
+(`scripts/tilt/novelty.gd`, `MATH.md` section 4).
+
+The fairness invariants, all checked from the boards by `tests/run_tests.gd` on every run: every shipped
+level solves in exactly its stated par under the current rules, no level replays another, none is easier
+than the one before, par never falls, no level takes away room, a colour, a marble or a pit, and every
+pit level has a pit in play. A rule change can never silently break the level set.
 
 ## 4. Screens
 
@@ -78,7 +90,8 @@ Later, and only in ways that never touch difficulty:
 
 ```
 autoload/    event_bus, save (progress, settings), pack (the level set), audio, screens (fades)
-scripts/tilt board.gd (rules), tilt_move.gd, solver.gd (BFS), generator.gd (tiers)
+scripts/tilt board.gd (rules), tilt_move.gd, solver.gd (BFS), difficulty.gd (bits of luck),
+             novelty.gd (replays), generator.gd (phases and the ramp)
 scripts/kit  palette, ui (code-built theme), stars (scoring), star_icon
 scenes/game  game.gd (play screen), board_view.gd, marble, ripple, hint_arrow
 scenes/shell title.gd, seesaw.gd, levels.gd
@@ -105,6 +118,6 @@ generator are Plumb's own.
 ## 8. What would kill this
 
 - Levels that feel random rather than designed. Watch the retention curve for where players stop;
-  if it is inside one tier, that tier's par window is wrong.
-- Levels with an obvious "just keep swiping" solution. If playtests show it, filter candidates that a
-  random walk solves in under twice par.
+  if it is inside one phase, that stretch of the ramp is too steep.
+- Levels with an obvious "just keep swiping" solution. The bits score is exactly how often random
+  swiping finds par, so if playtests show it, raise the ramp's floor rather than guess.

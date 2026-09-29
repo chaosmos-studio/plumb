@@ -7,7 +7,8 @@ stops it, and a marble drops into a hole of its own colour. Clear the board in a
 H hint). The preview updates on every push to `main`.
 
 Godot 4.7, GL Compatibility, 2D, portrait, Android first. 120 levels, every one generated and proven
-solvable by the solver, with the solver's shortest route as par.
+solvable by the solver, with the solver's shortest route as par. No level repeats another, and none is
+easier than the one before it.
 
 ## Run it
 
@@ -21,7 +22,7 @@ DISPLAY=:0 godot --path . --resolution 720x1280 res://tools/shots.tscn   # scree
 ## Regenerate
 
 ```
-godot --headless --path . -s res://tools/generate_levels.gd   # levels/levels.json (about 90 s)
+godot --headless --path . -s res://tools/generate_levels.gd   # levels/levels.json (2 to 3 minutes)
 python3 tools/make_sfx.py                                     # assets/audio/sfx (numpy, ffmpeg)
 python3 tools/make_icons.py                                   # web/ icons and assets/branding/icon.png (Pillow)
 python3 tools/make_font.py                                    # the seam-free static font (fonttools, skia-pathops)
