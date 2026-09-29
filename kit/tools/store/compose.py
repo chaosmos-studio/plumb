@@ -225,9 +225,14 @@ def feature(spec, fonts, colours, dark, size=(1024, 500), text=True):
     canvas.alpha_composite(art, (ax, ay))
     if text:
         draw = ImageDraw.Draw(canvas)
-        mark = font(fonts["display"], int(h * 0.3))
-        tag = font(fonts["ui"], int(h * 0.058))
         left = int(w * 0.07)
+        # A long name shrinks to fit the room left of the art instead of running into it.
+        room = ax - left - int(w * 0.04)
+        size = int(h * 0.3)
+        while size > 40 and ImageDraw.Draw(canvas).textlength(spec["wordmark"], font=font(fonts["display"], size)) > room:
+            size -= 4
+        mark = font(fonts["display"], size)
+        tag = font(fonts["ui"], int(h * 0.058))
         mark_box = draw.textbbox((0, 0), spec["wordmark"], font=mark)
         mark_h = mark_box[3] - mark_box[1]
         top = (h - mark_h) / 2 - h * 0.08
