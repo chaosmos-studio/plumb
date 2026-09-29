@@ -134,6 +134,7 @@ jobs:
       - uses: android-actions/setup-android@v4
         with:
           packages: "platform-tools platforms;android-36 build-tools;${{ env.BUILD_TOOLS }}"
+          log-accepted-android-sdk-licenses: false
 
       - name: Locate the SDK tools and bundletool
         run: |
@@ -241,8 +242,13 @@ jobs:
       - name: Verify the AAB
         run: |
           set -euo pipefail
-          jarsigner -verify "$AAB" | tee jarsigner.log
-          grep -q "jar verified" jarsigner.log
+          # A self-signed upload key and AGP's bundle layout always draw jarsigner warnings, so only a failure prints them.
+          jarsigner -verify "$AAB" > jarsigner.log 2>&1 || true
+          if ! grep -q "jar verified" jarsigner.log; then
+            cat jarsigner.log
+            exit 1
+          fi
+          head -1 jarsigner.log
           keytool -printcert -jarfile "$AAB" | grep "SHA256: $KEY_SHA256"
           manifest() { java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle "$AAB" --xpath "$1"; }
           echo "package $(manifest /manifest/@package), versionCode $(manifest /manifest/@android:versionCode)," \
