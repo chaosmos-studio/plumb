@@ -8,8 +8,8 @@ var filled: bool = false:
 	set(value):
 		filled = value
 		queue_redraw()
-var fill_colour: Color = Palette.GOLD
-var empty_colour: Color = Color(Palette.MUTED, 0.45)
+var fill_colour: Color = Brand.GOLD
+var empty_colour: Color = Color(Brand.MUTED, 0.45)
 
 func _init(size_px: float = 36.0, on: bool = false) -> void:
 	custom_minimum_size = Vector2(size_px, size_px)
