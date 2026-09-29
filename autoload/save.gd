@@ -11,6 +11,7 @@ var path: String = PATH
 ## Best stars per level, 0 for not yet solved.
 var stars: PackedByteArray = PackedByteArray()
 var sound_on: bool = true
+var music_on: bool = true
 var haptics_on: bool = true
 
 func _ready() -> void:
@@ -51,6 +52,11 @@ func set_sound(on: bool) -> void:
 	store()
 	EventBus.settings_changed.emit()
 
+func set_music(on: bool) -> void:
+	music_on = on
+	store()
+	EventBus.settings_changed.emit()
+
 func set_haptics(on: bool) -> void:
 	haptics_on = on
 	store()
@@ -64,11 +70,13 @@ func restore() -> void:
 	if saved is PackedByteArray:
 		stars = saved
 	sound_on = bool(file.get_value("settings", "sound_on", true))
+	music_on = bool(file.get_value("settings", "music_on", true))
 	haptics_on = bool(file.get_value("settings", "haptics_on", true))
 
 func store() -> void:
 	var file: ConfigFile = ConfigFile.new()
 	file.set_value("progress", "stars", stars)
 	file.set_value("settings", "sound_on", sound_on)
+	file.set_value("settings", "music_on", music_on)
 	file.set_value("settings", "haptics_on", haptics_on)
 	file.save(path)

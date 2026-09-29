@@ -3,6 +3,7 @@ extends Node2D
 ## The front door: the name, a toy that shows what the game is before any words do, and two ways in.
 
 var _sound: Button
+var _music: Button
 var _seesaw: Seesaw
 var _stage: Control
 
@@ -51,6 +52,11 @@ func _ready() -> void:
 		Save.set_sound(not Save.sound_on)
 		_label_sound())
 	footer.add_child(_sound)
+	_music = UI.button("")
+	_music.pressed.connect(func() -> void:
+		Save.set_music(not Save.music_on)
+		_label_sound())
+	footer.add_child(_music)
 	_label_sound()
 	var stars: HBoxContainer = HBoxContainer.new()
 	stars.add_theme_constant_override("separation", 10)
@@ -74,3 +80,4 @@ func _centred(column: VBoxContainer, control: Control) -> void:
 
 func _label_sound() -> void:
 	_sound.text = "Sound: on" if Save.sound_on else "Sound: off"
+	_music.text = "Music: on" if Save.music_on else "Music: off"
