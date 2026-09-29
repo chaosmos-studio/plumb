@@ -3,14 +3,17 @@ name: Deploy Web Build
 on:
   push:
     branches: [main]
+    # The website has its own workflow; a blog post should not rebuild the game.
+    paths-ignore: ["website/**", "store/**", "assets/store/**", "**.md"]
   workflow_dispatch:
 
 permissions:
   contents: write
 
+# Both this and the website deploy push to gh-pages, so they queue behind each other instead of racing.
 concurrency:
-  group: web-deploy
-  cancel-in-progress: true
+  group: gh-pages
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -76,4 +79,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: build/web
+          # The game lives under /play/; the website owns the root.
+          destination_dir: play
           keep_files: true
