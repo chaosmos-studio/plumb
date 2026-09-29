@@ -1,0 +1,54 @@
+{
+	"name": "Plumb",
+	"wordmark": "plumb",
+	"tagline": "Roll every marble home",
+	"mood": ["calm", "tactile", "clever", "warm"],
+	"music": {"styles": ["lofi", "marimba", "pluck", "ambient"], "bpm": [80, 104], "scales": ["major", "pentatonic"], "keys": ["C", "D", "F", "G", "A"]},
+	"voice_tone": ["warm", "calm", "friendly", "narrator"],
+	"scenes": {
+		"mechanic": [
+			{"id": "m46", "action": "play:46", "perform": [{"at": 0.7, "verb": "solve", "arg": 3}], "dur": 4.4},
+			{"id": "m61", "action": "play:61", "perform": [{"at": 0.6, "verb": "solve", "arg": 3}], "dur": 4.4},
+			{"id": "m31", "action": "play:31", "perform": [{"at": 0.6, "verb": "solve", "arg": 3}], "dur": 4.2},
+			{"id": "m76", "action": "play:76", "perform": [{"at": 0.6, "verb": "solve", "arg": 3}], "dur": 4.4}
+		],
+		"hint": [
+			{"id": "h46", "action": "play:46", "perform": [{"at": 0.5, "verb": "hint"}], "dur": 3.4},
+			{"id": "h81", "action": "play:81", "perform": [{"at": 0.5, "verb": "hint"}], "dur": 3.4}
+		],
+		"win": [
+			{"id": "w21", "action": "play:21", "perform": [{"at": 0.5, "verb": "solve"}], "dur": 5.4, "hud": true},
+			{"id": "w12", "action": "play:12", "perform": [{"at": 0.5, "verb": "solve"}], "dur": 5.0, "hud": true}
+		],
+		"fail": [
+			{"id": "f36", "action": "play:36", "perform": [{"at": 0.5, "verb": "fail"}], "dur": 3.6},
+			{"id": "f41", "action": "play:41", "perform": [{"at": 0.5, "verb": "fail"}], "dur": 3.6}
+		],
+		"dense": [
+			{"id": "d111", "action": "play:111", "perform": [{"at": 0.6, "verb": "solve", "arg": 4}], "dur": 5.0},
+			{"id": "d96", "action": "play:96", "perform": [{"at": 0.6, "verb": "solve", "arg": 4}], "dur": 5.0}
+		],
+		"levels": [{"id": "grid", "action": "levels", "dur": 2.8, "hud": true}],
+		"title": [{"id": "home", "action": "title", "dur": 2.8, "hud": true}]
+	},
+	"copy": {
+		"hooks": ["Can you roll *every* marble home?", "One swipe. *Every* marble moves.", "Tilt it and watch *everything* roll", "Only one route is *perfect*", "A puzzle made of *gravity*"],
+		"mechanic": ["One swipe moves *every* marble", "Every marble rolls until it *stops*", "Each marble drops into *its* colour", "Plan where they *all* end up"],
+		"hint": ["Stuck? The hint shows *where* they land", "Hints preview *every* marble", "See the next move *before* you make it"],
+		"win": ["Match par for *three* stars", "Find the *perfect* route", "Fewest moves wins"],
+		"fail": ["Mind the *pits*", "One wrong tilt... then *undo*", "Square pits swallow *any* marble"],
+		"dense": ["It gets *deep*", "Eight marbles. *One* swipe at a time.", "Harder boards, same *one* rule"],
+		"stats": [["*120* levels", "every one solvable"], ["No timers", "no lives, no rush"], ["*3* stars", "for the perfect route"], ["*1* rule", "everything rolls"]],
+		"cta": ["Play free", "Tilt it today", "Try level one"],
+		"vo": {
+			"hook": ["Tilt the board, and every marble rolls at once.", "Here is a puzzle made entirely of gravity.", "One swipe moves every marble on the board.", "Can you roll every marble home?"],
+			"mechanic": ["Each marble rolls until something stops it, then drops into the hole of its own colour.", "Every swipe moves them all, so the trick is planning where they will end up.", "Marbles roll as far as they can, and fall into their matching holes."],
+			"hint": ["Stuck? A hint shows exactly where every marble would land.", "The hint previews your next tilt, marble by marble.", "If you get stuck, ask for a hint and watch the route appear."],
+			"win": ["Solve it in the fewest moves for three stars.", "Match par, and the perfect route earns three stars.", "Find the shortest route to earn every star."],
+			"fail": ["Careful: square pits swallow any marble. Undo is always one tap away.", "Fall into a pit and simply undo, then try another way."],
+			"dense": ["The boards grow, the colours multiply, but the rule never changes.", "Later levels pack in more marbles, more walls, and more ways to go wrong."],
+			"stats": ["A hundred and twenty levels, and every single one is solvable.", "No timers, no lives, no rush. Just you and the marbles."],
+			"outro": ["Plumb. Free on Google Play.", "Plumb is free on Google Play.", "Download Plumb, free on Google Play."]
+		}
+	}
+}
