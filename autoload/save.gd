@@ -47,6 +47,12 @@ func total_stars() -> int:
 		n += s
 	return n
 
+## Forgets every star. Settings are kept.
+func reset() -> void:
+	stars = PackedByteArray()
+	store()
+	EventBus.settings_changed.emit()
+
 func set_sound(on: bool) -> void:
 	sound_on = on
 	store()

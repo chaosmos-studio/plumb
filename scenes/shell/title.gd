@@ -1,68 +1,65 @@
 extends Node2D
 
-## The front door: the name, a toy that shows what the game is before any words do, and two ways in.
+## The front door: the name, a toy that shows what the game is before any words do, one primary way in,
+## and settings tucked in a corner.
 
-var _sound: Button
-var _music: Button
+const PILL_WIDTH: float = 460.0
+
 var _seesaw: Seesaw
 var _stage: Control
 
 func _ready() -> void:
 	var ui: Control = UI.root(self)
+	var safe: Dictionary = UI.safe_margins(get_viewport())
+
 	var column: VBoxContainer = VBoxContainer.new()
 	column.set_anchors_preset(Control.PRESET_FULL_RECT)
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", 20)
+	column.add_theme_constant_override("separation", 14)
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(column)
-
-	var logo: Label = UI.label("plumb", 190)
-	column.add_child(logo)
-	var tagline: Label = UI.label("Roll every marble home", 36, Palette.MUTED)
-	column.add_child(tagline)
-
+	column.add_child(UI.title(Brand.WORDMARK, 200))
+	column.add_child(UI.caption(Brand.TAGLINE, 22))
 	# Room for the seesaw, which is drawn in the world behind the UI.
 	_stage = Control.new()
-	_stage.custom_minimum_size = Vector2(0, 250)
+	_stage.custom_minimum_size = Vector2(0, 270)
+	_stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(_stage)
 
-	var play_text: String = "Play"
 	var frontier: int = Save.frontier(Pack.count())
-	if Save.total_stars() > 0:
-		play_text = "Continue: level %d" % (frontier + 1)
-	var play: Button = UI.button(play_text, true)
-	play.custom_minimum_size = Vector2(420, 0)
+	var play: Button = UI.button("Play", UI.Style.PRIMARY)
+	play.custom_minimum_size.x = PILL_WIDTH
 	play.pressed.connect(func() -> void:
 		Pack.current = frontier
-		Screens.go("res://scenes/game/game.tscn"))
-	_centred(column, play)
-	var levels: Button = UI.button("Levels")
-	levels.custom_minimum_size = Vector2(420, 0)
-	levels.pressed.connect(func() -> void: Screens.go("res://scenes/shell/levels.tscn"))
-	_centred(column, levels)
+		Screens.go(Brand.GAME_SCENE))
+	column.add_child(UI.centred(play))
+	if Save.total_stars() > 0:
+		column.add_child(UI.spacer(8))
+		column.add_child(UI.caption("Level %d" % (frontier + 1), 20))
+	var levels: Button = UI.button("Levels", UI.Style.GHOST)
+	levels.custom_minimum_size.x = PILL_WIDTH
+	levels.pressed.connect(func() -> void: Screens.go(Brand.LEVELS_SCENE))
+	column.add_child(UI.centred(levels))
 
-	var footer: HBoxContainer = HBoxContainer.new()
-	footer.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	footer.offset_top = -120.0
-	footer.offset_bottom = -40.0
-	footer.alignment = BoxContainer.ALIGNMENT_CENTER
-	footer.add_theme_constant_override("separation", 30)
-	ui.add_child(footer)
-	_sound = UI.button("")
-	_sound.pressed.connect(func() -> void:
-		Save.set_sound(not Save.sound_on)
-		_label_sound())
-	footer.add_child(_sound)
-	_music = UI.button("")
-	_music.pressed.connect(func() -> void:
-		Save.set_music(not Save.music_on)
-		_label_sound())
-	footer.add_child(_music)
-	_label_sound()
-	var stars: HBoxContainer = HBoxContainer.new()
-	stars.add_theme_constant_override("separation", 10)
-	stars.add_child(StarIcon.new(40.0, true))
-	stars.add_child(UI.label("%d / %d" % [Save.total_stars(), Pack.count() * 3], 32, Palette.MUTED))
-	footer.add_child(stars)
+	var gear: IconButton = UI.icon_button(&"settings", "Settings")
+	gear.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	gear.offset_left = -32.0 - IconButton.SIZE
+	gear.offset_right = -32.0
+	gear.offset_top = 40.0 + float(safe["top"])
+	gear.offset_bottom = gear.offset_top + IconButton.SIZE
+	gear.pressed.connect(func() -> void: Settings.open(self))
+	ui.add_child(gear)
+
+	var tally: HBoxContainer = HBoxContainer.new()
+	tally.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	tally.offset_bottom = -64.0 - float(safe["bottom"])
+	tally.offset_top = tally.offset_bottom - 48.0
+	tally.alignment = BoxContainer.ALIGNMENT_CENTER
+	tally.add_theme_constant_override("separation", 10)
+	tally.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tally.add_child(StarIcon.new(30.0, true))
+	tally.add_child(UI.label("%d / %d" % [Save.total_stars(), Pack.count() * 3], 28, Brand.MUTED))
+	ui.add_child(tally)
 
 	_seesaw = Seesaw.new()
 	add_child(_seesaw)
@@ -71,13 +68,4 @@ func _ready() -> void:
 
 ## Centred in the space the column left for it, wherever the layout put that on this screen shape.
 func _place() -> void:
-	_seesaw.position = _stage.get_global_rect().get_center() + Vector2(0, 10)
-
-func _centred(column: VBoxContainer, control: Control) -> void:
-	var row: CenterContainer = CenterContainer.new()
-	row.add_child(control)
-	column.add_child(row)
-
-func _label_sound() -> void:
-	_sound.text = "Sound: on" if Save.sound_on else "Sound: off"
-	_music.text = "Music: on" if Save.music_on else "Music: off"
+	_seesaw.position = _stage.get_global_rect().get_center() + Vector2(0, 16)

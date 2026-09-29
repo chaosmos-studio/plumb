@@ -12,7 +12,7 @@ var _busy: bool = false
 func _ready() -> void:
 	layer = 100
 	_veil = ColorRect.new()
-	_veil.color = Palette.BG
+	_veil.color = Brand.BG
 	_veil.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_veil.modulate.a = 0.0
