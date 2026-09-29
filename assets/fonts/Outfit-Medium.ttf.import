@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://blhrl67sk7bnf"
-path="res://.godot/imported/Baloo2.ttf-c3e219a2a77cbf36f8f815e88f09ed02.fontdata"
+uid="uid://bkbrmiukc3j7k"
+path="res://.godot/imported/Outfit-Medium.ttf-e5488631b7be38c18913a6612464ae0b.fontdata"
 
 [deps]
 
-source_file="res://assets/fonts/Baloo2.ttf"
-dest_files=["res://.godot/imported/Baloo2.ttf-c3e219a2a77cbf36f8f815e88f09ed02.fontdata"]
+source_file="res://assets/fonts/Outfit-Medium.ttf"
+dest_files=["res://.godot/imported/Outfit-Medium.ttf-e5488631b7be38c18913a6612464ae0b.fontdata"]
 
 [params]
 

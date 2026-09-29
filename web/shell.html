@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-		<meta name="theme-color" content="#f3ede3">
+		<meta name="theme-color" content="#f4efe7">
 		<meta name="mobile-web-app-capable" content="yes">
 		<meta name="apple-mobile-web-app-capable" content="yes">
 		<meta name="apple-mobile-web-app-title" content="Plumb">
@@ -16,16 +16,16 @@
 /* Loading screen. The Godot boilerplate below is unchanged from a known-good 4.7 shell; only the
    presentation is ours: the game's paper, its wordmark, and a marble rocking on a bar in pure CSS. */
 @font-face {
-	font-family: 'Baloo2';
-	src: url('Baloo2.ttf') format('truetype');
-	font-weight: 400 800;
+	font-family: 'Outfit';
+	src: url('Outfit-Light.ttf') format('truetype');
+	font-weight: 300;
 	font-display: block;
 }
-:root { --paper: #f3ede3; --ink: #3a3f4b; --muted: #a0967f; --slate: #4f586a; --coral: #ff6b6b; }
+:root { --paper: #f4efe7; --ink: #2f333d; --muted: #9b9384; --slate: #4f586a; --coral: #ff6b6b; }
 * { box-sizing: border-box; }
 html, body {
 	margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--paper);
-	font-family: 'Baloo2', 'Trebuchet MS', system-ui, sans-serif; -webkit-tap-highlight-color: transparent;
+	font-family: 'Outfit', system-ui, sans-serif; -webkit-tap-highlight-color: transparent;
 }
 #canvas { display: block; width: 100%; height: 100%; border: 0; }
 #canvas:focus { outline: none; }
@@ -33,7 +33,7 @@ html, body {
 	position: fixed; inset: 0; z-index: 10; visibility: visible; background: var(--paper);
 	display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px;
 }
-#brand h1 { margin: 0; font-size: clamp(72px, 24vw, 150px); font-weight: 600; color: var(--ink); line-height: 1; }
+#brand h1 { margin: 0; font-size: clamp(72px, 24vw, 150px); font-weight: 300; color: var(--ink); line-height: 1; }
 #brand p { margin: 4px 0 0; text-align: center; font-size: clamp(16px, 4.4vw, 22px); color: var(--muted); }
 #toy { position: relative; width: 220px; height: 90px; }
 #bar {
