@@ -1,0 +1,79 @@
+name: Deploy Web Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: web-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      GODOT_RELEASE: "4.7-stable"
+      GODOT_VERSION: "4.7.stable"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot and export templates
+        run: |
+          set -e
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}"
+          wget -qO godot.zip "${base}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          wget -qO templates.tpz "${base}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
+          unzip -q godot.zip
+          bin="$PWD/Godot_v${GODOT_RELEASE}_linux.x86_64"
+          chmod +x "$bin"
+          echo "GODOT_BIN=$bin" >> "$GITHUB_ENV"
+          dest="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}"
+          mkdir -p "$dest"
+          unzip -q templates.tpz
+          mv templates/* "$dest/"
+
+      # Two passes: the first builds .godot/ from a bare checkout and logs font errors because the theme
+      # loads the font before the scan has imported it. The second must be clean, and the font asserted.
+      - name: Import resources
+        run: |
+          set -e
+          "$GODOT_BIN" --headless --import > /dev/null 2>&1 || true
+          "$GODOT_BIN" --headless --import
+          ls .godot/imported/Baloo2.ttf-*.fontdata
+
+      # The tests re-solve every shipped level, and the smoke robot plays some through the real screens.
+      # A level the rules can no longer solve never reaches the published build.
+      - name: Run tests
+        run: |
+          set -e
+          out="$("$GODOT_BIN" --headless -s res://tests/run_tests.gd 2>&1)"
+          echo "$out"
+          echo "$out" | grep -q " 0 failed"
+          smoke="$(timeout 300 "$GODOT_BIN" --headless res://tools/smoke.tscn 2>&1)"
+          echo "$smoke"
+          echo "$smoke" | grep -q "SMOKE_OK"
+
+      - name: Export Web build
+        run: |
+          set -e
+          mkdir -p build/web
+          "$GODOT_BIN" --headless --export-release "Web" build/web/index.html
+          test -f build/web/index.html
+          grep -q "roll every marble home" build/web/index.html
+
+      - name: Copy the loading page's font and icons
+        run: |
+          set -e
+          cp web/Baloo2.ttf web/favicon.ico web/favicon-16.png web/favicon-32.png web/favicon-48.png \
+             web/apple-touch-icon-180.png web/icon-192.png web/icon-512.png build/web/
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/web
+          keep_files: true
