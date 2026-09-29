@@ -12,7 +12,7 @@
 		{"raw": "phone_rolling", "caption": "One swipe moves everything.", "sub": "Plan where they will all end up."},
 		{"raw": "phone_hint", "caption": "Stuck? Take a hint.", "sub": "See exactly where each marble would land."},
 		{"raw": "phone_won", "caption": "Find the perfect route.", "sub": "Match par for three stars."},
-		{"raw": "phone_levels", "caption": "120 levels, all solvable.", "sub": "Every one checked by a solver."},
+		{"raw": "phone_levels", "caption": "Every level, solvable.", "sub": "Each one checked by a solver."},
 		{"raw": "phone_title", "caption": "Calm, clean, clever.", "sub": "No timers. No lives. Just marbles."}
 	],
 	"tablet": [
@@ -24,8 +24,8 @@
 	"listing": {
 		"title": "Plumb: Marble Tilt Puzzle",
 		"short": "Tilt the board and roll every marble into the hole of its own colour.",
-		"full": "Plumb is a calm logic puzzle about gravity.\n\nSwipe to tilt the board and every marble rolls at once, until a wall, the edge or another marble stops it. A marble drops into a hole of its own colour the moment it rolls over one. Square pits swallow any marble, so plan the route before you tip.\n\nOne gesture moves everything, which is what makes four directions surprisingly deep: every move is a small chain of consequences to read before you make it.\n\n- 120 levels, each one checked by a solver and scored against the fewest moves possible\n- Three stars for matching par, with a hint that shows where every marble would land\n- Undo and restart any time. No timers, no lives, no energy\n- A quiet, tactile look and an ambient soundtrack, with sound, music and vibration you can switch off\n- Plays offline",
-		"release_notes": "First release: 120 levels, hints that preview the next tilt, and a calm ambient soundtrack.",
+		"full": "Plumb is a calm logic puzzle about gravity.\n\nSwipe to tilt the board and every marble rolls at once, until a wall, the edge or another marble stops it. A marble drops into a hole of its own colour the moment it rolls over one. Square pits swallow any marble, so plan the route before you tip.\n\nOne gesture moves everything, which is what makes four directions surprisingly deep: every move is a small chain of consequences to read before you make it.\n\n- Every level checked by a solver and scored against the fewest moves possible, each a little harder than the last\n- Three stars for matching par, with a hint that shows where every marble would land\n- Undo and restart any time. No timers, no lives, no energy\n- A quiet, tactile look and an ambient soundtrack, with sound, music and vibration you can switch off\n- Plays offline",
+		"release_notes": "First release: levels that get steadily harder, hints that preview the next tilt, and a calm ambient soundtrack.",
 		"category": "Game > Puzzle. Suggested tags: Puzzle, Logic, Brain games, Casual, Offline."
 	}
 }

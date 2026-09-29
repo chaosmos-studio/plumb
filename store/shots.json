@@ -6,7 +6,7 @@
 				1080,
 				1920
 			],
-			"action": "moves:61:2"
+			"action": "moves:60:2"
 		},
 		{
 			"name": "phone_hint",
@@ -14,7 +14,7 @@
 				1080,
 				1920
 			],
-			"action": "hint:46:0"
+			"action": "hint:45:0"
 		},
 		{
 			"name": "phone_rolling",
@@ -22,7 +22,7 @@
 				1080,
 				1920
 			],
-			"action": "rolling:91:3"
+			"action": "rolling:90:3"
 		},
 		{
 			"name": "phone_won",
@@ -30,7 +30,7 @@
 				1080,
 				1920
 			],
-			"action": "won:21"
+			"action": "won:16"
 		},
 		{
 			"name": "phone_levels",
@@ -54,7 +54,7 @@
 				1200,
 				1920
 			],
-			"action": "moves:111:3"
+			"action": "moves:104:3"
 		},
 		{
 			"name": "tablet_hint",
@@ -62,7 +62,7 @@
 				1200,
 				1920
 			],
-			"action": "hint:46:0"
+			"action": "hint:55:0"
 		},
 		{
 			"name": "tablet_won",
@@ -70,7 +70,7 @@
 				1200,
 				1920
 			],
-			"action": "won:45"
+			"action": "won:14"
 		},
 		{
 			"name": "tablet_title",
@@ -86,7 +86,7 @@
 				2160,
 				3840
 			],
-			"action": "hero:96"
+			"action": "hero:112"
 		}
 	]
 }
