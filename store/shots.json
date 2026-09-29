@@ -1,0 +1,92 @@
+{
+	"shots": [
+		{
+			"name": "phone_play",
+			"size": [
+				1080,
+				1920
+			],
+			"action": "moves:61:2"
+		},
+		{
+			"name": "phone_hint",
+			"size": [
+				1080,
+				1920
+			],
+			"action": "hint:46:0"
+		},
+		{
+			"name": "phone_rolling",
+			"size": [
+				1080,
+				1920
+			],
+			"action": "rolling:91:3"
+		},
+		{
+			"name": "phone_won",
+			"size": [
+				1080,
+				1920
+			],
+			"action": "won:21"
+		},
+		{
+			"name": "phone_levels",
+			"size": [
+				1080,
+				1920
+			],
+			"action": "levels"
+		},
+		{
+			"name": "phone_title",
+			"size": [
+				1080,
+				1920
+			],
+			"action": "title"
+		},
+		{
+			"name": "tablet_play",
+			"size": [
+				1200,
+				1920
+			],
+			"action": "moves:111:3"
+		},
+		{
+			"name": "tablet_hint",
+			"size": [
+				1200,
+				1920
+			],
+			"action": "hint:46:0"
+		},
+		{
+			"name": "tablet_won",
+			"size": [
+				1200,
+				1920
+			],
+			"action": "won:45"
+		},
+		{
+			"name": "tablet_title",
+			"size": [
+				1200,
+				1920
+			],
+			"action": "title"
+		},
+		{
+			"name": "hero",
+			"size": [
+				2160,
+				3840
+			],
+			"action": "hero:96"
+		}
+	]
+}
