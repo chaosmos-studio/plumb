@@ -1,0 +1,240 @@
+---
+import { Image, getImage } from "astro:assets";
+import { getCollection } from "astro:content";
+import Base from "../layouts/Base.astro";
+import FAQ from "../components/FAQ.astro";
+import PostCard from "../components/PostCard.astro";
+import StoreButtons from "../components/StoreButtons.astro";
+import Video from "../components/Video.astro";
+import { faq, features, site } from "../site.config";
+import { faq as faqSchema, game, video } from "../utils/schema";
+import { absoluteFromRoot, href } from "../utils/url";
+
+import heroShot from "../assets/shots/plumb-level-in-play.webp";
+import hintShot from "../assets/shots/plumb-hint-preview.webp";
+import wonShot from "../assets/shots/plumb-level-solved.webp";
+import titleShot from "../assets/shots/plumb-title-screen.webp";
+import levelsShot from "../assets/shots/plumb-level-select.webp";
+import stepStart from "../assets/home/plumb-step-start.webp";
+import stepTilt from "../assets/home/plumb-step-tilt.webp";
+import stepHome from "../assets/home/plumb-step-home.webp";
+
+const shots = [
+  { src: titleShot, alt: "Plumb's title screen with a seesaw of marbles and the Play button" },
+  { src: heroShot, alt: "A Plumb level in play: marbles, walls and coloured holes on a paper board" },
+  { src: hintShot, alt: "Plumb's hint showing ghost marbles and dotted trails for the next tilt" },
+  { src: wonShot, alt: "A solved Plumb level with three gold stars" },
+  { src: levelsShot, alt: "Plumb's level grid with stars earned on the first levels" },
+];
+const steps = [
+  { src: stepStart, title: "Look", body: "Every marble sits on a paper board with walls, holes and, later, pits. Find where each one needs to go." },
+  { src: stepTilt, title: "Tilt", body: "Swipe to tilt the board. Every marble rolls at once, until a wall, the edge or another marble stops it." },
+  { src: stepHome, title: "Drop", body: "A marble that rolls over a hole of its own colour drops in. Get them all home in as few moves as you can." },
+];
+
+const posts = (await getCollection("blog")).sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()).slice(0, 3);
+const screenshotUrls = await Promise.all(shots.map(async s => absoluteFromRoot((await getImage({ src: s.src, width: 540, format: "png" })).src)));
+const schema = [game(screenshotUrls), video("trailer")!, faqSchema(faq.slice(0, 4))];
+---
+
+<Base title={site.name} description={site.description} path="" schema={schema}>
+  <section class="wrap hero" data-pagefind-body>
+    <div class="copy">
+      <p class="eyebrow">A calm marble puzzle for Android and the web</p>
+      <h1>Plumb: roll every marble <span class="accent">home</span></h1>
+      <p class="lede">Tilt the board and every marble rolls at once. Each one has to drop into the hole of its own colour, and square pits swallow any that wander. One swipe, a whole chain of consequences.</p>
+      <StoreButtons />
+      <ul class="facts">
+        <li>Free</li>
+        <li>No ads</li>
+        <li>No timers</li>
+        <li>Plays offline</li>
+      </ul>
+    </div>
+    <div class="phone">
+      <Image src={heroShot} alt={shots[1].alt} widths={[320, 480, 640]} sizes="(min-width: 860px) 360px, 70vw" loading="eager" fetchpriority="high" />
+    </div>
+  </section>
+
+  <section class="wrap section" data-reveal>
+    <div class="section-head">
+      <p class="eyebrow">Watch</p>
+      <h2>Forty seconds of Plumb</h2>
+      <p class="lede">A few levels, the hint, three stars, and one left for you to solve.</p>
+    </div>
+    <Video id="trailer" />
+  </section>
+
+  <section class="wrap section" data-reveal>
+    <div class="section-head">
+      <p class="eyebrow">How to play</p>
+      <h2>Look. Tilt. Drop.</h2>
+    </div>
+    <div class="grid grid-3">
+      {steps.map((s, i) => (
+        <article class="step card">
+          <Image src={s.src} alt={`Step ${i + 1} of a Plumb level: ${s.title.toLowerCase()}`} widths={[320, 480]} sizes="(min-width: 720px) 33vw, 100vw" />
+          <div class="step-body">
+            <p class="num">{i + 1}</p>
+            <h3>{s.title}</h3>
+            <p>{s.body}</p>
+          </div>
+        </article>
+      ))}
+    </div>
+    <p class="more"><a href={href("blog/how-to-play-plumb/")}>Read the full guide to playing Plumb</a></p>
+  </section>
+
+  <section class="wrap section" data-reveal>
+    <div class="section-head">
+      <p class="eyebrow">Why it's good</p>
+      <h2>Simple rules, surprisingly deep</h2>
+    </div>
+    <div class="grid grid-3">
+      {features.map(f => (
+        <article class="feature card">
+          <h3>{f.title}</h3>
+          <p>{f.body}</p>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="section gallery-section" data-reveal>
+    <div class="wrap section-head">
+      <p class="eyebrow">Screenshots</p>
+      <h2>See it on a phone</h2>
+    </div>
+    <div class="gallery" role="list">
+      {shots.map(s => (
+        <figure role="listitem">
+          <Image src={s.src} alt={s.alt} widths={[240, 360, 480]} sizes="280px" />
+          <figcaption>{s.alt}</figcaption>
+        </figure>
+      ))}
+    </div>
+  </section>
+
+  <section class="wrap section" data-reveal>
+    <div class="section-head">
+      <p class="eyebrow">From the blog</p>
+      <h2>Tips and stories</h2>
+    </div>
+    <div class="grid grid-3">
+      {posts.map(p => <PostCard post={p} />)}
+    </div>
+    <p class="more"><a href={href("blog/")}>All posts</a></p>
+  </section>
+
+  <section class="narrow section" data-reveal>
+    <div class="section-head">
+      <p class="eyebrow">Questions</p>
+      <h2>Frequently asked</h2>
+    </div>
+    <FAQ items={faq.slice(0, 4)} />
+    <p class="more"><a href={href("support/")}>More answers and support</a></p>
+  </section>
+
+  <section class="wrap section" data-reveal>
+    <div class="final card">
+      <h2>Ready to roll?</h2>
+      <p class="lede">Plumb is free on Google Play, with no ads and nothing to sign up for.</p>
+      <StoreButtons />
+    </div>
+  </section>
+</Base>
+
+<style>
+  .hero {
+    display: grid;
+    gap: 2.5rem;
+    align-items: center;
+    padding-block: clamp(32px, 7vw, 80px);
+  }
+  @media (min-width: 860px) {
+    .hero {
+      grid-template-columns: 1.25fr 1fr;
+    }
+  }
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    list-style: none;
+    padding: 0;
+    margin: 1.4rem 0 0;
+  }
+  .facts li {
+    padding: 0.25rem 0.8rem;
+    border-radius: var(--pill);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .phone {
+    justify-self: center;
+    width: min(360px, 78vw);
+    transform: rotate(3deg);
+  }
+  .step {
+    overflow: hidden;
+  }
+  .step img {
+    width: 100%;
+    background: var(--surface-2);
+  }
+  .step-body {
+    padding: 1.1rem 1.3rem 1.3rem;
+  }
+  .num {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 600;
+    margin: 0 0 0.6rem;
+  }
+  .step p:last-child,
+  .feature p {
+    color: var(--muted);
+    margin: 0;
+  }
+  .feature {
+    padding: 1.4rem 1.5rem;
+  }
+  .more {
+    margin-top: 1.4rem;
+  }
+  .more a {
+    font-weight: 500;
+  }
+  .gallery {
+    display: flex;
+    gap: 1.2rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding: 0.5rem var(--gutter) 1.5rem;
+  }
+  .gallery figure {
+    flex: 0 0 auto;
+    width: 250px;
+    margin: 0;
+    scroll-snap-align: center;
+  }
+  .gallery figcaption {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 0.5rem;
+  }
+  .final {
+    padding: clamp(2rem, 5vw, 3.5rem);
+    text-align: center;
+    display: grid;
+    justify-items: center;
+    background: linear-gradient(135deg, var(--surface), var(--surface-2));
+  }
+</style>

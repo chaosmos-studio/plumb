@@ -1,0 +1,89 @@
+---
+import Base from "../layouts/Base.astro";
+import Crumbs from "../components/Crumbs.astro";
+import { site } from "../site.config";
+import { breadcrumbs } from "../utils/schema";
+const effective = new Date(site.launched).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+---
+<Base
+  title="Privacy policy"
+  description="Plumb's privacy policy: the game collects no personal data, has no ads, no analytics and no accounts, and keeps your progress on your own device."
+  path="privacy/"
+  schema={[breadcrumbs([{ label: "Privacy policy", path: "privacy/" }])]}
+>
+  <section class="narrow section" data-pagefind-body>
+    <Crumbs trail={[{ label: "Privacy policy" }]} />
+    <p class="eyebrow">Privacy policy</p>
+    <h1>Your game stays <span class="accent">yours</span></h1>
+    <p class="lede">Plumb collects no personal data. There are no ads, no analytics, no accounts, and nothing you do in the game leaves your device.</p>
+    <p class="muted">Effective {effective}. This policy covers the {site.name} app on Google Play, the web version you can play in a browser, and this website.</p>
+
+    <ul class="summary">
+      <li>No personal data collected</li>
+      <li>No ads</li>
+      <li>No analytics or tracking</li>
+      <li>No accounts or sign-in</li>
+      <li>Works fully offline</li>
+    </ul>
+
+    <div class="prose">
+      <h2>Who we are</h2>
+      <p>{site.name} is made by Shravan Goswami, with Claude Opus 5.5 (an AI model by Anthropic) as co-developer, and published on Google Play by Shravan Goswami. Questions about this policy go to <a href={`mailto:${site.email}`}>{site.email}</a>.</p>
+
+      <h2>What the app collects</h2>
+      <p>Nothing. The app contains no advertising, analytics, crash-reporting or social SDKs, and it does not ask for your name, email or any account. It has no internet permission, so it cannot send data anywhere, and it does not collect, sell or share personal or sensitive information.</p>
+
+      <h2>What the app stores on your device</h2>
+      <p>To remember your progress, the app keeps a small settings file in its private storage on your phone. It holds:</p>
+      <ul>
+        <li>the stars you have earned on each level, which is also how levels unlock;</li>
+        <li>your sound, music and vibration settings.</li>
+      </ul>
+      <p>That file never leaves your device. You can erase it at any time with Settings, Reset progress in the game, or by clearing the app's storage or uninstalling it.</p>
+
+      <h2>The web version</h2>
+      <p>When you play in a browser, the same progress and settings are saved in your browser's own storage for this site, on your computer or phone. They are not sent to us. Clearing the site's data in your browser erases them.</p>
+
+      <h2>Permissions</h2>
+      <p>The Android app asks for one permission: vibration, so a tap can buzz lightly when vibration is switched on. It asks for no location, camera, microphone, contacts, files or network access.</p>
+
+      <h2>Google Play</h2>
+      <p>The app is downloaded through Google Play. Google may collect data about installs, devices and app crashes as part of running the store, under <a href="https://policies.google.com/privacy" rel="noopener">Google's privacy policy</a>. That happens outside the app, and we only see anonymous totals such as install counts in the Play Console.</p>
+
+      <h2>This website</h2>
+      <p>This site is a set of static pages hosted on GitHub Pages. GitHub may log standard technical data such as IP addresses for security, as described in <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" rel="noopener">GitHub's privacy statement</a>. The site itself uses no cookies, no analytics and no trackers. Search runs entirely in your browser from a file on this site, and your light or dark theme choice is kept in your browser's local storage.</p>
+
+      <h2>Comments and feedback</h2>
+      <p>The blog and the support page have an optional comment box powered by Giscus, which stores comments as GitHub Discussions in a public repository. It loads only on those pages, commenting requires you to sign in with GitHub, and anything you post is public and covered by GitHub's terms and privacy statement. If you email us, we use your message and address only to reply.</p>
+
+      <h2>Children</h2>
+      <p>Plumb is suitable for everyone. Because the app collects no data from anyone, it collects none from children.</p>
+
+      <h2>Changes</h2>
+      <p>If a future version ever changes what the app does with data, this page will be updated before that version is released, and the effective date above will change.</p>
+
+      <h2>Contact</h2>
+      <p>Email <a href={`mailto:${site.email}`}>{site.email}</a> with any question about privacy.</p>
+    </div>
+  </section>
+</Base>
+<style>
+  .summary {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1.5rem 0 1rem;
+  }
+  .summary li {
+    padding: 0.3rem 0.9rem;
+    border-radius: var(--pill);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    font-size: 0.92rem;
+  }
+  .muted {
+    color: var(--muted);
+  }
+</style>

@@ -1,0 +1,70 @@
+---
+import Base from "../layouts/Base.astro";
+import Crumbs from "../components/Crumbs.astro";
+import FAQ from "../components/FAQ.astro";
+import Giscus from "../components/Giscus.astro";
+import Icon from "../components/Icon.astro";
+import { faq, site } from "../site.config";
+import { breadcrumbs, faq as faqSchema } from "../utils/schema";
+---
+<Base
+  title="Support, FAQ and feedback"
+  description="Help with Plumb: answers to common questions, how to report a bug, and a place to leave feedback or suggest a feature. We read everything."
+  path="support/"
+  schema={[breadcrumbs([{ label: "Support", path: "support/" }]), faqSchema(faq)]}
+>
+  <section class="narrow section" data-pagefind-body>
+    <Crumbs trail={[{ label: "Support" }]} />
+    <p class="eyebrow">Support</p>
+    <h1>How can we <span class="accent">help?</span></h1>
+    <p class="lede">Start with the answers below. If something is broken, tell us and we will fix it.</p>
+
+    <div class="contact grid grid-2">
+      <a class="card box" href={`mailto:${site.email}?subject=${encodeURIComponent(`${site.name} support`)}`}>
+        <Icon name="mail" size={24} />
+        <h2>Email us</h2>
+        <p>{site.email}. We usually answer within a couple of days.</p>
+      </a>
+      <a class="card box" href="#feedback">
+        <Icon name="bug" size={24} />
+        <h2>Report a bug</h2>
+        <p>Tell us your phone model, Android version and the level number, and what happened. A screenshot helps a lot.</p>
+      </a>
+    </div>
+
+    <h2 class="faq-title">Frequently asked questions</h2>
+    <FAQ items={faq} />
+
+    <h2 class="faq-title" id="feedback">Feedback and ideas</h2>
+    <p class="muted">Leave a comment below (it needs a GitHub account), or email us if you would rather not sign in. Comments are public.</p>
+    <Giscus />
+  </section>
+</Base>
+<style>
+  .contact {
+    margin: 2rem 0 3rem;
+  }
+  .box {
+    display: block;
+    padding: 1.4rem 1.5rem;
+    text-decoration: none;
+    color: var(--ink);
+  }
+  .box :global(svg) {
+    color: var(--accent);
+  }
+  .box h2 {
+    font-size: 1.25rem;
+    margin: 0.6rem 0 0.3rem;
+  }
+  .box p {
+    color: var(--muted);
+    margin: 0;
+  }
+  .faq-title {
+    margin-top: 3rem;
+  }
+  .muted {
+    color: var(--muted);
+  }
+</style>

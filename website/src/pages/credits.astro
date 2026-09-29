@@ -1,0 +1,83 @@
+---
+import Base from "../layouts/Base.astro";
+import Crumbs from "../components/Crumbs.astro";
+import { site, team } from "../site.config";
+import { breadcrumbs } from "../utils/schema";
+
+// Mirrors the game's CREDITS.md, plus what this website is built with.
+const sections = [
+  {
+    title: "Made by",
+    items: team.map(p => ({ name: p.name, detail: p.role, href: p.url })),
+  },
+  {
+    title: "In the game",
+    items: [
+      { name: "Godot Engine", detail: "The game engine, MIT licence", href: "https://godotengine.org/license/" },
+      { name: "Outfit", detail: "Typeface by the Outfit Project Authors, SIL Open Font License 1.1. Used as two static weights with overlapping contours merged.", href: "https://github.com/Outfitio/Outfit-Fonts" },
+      { name: "Sound and music", detail: "Every sound effect and the ambient music loop are synthesised in code for this game. None are third-party.", href: "" },
+      { name: "Art and levels", detail: "Drawn and generated in code, and every level proven solvable by the game's own solver.", href: "" },
+    ],
+  },
+  {
+    title: "On this website",
+    items: [
+      { name: "Astro", detail: "The site framework, MIT licence", href: "https://astro.build/" },
+      { name: "Pagefind", detail: "Search that runs in your browser, MIT licence", href: "https://pagefind.app/" },
+      { name: "Giscus", detail: "Comments and feedback on GitHub Discussions, MIT licence", href: "https://giscus.app/" },
+      { name: "Outfit", detail: "Served from Fontsource, SIL Open Font License 1.1", href: "https://fontsource.org/fonts/outfit" },
+    ],
+  },
+];
+---
+<Base
+  title="Credits"
+  description="Everyone and everything behind Plumb: the two-person team, the Godot Engine, the Outfit typeface, and the tools this website is built with."
+  path="credits/"
+  schema={[breadcrumbs([{ label: "Credits", path: "credits/" }])]}
+>
+  <section class="narrow section" data-pagefind-body>
+    <Crumbs trail={[{ label: "Credits" }]} />
+    <p class="eyebrow">Credits</p>
+    <h1>Thank <span class="accent">you</span></h1>
+    <p class="lede">{site.name} stands on open-source work. Here is all of it, with the licences.</p>
+    {sections.map(s => (
+      <section class="block">
+        <h2>{s.title}</h2>
+        <ul class="list card">
+          {s.items.map(i => (
+            <li>
+              <p class="name">{i.href ? <a href={i.href} rel="noopener">{i.name}</a> : i.name}</p>
+              <p class="detail">{i.detail}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </section>
+</Base>
+<style>
+  .block {
+    margin-top: 2.5rem;
+  }
+  .list {
+    list-style: none;
+    margin: 0;
+    padding: 0.4rem 1.4rem;
+  }
+  .list li {
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .list li:last-child {
+    border-bottom: 0;
+  }
+  .name {
+    font-weight: 500;
+    margin: 0;
+  }
+  .detail {
+    color: var(--muted);
+    margin: 0.2rem 0 0;
+  }
+</style>
