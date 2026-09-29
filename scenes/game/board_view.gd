@@ -27,7 +27,14 @@ var _origin: Vector2 = Vector2.ZERO
 var _marbles: Array[Marble] = []
 ## Where each marble is drawn, which lags the board during an animation.
 var _shown: PackedInt32Array = PackedInt32Array()
-var _hint: Node2D
+var _hint_dir: int = -1
+## [from cell, to cell, kind, colour] for each marble the hinted tilt would move.
+var _hint_paths: Array[Array] = []
+var _hint_t: float = 0.0
+var _hint_nudge: Tween
+
+func _ready() -> void:
+	set_process(false)
 
 func show_board(b: TiltBoard, fit: Vector2) -> void:
 	board = b
@@ -59,6 +66,7 @@ func intro() -> void:
 
 ## Puts every marble where the board says, at once: after an undo or a restart.
 func sync(b: TiltBoard, pop_in: bool = true) -> void:
+	_clear_hint()
 	board = b
 	_shown = b.marble_cell.duplicate()
 	for i: int in range(_marbles.size()):
@@ -132,6 +140,7 @@ func _draw() -> void:
 					draw_circle(c, cell * 0.41, ring, true, -1.0, true)
 					draw_circle(c, cell * 0.33, Palette.HOLE, true, -1.0, true)
 					draw_circle(c + Vector2(0, cell * 0.06), cell * 0.25, Palette.HOLE.darkened(0.45), true, -1.0, true)
+	_draw_hint()
 
 # --- Animation ----------------------------------------------------------------------------------------
 
@@ -166,16 +175,16 @@ func refuse(dir: int) -> void:
 	t.tween_property(self, "position", home + d * 5.0, 0.05)
 	t.tween_property(self, "position", home, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
-func _tip(dir: int) -> void:
+func _tip(dir: int, amount: float = 1.0) -> void:
 	var t: Tween = create_tween().set_parallel(true)
 	var base: Vector2 = home
 	match dir:
 		TiltBoard.LEFT, TiltBoard.RIGHT:
-			var angle: float = deg_to_rad(TIP_DEGREES) * (-1.0 if dir == TiltBoard.LEFT else 1.0)
+			var angle: float = deg_to_rad(TIP_DEGREES) * amount * (-1.0 if dir == TiltBoard.LEFT else 1.0)
 			t.tween_property(self, "rotation", angle, 0.08)
 			t.chain().tween_property(self, "rotation", 0.0, 0.34).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		_:
-			var shift: float = TIP_SHIFT * (-1.0 if dir == TiltBoard.UP else 1.0)
+			var shift: float = TIP_SHIFT * amount * (-1.0 if dir == TiltBoard.UP else 1.0)
 			t.tween_property(self, "position:y", base.y + shift, 0.08)
 			t.tween_property(self, "scale", Vector2(1.0, 0.985), 0.08)
 			t.chain().tween_property(self, "position:y", base.y, 0.34).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -222,19 +231,70 @@ func _shake() -> void:
 
 # --- Hints --------------------------------------------------------------------------------------------
 
-## A chevron just outside the tray, pointing the way to tilt, pulsing until the next move.
-func show_hint(dir: int) -> void:
+## Previews the solver's next tilt on the board itself: a dotted trail from every marble that would move
+## to where it would stop, a ghost of it there, a glowing ring on any hole it would drop into, and the
+## tray leaning that way now and then. Drawn inside the tray, so it is on screen at every aspect ratio.
+func show_hint(dir: int, from: TiltBoard) -> void:
 	_clear_hint()
-	var arrow: HintArrow = HintArrow.new()
-	arrow.size_px = cell * 0.55
-	arrow.dir = dir
-	var r: Rect2 = bounds()
-	var d: Vector2 = Vector2(TiltBoard.DIRS[dir])
-	arrow.position = r.get_center() + d * (Vector2(r.size.x, r.size.y) * 0.5 + Vector2(cell, cell) * 0.55)
-	add_child(arrow)
-	_hint = arrow
+	var probe: TiltBoard = from.copy()
+	var move: TiltMove = probe.tilt(dir)
+	for m: int in range(from.marble_cell.size()):
+		var start_cell: int = from.marble_cell[m]
+		if start_cell == TiltBoard.GONE:
+			continue
+		var end_cell: int = probe.marble_cell[m]
+		var kind: StringName = &"roll"
+		for event: Dictionary in move.events:
+			if int(event["marble"]) == m:
+				kind = event["kind"]
+				end_cell = int(event["cell"])
+		if end_cell == start_cell:
+			continue
+		_hint_paths.append([start_cell, end_cell, kind, from.marble_colour[m]])
+	_hint_dir = dir
+	_hint_t = 0.0
+	set_process(true)
+	_hint_nudge = create_tween().set_loops()
+	_hint_nudge.tween_interval(0.5)
+	_hint_nudge.tween_callback(func() -> void: _tip(dir, 0.55))
+	_hint_nudge.tween_interval(0.9)
+	queue_redraw()
 
 func _clear_hint() -> void:
-	if is_instance_valid(_hint):
-		_hint.queue_free()
-	_hint = null
+	if _hint_nudge != null and _hint_nudge.is_valid():
+		_hint_nudge.kill()
+	_hint_nudge = null
+	_hint_dir = -1
+	_hint_paths.clear()
+	set_process(false)
+	queue_redraw()
+
+func _process(delta: float) -> void:
+	_hint_t += delta
+	queue_redraw()
+
+func _draw_hint() -> void:
+	if _hint_dir < 0:
+		return
+	var pulse: float = 0.5 + 0.5 * sin(_hint_t * 5.0)
+	for path: Array in _hint_paths:
+		var a: Vector2 = centre(int(path[0]))
+		var b: Vector2 = centre(int(path[1]))
+		var colour: Color = Palette.marble(int(path[3]))
+		var length: float = a.distance_to(b)
+		var step: float = cell * 0.22
+		var n: int = int(length / step)
+		for k: int in range(1, n):
+			var t: float = float(k) / float(n)
+			# Dots travel along the trail, so the direction reads even in a still frame.
+			var phase: float = fmod(t - _hint_t * 0.8, 1.0)
+			var alpha: float = 0.25 + 0.55 * (1.0 - absf(phase * 2.0 - 1.0))
+			draw_circle(a.lerp(b, t), cell * 0.045, Color(colour, alpha), true, -1.0, true)
+		match path[2]:
+			&"sink":
+				draw_arc(b, cell * (0.42 + 0.06 * pulse), 0.0, TAU, 40, Color(colour, 0.9), cell * 0.06, true)
+			&"pit":
+				draw_arc(b, cell * (0.4 + 0.06 * pulse), 0.0, TAU, 40, Color(Palette.DANGER, 0.9), cell * 0.06, true)
+			_:
+				draw_circle(b, cell * 0.36, Color(colour, 0.16 + 0.1 * pulse), true, -1.0, true)
+				draw_arc(b, cell * 0.36, 0.0, TAU, 40, Color(colour, 0.75), cell * 0.04, true)
