@@ -41,6 +41,7 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_layout)
 	_layout()
 	_view.show_board(board, _fit())
+	_view.intro()
 	_refresh()
 	EventBus.level_started.emit(level)
 
@@ -153,7 +154,8 @@ func _on_hint() -> void:
 
 func _refresh() -> void:
 	_level_label.text = "Level %d" % (level + 1)
-	_moves_label.text = "%d  moves      par %d" % [history.size(), par]
+	var n: int = history.size()
+	_moves_label.text = "%d %s      par %d" % [n, "move" if n == 1 else "moves", par]
 	_undo.disabled = history.is_empty()
 	_caption.text = _tutorial()
 
@@ -331,7 +333,7 @@ func _result_panel(moves: int, earned: int, improved: bool) -> Control:
 		var star: StarIcon = StarIcon.new(96.0, false)
 		row.add_child(star)
 		icons.append(star)
-	var detail: String = "%d moves, par %d" % [moves, par]
+	var detail: String = "%d %s, par %d" % [moves, "move" if moves == 1 else "moves", par]
 	if earned < 3:
 		detail += "\nSolve it in %d for three stars" % par
 	elif improved:
