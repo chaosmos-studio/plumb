@@ -288,13 +288,13 @@ func _draw_hint() -> void:
 			var t: float = float(k) / float(n)
 			# Dots travel along the trail, so the direction reads even in a still frame.
 			var phase: float = fmod(t - _hint_t * 0.8, 1.0)
-			var alpha: float = 0.25 + 0.55 * (1.0 - absf(phase * 2.0 - 1.0))
-			draw_circle(a.lerp(b, t), cell * 0.045, Color(colour, alpha), true, -1.0, true)
+			var alpha: float = 0.35 + 0.6 * (1.0 - absf(phase * 2.0 - 1.0))
+			draw_circle(a.lerp(b, t), cell * 0.058, Color(colour, alpha), true, -1.0, true)
 		match path[2]:
 			&"sink":
 				draw_arc(b, cell * (0.42 + 0.06 * pulse), 0.0, TAU, 40, Color(colour, 0.9), cell * 0.06, true)
 			&"pit":
 				draw_arc(b, cell * (0.4 + 0.06 * pulse), 0.0, TAU, 40, Color(Palette.DANGER, 0.9), cell * 0.06, true)
 			_:
-				draw_circle(b, cell * 0.36, Color(colour, 0.16 + 0.1 * pulse), true, -1.0, true)
-				draw_arc(b, cell * 0.36, 0.0, TAU, 40, Color(colour, 0.75), cell * 0.04, true)
+				draw_circle(b, cell * 0.36, Color(colour, 0.24 + 0.12 * pulse), true, -1.0, true)
+				draw_arc(b, cell * 0.36, 0.0, TAU, 40, Color(colour, 0.9), cell * 0.05, true)
