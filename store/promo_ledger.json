@@ -1,0 +1,84 @@
+{
+  "videos": [
+    {
+      "id": "plumb-reel-001",
+      "format": "reel",
+      "template": "satisfying",
+      "scenes": [
+        "m46",
+        "d96"
+      ],
+      "lines": [
+        "One swipe moves *every* marble",
+        "Harder boards, same *one* rule",
+        "*1* rule"
+      ],
+      "music_style": "lofi",
+      "voice": null,
+      "fingerprint": "2e38b9bf3dfb",
+      "seed": 695425564,
+      "made": "2026-09-29"
+    },
+    {
+      "id": "plumb-reel-002",
+      "format": "reel",
+      "template": "hook_tour",
+      "scenes": [
+        "m61",
+        "h46",
+        "w21"
+      ],
+      "lines": [
+        "Can you roll *every* marble home?",
+        "One swipe moves every marble on the board.",
+        "Plan where they *all* end up",
+        "Marbles roll as far as they can, and fall into their matching holes.",
+        "Stuck? The hint shows *where* they land",
+        "The hint previews your next tilt, marble by marble.",
+        "Find the *perfect* route",
+        "Solve it in the fewest moves for three stars.",
+        "Plumb. Free on Google Play."
+      ],
+      "music_style": "marimba",
+      "voice": "af_aoede",
+      "fingerprint": "81c7deabc626",
+      "seed": 971477686,
+      "made": "2026-09-29"
+    },
+    {
+      "id": "plumb-demo-001",
+      "format": "demo",
+      "template": "tour",
+      "scenes": [
+        "m76",
+        "m31",
+        "h81",
+        "w12",
+        "d111"
+      ],
+      "lines": [
+        "Here is a puzzle made entirely of gravity.",
+        "Each marble drops into *its* colour",
+        "Each marble rolls until something stops it, then drops into the hole of its own colour.",
+        "Every marble rolls until it *stops*",
+        "Every swipe moves them all, so the trick is planning where they will end up.",
+        "Hints preview *every* marble",
+        "Stuck? A hint shows exactly where every marble would land.",
+        "Fewest moves wins",
+        "Match par, and the perfect route earns three stars.",
+        "*120* levels",
+        "A hundred and twenty levels, and every single one is solvable.",
+        "Eight marbles. *One* swipe at a time.",
+        "Later levels pack in more marbles, more walls, and more ways to go wrong.",
+        "No timers",
+        "No timers, no lives, no rush. Just you and the marbles.",
+        "Plumb is free on Google Play."
+      ],
+      "music_style": "ambient",
+      "voice": "af_sarah",
+      "fingerprint": "cb7af89815b5",
+      "seed": 511025150,
+      "made": "2026-09-29"
+    }
+  ]
+}
