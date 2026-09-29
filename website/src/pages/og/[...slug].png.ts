@@ -1,5 +1,5 @@
 import { getCollection } from "astro:content";
-import { site } from "../../site.config";
+import { notFound, site } from "../../site.config";
 import { render } from "../../utils/og";
 
 export const prerender = true;
@@ -12,7 +12,7 @@ const pages = [
   { slug: "support", title: "Support and FAQ", description: `Answers, bug reports and feedback for ${site.name}.`, kicker: "Support" },
   { slug: "privacy", title: "Privacy policy", description: `${site.name} collects no personal data. No ads, no analytics, no accounts.`, kicker: "Privacy" },
   { slug: "credits", title: "Credits", description: `Everything ${site.name} is built with, and the licences.`, kicker: "Credits" },
-  { slug: "404", title: "Page not found", description: "This page rolled away.", kicker: "404" },
+  { slug: "404", title: "Page not found", description: `${notFound.heading.join("")}.`, kicker: "404" },
 ];
 
 export async function getStaticPaths() {
