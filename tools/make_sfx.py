@@ -2,7 +2,8 @@
 
 Run from the project root: python3 tools/make_sfx.py   (needs numpy and ffmpeg with libvorbis)
 
-Deterministic: the noise generator is seeded, so re-running writes the same files. Each marble colour
+Deterministic: the noise generator is seeded, so re-running makes the same sounds. The Ogg container
+gets a new random stream serial each run, so the bytes differ; commit only the sounds you changed. Each marble colour
 sinks on its own note of a major pentatonic scale, which is why a board cleared in any order still
 sounds like a chord rather than a mistake.
 """
@@ -134,6 +135,50 @@ def star():
     return normalise(b + sparkle, 0.6)
 
 
+def pad_voice(freq, seconds):
+    """Three slightly detuned sines: a soft, slowly beating pad note."""
+    t = t_axis(seconds)
+    out = np.zeros(t.size)
+    for cents in (-6, 0, 5):
+        f = freq * 2 ** (cents / 1200.0)
+        out += np.sin(2 * np.pi * f * t + RNG.uniform(0, 2 * np.pi))
+    return out / 3.0
+
+
+def music():
+    """A 32 s ambient loop: four chords with added ninths, eight seconds each, cross-fading, and a few
+    quiet pentatonic bells. The tail is folded back onto the start, so the loop has no seam."""
+    chord_seconds = 8.0
+    loop = 4 * chord_seconds
+    tail = 3.0
+    total = int(RATE * (loop + tail))
+    out = np.zeros(total)
+    chords = [
+        [130.81, 196.00, 246.94, 329.63, 293.66],   # C  G  B  E  D  (Cmaj9)
+        [110.00, 164.81, 196.00, 261.63, 246.94],   # A  E  G  C  B  (Am9)
+        [87.31, 130.81, 164.81, 220.00, 196.00],    # F  C  E  A  G  (Fmaj9)
+        [98.00, 146.83, 164.81, 246.94, 220.00],    # G  D  E  B  A  (G6/9)
+    ]
+    length = chord_seconds + tail
+    n = int(RATE * length)
+    env = np.minimum(1.0, np.arange(n) / (RATE * 2.2))
+    env *= np.minimum(1.0, (n - np.arange(n)) / (RATE * 3.0))
+    for k, chord in enumerate(chords):
+        start = int(RATE * k * chord_seconds)
+        voice = np.zeros(n)
+        for f in chord:
+            voice += pad_voice(f, length)
+        out[start:start + n] += lowpass(voice, 1400) * env * 0.22
+    bells = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.5]
+    for _ in range(14):
+        at = int(RATE * RNG.uniform(0.5, loop - 1.5))
+        b = bell(float(RNG.choice(bells)), 2.2, 0.4) * 0.05
+        out[at:at + b.size] += b[:max(0, total - at)]
+    wrapped = out[:int(RATE * loop)].copy()
+    wrapped[:total - wrapped.size] += out[wrapped.size:]
+    return normalise(wrapped, 0.35)
+
+
 def undo():
     return normalise(sweep(900, 400, 0.12) * decay(int(RATE * 0.12), 0.05), 0.4)
 
@@ -158,3 +203,4 @@ if __name__ == "__main__":
     write("star", star())
     write("undo", undo())
     write("hint", hint())
+    write("music", music())
