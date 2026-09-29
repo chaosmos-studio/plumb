@@ -92,6 +92,11 @@ func _draw() -> void:
 	tile.bg_color = Palette.TILE
 	tile.set_corner_radius_all(int(cell * 0.16))
 	tile.anti_aliasing = true
+	var pit_face: StyleBoxFlat = tile.duplicate()
+	pit_face.bg_color = Palette.PIT
+	var pit_depth: StyleBoxFlat = tile.duplicate()
+	pit_depth.bg_color = Palette.PIT.darkened(0.6)
+	pit_depth.set_corner_radius_all(int(cell * 0.1))
 	var wall: StyleBoxFlat = tile.duplicate()
 	wall.bg_color = Palette.WALL
 	wall.border_color = Palette.WALL_LIP
@@ -104,10 +109,10 @@ func _draw() -> void:
 			TiltBoard.Cell.WALL:
 				draw_style_box(wall, rect)
 			TiltBoard.Cell.PIT:
-				draw_style_box(tile, rect)
-				draw_circle(c, cell * 0.4, Color(Palette.DANGER, 0.22), true, -1.0, true)
-				draw_circle(c, cell * 0.34, Palette.PIT, true, -1.0, true)
-				draw_circle(c + Vector2(0, cell * 0.05), cell * 0.26, Palette.PIT.darkened(0.5), true, -1.0, true)
+				# A square void where the tile should be. Holes are round and pits are square, so the two
+				# never read alike, whatever colours a player can tell apart.
+				draw_style_box(pit_face, rect)
+				draw_style_box(pit_depth, rect.grow_individual(-cell * 0.1, -cell * 0.16, -cell * 0.1, -cell * 0.06))
 			_:
 				draw_style_box(tile, rect)
 				var hole: int = board.holes[i]
