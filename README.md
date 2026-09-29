@@ -24,6 +24,7 @@ DISPLAY=:0 godot --path . --resolution 720x1280 res://tools/shots.tscn   # scree
 godot --headless --path . -s res://tools/generate_levels.gd   # levels/levels.json (about 90 s)
 python3 tools/make_sfx.py                                     # assets/audio/sfx (numpy, ffmpeg)
 python3 tools/make_icons.py                                   # web/ icons and assets/branding/icon.png (Pillow)
+python3 tools/make_font.py                                    # the seam-free static font (fonttools, skia-pathops)
 ```
 
 `PLAN.md` is the design and the roadmap, `MATH.md` explains the rules, the solver and the generator,

@@ -11,7 +11,7 @@ Only CC0, CC-BY and SIL OFL (fonts) ship. Note every modification (rescaled, rec
 
 | Asset | Author | Licence | Notes |
 | --- | --- | --- | --- |
-| Baloo 2 (`assets/fonts/Baloo2.ttf`) | Ek Type | SIL Open Font License 1.1 (`assets/fonts/Baloo2-OFL.txt`) | Unmodified. |
+| Baloo 2 (`assets/fonts/Baloo2.ttf`) | Ek Type | SIL Open Font License 1.1 (`assets/fonts/Baloo2-OFL.txt`) | **Modified**: a static weight-400 instance of the variable font with overlapping contours merged (`tools/make_font.py`), because Godot drew every overlap as a faint seam. The untouched variable source is `assets/fonts/source/Baloo2-Variable.ttf`. |
 
 ## Sound effects and music
 
