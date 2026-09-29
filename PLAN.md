@@ -95,7 +95,8 @@ generator are Tilt's own.
 
 - **M0 - Is it fun**: rules, solver, generated levels, the play screen. Done.
 - **M1 - The full loop**: title, level select, stars, progress, sounds, web preview. Done.
-- **M2 - Feel pass**: marble trails, tray light that follows the tilt, a gentle ambient music bed.
+- **M2 - Feel pass**: marble trails, marbles popping in at level start, and an ambient music loop with its
+  own toggle are done. Still to do: a tray light that follows the tilt.
 - **M3 - Content**: new tile types generated the same way (one-way arrows, ice, sticky floor) past
   level 120, and daily puzzles from a date seed.
 - **M4 - Monetization**: rewarded hints, capped interstitials, remove ads.

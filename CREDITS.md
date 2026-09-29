@@ -13,9 +13,9 @@ Only CC0, CC-BY and SIL OFL (fonts) ship. Note every modification (rescaled, rec
 | --- | --- | --- | --- |
 | Baloo 2 (`assets/fonts/Baloo2.ttf`) | Ek Type | SIL Open Font License 1.1 (`assets/fonts/Baloo2-OFL.txt`) | Unmodified. |
 
-## Sound effects
+## Sound effects and music
 
-All synthesised by `tools/make_sfx.py`. None are third-party.
+All synthesised by `tools/make_sfx.py`, including the ambient music loop. None are third-party.
 
 ## Everything else
 
