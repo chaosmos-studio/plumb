@@ -1,0 +1,33 @@
+---
+interface Props {
+  headings: { depth: number; slug: string; text: string }[];
+}
+const items = Astro.props.headings.filter(h => h.depth === 2);
+---
+{items.length > 2 && (
+  <nav class="toc card" aria-label="On this page" data-pagefind-ignore>
+    <p class="eyebrow">On this page</p>
+    <ol>
+      {items.map(h => <li><a href={`#${h.slug}`}>{h.text}</a></li>)}
+    </ol>
+  </nav>
+)}
+<style>
+  .toc {
+    padding: 1.1rem 1.4rem;
+    margin: 0 0 2rem;
+  }
+  .toc .eyebrow {
+    margin-bottom: 0.4rem;
+  }
+  ol {
+    margin: 0;
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 0.25rem;
+  }
+  a {
+    text-decoration: none;
+    color: var(--muted);
+  }
+</style>

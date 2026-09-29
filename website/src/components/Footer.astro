@@ -1,0 +1,83 @@
+---
+import Icon from "./Icon.astro";
+import { site } from "../site.config";
+import { href } from "../utils/url";
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer" data-pagefind-ignore>
+  <div class="wrap cols">
+    <div class="about">
+      <p class="word">{site.wordmark}</p>
+      <p class="tag">{site.tagline}. Made by Shravan Goswami and Claude.</p>
+      <div class="btn-row">
+        <a class="btn btn-primary" href={site.storeUrl} rel="noopener"><Icon name="android" /> Google Play</a>
+        <a class="btn btn-quiet" href={href(site.playPath)}><Icon name="play" /> Play online</a>
+      </div>
+    </div>
+    <nav aria-label="Footer">
+      <p class="head">Game</p>
+      <a href={href("")}>Home</a>
+      <a href={href("blog/")}>Blog</a>
+      <a href={href("about/")}>About</a>
+      <a href={href("credits/")}>Credits</a>
+    </nav>
+    <nav aria-label="Help">
+      <p class="head">Help</p>
+      <a href={href("support/")}>Support</a>
+      <a href={href("privacy/")}>Privacy policy</a>
+      <a href={`mailto:${site.email}`}>Email us</a>
+      <a href={href("rss.xml")}>RSS feed</a>
+    </nav>
+  </div>
+  <div class="wrap legal">
+    <p>&copy; {year} Shravan Goswami. {site.name} is free on Google Play.</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: clamp(48px, 8vw, 96px);
+    border-top: 1px solid var(--line);
+    background: color-mix(in srgb, var(--surface) 55%, transparent);
+    padding-top: 3rem;
+  }
+  .cols {
+    display: grid;
+    gap: 2rem;
+  }
+  @media (min-width: 760px) {
+    .cols {
+      grid-template-columns: 2fr 1fr 1fr;
+    }
+  }
+  .word {
+    font-size: 2rem;
+    font-weight: 300;
+    margin: 0;
+  }
+  .tag {
+    color: var(--muted);
+  }
+  nav {
+    display: grid;
+    align-content: start;
+    gap: 0.45rem;
+  }
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  nav a:hover {
+    color: var(--accent);
+  }
+  .head {
+    font-weight: 500;
+    margin: 0 0 0.3rem;
+  }
+  .legal {
+    padding: 2rem 0;
+    color: var(--soft);
+    font-size: 0.9rem;
+  }
+</style>

@@ -1,0 +1,78 @@
+---
+import Icon from "./Icon.astro";
+import ClaudeMark from "./ClaudeMark.astro";
+import type { Person } from "../site.config";
+interface Props {
+  person: Person;
+  compact?: boolean;
+}
+const { person, compact = false } = Astro.props;
+---
+<article class:list={["person", "card", { compact }]}>
+  {person.avatar === "claude" ? (
+    <ClaudeMark size={compact ? 48 : 96} />
+  ) : (
+    <img src={person.avatar} alt={`${person.name}`} width={compact ? 48 : 96} height={compact ? 48 : 96} loading="lazy" class="avatar" />
+  )}
+  <div>
+    <h3>{person.name}</h3>
+    <p class="role">{person.role}</p>
+    {!compact && <p class="bio">{person.bio}</p>}
+    {!compact && (
+      <div class="links">
+        {person.links.map(l => (
+          <a href={l.href} rel="noopener" aria-label={`${person.name}: ${l.label}`}><Icon name={l.icon} size={18} /></a>
+        ))}
+      </div>
+    )}
+  </div>
+</article>
+<style>
+  .person {
+    display: flex;
+    gap: 1.2rem;
+    padding: 1.5rem;
+    align-items: flex-start;
+  }
+  .avatar {
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  h3 {
+    margin: 0 0 0.1rem;
+  }
+  .role {
+    color: var(--accent);
+    font-weight: 500;
+    margin: 0 0 0.6rem;
+  }
+  .bio {
+    color: var(--muted);
+  }
+  .links {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .links a {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+  }
+  .compact {
+    padding: 0.8rem 1rem;
+    align-items: center;
+    gap: 0.8rem;
+    box-shadow: none;
+  }
+  .compact h3 {
+    font-size: 1rem;
+  }
+  .compact .role {
+    margin: 0;
+    font-size: 0.85rem;
+  }
+</style>

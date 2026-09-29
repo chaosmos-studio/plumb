@@ -1,0 +1,133 @@
+---
+import Icon from "./Icon.astro";
+import { site } from "../site.config";
+const bundle = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/pagefind/`;
+---
+
+<div class="search" id="search" aria-hidden="true" data-pagefind-ignore>
+  <button class="scrim" type="button" data-close-search aria-label="Close search"></button>
+  <div class="panel card" role="dialog" aria-modal="true" aria-label={`Search ${site.name}`}>
+    <div class="top">
+      <p class="eyebrow"><Icon name="search" size={14} /> Search</p>
+      <button class="close" type="button" data-close-search aria-label="Close search"><Icon name="close" /></button>
+    </div>
+    <div id="search-ui" data-bundle={bundle} data-placeholder={site.searchPlaceholder}></div>
+  </div>
+</div>
+
+<script>
+  import { PagefindUI } from "@pagefind/default-ui";
+  import "@pagefind/default-ui/css/ui.css";
+
+  const box = document.getElementById("search")!;
+  const mount = document.getElementById("search-ui")!;
+  let ui: PagefindUI | null = null;
+
+  function boot() {
+    if (ui) return;
+    try {
+      ui = new PagefindUI({
+        element: "#search-ui",
+        bundlePath: mount.dataset.bundle,
+        showSubResults: true,
+        showImages: true,
+        excerptLength: 20,
+        resetStyles: false,
+        translations: { placeholder: mount.dataset.placeholder ?? "Search" },
+      });
+    } catch (e) {
+      mount.textContent = "Search is built with the site, so it only works on the published pages.";
+    }
+  }
+
+  function open(query = "") {
+    boot();
+    box.classList.add("open");
+    box.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    setTimeout(() => {
+      const input = box.querySelector<HTMLInputElement>(".pagefind-ui__search-input");
+      if (input) {
+        if (query) {
+          input.value = query;
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        input.focus();
+      }
+    }, 80);
+  }
+
+  function close() {
+    box.classList.remove("open");
+    box.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }
+
+  document.querySelectorAll("[data-open-search]").forEach(b => b.addEventListener("click", () => open()));
+  box.querySelectorAll("[data-close-search]").forEach(b => b.addEventListener("click", close));
+  addEventListener("keydown", e => {
+    if ((e.key === "k" && (e.ctrlKey || e.metaKey)) || (e.key === "/" && !(e.target instanceof HTMLInputElement))) {
+      e.preventDefault();
+      open();
+    } else if (e.key === "Escape") {
+      close();
+    }
+  });
+  // The WebSite SearchAction in the page's structured data points at ?q=, so honour it.
+  const q = new URL(location.href).searchParams.get("q");
+  if (q) open(q.trim());
+</script>
+
+<style>
+  .search {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: none;
+  }
+  .search.open {
+    display: block;
+  }
+  .scrim {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: color-mix(in srgb, var(--ink) 40%, transparent);
+    backdrop-filter: blur(4px);
+  }
+  .panel {
+    position: relative;
+    width: min(100% - 32px, 720px);
+    max-height: min(80vh, 760px);
+    overflow: auto;
+    margin: 10vh auto 0;
+    padding: 1.2rem 1.4rem 1.6rem;
+  }
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .top .eyebrow {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    margin: 0;
+  }
+  .close {
+    border: 0;
+    background: none;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  #search-ui {
+    --pagefind-ui-font: var(--font);
+    --pagefind-ui-primary: var(--accent);
+    --pagefind-ui-text: var(--ink);
+    --pagefind-ui-background: var(--surface);
+    --pagefind-ui-border: var(--line);
+    --pagefind-ui-tag: var(--surface-2);
+    --pagefind-ui-border-radius: 14px;
+    margin-top: 0.8rem;
+  }
+</style>

@@ -1,0 +1,174 @@
+---
+import { Image } from "astro:assets";
+import Icon from "./Icon.astro";
+import icon from "../assets/icon.png";
+import { nav, site } from "../site.config";
+import { href } from "../utils/url";
+
+const here = Astro.url.pathname;
+---
+
+<header class="site-header" data-pagefind-ignore>
+  <div class="wrap bar">
+    <a class="brand" href={href("")} aria-label={`${site.name} home`}>
+      <Image src={icon} alt={`${site.name} icon`} width={36} height={36} class="brand-icon" loading="eager" />
+      <span class="brand-word">{site.wordmark}</span>
+    </a>
+    <nav class="links" aria-label="Main">
+      {nav.map(item => (
+        <a href={href(item.href)} aria-current={here.startsWith(href(item.href)) ? "page" : undefined}>{item.label}</a>
+      ))}
+    </nav>
+    <div class="tools">
+      <button class="icon-btn" type="button" data-open-search aria-label="Search (Ctrl+K)">
+        <Icon name="search" />
+      </button>
+      <button class="icon-btn" type="button" id="theme-toggle" aria-label="Switch light or dark theme">
+        <span class="sun"><Icon name="sun" /></span>
+        <span class="moon"><Icon name="moon" /></span>
+      </button>
+      <a class="btn btn-primary get" href={site.storeUrl} rel="noopener">Get the game</a>
+      <button class="icon-btn menu" type="button" id="menu-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+        <Icon name="menu" />
+      </button>
+    </div>
+  </div>
+  <nav class="mobile" id="mobile-menu" aria-label="Mobile">
+    {nav.map(item => <a href={href(item.href)}>{item.label}</a>)}
+    <a href={href(site.playPath)}>Play in your browser</a>
+    <a href={site.storeUrl} rel="noopener">Get it on Google Play</a>
+  </nav>
+</header>
+
+<script is:inline define:vars={{ key: site.themeStorageKey }}>
+  const root = document.documentElement;
+  document.getElementById("theme-toggle")?.addEventListener("click", () => {
+    const next = root.dataset.theme === "dark" ? "light" : "dark";
+    root.dataset.theme = next;
+    try {
+      localStorage.setItem(key, next);
+    } catch (e) {}
+  });
+  const menu = document.getElementById("mobile-menu");
+  const toggle = document.getElementById("menu-toggle");
+  toggle?.addEventListener("click", () => {
+    const open = menu?.classList.toggle("open");
+    toggle.setAttribute("aria-expanded", String(Boolean(open)));
+  });
+  const header = document.querySelector(".site-header");
+  addEventListener(
+    "scroll",
+    () => {
+      const y = scrollY;
+      header?.classList.toggle("raised", y > 8);
+    },
+    { passive: true }
+  );
+</script>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    backdrop-filter: saturate(1.4) blur(14px);
+    background: color-mix(in srgb, var(--bg) 78%, transparent);
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .site-header.raised {
+    border-bottom-color: var(--line);
+    box-shadow: 0 8px 24px -20px rgba(0, 0, 0, 0.4);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-height: 72px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    margin-right: auto;
+  }
+  .brand-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    box-shadow: var(--shadow-soft);
+  }
+  .brand-word {
+    font-size: 1.6rem;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+  }
+  .links {
+    display: none;
+    gap: 0.4rem;
+  }
+  .links a {
+    text-decoration: none;
+    padding: 0.45rem 0.9rem;
+    border-radius: var(--pill);
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .links a:hover,
+  .links a[aria-current="page"] {
+    color: var(--ink);
+    background: var(--surface);
+  }
+  .tools {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .icon-btn {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--pill);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .icon-btn:hover {
+    color: var(--accent);
+  }
+  :global([data-theme="dark"]) .sun,
+  :global([data-theme="light"]) .moon {
+    display: none;
+  }
+  .get {
+    display: none;
+    min-height: 44px;
+  }
+  .mobile {
+    display: none;
+    flex-direction: column;
+    padding: 0.5rem var(--gutter) 1.2rem;
+  }
+  .mobile.open {
+    display: flex;
+  }
+  .mobile a {
+    padding: 0.8rem 0;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  @media (min-width: 860px) {
+    .links,
+    .get {
+      display: flex;
+    }
+    .menu,
+    .mobile.open {
+      display: none;
+    }
+  }
+</style>
