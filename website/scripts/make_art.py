@@ -8,17 +8,24 @@ Reads art/art.json. Every picture starts as a capture of the game itself, staged
 remade after any change to the game. The captures are then composed into one of these kinds:
 
   phone    a capture inside a modern 19.5:9 phone, on a transparent background, for the home page
-  cover    a 16:9 blog cover: the brand's colours, soft orbs, and a board tilted in on the right
-  board    one board on a card, with numbered markers at chosen points and an optional note
+  cover    a 16:9 blog cover: the brand's colours, soft orbs, and a board tilted in on the right, or
+           for a round board a disc ("cover_shape": "circle"). The backdrop behind it is a faint grid
+           ("backdrop": "grid", the default), faint stars ("stars"), or a night sky with a sun, its
+           orbits and stars ("sky")
+  board    one board on a card, with numbered markers and text labels at chosen points and an optional note
   strip    several boards in a row, numbered, with a label under each: a move by move sequence
   compare  two boards side by side, labelled, for a before and after
   turns    one board shown in all eight turns and mirrors, for posts about symmetry
   tree     one board and the four boards a tilt in each direction leads to
-  chart    a per-level series from levels/levels.json drawn as a filled line
+  chart    a per-level series drawn as a filled line: a field of levels/levels.json, or of a dataset a
+           game tool writes (art.json "datasets" names the script), optionally banded by another field
+  orbit    an elliptical orbit around a sun, drawn rather than captured, with its nearest and farthest
+           points (the apsides) marked and labelled
 
 Pictures are written as WebP (lossy, quality 90) into the paths art.json gives, usually a post's
 images/ folder. Astro then makes the responsive sizes. Captures are cached in art/build/raw and only
-remade with --force, or when a shot's action changes.
+remade with --force, or when a shot's action changes. Datasets are remade with --force, or when
+levels.json is newer.
 """
 
 import argparse
@@ -96,6 +103,21 @@ class Art:
         if "CAPTURE_DONE" not in out.stdout:
             sys.exit("capture failed:\n" + out.stdout[-2000:] + out.stderr[-2000:])
 
+    def dataset(self, name, force):
+        """A game tool's per-level measurements: run as `godot -s <script> -- out=<file>`, cached in build/."""
+        path = os.path.join(SITE, "art", "build", name + ".json")
+        levels = os.path.join(self.game, "levels", "levels.json")
+        if force or not os.path.exists(path) or os.path.getmtime(path) < os.path.getmtime(levels):
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            cmd = ["godot", "--headless", "--path", self.game, "-s", self.spec["datasets"][name], "--", "out=" + path]
+            if shutil.which("systemd-run"):
+                cmd = ["systemd-run", "--user", "--scope", "--quiet", "-p", "MemoryMax=2G", "-p", "MemorySwapMax=0", "--"] + cmd
+            print("measuring %s" % name, flush=True)
+            subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            if not os.path.exists(path):
+                sys.exit("dataset %s was not written by %s" % (name, self.spec["datasets"][name]))
+        return json.load(open(path))["levels"]
+
     def raw(self, name):
         return Image.open(os.path.join(RAW, self.shot_key(name) + ".png")).convert("RGB")
 
@@ -142,9 +164,12 @@ class Art:
         rng = random.Random(item.get("seed", item["out"]))
         img = self.backdrop((W, H), rng)
         art = self.board(item["shot"])
-        art = card(art, int(H * 0.8), self.p, radius=0.05)
-        angle = item.get("tilt", rng.choice([-6, -4, 4, 6]))
-        art = art.rotate(angle, resample=Image.BICUBIC, expand=True)
+        if self.spec.get("cover_shape", "card") == "circle":
+            art = disc(art, int(H * 0.86))
+        else:
+            art = card(art, int(H * 0.8), self.p, radius=0.05)
+            angle = item.get("tilt", rng.choice([-6, -4, 4, 6]))
+            art = art.rotate(angle, resample=Image.BICUBIC, expand=True)
         x = int(W * item.get("x", 0.5)) - art.width // 2 + int(W * 0.14)
         y = (H - art.height) // 2
         drop(img, art, (x, y), 40)
@@ -163,15 +188,24 @@ class Art:
             cx, cy = rng.randint(0, int(W * 0.5)), rng.randint(0, H)
             g.ellipse([cx - r, cy - r, cx + r, cy + r], fill=self.p[colour] + (70,))
         img.alpha_composite(glow.filter(ImageFilter.GaussianBlur(H * 0.12)))
-        grid = Image.new("RGBA", size, (0, 0, 0, 0))
-        gd = ImageDraw.Draw(grid)
-        step = int(H * 0.06)
-        line = self.p["ink"] + (14,)
-        for x in range(0, W, step):
-            gd.line([(x, 0), (x, H)], fill=line, width=1)
-        for y in range(0, H, step):
-            gd.line([(0, y), (W, y)], fill=line, width=1)
-        img.alpha_composite(grid)
+        backdrop = self.spec.get("backdrop", "grid")
+        if backdrop == "sky":
+            self.sky(img, rng)
+            return img
+        texture = Image.new("RGBA", size, (0, 0, 0, 0))
+        td = ImageDraw.Draw(texture)
+        if backdrop == "stars":
+            for _ in range(int(W * H / 5200)):
+                x, y, r = rng.uniform(0, W), rng.uniform(0, H), rng.uniform(0.6, 2.2)
+                td.ellipse([x - r, y - r, x + r, y + r], fill=self.p["ink"] + (int(40 + 90 * r / 2.2),))
+        else:
+            step = int(H * 0.06)
+            line = self.p["ink"] + (14,)
+            for x in range(0, W, step):
+                td.line([(x, 0), (x, H)], fill=line, width=1)
+            for y in range(0, H, step):
+                td.line([(0, y), (W, y)], fill=line, width=1)
+        img.alpha_composite(texture)
         return img
 
     def board_card(self, item):
@@ -182,6 +216,9 @@ class Art:
         d = ImageDraw.Draw(art)
         for m in item.get("marks", []):
             self.mark(d, (m["at"][0] * art.width, m["at"][1] * art.height), m.get("n", ""), art.width * 0.045, m.get("ring", False))
+        for label in item.get("labels", []):
+            f = self.font(art.width * label.get("size", 0.04))
+            d.text((label["at"][0] * art.width, label["at"][1] * art.height), label["text"], font=f, fill=self.p["ink"], anchor="mm")
         body = card(art, art.height, self.p, radius=0.04)
         pad = 60
         out = Image.new("RGBA", (body.width + pad * 2, body.height + pad * 2 + (90 if item.get("note") else 0)), self.p["surface"] + (255,))
@@ -272,7 +309,7 @@ class Art:
 
     def chart(self, item):
         W, H = 1600, 820
-        levels = json.load(open(os.path.join(self.game, "levels", "levels.json")))["levels"]
+        levels = self.datasets[item["dataset"]] if "dataset" in item else json.load(open(os.path.join(self.game, "levels", "levels.json")))["levels"]
         key = item["series"]
         ys = [float(len(l[key])) if isinstance(l[key], list) else float(l[key]) for l in levels]
         img = Image.new("RGBA", (W, H), self.p["surface"] + (255,))
@@ -280,11 +317,23 @@ class Art:
         left, right, top, bottom = 150, 70, 110, 130
         lo, top_value = 0.0, max(ys) * 1.08
         whole = all(float(y).is_integer() for y in ys)
-        step = nice_step(top_value / 5, whole)
+        step = item.get("step") or nice_step(top_value / 5, whole)
         ticks = max(1, math.ceil(top_value / step))
         hi = step * ticks
         def pt(i, y):
             return (left + (W - left - right) * i / (len(ys) - 1), H - bottom - (H - top - bottom) * (y - lo) / (hi - lo))
+        if item.get("bands"):
+            # Runs of levels that share a value of the band field, shaded in turn and labelled at the top.
+            band = [l[item["bands"]] for l in levels]
+            names = item.get("band_labels", {})
+            start = 0
+            for i in range(1, len(band) + 1):
+                if i == len(band) or band[i] != band[start]:
+                    x0, x1 = pt(start - 0.5 if start else 0, lo)[0], pt(i - 0.5 if i < len(band) else i - 1, lo)[0]
+                    if len(set(band[:start])) % 2:
+                        d.rectangle([x0, top, x1, H - bottom], fill=self.p["ink"] + (10,))
+                    d.text(((x0 + x1) / 2, top + 26), names.get(str(band[start]), str(band[start])), font=self.font(28), fill=self.p["muted"], anchor="mm")
+                    start = i
         for k in range(ticks + 1):
             y = lo + step * k
             _, py = pt(0, y)
@@ -302,7 +351,65 @@ class Art:
         d.text(((W + left - right) / 2, H - 50), item.get("x_label", "Level"), font=self.font(32), fill=self.p["muted"], anchor="mm")
         return img
 
+    def orbit(self, item):
+        W, H, k = 1600, 1000, 2
+        rng = random.Random(item.get("seed", 1))
+        img = Image.new("RGBA", (W * k, H * k), self.p["bg"] + (255,))
+        self.sky(img, rng, rings=False)
+        a, e = item.get("a", 500) * k, item.get("e", 0.55)
+        c, b = a * e, a * math.sqrt(1 - e * e)
+        cx, cy = W * k / 2 - 20 * k, H * k * 0.57
+        sun = (cx - c, cy)
+        glow = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        ImageDraw.Draw(glow).ellipse([sun[0] - 170 * k, cy - 170 * k, sun[0] + 170 * k, cy + 170 * k], fill=self.p["accent"] + (90,))
+        img.alpha_composite(glow.filter(ImageFilter.GaussianBlur(60 * k)))
+        d = ImageDraw.Draw(img)
+        ring = [(cx + a * math.cos(t * math.tau / 720), cy + b * math.sin(t * math.tau / 720)) for t in range(721)]
+        d.line(ring, fill=self.p["ink"] + (120,), width=3 * k, joint="curve")
+        near, far = (cx - a, cy), (cx + a, cy)
+        x = near[0]
+        while x < far[0]:
+            d.line([(x, cy), (min(x + 16 * k, far[0]), cy)], fill=self.p["muted"] + (150,), width=2 * k)
+            x += 30 * k
+        for r, colour in ((40, "gold"), (30, "accent")):
+            d.ellipse([sun[0] - r * k, cy - r * k, sun[0] + r * k, cy + r * k], fill=self.p[colour])
+        body = [self.p[n] for n in item.get("bodies", ["accent", "accent"])]
+        for (px, py), colour in zip((near, far), body):
+            d.ellipse([px - 18 * k, py - 18 * k, px + 18 * k, py + 18 * k], fill=colour, outline=self.p["bg"], width=4 * k)
+        labels = item.get("labels", [["Periapsis", "nearest point"], ["Apoapsis", "farthest point"]])
+        for (px, py), (head, sub), side in zip((near, far), labels, (-1, 1)):
+            anchor = "r" if side < 0 else "l"
+            tx = px + side * 40 * k
+            d.text((tx, py - 8 * k), head, font=self.font(46 * k), fill=self.p["ink"], anchor=anchor + "s")
+            d.text((tx, py + 40 * k), sub, font=self.font(32 * k), fill=self.p["muted"], anchor=anchor + "s")
+        if item.get("title"):
+            d.text((70 * k, 64 * k), item["title"], font=self.font(50 * k), fill=self.p["ink"], anchor="la")
+        return img.resize((W, H), Image.LANCZOS)
+
     # --- Drawing helpers ------------------------------------------------------------------------------
+
+    def sky(self, img, rng, rings=True):
+        """Faint stars, and orbit rings around a centre off the canvas's left edge."""
+        W, H = img.size
+        layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        d = ImageDraw.Draw(layer)
+        star = self.p.get("star", self.p["ink"])
+        for _ in range(int(W * H / 9000)):
+            r = (0.6 + 1.6 * rng.random() ** 3) * H / 900
+            x, y = rng.uniform(0, W), rng.uniform(0, H)
+            d.ellipse([x - r, y - r, x + r, y + r], fill=star + (int(rng.uniform(50, 190)),))
+        if rings:
+            # A sun just off the left edge, its glow and its orbits reaching across the picture.
+            cx, cy = -H * 0.07, H * rng.uniform(0.35, 0.65)
+            glow = Image.new("RGBA", img.size, (0, 0, 0, 0))
+            g = ImageDraw.Draw(glow)
+            for r, colour, alpha in ((0.42, "accent", 70), (0.2, "accent", 150), (0.13, "gold", 255)):
+                g.ellipse([cx - H * r, cy - H * r, cx + H * r, cy + H * r], fill=self.p[colour] + (alpha,))
+            img.alpha_composite(glow.filter(ImageFilter.GaussianBlur(H * 0.035)))
+            for i in range(1, 9):
+                r = H * (0.12 + 0.2 * i)
+                d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=self.p["ink"] + (26,), width=max(1, H // 450))
+        img.alpha_composite(layer)
 
     def mark(self, d, at, text, r, ring):
         x, y = at
@@ -367,6 +474,17 @@ def card(img, height, p, radius=0.05):
     return out
 
 
+def disc(img, size):
+    """A round system cut out of its square capture, with a softened edge."""
+    img = img.convert("RGBA").resize((size, size), Image.LANCZOS)
+    mask = Image.new("L", (size * 2, size * 2), 0)
+    ImageDraw.Draw(mask).ellipse([4, 4, size * 2 - 5, size * 2 - 5], fill=255)
+    mask = mask.resize((size, size), Image.LANCZOS).filter(ImageFilter.GaussianBlur(size * 0.004))
+    out = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    out.paste(img, (0, 0), mask)
+    return out
+
+
 def drop(canvas, art, at, blur):
     layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     alpha = art.split()[3].point(lambda a: int(a * 0.35))
@@ -391,8 +509,9 @@ def main():
         needed.update(i.get("shots", []))
         needed.update(i.get("children", []))
     art.capture(sorted(needed), args.force)
+    art.datasets = {n: art.dataset(n, args.force) for n in sorted({i["dataset"] for i in items if "dataset" in i})}
     kinds = {"phone": art.phone, "cover": art.cover, "board": art.board_card, "strip": art.strip, "compare": art.compare,
-             "turns": art.turns, "tree": art.tree, "chart": art.chart}
+             "turns": art.turns, "tree": art.tree, "chart": art.chart, "orbit": art.orbit}
     for i in items:
         img = kinds[i["kind"]](i)
         out = os.path.join(SITE, i["out"])
