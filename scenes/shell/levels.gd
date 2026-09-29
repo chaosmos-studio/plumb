@@ -84,7 +84,9 @@ func _tile(level: int, is_next: bool) -> Button:
 	tile.custom_minimum_size = Vector2(TILE, TILE)
 	tile.add_theme_font_size_override("font_size", 46)
 	for state: String in ["normal", "hover", "pressed", "disabled"]:
-		var box: StyleBoxFlat = (tile.get_theme_stylebox(state) as StyleBoxFlat).duplicate()
+		# From the theme itself: a control not yet in the tree only sees the engine's default look.
+		var kind: String = "PrimaryButton" if is_next else "Button"
+		var box: StyleBoxFlat = (UI.theme().get_stylebox(state, kind) as StyleBoxFlat).duplicate()
 		box.set_corner_radius_all(30)
 		box.content_margin_bottom = 46
 		tile.add_theme_stylebox_override(state, box)
