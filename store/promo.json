@@ -2,59 +2,73 @@
 	"name": "Plumb",
 	"wordmark": "plumb",
 	"tagline": "Roll every marble home",
+	"store_url": "https://play.google.com/store/apps/details?id=com.shravangoswami.plumb",
+	"qr_ink": "2f333d",
 	"mood": ["calm", "tactile", "clever", "warm"],
 	"music": {"styles": ["lofi", "marimba", "pluck", "ambient"], "moods": ["calm", "playful", "dreamy"], "bpm": [80, 104], "scales": ["major", "pentatonic"], "keys": ["C", "D", "F", "G", "A"]},
-	"voice_tone": ["warm", "calm", "friendly", "narrator"],
+	"voice_speed": 0.97,
 	"scenes": {
 		"mechanic": [
-			{"id": "m46", "action": "play:46", "perform": [{"at": 0.7, "verb": "solve", "arg": 3}], "dur": 4.4},
-			{"id": "m61", "action": "play:61", "perform": [{"at": 0.6, "verb": "solve", "arg": 3}], "dur": 4.4},
-			{"id": "m31", "action": "play:31", "perform": [{"at": 0.6, "verb": "solve", "arg": 3}], "dur": 4.2},
-			{"id": "m76", "action": "play:76", "perform": [{"at": 0.6, "verb": "solve", "arg": 3}], "dur": 4.4}
+			{"id": "m18", "action": "play:18", "perform": [{"at": 0.5, "verb": "solve", "arg": 3}], "dur": 4.2},
+			{"id": "m22", "action": "play:22", "perform": [{"at": 0.5, "verb": "solve", "arg": 3}], "dur": 4.2},
+			{"id": "m26", "action": "play:26", "perform": [{"at": 0.5, "verb": "solve", "arg": 3}], "dur": 4.2},
+			{"id": "m30", "action": "play:30", "perform": [{"at": 0.5, "verb": "solve", "arg": 3}], "dur": 4.2}
 		],
 		"hint": [
-			{"id": "h46", "action": "play:46", "perform": [{"at": 0.5, "verb": "hint"}], "dur": 3.4},
-			{"id": "h81", "action": "play:81", "perform": [{"at": 0.5, "verb": "hint"}], "dur": 3.4}
+			{"id": "h45", "action": "play:45", "perform": [{"at": 0.4, "verb": "hint"}, {"at": 2.2, "verb": "solve", "arg": 1}], "dur": 4.0},
+			{"id": "h55", "action": "play:55", "perform": [{"at": 0.4, "verb": "hint"}, {"at": 2.2, "verb": "solve", "arg": 1}], "dur": 4.0},
+			{"id": "h65", "action": "play:65", "perform": [{"at": 0.4, "verb": "hint"}, {"at": 2.2, "verb": "solve", "arg": 1}], "dur": 4.0}
 		],
 		"win": [
-			{"id": "w21", "action": "play:21", "perform": [{"at": 0.5, "verb": "solve"}], "dur": 5.4},
-			{"id": "w12", "action": "play:12", "perform": [{"at": 0.5, "verb": "solve"}], "dur": 5.0}
+			{"id": "w10", "action": "play:10", "perform": [{"at": 0.5, "verb": "solve"}], "dur": 5.2},
+			{"id": "w14", "action": "play:14", "perform": [{"at": 0.5, "verb": "solve"}], "dur": 5.2},
+			{"id": "w16", "action": "play:16", "perform": [{"at": 0.5, "verb": "solve"}], "dur": 5.6}
 		],
 		"fail": [
-			{"id": "f36", "action": "play:36", "perform": [{"at": 0.5, "verb": "fail"}], "dur": 3.6},
-			{"id": "f41", "action": "play:41", "perform": [{"at": 0.5, "verb": "fail"}], "dur": 3.6}
+			{"id": "f36", "action": "play:36", "perform": [{"at": 0.5, "verb": "fail"}], "dur": 4.0},
+			{"id": "f41", "action": "play:41", "perform": [{"at": 0.5, "verb": "fail"}], "dur": 4.0},
+			{"id": "f44", "action": "play:44", "perform": [{"at": 0.5, "verb": "fail"}], "dur": 4.0}
 		],
 		"dense": [
-			{"id": "d111", "action": "play:111", "perform": [{"at": 0.6, "verb": "solve", "arg": 4}], "dur": 5.0},
-			{"id": "d96", "action": "play:96", "perform": [{"at": 0.6, "verb": "solve", "arg": 4}], "dur": 5.0}
+			{"id": "d96", "action": "play:96", "perform": [{"at": 0.5, "verb": "solve", "arg": 4}], "dur": 5.0},
+			{"id": "d104", "action": "play:104", "perform": [{"at": 0.5, "verb": "solve", "arg": 4}], "dur": 5.0},
+			{"id": "d112", "action": "play:112", "perform": [{"at": 0.5, "verb": "solve", "arg": 4}], "dur": 5.0},
+			{"id": "d118", "action": "play:118", "perform": [{"at": 0.5, "verb": "solve", "arg": 4}], "dur": 5.0}
+		],
+		"challenge": [
+			{"id": "c60", "action": "play:60", "dur": 4.6},
+			{"id": "c70", "action": "play:70", "dur": 4.6},
+			{"id": "c80", "action": "play:80", "dur": 4.6},
+			{"id": "c90", "action": "play:90", "dur": 4.6}
 		],
 		"levels": [{"id": "grid", "action": "levels", "dur": 2.8, "hud": true}],
 		"title": [{"id": "home", "action": "title", "dur": 2.8, "hud": true}]
 	},
 	"copy": {
-		"hooks": ["Can you roll *every* marble home?", "One swipe. *Every* marble moves.", "Tilt it and watch *everything* roll", "Only one route is *perfect*", "A puzzle made of *gravity*"],
-		"mechanic": ["One swipe moves *every* marble", "Every marble rolls until it *stops*", "Each marble drops into *its* colour", "Plan where they *all* end up"],
-		"hint": ["Stuck? The hint shows *where* they land", "Hints preview *every* marble", "See the next move *before* you make it"],
-		"win": ["Match par for *three* stars", "Find the *perfect* route", "Fewest moves wins"],
-		"fail": ["Mind the *pits*", "One wrong tilt... then *undo*", "Square pits swallow *any* marble"],
-		"dense": ["It gets *deep*", "Eight marbles. *One* swipe at a time.", "Harder boards, same *one* rule"],
-		"stats": [
-				["*120* levels", "every one solvable", "A hundred and twenty levels, and every single one is solvable."],
-				["No timers", "no lives, no rush", "No timers, no lives, no rush. Just you and the marbles."],
-				["*3* stars", "for the perfect route", "Three stars wait for the shortest route."],
-				["*1* rule", "everything rolls", "One rule: everything rolls until something stops it."],
-				["*4* directions", "endless consequences", "Four directions, and every one changes the whole board."]
-			],
-		"cta": ["Play free", "Tilt it today", "Try level one"],
+		"hooks": ["One swipe. Where does *every* marble go?", "This looks easy. It *isn't*.", "Which way would *you* tilt?", "Don't overthink *this* one", "Tilt it *wrong* and you lose one", "Wait for the *last* one", "Gravity has *opinions*"],
+		"mechanic": ["Every marble rolls until it *stops*", "Each one drops into *its* colour", "One swipe moves them *all*", "Plan the whole *route*"],
+		"hint": ["Stuck? The hint shows *where* they land", "Peek at the next *move*", "See it *before* you tilt"],
+		"win": ["Fewest moves, *three* stars", "Clean. *Every* marble home.", "That's the *perfect* route"],
+		"fail": ["Watch the *pits*", "One wrong tilt... *oops*", "Undo is *one* tap away"],
+		"dense": ["Now it gets *interesting*", "More marbles. Same *one* rule.", "Harder boards, *same* swipe"],
+		"challenge": ["Your turn. Which way *first*?", "Can you solve *this* one?", "Four directions. *One* answer.", "Try it. No *peeking*."],
+		"cta": ["Solve it *yourself*", "Your move. *Download* free.", "Finish *this* level"],
+		"scan": ["Scan to play", "Scan to solve it", "Point your camera here"],
+		"facts": [
+			["No timers", "no lives, no rush", "No timers, no lives, and no rush."],
+			["*3* stars", "for the perfect route", "Three stars wait for the shortest route."],
+			["*1* rule", "everything rolls", "One rule: everything rolls until something stops it."],
+			["Plays *offline*", "anywhere, any time", "It plays offline, so it goes wherever you do."]
+		],
 		"vo": {
-			"hook": ["Tilt the board, and every marble rolls at once.", "Here is a puzzle made entirely of gravity.", "One swipe moves every marble on the board.", "Can you roll every marble home?"],
-			"mechanic": ["Each marble rolls until something stops it, then drops into the hole of its own colour.", "Every swipe moves them all, so the trick is planning where they will end up.", "Marbles roll as far as they can, and fall into their matching holes."],
-			"hint": ["Stuck? A hint shows exactly where every marble would land.", "The hint previews your next tilt, marble by marble.", "If you get stuck, ask for a hint and watch the route appear."],
-			"win": ["Solve it in the fewest moves for three stars.", "Match par, and the perfect route earns three stars.", "Find the shortest route to earn every star."],
-			"fail": ["Careful: square pits swallow any marble. Undo is always one tap away.", "Fall into a pit and simply undo, then try another way."],
-			"dense": ["The boards grow, the colours multiply, but the rule never changes.", "Later levels pack in more marbles, more walls, and more ways to go wrong."],
-			"stats": ["A hundred and twenty levels, and every single one is solvable.", "No timers, no lives, no rush. Just you and the marbles."],
-			"outro": ["Plumb. Free on Google Play.", "Plumb is free on Google Play.", "Download Plumb, free on Google Play."]
+			"hook": ["Every marble moves at once. So where do they all end up?", "This looks easy. It really isn't.", "Which way would you tilt first?", "One swipe, and everything rolls."],
+			"mechanic": ["Swipe to tilt the board, and every marble rolls until something stops it.", "Each marble drops into the hole of its own colour.", "The trick is planning where they'll all end up."],
+			"hint": ["Stuck? The hint shows exactly where every marble will land.", "Take a peek at the next move whenever you need one."],
+			"win": ["Find the shortest route, and all three stars are yours.", "Every marble home, in the fewest moves."],
+			"fail": ["Careful, the square pits swallow any marble. But undo is always one tap away.", "Tilt the wrong way and you lose one. So think first."],
+			"dense": ["Then the boards fill up, and the same simple rule gets surprisingly deep.", "More marbles, more walls, and still the same one swipe."],
+			"challenge": ["Now it's your turn. Which way would you tilt first?", "Here's one for you. Can you solve it?", "Think you've got it? Try this one."],
+			"outro": ["Scan the code and play Plumb, free on Google Play.", "Plumb is free on Google Play. Scan the code and solve it yourself.", "Solve it yourself. Plumb, free on Google Play."]
 		}
 	}
 }
