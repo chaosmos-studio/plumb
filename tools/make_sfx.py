@@ -1,0 +1,160 @@
+"""Synthesises every sound in Tilt. Nothing is recorded or downloaded, so there is nothing to license.
+
+Run from the project root: python3 tools/make_sfx.py   (needs numpy and ffmpeg with libvorbis)
+
+Deterministic: the noise generator is seeded, so re-running writes the same files. Each marble colour
+sinks on its own note of a major pentatonic scale, which is why a board cleared in any order still
+sounds like a chord rather than a mistake.
+"""
+
+import os
+import subprocess
+import wave
+
+import numpy as np
+
+RATE = 44100
+OUT = "assets/audio/sfx"
+RNG = np.random.default_rng(7)
+# C major pentatonic from C5: every pair of these notes is consonant.
+SINK_NOTES = [523.25, 659.25, 783.99, 880.00]
+
+
+def t_axis(seconds):
+    return np.arange(int(RATE * seconds)) / RATE
+
+
+def decay(n, seconds):
+    return np.exp(-np.arange(n) / (RATE * seconds))
+
+
+def bell(freq, seconds=0.9, bright=1.0):
+    """A soft struck bell: a sine with a few inharmonic partials, each fading at its own rate."""
+    t = t_axis(seconds)
+    n = t.size
+    tone = np.sin(2 * np.pi * freq * t) * decay(n, 0.35)
+    tone += 0.35 * bright * np.sin(2 * np.pi * freq * 2.76 * t) * decay(n, 0.12)
+    tone += 0.18 * bright * np.sin(2 * np.pi * freq * 5.40 * t) * decay(n, 0.05)
+    attack = np.clip(np.arange(n) / (RATE * 0.004), 0, 1)
+    return tone * attack
+
+
+def lowpass(x, cutoff):
+    a = 1.0 - np.exp(-2.0 * np.pi * cutoff / RATE)
+    y = np.zeros_like(x)
+    acc = 0.0
+    for i, v in enumerate(x):
+        acc += a * (v - acc)
+        y[i] = acc
+    return y
+
+
+def sweep(f0, f1, seconds, curve=1.0):
+    t = t_axis(seconds)
+    k = (t / seconds) ** curve
+    freq = f0 + (f1 - f0) * k
+    phase = 2 * np.pi * np.cumsum(freq) / RATE
+    return np.sin(phase)
+
+
+def normalise(x, peak=0.85):
+    m = np.max(np.abs(x))
+    return x * (peak / m) if m > 0 else x
+
+
+def write(name, samples):
+    os.makedirs(OUT, exist_ok=True)
+    wav = os.path.join(OUT, name + ".wav")
+    data = (np.clip(samples, -1.0, 1.0) * 32767).astype(np.int16)
+    with wave.open(wav, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(RATE)
+        w.writeframes(data.tobytes())
+    ogg = os.path.join(OUT, name + ".ogg")
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", wav, "-c:a", "libvorbis", "-q:a", "5", ogg], check=True)
+    os.remove(wav)
+    print("wrote", ogg)
+
+
+def tap():
+    t = t_axis(0.06)
+    return normalise(np.sin(2 * np.pi * 1320 * t) * decay(t.size, 0.012), 0.5)
+
+
+def roll():
+    """The board tipping: low rumbling noise that swells and settles."""
+    n = int(RATE * 0.22)
+    noise = lowpass(RNG.standard_normal(n), 420)
+    env = np.sin(np.linspace(0, np.pi, n)) ** 1.5
+    return normalise(noise * env, 0.45)
+
+
+def clack():
+    """Marbles meeting a wall: a short woody knock."""
+    t = t_axis(0.09)
+    body = np.sin(2 * np.pi * 740 * t) * decay(t.size, 0.018)
+    body += 0.5 * np.sin(2 * np.pi * 1180 * t) * decay(t.size, 0.009)
+    click = lowpass(RNG.standard_normal(t.size), 3000) * decay(t.size, 0.004)
+    return normalise(body + 0.6 * click, 0.6)
+
+
+def sink(freq):
+    """A plop into the hole, then the colour's bell."""
+    plop = sweep(620, 170, 0.09, 0.6) * decay(int(RATE * 0.09), 0.05)
+    tone = bell(freq, 0.9)
+    out = np.zeros(int(RATE * 0.05) + tone.size)
+    out[:plop.size] += 0.8 * plop
+    out[int(RATE * 0.05):] += tone
+    return normalise(out, 0.8)
+
+
+def pit():
+    """Lost down a pit: a falling whistle and a dull thud at the bottom."""
+    fall = sweep(900, 120, 0.5, 0.7) * np.linspace(1.0, 0.2, int(RATE * 0.5))
+    thud = sweep(110, 50, 0.18) * decay(int(RATE * 0.18), 0.06)
+    out = np.concatenate([0.5 * fall, thud])
+    return normalise(out, 0.7)
+
+
+def win():
+    """C E G C, each a bell, overlapping."""
+    notes = [523.25, 659.25, 783.99, 1046.5]
+    gap = int(RATE * 0.11)
+    out = np.zeros(gap * len(notes) + int(RATE * 1.2))
+    for k, f in enumerate(notes):
+        b = bell(f, 1.2, 0.8)
+        out[k * gap:k * gap + b.size] += b
+    return normalise(out, 0.8)
+
+
+def star():
+    b = bell(1567.98, 0.6, 1.2)
+    sparkle = lowpass(RNG.standard_normal(b.size), 8000) * decay(b.size, 0.03) * 0.15
+    return normalise(b + sparkle, 0.6)
+
+
+def undo():
+    return normalise(sweep(900, 400, 0.12) * decay(int(RATE * 0.12), 0.05), 0.4)
+
+
+def hint():
+    a = bell(783.99, 0.5, 0.5)
+    b = bell(1046.5, 0.6, 0.5)
+    out = np.zeros(int(RATE * 0.12) + b.size)
+    out[:a.size] += a
+    out[int(RATE * 0.12):] += b
+    return normalise(out, 0.5)
+
+
+if __name__ == "__main__":
+    write("tap", tap())
+    write("roll", roll())
+    write("clack", clack())
+    for k, f in enumerate(SINK_NOTES):
+        write("sink_%d" % k, sink(f))
+    write("pit", pit())
+    write("win", win())
+    write("star", star())
+    write("undo", undo())
+    write("hint", hint())
