@@ -3,8 +3,9 @@ extends Node
 ## Renders game states at exact store sizes, whatever this monitor is. Each shot is staged by the game's
 ## own Director (res://tools/director.gd) inside an offscreen SubViewport whose 2D size is the game's
 ## design width, stretched to the requested pixels: the same layout a phone of that shape would show.
-## Run: DISPLAY=:0 godot --path . res://kit/tools/capture.tscn [-- only=name,name]
-## Reads res://store/shots.json, writes build/store/raw/<name>.png (24-bit, no alpha).
+## Run: DISPLAY=:0 godot --path . res://kit/tools/capture.tscn [-- only=name,name spec=res://... out=res://...]
+## Reads res://store/shots.json, writes build/store/raw/<name>.png (24-bit, no alpha). The website's art
+## pipeline passes its own spec and output folder.
 
 const SPEC: String = "res://store/shots.json"
 const OUT: String = "res://build/store/raw"
@@ -13,16 +14,22 @@ const SETTLE_FRAMES: int = 6
 
 func _ready() -> void:
 	var only: PackedStringArray = PackedStringArray()
+	var spec_path: String = SPEC
+	var out: String = OUT
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("only="):
 			only = arg.substr(5).split(",")
+		elif arg.begins_with("spec="):
+			spec_path = arg.substr(5)
+		elif arg.begins_with("out="):
+			out = arg.substr(4)
 	Save.path = "user://capture.cfg"
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out))
 	# Raw captures are build products: without this Godot imports every one, and a local export packs them.
 	var ignore: String = ProjectSettings.globalize_path("res://build/.gdignore")
 	if not FileAccess.file_exists(ignore):
 		FileAccess.open(ignore, FileAccess.WRITE).close()
-	var spec: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(SPEC))
+	var spec: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(spec_path))
 	var director: Object = load("res://tools/director.gd").new()
 	var made: int = 0
 	for entry: Variant in spec["shots"]:
@@ -47,7 +54,7 @@ func _ready() -> void:
 		await RenderingServer.frame_post_draw
 		var img: Image = sub.get_texture().get_image()
 		img.convert(Image.FORMAT_RGB8)
-		var path: String = "%s/%s.png" % [OUT, shot_name]
+		var path: String = "%s/%s.png" % [out, shot_name]
 		img.save_png(path)
 		print("CAPTURED %s %dx%d" % [ProjectSettings.globalize_path(path), w, h])
 		made += 1
