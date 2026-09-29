@@ -1,0 +1,19 @@
+# Godot
+.godot/
+# Android build template, installed by the editor or --install-android-build-template
+/android/
+
+# Python bytecode from the tools/ generators
+__pycache__/
+*.pyc
+
+# Export output
+/build/
+
+# Raw third-party downloads live in the private game-assets repo (faceplant/assets_incoming)
+assets_incoming/
+
+# export_presets.cfg IS committed: CI needs it. Keystore paths and passwords never go in it; Godot keeps
+# them in .godot/export_credentials.cfg, and CI injects them at build time.
+*.keystore
+*.jks
