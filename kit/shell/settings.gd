@@ -5,13 +5,15 @@ extends RefCounted
 
 const RESET_ARM_TIME: float = 3.0
 
-static func open(host: Node) -> Sheet:
+## `music` false leaves out the music switch, for a game with no music to turn off.
+static func open(host: Node, music: bool = true) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
 	c.add_child(UI.title("Settings", 56))
 	c.add_child(UI.spacer(4))
 	c.add_child(_row(&"sound", "Sound", Save.sound_on, func(on: bool) -> void: Save.set_sound(on)))
-	c.add_child(_row(&"music", "Music", Save.music_on, func(on: bool) -> void: Save.set_music(on)))
+	if music:
+		c.add_child(_row(&"music", "Music", Save.music_on, func(on: bool) -> void: Save.set_music(on)))
 	c.add_child(_row(&"haptics", "Vibration", Save.haptics_on, func(on: bool) -> void: Save.set_haptics(on)))
 	c.add_child(UI.spacer(6))
 	var reset: Button = UI.button("Reset progress", UI.Style.GHOST)
