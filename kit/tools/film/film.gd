@@ -124,7 +124,6 @@ func _build() -> void:
 	_fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_fx)
 	_wipe = Wipe.new()
-	_wipe.size = frame
 	root.add_child(_wipe)
 
 func _clear() -> void:
