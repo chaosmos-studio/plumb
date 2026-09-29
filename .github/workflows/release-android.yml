@@ -254,7 +254,7 @@ jobs:
                "versionName $(manifest /manifest/@android:versionName)," \
                "targetSdkVersion $(manifest /manifest/uses-sdk/@android:targetSdkVersion)," \
                "minSdkVersion $(manifest /manifest/uses-sdk/@android:minSdkVersion)"
-          permissions="$(manifest /manifest/uses-permission/@android:name | tr '\n' ' ')"
+          permissions="$(manifest /manifest/uses-permission/@android:name | xargs)"
           echo "permissions: ${permissions:-none}"
           test "$(manifest /manifest/@package)" = "$PACKAGE"
           test "$(manifest /manifest/@android:versionCode)" = "$VERSION_CODE"
