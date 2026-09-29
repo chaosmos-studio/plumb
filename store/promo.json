@@ -17,8 +17,8 @@
 			{"id": "h81", "action": "play:81", "perform": [{"at": 0.5, "verb": "hint"}], "dur": 3.4}
 		],
 		"win": [
-			{"id": "w21", "action": "play:21", "perform": [{"at": 0.5, "verb": "solve"}], "dur": 5.4, "hud": true},
-			{"id": "w12", "action": "play:12", "perform": [{"at": 0.5, "verb": "solve"}], "dur": 5.0, "hud": true}
+			{"id": "w21", "action": "play:21", "perform": [{"at": 0.5, "verb": "solve"}], "dur": 5.4},
+			{"id": "w12", "action": "play:12", "perform": [{"at": 0.5, "verb": "solve"}], "dur": 5.0}
 		],
 		"fail": [
 			{"id": "f36", "action": "play:36", "perform": [{"at": 0.5, "verb": "fail"}], "dur": 3.6},
