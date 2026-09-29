@@ -384,7 +384,8 @@ func _end_qr(text: String, sub: String, cta: String, qr: Dictionary, scan: Strin
 	card.rows = PackedStringArray(qr.get("rows", []))
 	card.icon = load("res://assets/branding/icon.png")
 	card.ink = Color(String(qr.get("ink", "1d2030")))
-	var side: float = frame.x * 0.5 if reel else frame.y * 0.5
+	# A demo plays on a monitor or a TV, farther from the phone that scans it, so its code is bigger.
+	var side: float = frame.x * 0.5 if reel else frame.y * 0.62
 	card.size = Vector2(side, side)
 	var brand: HBoxContainer = HBoxContainer.new()
 	brand.add_theme_constant_override("separation", int(frame.x * (0.025 if reel else 0.012)))
@@ -426,7 +427,7 @@ func _end_qr(text: String, sub: String, cta: String, qr: Dictionary, scan: Strin
 		if head != null:
 			head.position = Vector2(left, brand.position.y + brand.size.y + frame.y * 0.05)
 		lines.position = Vector2(left, frame.y * 0.62)
-		card.position = Vector2(frame.x * 0.62, (frame.y - side) * 0.5)
+		card.position = Vector2(frame.x * 0.585, (frame.y - side) * 0.5)
 	for c: Control in [brand, lines]:
 		c.modulate.a = 0.0
 		create_tween().tween_property(c, "modulate:a", 1.0, 0.45).set_delay(0.55)
