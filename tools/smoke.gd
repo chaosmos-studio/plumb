@@ -129,9 +129,12 @@ func _press(host: Node, text: String) -> bool:
 
 ## Taps the hint and says what came of it: "hint" (shown at once), "asked" (the video prompt is up) or
 ## "nothing".
-func _tap_hint(game: Node) -> String:
+func _tap_hint(game: Node, fresh: bool = true) -> String:
 	var view: Node = game.get("_view")
 	view.call("_clear_hint")
+	# A fresh ask, unless the robot is checking that asking again on the same board is free.
+	if fresh:
+		game.set("_hinted", null)
 	game.call("_on_hint")
 	await _wait(0.1)
 	if is_instance_valid(game.get("_prompt")):
@@ -166,6 +169,8 @@ func _hint_gate() -> int:
 		free = free and await _tap_hint(game) == "hint"
 	failures += _report(free and Save.hints_used == AdPacing.DAILY_HINTS and Save.hint_day == HintGate.today()
 		and hint.badge_icon == &"play", "three free hints a day, then the badge shows a play mark")
+	failures += _report(await _tap_hint(game, false) == "hint" and Save.hints_used == AdPacing.DAILY_HINTS,
+		"asking again on the board a hint was given for shows it again for nothing")
 	failures += _report(await _tap_hint(game) == "asked" and not await _answer(game, "Not now")
 		and int(fake.shown.get(AdBackend.REWARDED, 0)) == 0, "the fourth asks for a video, and Not now gives nothing")
 	failures += _report(await _tap_hint(game) == "asked" and await _answer(game, "Watch")
@@ -278,7 +283,13 @@ func _through(fake: _FakeAds, level: int, guided: bool = false) -> Vector2i:
 	if game == null:
 		return Vector2i(-1, -1)
 	if guided:
-		var coach: Coach = game.get("_coach")
+		# The guide opens a moment after the level does, so wait for it before tapping through.
+		var coach: Coach = null
+		for tries: int in range(40):
+			coach = game.get("_coach")
+			if is_instance_valid(coach):
+				break
+			await _wait(0.05)
 		for k: int in range(2):
 			await _wait(0.6)
 			if is_instance_valid(coach):

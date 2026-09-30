@@ -37,6 +37,8 @@ var _guided: bool = false
 var _leaving: bool = false
 var _hint_board: TiltBoard
 var _hint_route: PackedInt32Array = PackedInt32Array()
+## The board the last hint was given for, so asking again on it costs nothing.
+var _hinted: TiltBoard
 
 func _ready() -> void:
 	level = Pack.current
@@ -183,6 +185,10 @@ func _on_hint() -> void:
 		await get_tree().process_frame
 	if _hint_path().is_empty():
 		return
+	# The hint already given for this very board is shown again without asking twice.
+	if _hinted == board:
+		_reveal_hint()
+		return
 	_prompt = HintGate.request(self, level, _reveal_hint)
 
 ## After the gate, or a video, the board is read again: it is the board now that the hint is for.
@@ -193,6 +199,7 @@ func _reveal_hint() -> void:
 	if path.is_empty():
 		return
 	_view.show_hint(path[0], board)
+	_hinted = board
 	Audio.play(&"hint", -4.0)
 	_dress_hint()
 
