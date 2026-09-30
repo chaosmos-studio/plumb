@@ -1,11 +1,18 @@
 extends Node2D
 
 ## The level grid, shared by every game in the kit: twenty tiles to a page, swipe or tap the chevrons
-## to turn pages, and the page holding the next level to play opens first.
+## to turn pages, and the page holding the next level to play opens first. On Android, once a few levels
+## are solved, a banner sits at the foot of this screen only, and the pager lifts clear of it.
 
 const PER_PAGE: int = 20
 const COLUMNS: int = 4
 const SWIPE: float = 70.0
+## Room under the pager with no banner, and the least room between the pager and a banner, so no tap
+## meant for a chevron lands on the ad.
+const PAGER_FLOOR: float = 54.0
+const BANNER_GAP: float = 32.0
+const GRID_GAP: float = 20.0
+const LIFT_TIME: float = 0.28
 
 var _page: int = 0
 var _grid: GridContainer
@@ -13,6 +20,11 @@ var _dots: _PageDots
 var _prev: IconButton
 var _next: IconButton
 var _drag_from: float = -1.0
+var _pager: HBoxContainer
+var _centre: CenterContainer
+var _floor: float = PAGER_FLOOR
+var _safe_bottom: float = 0.0
+var _settled: bool = false
 
 func _ready() -> void:
 	var ui: Control = UI.root(self)
@@ -25,7 +37,7 @@ func _ready() -> void:
 	top.offset_bottom = top.offset_top + IconButton.SIZE
 	ui.add_child(top)
 	var back: IconButton = UI.icon_button(&"back", "Back")
-	back.pressed.connect(func() -> void: Screens.go(Brand.TITLE_SCENE))
+	back.pressed.connect(func() -> void: _leave(Brand.TITLE_SCENE))
 	top.add_child(back)
 	var title: Label = UI.title("Levels", 58)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -38,9 +50,9 @@ func _ready() -> void:
 	ui.add_child(chip)
 
 	var centre: CenterContainer = CenterContainer.new()
+	_centre = centre
 	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
 	centre.offset_top = 200.0 + float(safe["top"])
-	centre.offset_bottom = -170.0
 	centre.mouse_filter = Control.MOUSE_FILTER_PASS
 	centre.gui_input.connect(_on_grid_input)
 	ui.add_child(centre)
@@ -51,9 +63,10 @@ func _ready() -> void:
 	centre.add_child(_grid)
 
 	var pager: HBoxContainer = HBoxContainer.new()
+	_pager = pager
+	_safe_bottom = float(safe["bottom"])
+	_floor = PAGER_FLOOR + _safe_bottom
 	pager.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	pager.offset_top = -150.0 - float(safe["bottom"])
-	pager.offset_bottom = pager.offset_top + IconButton.SIZE
 	pager.alignment = BoxContainer.ALIGNMENT_CENTER
 	pager.add_theme_constant_override("separation", 36)
 	ui.add_child(pager)
@@ -67,11 +80,38 @@ func _ready() -> void:
 	_next.pressed.connect(func() -> void: _show(_page + 1, 1))
 	pager.add_child(_next)
 
+	_place(_floor)
 	_show(Save.frontier(Pack.count()) / PER_PAGE, 0)
+	Ads.show_banner(self, _lift)
+	_settled = true
+
+func _exit_tree() -> void:
+	Ads.hide_banner()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("back"):
-		Screens.go(Brand.TITLE_SCENE)
+		_leave(Brand.TITLE_SCENE)
+
+## The banner goes the moment the player leaves, not once the fade is over.
+func _leave(path: String) -> void:
+	Ads.hide_banner()
+	Screens.go(path)
+
+## Sets the pager `from_bottom` above the foot of the screen, and the grid centred in the room above it.
+func _place(from_bottom: float) -> void:
+	_pager.offset_bottom = -from_bottom
+	_pager.offset_top = _pager.offset_bottom - IconButton.SIZE
+	_centre.offset_bottom = _pager.offset_top - GRID_GAP
+
+## The banner's height in design pixels, 0 when it goes: the pager and grid move up clear of it, or back.
+## A banner already loaded when the screen opens is in place from the first frame.
+func _lift(height: float) -> void:
+	var target: float = maxf(_floor, _safe_bottom + height + BANNER_GAP) if height > 0.0 else _floor
+	var from: float = -_pager.offset_bottom
+	if not _settled or is_equal_approx(from, target):
+		_place(target)
+		return
+	create_tween().tween_method(_place, from, target, LIFT_TIME).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 func _star_chip() -> Control:
 	var chip: HBoxContainer = HBoxContainer.new()
@@ -108,7 +148,7 @@ func _show(page: int, from: int) -> void:
 		var tile: LevelTile = LevelTile.new(i, Save.best(i), Save.unlocked(i), i == frontier and Save.best(i) == 0)
 		tile.pressed.connect(func() -> void:
 			Pack.current = i
-			Screens.go(Brand.GAME_SCENE))
+			_leave(Brand.GAME_SCENE))
 		_grid.add_child(tile)
 	_dots.current = _page
 	_prev.disabled = _page == 0

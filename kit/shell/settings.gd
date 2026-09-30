@@ -2,9 +2,13 @@ class_name Settings
 extends RefCounted
 
 ## The settings sheet, reachable from every screen: switches for sound, music and haptics, the theme,
-## the first level's guide again, the About and Credits sheets, a guarded reset, and the version line.
+## the first level's guide again, a way to support the game, the About and Credits sheets, the consent
+## choices where the law asks for them, a guarded reset, and the version line.
 
 const RESET_ARM_TIME: float = 3.0
+## The two quiet buttons at the foot sit closer when there are two, so the sheet still fits a 16:9 phone.
+const FOOT_PAIR_HEIGHT: float = 76.0
+const FOOT_PAIR_FONT: int = 30
 
 static func open(host: Node) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
@@ -25,6 +29,9 @@ static func open(host: Node) -> Sheet:
 		sheet.close()
 		Coach.replay())
 	c.add_child(guide)
+	var support: Button = UI.button("Support the game", UI.Style.SECONDARY)
+	support.pressed.connect(func() -> void: Supporter.open(host))
+	c.add_child(support)
 	var more: HBoxContainer = HBoxContainer.new()
 	more.alignment = BoxContainer.ALIGNMENT_CENTER
 	more.add_theme_constant_override("separation", 20)
@@ -36,6 +43,13 @@ static func open(host: Node) -> Sheet:
 	more.add_child(credits)
 	c.add_child(more)
 	var reset: Button = UI.button("Reset progress", UI.Style.GHOST)
+	if Ads.privacy_options_required():
+		var privacy: Button = UI.button("Privacy choices", UI.Style.GHOST)
+		privacy.pressed.connect(Ads.open_privacy_options)
+		for quiet: Button in [privacy, reset]:
+			quiet.custom_minimum_size.y = FOOT_PAIR_HEIGHT
+			quiet.add_theme_font_size_override("font_size", FOOT_PAIR_FONT)
+		c.add_child(privacy)
 	var armed: Array[bool] = [false]
 	reset.pressed.connect(func() -> void:
 		if armed[0]:

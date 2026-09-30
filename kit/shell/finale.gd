@@ -2,8 +2,10 @@ class_name Finale
 extends Control
 
 ## What a player sees after solving the last level for the first time: a quiet screen with a note from
-## the person who made the game, signed, and a way to support the next one. The words are the game's
-## (GameCredits.NOTE, SIGNED and SPONSOR_LINE), so each game can speak for itself.
+## the person who made the game, signed, and a way to support the next one: the Supporter pack in the
+## Google Play build, GitHub Sponsors on the web, and a thank-you for a Supporter. The words are the
+## game's (GameCredits.NOTE, SIGNED, SUPPORT_LINE_PLAY, SUPPORT_LINE_WEB and THANKS_LINE), so each game can
+## speak for itself.
 
 const LAYER: int = 65
 const DRIFTERS: int = 18
@@ -17,10 +19,18 @@ var _column: Control
 static func due(level: int) -> bool:
 	return level + 1 >= Pack.count() and Save.best(level) == 0
 
-## Google Play treats a donation link in an app as a payment outside its billing, so the Android build
-## leaves it out unless the game says otherwise.
-static func shows_sponsor() -> bool:
-	return GameCredits.SPONSOR != "" and (GameCredits.SPONSOR_ON_ANDROID or not OS.has_feature("android"))
+## The line under the note. Google Play treats a donation link in an app as a payment outside its
+## billing, so the Play build offers the Supporter pack and never GitHub Sponsors.
+static func support_line() -> String:
+	if Supporter.active():
+		return GameCredits.THANKS_LINE
+	return GameCredits.SUPPORT_LINE_PLAY if Supporter.on_play else GameCredits.SUPPORT_LINE_WEB
+
+## The button under that line, or "" for a Supporter, who has already helped.
+static func support_button() -> String:
+	if Supporter.active():
+		return ""
+	return "Supporter pack" if Supporter.on_play else "Sponsor on GitHub"
 
 static func open(host: Node, on_done: Callable) -> Finale:
 	var canvas: CanvasLayer = CanvasLayer.new()
@@ -60,17 +70,21 @@ func _build(on_done: Callable) -> void:
 	column.add_child(UI.title(GameCredits.SIGNED, 44))
 	column.add_child(UI.caption(String(GameCredits.TEAM[0]["role"]), 18))
 	column.add_child(UI.spacer(26))
-	var sponsor: bool = shows_sponsor()
-	if sponsor:
-		var line: Label = UI.label(GameCredits.SPONSOR_LINE, 26, Brand.MUTED)
-		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		line.custom_minimum_size.x = minf(COLUMN_WIDTH, view.x - 100.0)
-		column.add_child(UI.centred(line))
-		var give: Button = UI.button("Sponsor on GitHub", UI.Style.PRIMARY)
+	var line: Label = UI.label(support_line(), 26, Brand.MUTED)
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	line.custom_minimum_size.x = minf(COLUMN_WIDTH, view.x - 100.0)
+	column.add_child(UI.centred(line))
+	var offer: String = support_button()
+	if offer != "":
+		var give: Button = UI.button(offer, UI.Style.PRIMARY)
 		give.custom_minimum_size.x = 460.0
-		give.pressed.connect(func() -> void: OS.shell_open(GameCredits.SPONSOR))
+		give.pressed.connect(func() -> void:
+			if Supporter.on_play:
+				Supporter.open(self)
+			else:
+				OS.shell_open(GameCredits.SPONSOR))
 		column.add_child(UI.centred(give))
-	var back: Button = UI.button("Back to levels", UI.Style.GHOST if sponsor else UI.Style.PRIMARY)
+	var back: Button = UI.button("Back to levels", UI.Style.GHOST if offer != "" else UI.Style.PRIMARY)
 	back.custom_minimum_size.x = 460.0
 	back.pressed.connect(func() -> void:
 		var t: Tween = create_tween()
