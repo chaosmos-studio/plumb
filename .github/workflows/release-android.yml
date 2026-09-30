@@ -16,6 +16,11 @@ on:
         required: false
         type: boolean
         default: true
+      dry_run:
+        description: "Build and check everything and keep the files as a workflow artifact, but make no tag and no GitHub release"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -36,12 +41,14 @@ jobs:
       BUNDLETOOL: "1.18.3"
       GAME: ${{ github.event.repository.name }}
       VERSION_NAME: ${{ inputs.version_name }}
+      DRY_RUN: ${{ inputs.dry_run }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v5
 
       # Fails before the long build if the tag is taken or the code would not be new to Play. Earlier codes are
-      # read back from the release notes, which is where this workflow records them.
+      # read back from the release notes, which is where this workflow records them. A dry run makes no tag, so
+      # a taken one does not stop it.
       - name: Pick the version
         env:
           CODE_INPUT: ${{ inputs.version_code }}
@@ -58,7 +65,7 @@ jobs:
             exit 1
           fi
           tag="v$VERSION_NAME"
-          if [ -n "$(git ls-remote --tags origin "refs/tags/$tag")" ]; then
+          if [ "$DRY_RUN" != true ] && [ -n "$(git ls-remote --tags origin "refs/tags/$tag")" ]; then
             echo "tag $tag already exists: pick a new version_name, or remove it with gh release delete $tag --cleanup-tag" >&2
             exit 1
           fi
@@ -80,7 +87,11 @@ jobs:
             echo "PACKAGE=$package"
             echo "TITLE=$title"
           } >> "$GITHUB_ENV"
-          echo "releasing $title ($package) $tag with version code $code"
+          if [ "$DRY_RUN" = true ]; then
+            echo "dry run: building $title ($package) $VERSION_NAME with version code $code, no tag or release"
+          else
+            echo "releasing $title ($package) $tag with version code $code"
+          fi
 
       - name: Install Godot and export templates
         run: |
@@ -237,7 +248,13 @@ jobs:
           grep -q "^package: name='$PACKAGE' versionCode='$VERSION_CODE' versionName='$VERSION_NAME'" <<< "$badging"
           grep -q "^targetSdkVersion:'36'" <<< "$badging"
           grep -q "^native-code: .*'arm64-v8a'" <<< "$badging"
+          grep "^uses-permission:" <<< "$badging" || true
           unzip -l "$APK" | grep "levels/levels.json"
+          # A game with the AdMob plugin ships only the parts it runs: no samples, editor art or mocks.
+          if [ -d addons/admob ] && unzip -l "$APK" | grep -E "addons/admob/(gdscript/sample|assets|internal/mock)/"; then
+            echo "the APK carries parts of the AdMob plugin its export filter should leave out" >&2
+            exit 1
+          fi
 
       - name: Verify the AAB
         run: |
@@ -260,6 +277,18 @@ jobs:
           test "$(manifest /manifest/@android:versionCode)" = "$VERSION_CODE"
           test "$(manifest /manifest/@android:versionName)" = "$VERSION_NAME"
           test "$(manifest /manifest/uses-sdk/@android:targetSdkVersion)" = 36
+          has_permission() { [[ " $permissions " == *" $1 "* ]] || { echo "missing permission $1" >&2; return 1; }; }
+          # Ads need the AdMob app id in the manifest, the network and the advertising id; purchases need billing.
+          if [ -d addons/admob ]; then
+            app_id="$(manifest "/manifest/application/meta-data[@android:name='com.google.android.gms.ads.APPLICATION_ID']/@android:value")"
+            echo "AdMob APPLICATION_ID: ${app_id:-missing}"
+            [[ "$app_id" =~ ^ca-app-pub-[0-9]{16}~[0-9]{10}$ ]]
+            has_permission android.permission.INTERNET
+            has_permission com.google.android.gms.permission.AD_ID
+          fi
+          if [ -d addons/GodotGooglePlayBilling ]; then
+            has_permission com.android.vending.BILLING
+          fi
           unzip -l "$AAB" | grep "lib/.*/libgodot_android.so"
           unzip -l "$AAB" | grep "levels/levels.json"
 
@@ -295,6 +324,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish the GitHub release
+        if: ${{ !inputs.dry_run }}
         env:
           PRERELEASE: ${{ inputs.prerelease }}
         run: |
