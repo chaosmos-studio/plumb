@@ -13,9 +13,14 @@ var stars: PackedByteArray = PackedByteArray()
 var sound_on: bool = true
 var music_on: bool = true
 var haptics_on: bool = true
+## An Appearance.Choice.
+var theme: int = Appearance.native()
+## Whether the first level's guide has been seen through or skipped.
+var tutorial_seen: bool = false
 
 func _ready() -> void:
 	restore()
+	Appearance.apply(theme)
 
 func best(level: int) -> int:
 	return stars[level] if level < stars.size() else 0
@@ -68,6 +73,14 @@ func set_haptics(on: bool) -> void:
 	store()
 	EventBus.settings_changed.emit()
 
+func set_theme(choice: int) -> void:
+	theme = choice
+	store()
+
+func set_tutorial_seen(seen: bool) -> void:
+	tutorial_seen = seen
+	store()
+
 func restore() -> void:
 	var file: ConfigFile = ConfigFile.new()
 	if file.load(path) != OK:
@@ -78,6 +91,8 @@ func restore() -> void:
 	sound_on = bool(file.get_value("settings", "sound_on", true))
 	music_on = bool(file.get_value("settings", "music_on", true))
 	haptics_on = bool(file.get_value("settings", "haptics_on", true))
+	theme = clampi(int(file.get_value("settings", "theme", Appearance.native())), 0, Appearance.Choice.size() - 1)
+	tutorial_seen = bool(file.get_value("progress", "tutorial_seen", false))
 
 func store() -> void:
 	var file: ConfigFile = ConfigFile.new()
@@ -85,4 +100,6 @@ func store() -> void:
 	file.set_value("settings", "sound_on", sound_on)
 	file.set_value("settings", "music_on", music_on)
 	file.set_value("settings", "haptics_on", haptics_on)
+	file.set_value("settings", "theme", theme)
+	file.set_value("progress", "tutorial_seen", tutorial_seen)
 	file.save(path)

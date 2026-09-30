@@ -22,6 +22,7 @@ func go(path: String) -> void:
 	if _busy:
 		return
 	_busy = true
+	_veil.color = Brand.BG
 	_veil.mouse_filter = Control.MOUSE_FILTER_STOP
 	var out: Tween = create_tween()
 	out.tween_property(_veil, "modulate:a", 1.0, OUT_TIME)

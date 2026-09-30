@@ -24,6 +24,9 @@ func _ready() -> void:
 		elif arg.begins_with("out="):
 			out = arg.substr(4)
 	Save.path = "user://capture.cfg"
+	# Every capture shows the game in its own look, whatever this machine's player last picked.
+	Coach.enabled = false
+	Appearance.apply(Appearance.native())
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out))
 	# Raw captures are build products: without this Godot imports every one, and a local export packs them.
 	var ignore: String = ProjectSettings.globalize_path("res://build/.gdignore")

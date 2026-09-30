@@ -5,8 +5,9 @@ extends RefCounted
 ## every screen builds from. Colours and fonts come from the game's `Brand`, so the same kit dresses a
 ## warm paper game and a night-sky one.
 ##
-## The kit expects the game to provide: a `Brand` class (names, colours, fonts and scene paths, as in
-## any game's brand.gd), and the autoloads `Save`, `Pack`, `Screens` and `Audio`.
+## The kit expects the game to provide: a `Brand` class (names, a light and a dark palette, fonts and
+## scene paths, as in any game's brand.gd), a `GameCredits` class (credits.gd), and the autoloads
+## `EventBus`, `Save`, `Pack`, `Screens` and `Audio`.
 
 enum Style { PRIMARY, SECONDARY, GHOST }
 
@@ -15,11 +16,13 @@ const PRESS_SCALE: float = 0.965
 const PRESS_TIME: float = 0.08
 const RELEASE_TIME: float = 0.22
 const PILL_HEIGHT: float = 104.0
+const ICON_TEXTURE: int = 256
 
 static var _theme: Theme
 static var _display: Font
 static var _ui: Font
 static var _caption: FontVariation
+static var _icon: ImageTexture
 
 static func display_font() -> Font:
 	if _display == null:
@@ -65,6 +68,10 @@ static func theme() -> Theme:
 		t.set_font_size("font_size", kind, 34)
 	_theme = t
 	return t
+
+## Forgets the built theme, so the next screen builds one from the current palette.
+static func reset_theme() -> void:
+	_theme = null
 
 static func _pill(state: String, style: Style) -> StyleBoxFlat:
 	var box: StyleBoxFlat = StyleBoxFlat.new()
@@ -196,6 +203,34 @@ static func safe_margins(viewport: Viewport) -> Dictionary:
 	out["bottom"] = (screen.y - safe.end.y) * k.y
 	out["right"] = (screen.x - safe.end.x) * k.x
 	return out
+
+## The game's icon with the rounded corners a phone gives it, so it sits well on either theme.
+static func app_icon(px: float) -> TextureRect:
+	if _icon == null:
+		var img: Image = (load("res://assets/branding/icon.png") as Texture2D).get_image()
+		img.decompress()
+		img.convert(Image.FORMAT_RGBA8)
+		img.resize(ICON_TEXTURE, ICON_TEXTURE, Image.INTERPOLATE_LANCZOS)
+		var n: float = float(ICON_TEXTURE)
+		var r: float = n * 0.22
+		var corner: int = int(ceil(r)) + 1
+		for y: int in range(ICON_TEXTURE):
+			for x: int in range(ICON_TEXTURE):
+				if (x >= corner and x < ICON_TEXTURE - corner) or (y >= corner and y < ICON_TEXTURE - corner):
+					continue
+				var dx: float = maxf(absf(x + 0.5 - n * 0.5) - (n * 0.5 - r), 0.0)
+				var dy: float = maxf(absf(y + 0.5 - n * 0.5) - (n * 0.5 - r), 0.0)
+				var inside: float = clampf(r - sqrt(dx * dx + dy * dy) + 0.5, 0.0, 1.0)
+				var c: Color = img.get_pixel(x, y)
+				img.set_pixel(x, y, Color(c, c.a * inside))
+		_icon = ImageTexture.create_from_image(img)
+	var rect: TextureRect = TextureRect.new()
+	rect.texture = _icon
+	rect.custom_minimum_size = Vector2(px, px)
+	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return rect
 
 static func spacer(height: float) -> Control:
 	var c: Control = Control.new()

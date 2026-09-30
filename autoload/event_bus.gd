@@ -6,3 +6,4 @@ extends Node
 signal level_started(index: int)
 signal level_won(index: int, moves: int, stars: int)
 signal settings_changed
+signal theme_changed

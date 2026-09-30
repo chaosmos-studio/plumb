@@ -6,7 +6,7 @@ extends RefCounted
 ## each end of a stroke, which is all a line icon needs to look finished.
 
 const NAMES: Array[StringName] = [&"back", &"close", &"next", &"undo", &"restart", &"hint", &"settings",
-	&"sound", &"sound_off", &"music", &"music_off", &"haptics", &"play", &"levels", &"lock", &"check"]
+	&"sound", &"sound_off", &"music", &"music_off", &"haptics", &"theme", &"play", &"levels", &"lock", &"check"]
 
 static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour: Color, w: float = -1.0) -> void:
 	if w < 0.0:
@@ -78,6 +78,14 @@ static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour:
 			for side2: float in [-1.0, 1.0]:
 				_stroke(ci, [c + Vector2(side2 * 0.22, -0.1) * s, c + Vector2(side2 * 0.22, 0.1) * s], colour, w)
 				_stroke(ci, [c + Vector2(side2 * 0.31, -0.05) * s, c + Vector2(side2 * 0.31, 0.05) * s], colour, w)
+		&"theme":
+			var r3: float = 0.25 * s
+			ci.draw_arc(c, r3, 0.0, TAU, 40, colour, w, true)
+			var half: PackedVector2Array = PackedVector2Array()
+			for k: int in range(17):
+				var a3: float = -PI * 0.5 + PI * k / 16.0
+				half.append(c + Vector2(cos(a3), sin(a3)) * r3)
+			_fill(ci, half, colour)
 		&"play":
 			var tri: PackedVector2Array = PackedVector2Array([c + Vector2(-0.14, -0.24) * s, c + Vector2(0.24, 0.0) * s,
 				c + Vector2(-0.14, 0.24) * s])
