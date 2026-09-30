@@ -24,6 +24,9 @@ export const site = {
   searchPlaceholder: "Search tips, rules and posts...",
   // Paste the content of Search Console's HTML tag here once the property is added.
   googleSiteVerification: "",
+  // Cookieless visit counts from Cloudflare Web Analytics. Empty loads nothing. One token for the
+  // shravangoswami.com hostname covers every game's site, and the Privacy page describes it once set.
+  analytics: { cloudflareToken: "" },
   giscus: {
     repo: "shravanngoswamii/comments",
     repoId: "R_kgDOQ90dlg",

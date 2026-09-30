@@ -4,6 +4,8 @@ import Crumbs from "../components/Crumbs.astro";
 import { privacy, site } from "../site.config";
 import { breadcrumbs } from "../utils/schema";
 const effective = new Date(site.launched).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+// Visit counting is off unless site.config.ts has a Cloudflare token, and this page says so only when it is on.
+const analytics = Boolean(site.analytics.cloudflareToken);
 ---
 <Base
   title="Privacy policy"
@@ -15,13 +17,13 @@ const effective = new Date(site.launched).toLocaleDateString("en-GB", { day: "nu
     <Crumbs trail={[{ label: "Privacy policy" }]} />
     <p class="eyebrow">Privacy policy</p>
     <h1>Your game stays <span class="accent">yours</span></h1>
-    <p class="lede">{site.name} collects no personal data. There are no ads, no analytics, no accounts, and nothing you do in the game leaves your device.</p>
+    <p class="lede">{site.name} collects no personal data. There are no ads, no analytics{analytics && " in the app"}, no accounts, and nothing you do in the game leaves your device.</p>
     <p class="muted">Effective {effective}. This policy covers the {site.name} app on Google Play, the web version you can play in a browser, and this website.</p>
 
     <ul class="summary">
       <li>No personal data collected</li>
       <li>No ads</li>
-      <li>No analytics or tracking</li>
+      <li>{analytics ? "No tracking or cookies" : "No analytics or tracking"}</li>
       <li>No accounts or sign-in</li>
       <li>Works fully offline</li>
     </ul>
@@ -50,7 +52,14 @@ const effective = new Date(site.launched).toLocaleDateString("en-GB", { day: "nu
       <p>The app is downloaded through Google Play. Google may collect data about installs, devices and app crashes as part of running the store, under <a href="https://policies.google.com/privacy" rel="noopener">Google's privacy policy</a>. That happens outside the app, and we only see anonymous totals such as install counts in the Play Console.</p>
 
       <h2>This website</h2>
-      <p>This site is a set of static pages hosted on GitHub Pages. GitHub may log standard technical data such as IP addresses for security, as described in <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" rel="noopener">GitHub's privacy statement</a>. The site itself uses no cookies, no analytics and no trackers. Search runs entirely in your browser from a file on this site, and your light or dark theme choice is kept in your browser's local storage.</p>
+      <p>This site is a set of static pages hosted on GitHub Pages. GitHub may log standard technical data such as IP addresses for security, as described in <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" rel="noopener">GitHub's privacy statement</a>. {analytics ? "The site itself uses no cookies and no trackers, and counts visits as described below." : "The site itself uses no cookies, no analytics and no trackers."} Search runs entirely in your browser from a file on this site, and your light or dark theme choice is kept in your browser's local storage.</p>
+
+      {analytics && (
+        <>
+          <h2>Visit counts</h2>
+          <p>This website counts visits with Cloudflare Web Analytics, which sets no cookies and collects no personal data. We see only aggregate numbers: which pages are viewed, which sites link here, the countries, browsers and kinds of device visitors use, and how quickly pages load. The service is covered by <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener">Cloudflare's privacy policy</a>.</p>
+        </>
+      )}
 
       <h2>Comments and feedback</h2>
       <p>The blog and the support page have an optional comment box powered by Giscus, which stores comments as GitHub Discussions in a public repository. It loads only on those pages, commenting requires you to sign in with GitHub, and anything you post is public and covered by GitHub's terms and privacy statement. If you email us, we use your message and address only to reply.</p>
