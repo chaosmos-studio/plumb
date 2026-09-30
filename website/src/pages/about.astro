@@ -2,6 +2,7 @@
 import Base from "../layouts/Base.astro";
 import Crumbs from "../components/Crumbs.astro";
 import Person from "../components/Person.astro";
+import Sponsor from "../components/Sponsor.astro";
 import StoreButtons from "../components/StoreButtons.astro";
 import { about, builtWith, site, team } from "../site.config";
 import { breadcrumbs, game, person } from "../utils/schema";
@@ -38,6 +39,9 @@ const schema = [
       {team.map(p => <Person person={p} />)}
     </div>
     <p class="note">{about.teamNote}</p>
+    <div class="sponsor">
+      <Sponsor />
+    </div>
   </section>
 
   <section class="narrow section" data-reveal>
@@ -63,6 +67,9 @@ const schema = [
     color: var(--muted);
     margin-top: 1.4rem;
     max-width: 48rem;
+  }
+  .sponsor {
+    margin-top: 2.5rem;
   }
   .facts {
     width: 100%;

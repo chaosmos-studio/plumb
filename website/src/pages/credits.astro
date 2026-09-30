@@ -1,6 +1,7 @@
 ---
 import Base from "../layouts/Base.astro";
 import Crumbs from "../components/Crumbs.astro";
+import Sponsor from "../components/Sponsor.astro";
 import { credits, site, team } from "../site.config";
 import { breadcrumbs } from "../utils/schema";
 
@@ -31,6 +32,9 @@ const sections = [{ title: "Made by", items: team.map(p => ({ name: p.name, deta
         </ul>
       </section>
     ))}
+    <div class="block">
+      <Sponsor />
+    </div>
   </section>
 </Base>
 <style>

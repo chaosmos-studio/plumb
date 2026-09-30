@@ -18,6 +18,8 @@ export const site = {
   platforms: ["Android", "Web browser"],
   launched: "2026-10-01",
   email: "contact@shravangoswami.com",
+  // GitHub Sponsors, linked from every page except Privacy and Support (see sponsorship below).
+  sponsor: "https://github.com/sponsors/shravanngoswamii",
   locale: "en_US",
   themeStorageKey: "plumb-theme",
   themeColor: { light: "#f4efe7", dark: "#1b1d22" },
@@ -64,7 +66,7 @@ export const team: readonly Person[] = [
       { label: "Website", href: "https://shravangoswami.com/", icon: "globe" },
       { label: "GitHub", href: "https://github.com/shravanngoswamii", icon: "github" },
       { label: "LinkedIn", href: "https://www.linkedin.com/in/shravangoswami/", icon: "linkedin" },
-      { label: "Sponsor", href: "https://github.com/sponsors/shravanngoswamii", icon: "heart" },
+      { label: "Sponsor", href: site.sponsor, icon: "heart" },
     ],
   },
   {
@@ -146,6 +148,16 @@ export const videos = [
     height: 1080,
   },
 ] as const;
+
+// The Sponsor card on the home page, About, Credits and the end of every post, and the Sponsor links in the
+// header and footer. Privacy and Support render with none (Base's sponsor flag): they are the pages the
+// Android app and its Play listing link to, and Google Play's Payments policy forbids leading Play users to
+// payment outside Play. In the Android app, the way to support the game is the Supporter pack.
+export const sponsorship = {
+  title: ["Help make the ", "next game"],
+  lede: "Plumb is free, made by one person and one AI model. If it gave you a few calm minutes, sponsoring Shravan on GitHub helps pay for the time that goes into the next one.",
+  line: "If Plumb gave you a few calm minutes, you can help make the next game.",
+} as const;
 
 export const builtWith = ["Godot Engine", "GDScript", "Astro", "Pagefind", "Giscus"] as const;
 

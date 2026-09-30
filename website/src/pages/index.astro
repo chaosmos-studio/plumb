@@ -4,6 +4,7 @@ import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
 import FAQ from "../components/FAQ.astro";
 import PostCard from "../components/PostCard.astro";
+import Sponsor from "../components/Sponsor.astro";
 import StoreButtons from "../components/StoreButtons.astro";
 import Video from "../components/Video.astro";
 import { faq, features, home, shots, site } from "../site.config";
@@ -104,6 +105,10 @@ const schema = [game(screenshotUrls), video("trailer")!, faqSchema(faq.slice(0, 
       {posts.map(p => <PostCard post={p} />)}
     </div>
     <p class="more"><a href={href("blog/")}>All posts</a></p>
+  </section>
+
+  <section class="wrap sponsor-section" data-reveal>
+    <Sponsor />
   </section>
 
   <section class="narrow section" data-reveal>
@@ -209,6 +214,9 @@ const schema = [game(screenshotUrls), video("trailer")!, faqSchema(faq.slice(0, 
     font-size: 0.85rem;
     color: var(--muted);
     margin-top: 0.5rem;
+  }
+  .sponsor-section {
+    padding-bottom: clamp(24px, 4vw, 48px);
   }
   .final {
     padding: clamp(2rem, 5vw, 3.5rem);

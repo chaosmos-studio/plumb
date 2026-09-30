@@ -7,6 +7,10 @@ const dist = new URL("../dist/", import.meta.url).pathname;
 const base = (process.env.BASE_PATH || "/" + JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).name.replace(/-website$/, "") + "/").replace(/\/?$/, "/");
 // Paths served by something other than this build, such as the game's own web export.
 const external = [`${base}play/`];
+// The pages the Android app and its Play listing link to. Google Play's Payments policy forbids leading Play
+// users to payment outside Play, so these render with sponsor={false} and must link to no payment page.
+const playLinked = ["privacy/index.html", "support/index.html"];
+const payment = /github\.com\/sponsors|patreon\.com|ko-fi\.com|buymeacoffee\.com|paypal\.(com|me)|liberapay\.com|opencollective\.com/i;
 const problems = [];
 const warnings = [];
 
@@ -61,6 +65,9 @@ for (const file of htmlFiles) {
     const canonical = attr(html.match(/<link rel="canonical"[^>]*>/)?.[0] ?? "", "href");
     if (canonical && !sitemap.includes(`<loc>${canonical}</loc>`) && !rel.startsWith("og/")) problems.push(`${rel}: canonical ${canonical} is not in the sitemap`);
   }
+  const noSponsor = /<body[^>]*data-sponsor="off"/.test(html);
+  if (playLinked.includes(rel) && !noSponsor) problems.push(`${rel}: the Play listing links here, so it must render with sponsor={false}`);
+  if (noSponsor && payment.test(html)) problems.push(`${rel}: links to a payment page (${html.match(payment)[0]}), which a page Play links to must not`);
   // Internal links must resolve to a built file.
   for (const a of html.match(/href="(\/[^"#?]*)/g) || []) {
     const path = a.slice(6);

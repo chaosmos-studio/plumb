@@ -2,6 +2,11 @@
 import Icon from "./Icon.astro";
 import { site } from "../site.config";
 import { href } from "../utils/url";
+
+interface Props {
+  sponsor: boolean;
+}
+const { sponsor } = Astro.props;
 const year = new Date().getFullYear();
 ---
 
@@ -21,6 +26,7 @@ const year = new Date().getFullYear();
       <a href={href("blog/")}>Blog</a>
       <a href={href("about/")}>About</a>
       <a href={href("credits/")}>Credits</a>
+      {sponsor && <a class="sponsor" href={site.sponsor} rel="noopener"><Icon name="heart" size={16} /> Sponsor</a>}
     </nav>
     <nav aria-label="Help">
       <p class="head">Help</p>
@@ -69,6 +75,14 @@ const year = new Date().getFullYear();
     text-decoration: none;
   }
   nav a:hover {
+    color: var(--accent);
+  }
+  .sponsor {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .sponsor :global(svg) {
     color: var(--accent);
   }
   .head {

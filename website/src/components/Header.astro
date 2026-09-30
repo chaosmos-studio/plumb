@@ -5,6 +5,10 @@ import icon from "../assets/icon.png";
 import { nav, site } from "../site.config";
 import { href } from "../utils/url";
 
+interface Props {
+  sponsor: boolean;
+}
+const { sponsor } = Astro.props;
 const here = Astro.url.pathname;
 ---
 
@@ -27,6 +31,9 @@ const here = Astro.url.pathname;
         <span class="sun"><Icon name="sun" /></span>
         <span class="moon"><Icon name="moon" /></span>
       </button>
+      {sponsor && (
+        <a class="sponsor" href={site.sponsor} rel="noopener"><Icon name="heart" size={18} /><span>Sponsor</span></a>
+      )}
       <a class="btn btn-primary get" href={site.storeUrl} rel="noopener">Get the game</a>
       <button class="icon-btn menu" type="button" id="menu-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
         <Icon name="menu" />
@@ -37,6 +44,7 @@ const here = Astro.url.pathname;
     {nav.map(item => <a href={href(item.href)}>{item.label}</a>)}
     <a href={href(site.playPath)}>Play in your browser</a>
     <a href={site.storeUrl} rel="noopener">Get it on Google Play</a>
+    {sponsor && <a href={site.sponsor} rel="noopener">Sponsor on GitHub</a>}
   </nav>
 </header>
 
@@ -147,6 +155,25 @@ const here = Astro.url.pathname;
     display: none;
     min-height: 44px;
   }
+  .sponsor {
+    display: none;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    border-radius: var(--pill);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .sponsor :global(svg) {
+    color: var(--accent);
+  }
+  .sponsor:hover {
+    color: var(--accent);
+  }
   .mobile {
     display: none;
     flex-direction: column;
@@ -163,7 +190,8 @@ const here = Astro.url.pathname;
   }
   @media (min-width: 860px) {
     .links,
-    .get {
+    .get,
+    .sponsor {
       display: flex;
     }
     .menu,
