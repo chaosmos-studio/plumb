@@ -1,5 +1,6 @@
 ---
 import { site } from "../site.config";
+import { beaconToken } from "../utils/analytics";
 import { absolute, href } from "../utils/url";
 
 interface Props {
@@ -102,6 +103,6 @@ const allSchema = [...baseSchema, ...schema];
 <link rel="sitemap" href={href("sitemap-index.xml")} />
 
 {allSchema.map(s => <script type="application/ld+json" set:html={JSON.stringify(s)} />)}
-{site.analytics.cloudflareToken && (
-  <script is:inline defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon={JSON.stringify({ token: site.analytics.cloudflareToken })} />
+{beaconToken && (
+  <script is:inline defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon={JSON.stringify({ token: beaconToken })} />
 )}

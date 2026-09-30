@@ -2,10 +2,11 @@
 import Base from "../layouts/Base.astro";
 import Crumbs from "../components/Crumbs.astro";
 import { privacy, site } from "../site.config";
+import { countsVisits, injected } from "../utils/analytics";
 import { breadcrumbs } from "../utils/schema";
 const updated = new Date(privacy.updated).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-// Visit counting is off unless site.config.ts has a Cloudflare token, and this page says so only when it is on.
-const analytics = Boolean(site.analytics.cloudflareToken);
+// This page describes visit counting only when site.analytics turns it on.
+const analytics = countsVisits;
 const google = {
   partners: "https://policies.google.com/technologies/partner-sites",
   privacy: "https://policies.google.com/privacy",
@@ -71,7 +72,7 @@ const google = {
       <p>The Android app offers one optional purchase, the Supporter pack. It is bought once, turns off the banner and the ads between levels, and makes every hint free, so no video is ever needed. Google Play Billing handles the purchase from start to finish: your payment details go to Google, under <a href={google.privacy} rel="noopener">Google's privacy policy</a> and <a href={google.playTerms} rel="noopener">Google Play's terms</a>, and never reach us. The game learns only whether the pack was bought: it asks Google Play when it starts, and remembers the answer on your device so the pack works offline.</p>
 
       <h2>The web version</h2>
-      <p>When you play in a browser, the game never shows ads and sells nothing, and it loads no ads or billing code. Your progress and settings are saved in your browser's own storage for this site, on your computer or phone. They are not sent to us. Clearing the site's data in your browser erases them.</p>
+      <p>When you play in a browser, the game never shows ads and sells nothing, and it loads no ads or billing code. Your progress and settings are saved in your browser's own storage for this site, on your computer or phone. They are not sent to us. Clearing the site's data in your browser erases them.{injected && " Visits to it are counted along with this website's, as described under Visit counts."}</p>
 
       <h2>Permissions</h2>
       <p>{privacy.permissions}</p>
@@ -85,7 +86,7 @@ const google = {
       {analytics && (
         <>
           <h2>Visit counts</h2>
-          <p>This website counts visits with Cloudflare Web Analytics, which sets no cookies and collects no personal data. We see only aggregate numbers: which pages are viewed, which sites link here, the countries, browsers and kinds of device visitors use, and how quickly pages load. The service is covered by <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener">Cloudflare's privacy policy</a>.</p>
+          <p>This website{injected && ", the web version of the game included,"} counts visits with Cloudflare Web Analytics, which sets no cookies and collects no personal data. We see only aggregate numbers: which pages are viewed, which sites link here, the countries, browsers and kinds of device visitors use, and how quickly pages load. The service is covered by <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener">Cloudflare's privacy policy</a>.</p>
         </>
       )}
 

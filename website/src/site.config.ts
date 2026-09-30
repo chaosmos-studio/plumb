@@ -2,6 +2,12 @@
 // blog content), so another game's site is this file, its palette in styles/theme.css, its motif, and
 // its posts.
 
+/** How the site counts visits: see `site.analytics`. */
+export interface Analytics {
+  readonly cloudflare: "auto" | "token" | "off";
+  readonly token: string;
+}
+
 export const site = {
   name: "Plumb",
   wordmark: "plumb",
@@ -26,9 +32,11 @@ export const site = {
   searchPlaceholder: "Search tips, rules and posts...",
   // Paste the content of Search Console's HTML tag here once the property is added.
   googleSiteVerification: "",
-  // Cookieless visit counts from Cloudflare Web Analytics. Empty loads nothing. One token for the
-  // shravangoswami.com hostname covers every game's site, and the Privacy page describes it once set.
-  analytics: { cloudflareToken: "" },
+  // Cookieless visit counts from Cloudflare Web Analytics, which the Privacy page describes whenever they are
+  // on. "auto": the hostname is proxied through Cloudflare, whose automatic setup adds the beacon to every
+  // page on it, /play/ included, so the site adds no script. "token": Head adds the beacon with `token`, the
+  // site token for a hostname Cloudflare does not proxy. "off": nothing is counted.
+  analytics: { cloudflare: "auto", token: "" } as Analytics,
   giscus: {
     repo: "shravanngoswamii/comments",
     repoId: "R_kgDOQ90dlg",
