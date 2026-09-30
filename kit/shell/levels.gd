@@ -30,11 +30,16 @@ func _ready() -> void:
 	var title: Label = UI.title("Levels", 58)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(title)
-	top.add_child(_star_chip())
+	top.add_child(Hud.settings(self))
+	var chip: Control = UI.centred(_star_chip())
+	chip.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	chip.offset_top = top.offset_bottom + 6.0
+	chip.offset_bottom = chip.offset_top + 44.0
+	ui.add_child(chip)
 
 	var centre: CenterContainer = CenterContainer.new()
 	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
-	centre.offset_top = 170.0 + float(safe["top"])
+	centre.offset_top = 200.0 + float(safe["top"])
 	centre.offset_bottom = -170.0
 	centre.mouse_filter = Control.MOUSE_FILTER_PASS
 	centre.gui_input.connect(_on_grid_input)
@@ -71,8 +76,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _star_chip() -> Control:
 	var chip: HBoxContainer = HBoxContainer.new()
 	chip.add_theme_constant_override("separation", 8)
-	chip.custom_minimum_size = Vector2(IconButton.SIZE, 0)
-	chip.alignment = BoxContainer.ALIGNMENT_END
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	chip.add_child(StarIcon.new(30.0, true))
 	chip.add_child(UI.label(str(Save.total_stars()), 30, Brand.MUTED))
 	return chip

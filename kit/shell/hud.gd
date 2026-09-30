@@ -38,6 +38,12 @@ static func bottom(ui: Control, controls: Array[Control], separation: int = 44) 
 		row.add_child(c)
 	return row
 
+## The settings button every play screen carries, so sound and music are one tap away mid-level.
+static func settings(host: Node) -> IconButton:
+	var gear: IconButton = UI.icon_button(&"settings", "Settings")
+	gear.pressed.connect(func() -> void: Settings.open(host))
+	return gear
+
 ## LEVEL over the number, centred: the heading of every play screen.
 static func level_heading(level: int) -> Stat:
 	return Stat.new("Level", str(level + 1), 60)

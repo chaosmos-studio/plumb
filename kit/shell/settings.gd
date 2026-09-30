@@ -1,22 +1,30 @@
 class_name Settings
 extends RefCounted
 
-## The settings sheet: switches for sound, music and haptics, the About and Credits sheets, a guarded
-## reset, and the version line.
+## The settings sheet, reachable from every screen: switches for sound, music and haptics, the theme,
+## the first level's guide again, the About and Credits sheets, a guarded reset, and the version line.
 
 const RESET_ARM_TIME: float = 3.0
 
-## `music` false leaves out the music switch, for a game with no music to turn off.
-static func open(host: Node, music: bool = true) -> Sheet:
+static func open(host: Node) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
 	c.add_child(UI.title("Settings", 56))
 	c.add_child(UI.spacer(4))
-	c.add_child(_row(&"sound", "Sound", Save.sound_on, func(on: bool) -> void: Save.set_sound(on)))
-	if music:
-		c.add_child(_row(&"music", "Music", Save.music_on, func(on: bool) -> void: Save.set_music(on)))
-	c.add_child(_row(&"haptics", "Vibration", Save.haptics_on, func(on: bool) -> void: Save.set_haptics(on)))
+	c.add_child(_row(&"sound", "Sound", _switch(Save.sound_on, func(on: bool) -> void: Save.set_sound(on))))
+	if Brand.HAS_MUSIC:
+		c.add_child(_row(&"music", "Music", _switch(Save.music_on, func(on: bool) -> void: Save.set_music(on))))
+	c.add_child(_row(&"haptics", "Vibration", _switch(Save.haptics_on, func(on: bool) -> void: Save.set_haptics(on))))
+	var looks: Segmented = Segmented.new(Appearance.NAMES, Save.theme)
+	looks.chosen.connect(func(choice: int) -> void:
+		Appearance.choose(choice, host.get_tree(), func(scene: Node) -> void: Settings.open(scene)))
+	c.add_child(_row(&"theme", "Theme", looks))
 	c.add_child(UI.spacer(6))
+	var guide: Button = UI.button("How to play", UI.Style.SECONDARY)
+	guide.pressed.connect(func() -> void:
+		sheet.close()
+		Coach.replay())
+	c.add_child(guide)
 	var more: HBoxContainer = HBoxContainer.new()
 	more.alignment = BoxContainer.ALIGNMENT_CENTER
 	more.add_theme_constant_override("separation", 20)
@@ -48,7 +56,7 @@ static func open(host: Node, music: bool = true) -> Sheet:
 	c.add_child(UI.caption("%s %s   made with godot" % [Brand.NAME, version], 20))
 	return sheet
 
-static func _row(icon: StringName, text: String, on: bool, apply: Callable) -> Control:
+static func _row(icon: StringName, text: String, control: Control) -> Control:
 	var row: HBoxContainer = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 24)
 	var glyph: _Glyph = _Glyph.new()
@@ -58,10 +66,14 @@ static func _row(icon: StringName, text: String, on: bool, apply: Callable) -> C
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(l)
+	control.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(control)
+	return row
+
+static func _switch(on: bool, apply: Callable) -> Switch:
 	var toggle: Switch = Switch.new(on)
 	toggle.toggled.connect(apply)
-	row.add_child(toggle)
-	return row
+	return toggle
 
 class _Glyph extends Control:
 	var icon: StringName = &"sound"
