@@ -5,6 +5,10 @@ extends SceneTree
 # CI greps the last line for "0 failed", so keep that wording.
 
 const InputMapGen: GDScript = preload("res://tools/make_input_map.gd")
+## The least contrast each pairing needs, as a WCAG ratio, in both palettes: body text, the quiet
+## captions, the primary button's label and the reset warning.
+const CONTRAST: Array = [["ink", "bg", 7.0], ["ink", "surface", 7.0], ["muted", "bg", 3.0],
+	["muted", "surface", 3.0], ["accent_ink", "accent", 3.0], ["danger", "surface", 3.0]]
 
 var _passed: int = 0
 var _failed: int = 0
@@ -20,6 +24,7 @@ func _initialize() -> void:
 	_test_stars()
 	_test_level_pack()
 	_test_appearance()
+	_test_contrast()
 	_test_saved_settings()
 	_test_guide_and_ending()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
@@ -226,6 +231,21 @@ func _test_appearance() -> void:
 		_check("the dark palette has %s" % key, Brand.DARK.has(key))
 	for key: String in Palette.LIGHT:
 		_check("the dark board has %s" % key, Palette.DARK.has(key))
+
+func _test_contrast() -> void:
+	for palette: String in ["LIGHT", "DARK"]:
+		var p: Dictionary = Brand.LIGHT if palette == "LIGHT" else Brand.DARK
+		for pair: Array in CONTRAST:
+			var fore: Color = p.get(pair[0], Color.BLACK)
+			var back: Color = p.get(pair[1], Color.BLACK)
+			var ratio: float = _contrast(fore, back)
+			_check("Brand.%s %s on %s has contrast %.1f, needs %.1f" % [palette, pair[0], pair[1], ratio, pair[2]],
+				ratio >= float(pair[2]))
+
+static func _contrast(a: Color, b: Color) -> float:
+	var la: float = a.srgb_to_linear().get_luminance()
+	var lb: float = b.srgb_to_linear().get_luminance()
+	return (maxf(la, lb) + 0.05) / (minf(la, lb) + 0.05)
 
 # The theme and the guide's state live with the other settings, and survive a restart of the app.
 func _test_saved_settings() -> void:
