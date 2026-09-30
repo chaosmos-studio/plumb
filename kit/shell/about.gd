@@ -7,12 +7,7 @@ extends RefCounted
 static func open(host: Node) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
-	var icon: TextureRect = TextureRect.new()
-	icon.texture = load("res://assets/branding/icon.png")
-	icon.custom_minimum_size = Vector2(128, 128)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	c.add_child(UI.centred(icon))
+	c.add_child(UI.centred(UI.app_icon(128)))
 	c.add_child(UI.title(Brand.NAME, 60))
 	var version: String = str(ProjectSettings.get_setting("application/config/version", ""))
 	c.add_child(UI.caption("%s   version %s" % [Brand.TAGLINE, version] if version != "" else Brand.TAGLINE, 20))

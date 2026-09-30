@@ -9,6 +9,7 @@ const TOP_SPACE: float = 300.0
 const BOTTOM_SPACE: float = 260.0
 const SIDE_MARGIN: float = 30.0
 const HINT_SEARCH: int = 30000
+const DIRECTION_NAMES: PackedStringArray = ["left", "right", "up", "down"]
 
 var level: int = 0
 var par: int = 0
@@ -27,13 +28,23 @@ var _ui: Control
 var _moves: Stat
 var _caption: Label
 var _undo: IconButton
+var _restart: IconButton
+var _hint: IconButton
 var _sheet: Sheet
+var _coach: Coach
 
 func _ready() -> void:
 	level = Pack.current
 	par = Pack.par(level)
 	start = Pack.board(level)
 	board = start.copy()
+	var kept: Variant = Appearance.take()
+	if kept is Dictionary:
+		var state: Dictionary = kept
+		var kept_level: int = state.get("level", -1)
+		if kept_level == level:
+			history.assign(state["history"])
+			board = state["board"]
 	_view = BoardView.new()
 	add_child(_view)
 	_build_ui()
@@ -43,6 +54,12 @@ func _ready() -> void:
 	_view.intro()
 	_refresh()
 	EventBus.level_started.emit(level)
+	if Coach.due(level):
+		_guide()
+
+## What a rebuild for a new theme carries over: the level as far as it has been played.
+func keep() -> Dictionary:
+	return {} if finished else {"level": level, "history": history.duplicate(), "board": board}
 
 func _fit() -> Vector2:
 	var size: Vector2 = get_viewport_rect().size
@@ -57,6 +74,8 @@ func _layout() -> void:
 # --- Input --------------------------------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
+	if is_instance_valid(_coach) and _coach.waiting:
+		return
 	if is_instance_valid(_sheet):
 		if event.is_action_pressed("retry"):
 			_on_restart()
@@ -122,6 +141,8 @@ func _tilt(dir: int) -> void:
 		var d: int = _queued
 		_queued = -1
 		_tilt(d)
+	else:
+		_coach_next()
 
 func _on_undo() -> void:
 	if history.is_empty() or _view.busy:
@@ -132,6 +153,7 @@ func _on_undo() -> void:
 	_view.sync(board)
 	Audio.play(&"undo", -4.0)
 	_refresh()
+	_coach_next()
 
 func _on_restart() -> void:
 	if _view.busy:
@@ -143,6 +165,7 @@ func _on_restart() -> void:
 	_view.sync(board)
 	Audio.play(&"undo", -4.0, 0.8)
 	_refresh()
+	_coach_next()
 
 ## Shows where every marble would go on the solver's next tilt. Waits out a roll in progress rather than
 ## ignoring the tap, and always answers: a preview, or a short note saying why there is none.
@@ -164,7 +187,7 @@ func _on_hint() -> void:
 func _refresh() -> void:
 	_moves.set_value(str(history.size()))
 	_undo.disabled = history.is_empty()
-	_caption.text = _tutorial()
+	_caption.text = "" if Coach.due(level) else _tutorial()
 
 ## A line of guidance on the levels that introduce something, and nothing after.
 func _tutorial() -> String:
@@ -215,12 +238,58 @@ static func _colours(b: TiltBoard) -> int:
 static func _shares_a_hole(b: TiltBoard) -> bool:
 	return b.marble_cell.size() > _colours(b)
 
+# --- Guide --------------------------------------------------------------------------------------------
+
+## Level 1's guide: the goal, where help lives, then the swipe itself on the real board. Each move is
+## shown from the solver, so the guide keeps up with whatever the player tries.
+func _guide() -> void:
+	await get_tree().create_timer(0.7).timeout
+	if finished:
+		return
+	_coach = Coach.open(self)
+	_coach.closed.connect(func(_completed: bool) -> void: _refresh())
+	await _coach.step("Roll each marble into the hole of its own colour.", [_board_light()], &"", Vector2.ZERO,
+		Vector2.ZERO, true)
+	await _coach.step("Stuck on a level? The bulb shows your next tilt. Undo takes one back, and restart begins again.",
+		[_button_light(_hint), _button_light(_undo), _button_light(_restart)], &"", Vector2.ZERO, Vector2.ZERO, true)
+	_coach_next()
+
+func _coach_next() -> void:
+	if not is_instance_valid(_coach) or _coach.done or _coach.waiting or finished or board.lost:
+		return
+	var path: PackedInt32Array = TiltSolver.new().solve(board, HINT_SEARCH)
+	if path.is_empty():
+		return
+	var xf: Transform2D = _view.get_global_transform_with_canvas()
+	var tray: Rect2 = _view.bounds()
+	var d: Vector2 = Vector2(TiltBoard.DIRS[path[0]])
+	var reach: float = minf(tray.size.x, tray.size.y) * 0.3
+	var from: Vector2 = xf * (tray.get_center() - d * reach)
+	var to: Vector2 = xf * (tray.get_center() + d * reach)
+	var text: String = "Swipe %s to tilt the board. Every marble rolls until it hits something." % DIRECTION_NAMES[path[0]] \
+		if history.is_empty() else "Now swipe %s." % DIRECTION_NAMES[path[0]]
+	_coach.step(text, [_board_light()], &"swipe", from, to)
+
+func _board_light() -> Vector3:
+	var xf: Transform2D = _view.get_global_transform_with_canvas()
+	var tray: Rect2 = _view.bounds()
+	var a: Vector2 = xf * tray.position
+	var b: Vector2 = xf * tray.end
+	return Vector3((a.x + b.x) * 0.5, (a.y + b.y) * 0.5, maxf(absf(b.x - a.x), absf(b.y - a.y)) * 0.5)
+
+static func _button_light(button: Control) -> Vector3:
+	var r: Rect2 = button.get_global_rect()
+	return Vector3(r.get_center().x, r.get_center().y, r.size.x * 0.62)
+
 # --- Results ------------------------------------------------------------------------------------------
 
 func _show_won() -> void:
 	finished = true
+	if is_instance_valid(_coach):
+		_coach.finish()
 	var moves: int = history.size()
 	var earned: int = Stars.earned(moves, par)
+	var ending: bool = Finale.due(level)
 	Save.record(level, earned)
 	EventBus.level_won.emit(level, moves, earned)
 	await get_tree().create_timer(0.3).timeout
@@ -229,8 +298,9 @@ func _show_won() -> void:
 	var detail: PackedStringArray = PackedStringArray(["%d %s, par %d" % [moves, "move" if moves == 1 else "moves", par]])
 	if earned < 3:
 		detail.append("Solve it in %d for three stars" % par)
-	_sheet = Result.won(self, "Every level solved" if last else "Solved", earned, detail,
-		"Back to levels" if last else "Next level", _on_next, _on_restart, _to_levels)
+	var next_text: String = "Continue" if ending else ("Back to levels" if last else "Next level")
+	_sheet = Result.won(self, "Every level solved" if last else "Solved", earned, detail, next_text,
+		_on_finale if ending else _on_next, _on_restart, _to_levels)
 
 func _show_lost() -> void:
 	await get_tree().create_timer(0.35).timeout
@@ -241,6 +311,10 @@ func _close_sheet() -> void:
 	if is_instance_valid(_sheet):
 		_sheet.close()
 	_sheet = null
+
+func _on_finale() -> void:
+	_close_sheet()
+	Finale.open(self, _to_levels)
 
 func _on_next() -> void:
 	if level + 1 >= Pack.count():
@@ -258,9 +332,9 @@ func _build_ui() -> void:
 	_ui = UI.root(self)
 	var back: IconButton = UI.icon_button(&"back", "Levels")
 	back.pressed.connect(_to_levels)
-	var hint: IconButton = UI.icon_button(&"hint", "Hint")
-	hint.pressed.connect(_on_hint)
-	Hud.top(_ui, back, Hud.level_heading(level), hint)
+	_hint = UI.icon_button(&"hint", "Hint")
+	_hint.pressed.connect(_on_hint)
+	Hud.top(_ui, back, Hud.level_heading(level), _hint)
 
 	var stats: HBoxContainer = HBoxContainer.new()
 	stats.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
@@ -277,7 +351,7 @@ func _build_ui() -> void:
 	_caption = Hud.caption_line(_ui)
 	_undo = UI.icon_button(&"undo", "Undo")
 	_undo.pressed.connect(_on_undo)
-	var restart: IconButton = UI.icon_button(&"restart", "Restart")
-	restart.pressed.connect(_on_restart)
-	var row: Array[Control] = [_undo, restart]
+	_restart = UI.icon_button(&"restart", "Restart")
+	_restart.pressed.connect(_on_restart)
+	var row: Array[Control] = [_undo, _restart, Hud.settings(self)]
 	Hud.bottom(_ui, row)
