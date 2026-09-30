@@ -187,7 +187,7 @@ func _on_hint() -> void:
 func _refresh() -> void:
 	_moves.set_value(str(history.size()))
 	_undo.disabled = history.is_empty()
-	_caption.text = "" if Coach.due(level) else _tutorial()
+	_caption.text = "" if Coach.due(level) or finished else _tutorial()
 
 ## A line of guidance on the levels that introduce something, and nothing after.
 func _tutorial() -> String:
