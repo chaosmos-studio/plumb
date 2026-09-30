@@ -74,14 +74,9 @@ that track; production goes up as a draft, so you still press the last button in
 the upload key and a `PLAY_SERVICE_ACCOUNT_JSON` secret, and each app's very first AAB has to be uploaded
 by hand in Play Console. The one-time setup is in the workspace's `MINI_GAMES_PUBLISHING.md`, section 4.6.
 
-Until the repository has an upload key, builds are signed with a throwaway key and the release notes say so:
-fine for sideloading, not uploadable to Play. To switch to a real upload key, run once:
-
-```
-tools/make_upload_key.sh
-```
-
-It creates `~/.android-keys/plumb-upload.jks` with a random password kept beside it in
-`plumb-upload.txt`, prints the certificate's SHA-256, and after asking, sets the `ANDROID_KEYSTORE_BASE64`,
-`ANDROID_KEYSTORE_ALIAS` and `ANDROID_KEYSTORE_PASSWORD` secrets the workflow signs with. Back up
-`~/.android-keys`: losing the upload key means a slow reset through Play support.
+Builds are signed with the game's upload key, `plumb-release.jks` (alias `plumb`), kept outside the repo in the
+workspace's `release-keys/` folder beside `plumb-key.properties`. The repository holds it as the
+`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_ALIAS` and `ANDROID_KEYSTORE_PASSWORD` secrets, and the
+`UPLOAD_KEY_SHA256` variable pins releases to it, so a run with any other key stops. Keep a backup of both
+files: losing the upload key means a slow reset through Play support. Without the secrets, builds fall back
+to a throwaway key: fine for sideloading, not uploadable to Play.

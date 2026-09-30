@@ -277,11 +277,11 @@ jobs:
           # Play rejects any upload not signed with the key it first saw, so a pinned key must match exactly.
           if [ "$upload" = true ]; then
             if [ -n "$PINNED_SHA256" ] && [ "$sha" != "$PINNED_SHA256" ]; then
-              echo "::error::the upload key in this repository's secrets is $sha, but UPLOAD_KEY_SHA256 pins $PINNED_SHA256, the key Play knows. Restore the pinned key with tools/backup_upload_keys.sh --restore and send it again with tools/make_upload_key.sh"
+              echo "::error::the upload key in this repository's secrets is $sha, but UPLOAD_KEY_SHA256 pins $PINNED_SHA256, the key Play knows. Put that game's <game>-release.jks from release-keys/ (or its backup) back into the ANDROID_KEYSTORE_* secrets"
               exit 1
             fi
             if [ -z "$PINNED_SHA256" ]; then
-              echo "::warning::UPLOAD_KEY_SHA256 is not set, so nothing checks that this is the key Play knows. Run tools/make_upload_key.sh once more to pin it"
+              echo "::warning::UPLOAD_KEY_SHA256 is not set, so nothing checks that this is the key Play knows. Set it to the key's certificate SHA-256 with gh variable set UPLOAD_KEY_SHA256"
             fi
           fi
           {
@@ -381,7 +381,7 @@ jobs:
           if [ "$UPLOAD_KEY" = true ]; then
             signing="Signed with the upload key from the repository secrets, so the AAB can go to Google Play."
           else
-            signing="**Signed with a throwaway key: sideload only, not uploadable to Play.** Each such build has a new key, so uninstall an earlier one before installing this. Run tools/make_upload_key.sh once to sign with a real upload key."
+            signing="**Signed with a throwaway key: sideload only, not uploadable to Play.** Each such build has a new key, so uninstall an earlier one before installing this. Set the ANDROID_KEYSTORE_* secrets from the game's release key to sign with it."
           fi
           case "$PLAY_TRACK" in
             internal) play="sent to internal testing" ;;
