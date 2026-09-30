@@ -23,7 +23,7 @@ export const site = {
   genre: "Puzzle",
   platforms: ["Android", "Web browser"],
   launched: "2026-10-01",
-  email: "contact@shravangoswami.com",
+  email: "apps@shravangoswami.com",
   // GitHub Sponsors, linked from every page except Privacy and Support (see sponsorship below).
   sponsor: "https://github.com/sponsors/shravanngoswamii",
   locale: "en_US",
