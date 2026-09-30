@@ -2,7 +2,7 @@
 title: "How Plumb's hint works, and when to use it"
 description: "Plumb's hint previews your best next tilt right on the board: ghost marbles, dotted trails and pit warnings. Here is what each part means."
 pubDate: 2026-09-30
-authors: [claude]
+authors: [shravan, claude]
 tags: [Guides, Features]
 cover: ./images/cover.webp
 coverAlt: "A Plumb board showing the hint: faint ghost marbles and dotted trails previewing the next tilt"

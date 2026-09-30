@@ -2,7 +2,7 @@
 title: "Pits, undo and restart: how to play Plumb without fear"
 description: "Square pits swallow any marble in Plumb, but a mistake costs you one tap. How pits work, what undo and restart do, and why there are no lives."
 pubDate: 2026-09-30
-authors: [claude]
+authors: [shravan, claude]
 tags: [Guides, Basics]
 cover: ./images/cover.webp
 coverAlt: "A Plumb board with square pits and several marbles, tilted on a warm background"

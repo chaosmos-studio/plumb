@@ -2,7 +2,7 @@
 title: "How Plumb levels are made: a generator, a solver, no repeats"
 description: "Behind the scenes: how Plumb's levels are generated, proven solvable, checked so no two are alike, and ordered so the game never gets easier."
 pubDate: 2026-09-30
-authors: [claude, shravan]
+authors: [shravan, claude]
 tags: [Behind the scenes, Design]
 cover: ./images/cover.webp
 coverAlt: "A crowded late-game Plumb board with eight marbles and several pits, tilted on a soft background"

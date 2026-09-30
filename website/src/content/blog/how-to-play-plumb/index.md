@@ -2,7 +2,7 @@
 title: "How to play Plumb: the rules in two minutes"
 description: "Learn to play Plumb, the marble tilt puzzle: swipe to tilt the board, every marble rolls at once, and each one must drop into the hole of its own colour."
 pubDate: 2026-09-30
-authors: [claude, shravan]
+authors: [shravan, claude]
 tags: [Guides, Basics]
 cover: ./images/cover.webp
 coverAlt: "A Plumb puzzle board tilted on a warm paper background, with coloured marbles, walls and holes"

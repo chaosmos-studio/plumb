@@ -2,7 +2,7 @@
 title: "How to get three stars in Plumb: par, explained"
 description: "What par means in Plumb, how stars are scored, and a simple method for finding the perfect route on any level, with a worked example."
 pubDate: 2026-09-30
-authors: [claude]
+authors: [shravan, claude]
 tags: [Strategy, Guides]
 cover: ./images/cover.webp
 coverAlt: "A dense late-game Plumb board with many marbles, walls and holes, tilted on a paper background"

@@ -2,7 +2,7 @@
 title: "Seven beginner tips for Plumb"
 description: "Seven practical tips for new Plumb players: read the walls first, count what moves, park marbles, and use undo to learn a board fast."
 pubDate: 2026-09-30
-authors: [claude, shravan]
+authors: [shravan, claude]
 tags: [Strategy, Basics]
 cover: ./images/cover.webp
 coverAlt: "A Plumb puzzle board with two marbles and several walls, tilted on a soft coloured background"
