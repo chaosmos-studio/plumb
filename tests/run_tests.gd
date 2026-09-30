@@ -7,6 +7,9 @@ extends SceneTree
 const InputMapGen: GDScript = preload("res://tools/make_input_map.gd")
 ## The least contrast each pairing needs, as a WCAG ratio, in both palettes: body text, the quiet
 ## captions, the primary button's label and the reset warning.
+## Google's official test app, which the AdMob plugin also falls back to when the setting is unset.
+const ADMOB_SETTINGS: GDScript = preload("res://addons/admob/internal/services/project_settings_service.gd")
+const APP_ID_SETTING: String = "admob/general/android/app_id"
 const CONTRAST: Array = [["ink", "bg", 7.0], ["ink", "surface", 7.0], ["muted", "bg", 3.0],
 	["muted", "surface", 3.0], ["accent_ink", "accent", 3.0], ["danger", "surface", 3.0]]
 
@@ -27,6 +30,17 @@ func _initialize() -> void:
 	_test_contrast()
 	_test_saved_settings()
 	_test_guide_and_ending()
+	_test_banner_pacing()
+	_test_interstitial_pacing()
+	_test_hint_pacing()
+	_test_adaptive_banner()
+	_test_monetize_ids()
+	_test_presets_and_plugins()
+	_test_saved_monetization()
+	_test_settings_variants()
+	_test_about_variants()
+	_test_finale_variants()
+	_test_support_and_hint_sheets()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -300,3 +314,213 @@ func _test_guide_and_ending() -> void:
 	save.set("stars", old_stars)
 	save.set("tutorial_seen", old_seen)
 	pack.set("levels", old_levels)
+
+# --- Monetization -------------------------------------------------------------------------------------
+
+func _test_banner_pacing() -> void:
+	_check("no banner before any level is solved", not AdPacing.banner_due(0, false))
+	_check("no banner with two levels solved", not AdPacing.banner_due(AdPacing.BANNER_AFTER - 1, false))
+	_check("the banner comes with the third solve", AdPacing.banner_due(AdPacing.BANNER_AFTER, false))
+	_check("and stays", AdPacing.banner_due(119, false))
+	_check("never for a Supporter", not AdPacing.banner_due(119, true))
+	_check("the banner waits for 3 solves", AdPacing.BANNER_AFTER == 3)
+
+# The spec's numbers, then each rule on its edge with every other rule satisfied.
+func _test_interstitial_pacing() -> void:
+	_check("the between-level pacing is 12 solves, every 4, 4 minutes apart, 3 minutes in",
+		AdPacing.INTERSTITIAL_AFTER == 12 and AdPacing.INTERSTITIAL_EVERY == 4
+		and is_equal_approx(AdPacing.FULLSCREEN_GAP, 240.0) and is_equal_approx(AdPacing.LAUNCH_GAP, 180.0))
+	var ok: Callable = func(solved: int, since: int, now: float, last: float) -> bool:
+		return AdPacing.interstitial_due(solved, since, now, last, false)
+	_check("due once every rule is met", ok.call(12, 4, 180.0, -1.0))
+	_check("never before 12 levels are solved", not ok.call(11, 40, 9999.0, -1.0))
+	_check("never before 4 solves this session", not ok.call(60, 3, 9999.0, -1.0))
+	_check("due on the fourth solve", ok.call(60, 4, 9999.0, -1.0))
+	_check("never in the first 3 minutes after launch", not ok.call(60, 9, 179.9, -1.0))
+	_check("due at 3 minutes", ok.call(60, 9, 180.0, -1.0))
+	_check("never within 4 minutes of a full-screen ad", not ok.call(60, 9, 1000.0, 1000.0 - 239.9))
+	_check("due 4 minutes after one", ok.call(60, 9, 1000.0, 1000.0 - 240.0))
+	_check("never for a Supporter", not AdPacing.interstitial_due(60, 9, 9999.0, -1.0, true))
+
+func _test_hint_pacing() -> void:
+	_check("the first 15 levels have free hints, then 3 a day",
+		AdPacing.FREE_HINT_LEVELS == 15 and AdPacing.DAILY_HINTS == 3)
+	_check("level 1's hints are free however many are used", AdPacing.hint_cost(0, 99, false) == AdPacing.Hint.FREE)
+	_check("level 15's too", AdPacing.hint_cost(14, 99, false) == AdPacing.Hint.FREE)
+	_check("level 16 draws on the day's allowance", AdPacing.hint_cost(15, 0, false) == AdPacing.Hint.ALLOWANCE)
+	_check("the third free hint of the day is still free", AdPacing.hint_cost(40, 2, false) == AdPacing.Hint.ALLOWANCE)
+	_check("the fourth asks for a video", AdPacing.hint_cost(40, 3, false) == AdPacing.Hint.VIDEO)
+	_check("a Supporter's hints are all free", AdPacing.hint_cost(40, 50, true) == AdPacing.Hint.FREE)
+	_check("hints left count down to none", AdPacing.hints_left(0) == 3 and AdPacing.hints_left(2) == 1
+		and AdPacing.hints_left(3) == 0 and AdPacing.hints_left(7) == 0)
+	_check("today's hints count today", AdPacing.used_today("2026-09-30", 2, "2026-09-30") == 2)
+	_check("yesterday's hints are forgotten at midnight", AdPacing.used_today("2026-09-29", 3, "2026-09-30") == 0)
+	_check("a never-saved day counts none", AdPacing.used_today("", 3, "2026-09-30") == 0)
+
+# The stand-in banner the captures draw has the height Google gives a phone's anchored adaptive banner.
+func _test_adaptive_banner() -> void:
+	var ads: GDScript = load("res://kit/monetize/ads.gd")
+	_check("a 360 dp phone gets a 56 dp banner", is_equal_approx(ads.call("adaptive_height_dp", 360.0, 800.0), 56.0))
+	_check("a 412 dp phone gets 64 dp", is_equal_approx(ads.call("adaptive_height_dp", 412.0, 915.0), 64.0))
+	_check("never under 50 dp", is_equal_approx(ads.call("adaptive_height_dp", 240.0, 300.0), 50.0))
+	_check("never over 90 dp", is_equal_approx(ads.call("adaptive_height_dp", 1000.0, 1400.0), 90.0))
+	_check("never over 15% of a short screen", is_equal_approx(ads.call("adaptive_height_dp", 412.0, 400.0), 60.0))
+
+# The plugin writes the project setting into the manifest (falling back to Google's test app when it is
+# unset), so the one the game's code names must be the one that ships.
+func _test_monetize_ids() -> void:
+	var setting: String = ProjectSettings.get_setting(APP_ID_SETTING, ADMOB_SETTINGS.ANDROID_DEFAULT_APP_ID)
+	_check("the manifest's AdMob app id is GameMonetize.APP_ID (%s)" % setting, setting == GameMonetize.APP_ID)
+	var app: RegEx = RegEx.create_from_string("^ca-app-pub-\\d{16}~\\d{10}$")
+	var unit: RegEx = RegEx.create_from_string("^ca-app-pub-\\d{16}/\\d{10}$")
+	_check("the app id is an AdMob app id", app.search(GameMonetize.APP_ID) != null)
+	for id: String in [GameMonetize.BANNER_ID, GameMonetize.INTERSTITIAL_ID, GameMonetize.REWARDED_ID]:
+		_check("%s is an AdMob unit id" % id, unit.search(id) != null)
+	var ids: Array[String] = [GameMonetize.BANNER_ID, GameMonetize.INTERSTITIAL_ID, GameMonetize.REWARDED_ID]
+	_check("each placement has its own unit", ids[0] != ids[1] and ids[1] != ids[2] and ids[0] != ids[2])
+	_check("the Supporter pack is the product 'supporter'", GameMonetize.SUPPORTER_ID == "supporter")
+
+# The Android builds carry the plugins and may reach the network; the web build carries neither plugin.
+func _test_presets_and_plugins() -> void:
+	var enabled: PackedStringArray = ProjectSettings.get_setting("editor_plugins/enabled", PackedStringArray())
+	_check("the AdMob plugin is enabled", enabled.has("res://addons/admob/plugin.cfg"))
+	_check("the Play billing plugin is enabled", enabled.has("res://addons/GodotGooglePlayBilling/plugin.cfg"))
+	_check("the Android binaries are in place, so no build downloads them",
+		FileAccess.file_exists("res://addons/admob/android/bin/ads/libs/poing-godot-admob-ads-release.aar")
+		and FileAccess.file_exists("res://addons/admob/android/bin/package.gd")
+		and FileAccess.file_exists("res://addons/admob/ios/bin/package.gd"))
+	var presets: ConfigFile = ConfigFile.new()
+	_check("export_presets.cfg reads", presets.load("res://export_presets.cfg") == OK)
+	for section: String in presets.get_sections():
+		if section.ends_with(".options") or not presets.has_section_key(section, "platform"):
+			continue
+		var preset_name: String = presets.get_value(section, "name")
+		var exclude: String = presets.get_value(section, "exclude_filter", "")
+		if presets.get_value(section, "platform") == "Android":
+			var options: String = section + ".options"
+			_check("%s may use the network" % preset_name, bool(presets.get_value(options, "permissions/internet", false)))
+			_check("%s builds with Gradle, which the plugins need" % preset_name,
+				bool(presets.get_value(options, "gradle_build/use_gradle_build", false)))
+			_check("%s leaves the plugin's samples out" % preset_name, exclude.contains("addons/admob/gdscript/sample/*"))
+		elif presets.get_value(section, "platform") == "Web":
+			_check("the web build leaves the plugins out", exclude.contains("addons/*")
+				and exclude.contains("kit/monetize/android/*"))
+
+func _test_saved_monetization() -> void:
+	var save: Node = root.get_node("Save")
+	var real: String = save.get("path")
+	var old: Array = [save.get("supporter"), save.get("hint_day"), save.get("hints_used"), save.get("stars")]
+	save.set("path", "user://test_monetize.cfg")
+	save.set("supporter", true)
+	save.set("hint_day", "2026-09-30")
+	save.set("hints_used", 2)
+	save.call("store")
+	save.set("supporter", false)
+	save.set("hint_day", "")
+	save.set("hints_used", 0)
+	save.call("restore")
+	_check("the Supporter pack is saved", bool(save.get("supporter")))
+	_check("today's free hints are saved", String(save.get("hint_day")) == "2026-09-30" and int(save.get("hints_used")) == 2)
+	save.call("reset")
+	save.call("restore")
+	_check("resetting progress keeps the Supporter pack", bool(save.get("supporter")))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_monetize.cfg"))
+	save.set("path", real)
+	save.set("supporter", old[0])
+	save.set("hint_day", old[1])
+	save.set("hints_used", old[2])
+	save.set("stars", old[3])
+
+## The text of every button a kit sheet builds, on a host outside the tree so nothing animates.
+func _buttons(opener: GDScript, method: String = "open") -> PackedStringArray:
+	var host: Node = Node.new()
+	opener.call(method, host)
+	var texts: PackedStringArray = PackedStringArray()
+	for b: Node in host.find_children("*", "Button", true, false):
+		texts.append((b as Button).text)
+	host.free()
+	return texts
+
+func _test_settings_variants() -> void:
+	var ads: GDScript = load("res://kit/monetize/ads.gd")
+	var settings: GDScript = load("res://kit/shell/settings.gd")
+	var save: Node = root.get_node("Save")
+	var old_supporter: bool = save.get("supporter")
+	save.set("supporter", false)
+	var plain: PackedStringArray = _buttons(settings)
+	_check("settings offers Support the game", plain.has("Support the game"))
+	_check("and no privacy choices where no consent message asks for them", not plain.has("Privacy choices"))
+	var consent: _ConsentAds = _ConsentAds.new()
+	ads.call("use", consent)
+	_check("privacy choices appear when the consent message requires them", _buttons(settings).has("Privacy choices"))
+	save.set("supporter", true)
+	var supporter: PackedStringArray = _buttons(settings)
+	_check("a Supporter still finds Support the game", supporter.has("Support the game"))
+	_check("but no privacy choices, since no ads load for them", not supporter.has("Privacy choices"))
+	ads.call("use", null)
+	save.set("supporter", old_supporter)
+
+func _test_about_variants() -> void:
+	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
+	var about: GDScript = load("res://kit/shell/about.gd")
+	var old: bool = supporter.get("on_play")
+	supporter.set("on_play", true)
+	var play: PackedStringArray = _buttons(about)
+	_check("About on Google Play links to Privacy and Support", play.has("Privacy") and play.has("Support"))
+	_check("and not to the website, which has sponsor links", not play.has("Website"))
+	supporter.set("on_play", false)
+	var web: PackedStringArray = _buttons(about)
+	_check("About on the web links to the website and Privacy", web.has("Website") and web.has("Privacy") and not web.has("Support"))
+	supporter.set("on_play", old)
+
+func _test_finale_variants() -> void:
+	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
+	var finale: GDScript = load("res://kit/shell/finale.gd")
+	var save: Node = root.get_node("Save")
+	var old: Array = [supporter.get("on_play"), save.get("supporter")]
+	save.set("supporter", false)
+	supporter.set("on_play", true)
+	_check("the Play ending offers the Supporter pack", finale.call("support_line") == GameCredits.SUPPORT_LINE_PLAY
+		and finale.call("support_button") == "Supporter pack")
+	supporter.set("on_play", false)
+	_check("the web ending offers GitHub Sponsors", finale.call("support_line") == GameCredits.SUPPORT_LINE_WEB
+		and finale.call("support_button") == "Sponsor on GitHub")
+	save.set("supporter", true)
+	_check("a Supporter's ending thanks them and asks for nothing", finale.call("support_line") == GameCredits.THANKS_LINE
+		and finale.call("support_button") == "")
+	_check("the Play line names the pack and the web line does not",
+		GameCredits.SUPPORT_LINE_PLAY.contains("Supporter pack") and not GameCredits.SUPPORT_LINE_WEB.contains("Supporter"))
+	supporter.set("on_play", old[0])
+	save.set("supporter", old[1])
+
+func _test_support_and_hint_sheets() -> void:
+	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
+	var gate: GDScript = load("res://kit/monetize/hint_gate.gd")
+	var save: Node = root.get_node("Save")
+	var old: Array = [supporter.get("on_play"), supporter.get("price"), save.get("supporter")]
+	save.set("supporter", false)
+	supporter.set("on_play", false)
+	_check("the web's support sheet is one Sponsor on GitHub button", _buttons(supporter) == PackedStringArray(["Sponsor on GitHub"]))
+	supporter.set("on_play", true)
+	supporter.set("price", "")
+	_check("the Play sheet sells the pack and restores it",
+		_buttons(supporter) == PackedStringArray(["Support the game", "Restore purchase"]))
+	supporter.set("price", "$2.99")
+	_check("with the price once Play gives it", _buttons(supporter).has("Support for $2.99"))
+	save.set("supporter", true)
+	_check("a Supporter's sheet only thanks them", _buttons(supporter).is_empty())
+	var host: Node = Node.new()
+	gate.call("ask", host, func() -> void: pass)
+	var texts: PackedStringArray = PackedStringArray()
+	for b: Node in host.find_children("*", "Button", true, false):
+		texts.append((b as Button).text)
+	host.free()
+	_check("the video prompt asks with Watch and Not now", texts == PackedStringArray(["Watch", "Not now"]))
+	supporter.set("on_play", old[0])
+	supporter.set("price", old[1])
+	save.set("supporter", old[2])
+
+## An ad network whose consent message asks for privacy choices.
+class _ConsentAds extends AdBackend:
+	func privacy_required() -> bool:
+		return true
