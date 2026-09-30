@@ -126,7 +126,7 @@ export const faq = [
   },
   {
     q: "What is the Supporter pack?",
-    a: "A one-time purchase in the Android app, through Google Play. It turns off the banner and the ads between levels, makes every hint free, and helps pay for the next game. It stays with your Google account, so it comes back when you reinstall, and its sheet in the app has a Restore button if it ever does not.",
+    a: "A one-time purchase in the Android app, through Google Play. It turns off the banner and the ads between levels, makes every hint free, and helps pay for the next game. It stays with your Google account, so it comes back when you reinstall, and the Supporter pack sheet in the app has a Restore purchase button if it ever does not.",
   },
   {
     q: "Does Plumb collect my data?",
@@ -250,6 +250,7 @@ export const privacy = {
     "whether you have seen or skipped the first level's tutorial;",
     "your theme choice: Auto, Light or Dark;",
     "your sound, music and vibration settings;",
+    "whether you own the Supporter pack, as Google Play last reported it, so the pack keeps working offline;",
     "how many of the day's free hints you have used, so they can start again at midnight.",
   ],
   permissions: "The Android app asks for vibration, so a tap can buzz lightly when vibration is switched on. It also has network access, which the ads and the Supporter pack need: Google's ads SDK adds the internet, network state and advertising ID permissions, and Google Play Billing adds its billing permission. It asks for no location, camera, microphone, contacts or files, and the game plays fully offline.",
