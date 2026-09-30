@@ -24,7 +24,9 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 	_settle = SETTLE if settle else 0.02
 	var dark: bool = action.begins_with("dark/")
 	action = action.trim_prefix("dark/")
-	Appearance.apply(Appearance.Choice.DARK if dark else Appearance.native())
+	# Saved as well as applied, so a staged Settings sheet shows the theme the shot is in.
+	Save.theme = Appearance.Choice.DARK if dark else Appearance.native()
+	Appearance.apply(Save.theme)
 	var parts: PackedStringArray = action.split(":")
 	var verb: String = parts[0]
 	var n: int = int(parts[1]) - 1 if parts.size() > 1 else 0
