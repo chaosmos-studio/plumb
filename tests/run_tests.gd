@@ -19,6 +19,9 @@ func _initialize() -> void:
 	_test_serialisation()
 	_test_stars()
 	_test_level_pack()
+	_test_appearance()
+	_test_saved_settings()
+	_test_guide_and_ending()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -205,3 +208,75 @@ static func _colours(b: TiltBoard) -> int:
 
 static func _pits(b: TiltBoard) -> int:
 	return b.cells.count(TiltBoard.Cell.PIT)
+
+# Kit classes that talk to the autoloads compile only once those exist, which is after this script, so
+# they are loaded here rather than named.
+func _test_appearance() -> void:
+	var appearance: GDScript = load("res://kit/ui/appearance.gd")
+	var choice: Dictionary = appearance.get_script_constant_map()["Choice"]
+	_check("light and dark are fixed choices", not appearance.call("resolve", choice["LIGHT"]) and appearance.call("resolve", choice["DARK"]))
+	_check("a new player starts in plumb's own look", appearance.call("native") == choice["LIGHT"])
+	Brand.use(true)
+	var dark_ok: bool = Brand.BG == Brand.DARK["bg"] and Palette.TILE == Palette.DARK["tile"] \
+		and Palette.marble(0) == (Palette.DARK["marbles"] as Array)[0]
+	Brand.use(false)
+	_check("dark swaps the kit's palette and the board's", dark_ok)
+	_check("light puts them back", Brand.BG == Brand.LIGHT["bg"] and Palette.TILE == Palette.LIGHT["tile"])
+	for key: String in Brand.LIGHT:
+		_check("the dark palette has %s" % key, Brand.DARK.has(key))
+	for key: String in Palette.LIGHT:
+		_check("the dark board has %s" % key, Palette.DARK.has(key))
+
+# The theme and the guide's state live with the other settings, and survive a restart of the app.
+func _test_saved_settings() -> void:
+	var save: Node = root.get_node("Save")
+	var real: String = save.get("path")
+	var old_theme: int = save.get("theme")
+	var old_seen: bool = save.get("tutorial_seen")
+	save.set("path", "user://test_settings.cfg")
+	save.set("theme", 2)
+	save.set("tutorial_seen", true)
+	save.call("store")
+	save.set("theme", 0)
+	save.set("tutorial_seen", false)
+	save.call("restore")
+	_check("the theme is saved", int(save.get("theme")) == 2)
+	_check("a seen guide stays seen", bool(save.get("tutorial_seen")))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_settings.cfg"))
+	save.set("path", real)
+	save.set("theme", old_theme)
+	save.set("tutorial_seen", old_seen)
+
+func _test_guide_and_ending() -> void:
+	var coach: GDScript = load("res://kit/ui/coach.gd")
+	var finale: GDScript = load("res://kit/shell/finale.gd")
+	var save: Node = root.get_node("Save")
+	var old_seen: bool = save.get("tutorial_seen")
+	var old_stars: PackedByteArray = save.get("stars")
+	save.set("tutorial_seen", false)
+	_check("level 1 opens with the guide", coach.call("due", 0))
+	_check("no other level does", not coach.call("due", 1))
+	save.set("tutorial_seen", true)
+	_check("a seen guide does not come back by itself", not coach.call("due", 0))
+	coach.set("requested", true)
+	_check("settings can ask for it again", coach.call("due", 0))
+	coach.set("enabled", false)
+	_check("tools can turn it off", not coach.call("due", 0))
+	coach.set("enabled", true)
+	coach.set("requested", false)
+	var pack: Node = root.get_node("Pack")
+	var old_levels: Array[Dictionary] = pack.get("levels")
+	var three: Array[Dictionary] = [{}, {}, {}]
+	pack.set("levels", three)
+	var last: int = 2
+	save.set("stars", PackedByteArray())
+	_check("solving the last level ends the game", finale.call("due", last))
+	_check("no other level does", not finale.call("due", last - 1))
+	var some: PackedByteArray = PackedByteArray()
+	some.resize(last + 1)
+	some[last] = 2
+	save.set("stars", some)
+	_check("replaying a solved last level does not", not finale.call("due", last))
+	save.set("stars", old_stars)
+	save.set("tutorial_seen", old_seen)
+	pack.set("levels", old_levels)

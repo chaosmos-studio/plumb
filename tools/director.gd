@@ -5,7 +5,9 @@ extends RefCounted
 ##
 ## Actions: title, levels, settings, about, credits, play:N, moves:N:K (after K solver moves), hint:N:K, rolling:N:K,
 ## won:N, failed:N (the shortest fall into a pit), hero:N (the board with the HUD hidden), and for the website board:N[:LRUD], boardsolve:N:K and
-## boardhint:N:K, which also hide the HUD. Levels are 1-based here, as a player counts them.
+## boardhint:N:K, which also hide the HUD, guide:K (level 1's guide at step K, counting from 0) and ending
+## (the note after the last level). Levels are 1-based here, as a player counts them. Any action takes a
+## "dark/" prefix to stage it in the dark theme; without one it is in the game's own look.
 ##
 ## Films also call perform(game, verb, arg) on a staged game: solve (arg = most moves), hint, tilt
 ## (arg = L, R, U or D), fail (tilts into a pit), undo, wait (arg = seconds).
@@ -20,6 +22,9 @@ var film: Object = null
 ## the level while its marbles pop in.
 func stage(action: String, host: Node, settle: bool = true) -> void:
 	_settle = SETTLE if settle else 0.02
+	var dark: bool = action.begins_with("dark/")
+	action = action.trim_prefix("dark/")
+	Appearance.apply(Appearance.Choice.DARK if dark else Appearance.native())
 	var parts: PackedStringArray = action.split(":")
 	var verb: String = parts[0]
 	var n: int = int(parts[1]) - 1 if parts.size() > 1 else 0
@@ -95,6 +100,21 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 				while game9.get("_view").busy:
 					await host.get_tree().process_frame
 			await _wait(host, 1.6)
+		"guide":
+			Coach.enabled = true
+			Save.tutorial_seen = false
+			var guided: Node = await _game(host, 0)
+			await _wait(host, 0.9)
+			var coach: Coach = guided.get("_coach")
+			for step: int in range(int(parts[1]) if parts.size() > 1 else 0):
+				coach.advanced.emit()
+				await _wait(host, 0.6)
+			await _wait(host, 0.8)
+			Coach.enabled = false
+		"ending":
+			var last: Node = await _game(host, Pack.count() - 1)
+			Finale.open(last, func() -> void: pass)
+			await _wait(host, 1.2)
 		"hero":
 			var game5: Node = await _game(host, n)
 			for child: Node in game5.get_children():
