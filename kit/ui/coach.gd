@@ -254,6 +254,10 @@ class _Finger extends Node2D:
 		_t += delta
 		queue_redraw()
 
+	## A fingertip is pale on either theme: the surface colour in light, the ink colour in dark.
+	func _pale() -> Color:
+		return Brand.INK if Appearance.dark else Brand.SURFACE
+
 	func _draw() -> void:
 		match kind:
 			&"tap":
@@ -262,7 +266,7 @@ class _Finger extends Node2D:
 				var press: float = smoothstep(0.18, 0.32, p) * (1.0 - smoothstep(0.36, 0.5, p))
 				if p > 0.3:
 					var k: float = clampf((p - 0.3) / 0.5, 0.0, 1.0)
-					draw_arc(from, RADIUS * lerpf(1.0, 2.6, k), 0.0, TAU, 48, Color(Brand.SURFACE, 0.8 * (1.0 - k) * fade), 4.0, true)
+					draw_arc(from, RADIUS * lerpf(1.0, 2.6, k), 0.0, TAU, 48, Color(_pale(), 0.8 * (1.0 - k) * fade), 4.0, true)
 				_tip(from, 1.0 - 0.16 * press, fade)
 			&"swipe":
 				var p2: float = fmod(_t, SWIPE_CYCLE) / SWIPE_CYCLE
@@ -270,13 +274,14 @@ class _Finger extends Node2D:
 				var along: float = ease(clampf((p2 - 0.12) / 0.5, 0.0, 1.0), -2.2)
 				var at: Vector2 = from.lerp(to, along)
 				if along > 0.0:
-					draw_line(from, at, Color(Brand.SURFACE, 0.55 * fade2), RADIUS * 0.9, true)
-					draw_circle(from, RADIUS * 0.45, Color(Brand.SURFACE, 0.55 * fade2), true, -1.0, true)
+					draw_line(from, at, Color(_pale(), 0.55 * fade2), RADIUS * 0.9, true)
+					draw_circle(from, RADIUS * 0.45, Color(_pale(), 0.55 * fade2), true, -1.0, true)
 				_tip(at, 1.0, fade2)
 
 	func _tip(at: Vector2, scale_by: float, alpha: float) -> void:
 		var r: float = RADIUS * scale_by
 		draw_circle(at + Vector2(0, 6), r, Color(0, 0, 0, 0.16 * alpha), true, -1.0, true)
-		draw_circle(at, r, Color(Brand.SURFACE, 0.94 * alpha), true, -1.0, true)
-		draw_arc(at, r, 0.0, TAU, 48, Color(Brand.INK, 0.22 * alpha), 3.0, true)
+		draw_circle(at, r, Color(_pale(), 0.94 * alpha), true, -1.0, true)
+		var edge: Color = Color(Brand.BG, 0.35) if Appearance.dark else Color(Brand.INK, 0.22)
+		draw_arc(at, r, 0.0, TAU, 48, Color(edge, edge.a * alpha), 3.0, true)
 		draw_circle(at, r * 0.32, Color(Brand.ACCENT, 0.7 * alpha), true, -1.0, true)
