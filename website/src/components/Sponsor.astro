@@ -13,28 +13,48 @@ const { compact = false } = Astro.props;
     <a class="btn btn-quiet" href={site.sponsor} rel="noopener">Sponsor on GitHub</a>
   </div>
 ) : (
-  <aside class="sponsor card" data-pagefind-ignore>
-    <span class="mark" aria-hidden="true"><Icon name="heart" size={26} /></span>
-    <div class="copy">
-      <p class="eyebrow">Sponsor</p>
-      <h2>{sponsorship.title[0]}<span class="accent">{sponsorship.title[1]}</span></h2>
-      <p class="text">{sponsorship.lede}</p>
-    </div>
-    <a class="btn btn-quiet" href={site.sponsor} rel="noopener"><Icon name="heart" /> Sponsor on GitHub</a>
-  </aside>
+  <div class="sponsor-box" data-pagefind-ignore>
+    <aside class="sponsor card">
+      <span class="mark" aria-hidden="true"><Icon name="heart" size={26} /></span>
+      <div class="copy">
+        <p class="eyebrow">Sponsor</p>
+        <h2>{sponsorship.title[0]}<span class="accent">{sponsorship.title[1]}</span></h2>
+        <p class="text">{sponsorship.lede}</p>
+      </div>
+      <a class="btn btn-quiet" href={site.sponsor} rel="noopener"><Icon name="heart" /> Sponsor on GitHub</a>
+    </aside>
+  </div>
 )}
 <style>
+  /* The card sits in columns of different widths (the home page, About, the narrow Credits column), so it
+     lays itself out by its own width rather than the window's. */
+  .sponsor-box {
+    container-type: inline-size;
+  }
   .sponsor {
     display: grid;
-    gap: 1.2rem 2rem;
+    gap: 1.2rem 1.6rem;
     align-items: center;
     justify-items: start;
     padding: clamp(1.5rem, 4vw, 2.4rem);
     background: linear-gradient(135deg, var(--surface), var(--surface-2));
   }
-  @media (min-width: 760px) {
+  @container (min-width: 560px) {
+    .sponsor {
+      grid-template-columns: auto 1fr;
+      align-items: start;
+    }
+    .sponsor > .btn {
+      grid-column: 2;
+    }
+  }
+  @container (min-width: 880px) {
     .sponsor {
       grid-template-columns: auto 1fr auto;
+      align-items: center;
+    }
+    .sponsor > .btn {
+      grid-column: auto;
     }
   }
   .mark {
@@ -73,11 +93,13 @@ const { compact = false } = Astro.props;
     border-top: 1px solid var(--line);
   }
   .sponsor-line p {
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
     margin: 0;
     color: var(--muted);
+  }
+  .sponsor-line p :global(svg) {
+    display: inline-block;
+    vertical-align: -0.2em;
+    margin-right: 0.3rem;
   }
   .sponsor-line .btn {
     min-height: 44px;
