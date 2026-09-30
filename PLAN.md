@@ -28,7 +28,7 @@ everything, so every move is a small chain of consequences to read before you ma
 - Audience: all ages.
 - Art and audio: drawn and synthesised in code (`tools/make_sfx.py`, `tools/make_icons.py`). One font,
   Outfit (OFL), in two static weights. See `CREDITS.md`.
-- Monetization: section 5, built last.
+- Monetization: ads and a Supporter pack in the Android build only, never touching difficulty (section 5).
 
 ### What this is not
 
@@ -78,35 +78,73 @@ pit level has a pit in play. A rule change can never silently break the level se
 - **Play**: level and par, the board, Undo and Restart, Hint, one line of guidance on the levels that
   introduce something, the result card (stars, moves against par, Next), and a pit banner (Undo).
 - **Settings**, a gear on every screen: sound, music, vibration, the theme (Auto, Light or Dark), How to
-  play, About, Credits, and a guarded reset.
+  play, Support the game, About, Credits, Privacy choices (only where the consent message requires them),
+  and a guarded reset.
 - **The guide** on level 1, once, and again from How to play: the goal and the help buttons on two
   cards, then the swipe itself, drawn by a ghost finger in the direction the solver would tilt next.
   Skip ends it at any point.
-- **The ending**, after the last level is solved for the first time: a note from Shravan, signed, and
-  on the web a GitHub Sponsors button. Google Play has made apps remove links like it, so the Android
-  build shows the note alone (`GameCredits.SPONSOR_ON_ANDROID`).
+- **The ending**, after the last level is solved for the first time: a note from Shravan, signed, and a
+  support line under it: the Supporter pack in the Android build, GitHub Sponsors on the web, and a
+  thank-you for a Supporter.
 
 Plumb is designed in its warm paper light; its dark theme is the same room at dusk, with walls lighter
 than the floor so walls, floor and pits still read as three heights.
 
 ## 5. Monetization
 
-Later, and only in ways that never touch difficulty:
+Built (kit/monetize/, shared by all three games). The rule is that nothing irritates: no ad during play,
+over the board or before a new player has settled in, and the game never waits on one. Everything is in
+the Android build only; the web build and desktop runs have no ads and no pack, and every call there
+answers "not available" at once. The numbers are constants in `kit/monetize/pacing.gd` (`AdPacing`),
+tested on their edges in `tests/run_tests.gd`.
 
-- Hints become rewarded: a few free per day, more for a rewarded ad.
-- An interstitial every few levels, capped, never mid-level.
-- A one-time "remove ads" purchase.
+- **Banner**: one anchored adaptive AdMob banner at the foot of the Levels screen, and nowhere else. It
+  appears once 3 levels are solved, steps aside while any sheet is open, and the pager lifts clear of it
+  with a 32 px gap (at least 24, for AdMob's accidental-click rules).
+- **Between levels**: an interstitial only when a solved level is left with Next level, and only once 12
+  levels are solved in all, 4 levels have been solved this session since the last one, 4 minutes have
+  passed since any full-screen ad and 3 since the app started. Never after level 1's guide, on the ending,
+  after a failure or mid-level. If none is loaded, Next simply goes on.
+- **Hints**: free and unlimited on the first 15 levels. After that, 3 free a day (by the phone's calendar,
+  back at local midnight), shown as a badge on the hint button; then the button shows a play mark and asks
+  "Watch a short video for a hint?" (Watch, Not now). If no video can play (offline, no fill, consent
+  refused) the hint comes anyway with a short note. A hint the board cannot give (a marble down a pit, no
+  way home) costs nothing.
+- **Consent**: Google's UMP message runs at launch before the Mobile Ads SDK starts, and Settings offers
+  Privacy choices where it says they are required. Requests are rated PG at most and are not tagged
+  child-directed (the audience is 13+). Debug builds always use Google's test units.
+- **The Supporter pack**: one non-consumable Play Billing product, `supporter`, priced by the owner in Play
+  Console. It turns off the banner and the ads between levels and makes every hint free; it is also the
+  thank-you (the ending and About thank Supporters). Purchases are acknowledged, restored at every launch
+  and from Restore purchase, and kept in the save so the pack holds offline. A Supporter's app never loads
+  an ad or shows the consent message.
+- **Sponsoring**: GitHub Sponsors, in the web build only (Settings, the ending). Google Play's Payments
+  policy forbids pointing players to a way to pay outside its billing, so the Android build never links to
+  it, and its About links only to the site's Privacy and Support pages, which carry no sponsor links.
+
+The ids live in `monetize.gd` (`GameMonetize`): the AdMob app id, the banner, interstitial and rewarded
+units, and the product id. They are Google's test ids until the owner creates the real ones in AdMob; the
+project setting `admob/general/android/app_id` must stay equal to the app id, and a test checks it. Still
+the owner's to do: the AdMob app and units, the consent message in AdMob's Privacy and messaging, the
+`supporter` product in Play Console with license testers, and app-ads.txt at the domain's root.
 
 ## 6. Project architecture
 
 ```
-autoload/    event_bus, save (progress, settings), pack (the level set), audio, screens (fades)
+autoload/    event_bus, save (progress, settings, the Supporter pack, today's hints), pack (the level set),
+             audio, screens (fades)
 scripts/tilt board.gd (rules), tilt_move.gd, solver.gd (BFS), difficulty.gd (bits of luck),
              novelty.gd (replays), generator.gd (phases and the ramp)
 scripts/kit  palette, ui (code-built theme), stars (scoring), star_icon
 scenes/game  game.gd (play screen), board_view.gd, marble, ripple, hint_arrow
 scenes/shell title.gd, seesaw.gd, levels.gd
 levels/      levels.json, written by tools/generate_levels.gd, never hand-edited
+kit/         the shared UI kit: ui/, shell/ (levels, settings, about, credits, finale), tools/ (capture,
+             store, film), monetize/ (pacing, ads, supporter, hint gate; android/ holds the AdMob and
+             Play Billing backends, loaded on Android only)
+addons/      the AdMob plugin (Poing Studios 5.1.0, with its Android binaries) and GodotGooglePlayBilling
+             3.1.0, both used by the Android build only
+monetize.gd  the ad unit and product ids; credits.gd the About, Credits and ending words; brand.gd the look
 tools/       generate_levels.gd, make_sfx.py, make_icons.py, smoke (a robot player), shots (screenshots)
 web/         the loading page and icons for the web build
 ```
@@ -123,8 +161,12 @@ generator are Plumb's own.
   own toggle are done. Still to do: a tray light that follows the tilt.
 - **M3 - Content**: new tile types generated the same way (one-way arrows, ice, sticky floor) past
   level 120, and daily puzzles from a date seed.
-- **M4 - Monetization**: rewarded hints, capped interstitials, remove ads.
-- **M5 - Store prep and ship**: Android preset, AAB, closed test with 12 testers for 14 days.
+- **M4 - Monetization**: the Levels banner, paced interstitials on Next level, rewarded hints past the
+  free ones, UMP consent, and the Supporter pack through Play Billing. Built and tested headless (unit
+  tests and the smoke robot against a stand-in ad network); a CI dry run proves the Android build carries
+  both plugins. Still to do: real AdMob ids, the Play product, and a check on a real phone with test ads.
+- **M5 - Store prep and ship**: Android preset and AAB are done; the closed test with 12 testers for 14
+  days, and the Play Console's ads and data safety answers for AdMob and billing, remain.
 
 ## 8. What would kill this
 
