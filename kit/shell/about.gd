@@ -12,7 +12,7 @@ static func open(host: Node) -> Sheet:
 	var c: VBoxContainer = sheet.content
 	c.add_child(UI.centred(UI.app_icon(128)))
 	c.add_child(UI.title(Brand.NAME, 60))
-	var version: String = str(ProjectSettings.get_setting("application/config/version", ""))
+	var version: String = Changelog.version()
 	c.add_child(UI.caption("%s   version %s" % [Brand.TAGLINE, version] if version != "" else Brand.TAGLINE, 20))
 	c.add_child(UI.spacer(8))
 	c.add_child(UI.caption("Made by", 20))

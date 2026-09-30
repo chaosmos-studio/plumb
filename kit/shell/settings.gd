@@ -66,8 +66,9 @@ static func open(host: Node) -> Sheet:
 			reset.text = "Reset progress"
 			reset.remove_theme_color_override("font_color"))
 	c.add_child(reset)
-	var version: String = str(ProjectSettings.get_setting("application/config/version", ""))
-	c.add_child(UI.caption("%s %s   made with godot" % [Brand.NAME, version], 20))
+	var version: String = Changelog.version()
+	var named: String = "%s %s" % [Brand.NAME, version] if version != "" else Brand.NAME
+	c.add_child(UI.caption(named + "   made with godot", 20))
 	return sheet
 
 static func _row(icon: StringName, text: String, control: Control) -> Control:
