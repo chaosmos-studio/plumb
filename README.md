@@ -36,24 +36,43 @@ build.
 
 ## Releasing
 
-Android builds come from the **Release Android** workflow, started by hand from the Actions tab or with:
+`CHANGELOG.md` is the one file to edit. To ship an update:
+
+1. Add a section at the top of `CHANGELOG.md`: a `## 1.0.1` heading, then one `- ` line per change,
+   written for players. The comment at the top of the file has the rules.
+2. Commit and push.
+3. Run **Release Android**: Actions, Release Android, Run workflow. It needs no inputs.
+
+That section names everything. The version is the tag (`v1.0.1`) and the build's version name, Play's
+version code is major * 10000 + minor * 100 + patch (1.0.0 is 10000, 1.0.1 is 10001), and the notes
+become the GitHub release notes and Play's "What's new". The game reads the same file, so Settings and
+About show the same version, on Android and in the browser.
 
 ```
-gh workflow run release-android.yml -f version_name=0.1.0                      # a prerelease
-gh workflow run release-android.yml -f version_name=1.0.0 -f prerelease=false  # a full release
-gh workflow run release-android.yml -f version_name=0.2.0 -f dry_run=true      # build and check only
+gh workflow run release-android.yml                          # release the changelog's newest version
+gh workflow run release-android.yml -f dry_run=true          # build and check only
+gh workflow run release-android.yml -f play_track=internal   # release, and upload to internal testing
 ```
 
-A dry run builds and checks everything and keeps the AAB and APK as a workflow artifact, but makes no tag and
-no GitHub release.
+The run reads the changelog with the same rules as the game's tests, runs the tests and the smoke robot,
+exports a signed AAB and APK through the Gradle build (target SDK 36, arm64-v8a and armeabi-v7a), checks
+both, and publishes a full GitHub release, marked Latest, titled `Plumb 1.0.1`, with the AAB, the APK
+and `play-release-notes.txt` attached. Its body has the player notes, then the build (package, version
+code, target SDK, the signer's SHA-256 and which key signed it), then Play's "What's new" in the
+`<en-US>` form the Play Console release notes box takes. A dry run keeps the same files as a workflow
+artifact but makes no tag, no release and no upload.
 
-It runs the tests and the smoke robot, exports a signed AAB and APK through the Gradle build (target SDK 36,
-arm64-v8a and armeabi-v7a), checks both, and publishes them on a GitHub release tagged `v<version_name>`.
-The same two files are kept on the run as a workflow artifact. Google Play takes the AAB; the APK is for
-installing straight on a phone.
+Play never accepts a version code twice, even for a rebuild, so every new upload gets a new section with
+at least the patch number bumped. The run stops before building if the tag exists, if the code is not
+above every earlier release's, if the heading is not a plain x.y.z, if the section has no notes, or if
+the notes are over Play's 500 characters. `godot --headless --path . -s res://tests/run_tests.gd` catches
+the same mistakes before you push.
 
-`version_code` defaults to the run number + 100. Play rejects any code it has already seen, even on a test
-track, so the workflow refuses a code that is not above every earlier release's, and a tag that exists.
+**Uploading to Google Play from the run.** `play_track` is `none` by default. Set it to `internal`,
+`alpha` (closed testing), `beta` (open testing) or `production` to also send the AAB and its notes to
+that track; production goes up as a draft, so you still press the last button in Play Console. It needs
+the upload key and a `PLAY_SERVICE_ACCOUNT_JSON` secret, and each app's very first AAB has to be uploaded
+by hand in Play Console. The one-time setup is in the workspace's `MINI_GAMES_PUBLISHING.md`, section 4.6.
 
 Until the repository has an upload key, builds are signed with a throwaway key and the release notes say so:
 fine for sideloading, not uploadable to Play. To switch to a real upload key, run once:
