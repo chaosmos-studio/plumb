@@ -1,6 +1,6 @@
 ---
-title: "Calm by design: why Plumb has no timers, lives or ads"
-description: "Plumb has no timers, no lives, no energy and no ads. Why we built a puzzle game that respects your time, and what that means in the game."
+title: "Calm by design: why Plumb has no timers, lives or energy"
+description: "Plumb has no timers, no lives and no energy, and no ad ever interrupts a puzzle. Why we built a game that respects your time, and what that means in it."
 pubDate: 2026-09-30
 authors: [shravan, claude]
 tags: [Design, Features]
@@ -8,7 +8,7 @@ cover: ./images/cover.webp
 coverAlt: "A Plumb puzzle board with walls and marbles on a warm, softly lit background"
 ---
 
-Many mobile puzzle games are built to keep you anxious: a countdown, a limited number of lives, an energy bar that refills if you wait or pay, and an ad between levels. Plumb has none of those. That was the first decision we made, and everything else follows from it.
+Many mobile puzzle games are built to keep you anxious: a countdown, a limited number of lives, an energy bar that refills if you wait or pay. Plumb has none of those. That was the first decision we made, and everything else follows from it.
 
 ## No timer
 
@@ -18,9 +18,17 @@ A puzzle is about the moment you see the answer. A timer turns that moment into 
 
 Falling into a pit costs you a move, not a life. [Undo](../pits-undo-and-restart/) takes it back, as many times as you like. You never have to wait, watch an ad or pay to try again.
 
-## No ads, no tracking
+## Ads that stay out of the way
 
-Plumb has no ads and no analytics. It does not know who you are, it does not need an account, and it has no internet permission at all. Your progress stays on your device. The [privacy policy](../../privacy/) spells it out.
+Plumb is free, and the Android app pays its way with a few ads. We put them where they never touch a puzzle:
+
+- a banner at the bottom of the level list, and nowhere else;
+- now and then an ad between levels, only after you tap **Next level** on a solved board, and never before you have solved the first dozen;
+- a short video you can choose to watch for an extra hint, once the day's free hints are used.
+
+No ad ever appears while you play, over the board, or after a marble falls. If you would rather have none at all, the **Supporter pack** is a one-time purchase in the app that turns them off for good and makes every hint free. The web version never shows ads.
+
+The game itself still does not know who you are. There is no account, and your progress stays on your device. The ads come from Google, which collects some data to show them; the [privacy policy](../../privacy/) explains what, and how to change your choices.
 
 ![Plumb's title screen on a phone, with a seesaw of marbles and a Play button](./images/plumb-title-screen.webp "The title screen: one button, and the level you left off at")
 
@@ -32,7 +40,8 @@ Settings opens from the gear on every screen, even halfway through a level, so y
 
 - turn sound, music and vibration on or off, each with one switch;
 - pick the theme: **Light** is the warm paper Plumb was designed in, **Dark** is the same room at dusk, and **Auto** follows your phone;
-- replay the first level's short guide from **How to play**.
+- replay the first level's short guide from **How to play**;
+- in the Android app, open the Supporter pack from **Support the game**, or change your choice about ads from **Privacy choices**, where the law asks for one.
 
 Nothing else asks for your attention.
 

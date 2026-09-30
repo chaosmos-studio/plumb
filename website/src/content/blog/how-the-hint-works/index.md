@@ -36,6 +36,12 @@ If the marbles are still rolling when you tap, the hint waits for them to stop, 
 
 ![Plumb on a phone, with the hint preview drawn across the board](./images/plumb-hint-phone.webp "On a phone the preview sits right on the board, under your thumb")
 
+## How many hints you get
+
+Every hint on the first 15 levels is free, as many as you like, while you learn how the board moves. After that, the Android app gives you **3 free hints a day**, and the count starts again at midnight. The hint button shows how many are left, and a small play mark when the next one needs a video.
+
+Once the free ones are used, the hint asks whether you would like to watch a short video for it. Say **Not now** and nothing happens; if no video is available, say because you are offline, you get the hint anyway. With the **Supporter pack**, every hint is free, and in the web version, which never shows ads, a hint never needs a video.
+
 ## When to use it
 
 - **When you are stuck on the first move.** One tilt is often all you need to see the idea.

@@ -36,4 +36,4 @@ Taste. Whether a colour is right, whether a level is fun, whether the game feels
 
 ## Why tell you this?
 
-Because you should know who made the things you play. Plumb is free, it has no ads, and it collects no data. If you have thoughts on the game, or on how it was made, [leave a comment on the support page](../../support/). Both of us read them.
+Because you should know who made the things you play, and how it is paid for. Plumb is free to play. The Android app has a few ads, never during a puzzle, and a one-time Supporter pack that turns them off; the web version never shows ads. If you have thoughts on the game, or on how it was made, [leave a comment on the support page](../../support/). Both of us read them.

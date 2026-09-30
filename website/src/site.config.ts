@@ -96,11 +96,11 @@ export const faq = [
   },
   {
     q: "Is Plumb free?",
-    a: "Yes. Plumb is free on Google Play and you can also play it in your web browser.",
+    a: "Yes. Plumb is free on Google Play, and you can also play it in your web browser. The Android app has a few ads, never during play, and a one-time Supporter pack that turns them off.",
   },
   {
     q: "Does Plumb need an internet connection?",
-    a: "No. The Android app plays completely offline. Your progress is saved on your device.",
+    a: "No. Plumb plays completely offline, and your progress is saved on your device. The Android app goes online only for its ads and the Supporter pack, so without a connection the ads simply do not appear.",
   },
   {
     q: "What does par mean, and how do I get three stars?",
@@ -115,8 +115,20 @@ export const faq = [
     a: "Yes. Every level is generated and then proven solvable by a solver before it ships, and the tests check every level again on every build.",
   },
   {
-    q: "Does Plumb have ads or collect my data?",
-    a: "Plumb has no ads, no analytics and no accounts, and collects no personal data. See the privacy policy for the details.",
+    q: "Are hints free?",
+    a: "Every hint on the first 15 levels is free. After that the Android app gives you 3 free hints a day, and a hint beyond those asks for a short video you can choose to watch; if no video is available, you get the hint anyway. With the Supporter pack every hint is free, and so is every hint in the web version, which never shows ads.",
+  },
+  {
+    q: "Does Plumb have ads?",
+    a: "The Android app does, and never while you play: a banner on the level list, an occasional ad between levels once you have solved the first dozen, and short videos you can choose to watch for extra hints. The one-time Supporter pack turns them off for good. The web version never shows ads.",
+  },
+  {
+    q: "What is the Supporter pack?",
+    a: "A one-time purchase in the Android app, through Google Play. It turns off the banner and the ads between levels, makes every hint free, and helps pay for the next game. It stays with your Google account, so it comes back when you reinstall, and its sheet in the app has a Restore button if it ever does not.",
+  },
+  {
+    q: "Does Plumb collect my data?",
+    a: "The game itself does not: there are no accounts, your progress and settings stay on your device, and it sends nothing of its own. The ads in the Android app come from Google AdMob, which collects device and advertising identifiers, approximate location from your IP address and how you interact with ads, with your consent where the law requires it. The privacy policy has the details.",
   },
 ] as const;
 
@@ -144,7 +156,7 @@ export const home = {
   eyebrow: "A calm marble puzzle for Android and the web",
   title: ["Plumb: roll every marble ", "home"],
   lede: "Tilt the board and every marble rolls at once. Each one has to drop into the hole of its own colour, and square pits swallow any that wander. One swipe, a whole chain of consequences.",
-  facts: ["Free", "No ads", "No timers", "Plays offline"],
+  facts: ["Free to play", "No timers", "Plays offline", "Never an ad mid-level"],
   heroShot: "plumb-level-in-play",
   watch: { eyebrow: "Watch", title: "Forty seconds of Plumb", lede: "A few levels, the hint, three stars, and one left for you to solve." },
   how: {
@@ -157,7 +169,7 @@ export const home = {
     link: { href: "blog/how-to-play-plumb/", label: "Read the full guide to playing Plumb" },
   },
   featuresTitle: "Simple rules, surprisingly deep",
-  final: { title: "Ready to roll?", lede: "Plumb is free on Google Play, with no ads and nothing to sign up for." },
+  final: { title: "Ready to roll?", lede: "Plumb is free on Google Play and in your browser, with nothing to sign up for." },
 } as const;
 
 // The phone screenshots on the home page, in order; files in src/assets/shots/.
@@ -180,13 +192,13 @@ export const about = {
   title: "About Plumb and the team behind it",
   description: "Plumb is a calm marble puzzle made by a two-person team: Shravan Goswami, and Claude Opus 5.5, an AI model by Anthropic. How the game was made and why.",
   heading: ["A small game about ", "gravity"],
-  lede: "Plumb is a calm logic puzzle. You tilt a board, every marble rolls at once, and each one has to find the hole of its own colour. It is free, it plays offline, and it has no ads, no timers and no lives.",
+  lede: "Plumb is a calm logic puzzle. You tilt a board, every marble rolls at once, and each one has to find the hole of its own colour. It is free to play, it plays offline, and it has no timers and no lives.",
   sections: [
     {
       heading: "Why we made it",
       paragraphs: [
         "Most puzzle games ask you to move one thing at a time. Plumb moves everything at once. That one twist turns four swipe directions into a surprisingly deep game: every tilt is a small chain of consequences, and the fun is in reading the board before you make it.",
-        "We wanted a game that respects your time and attention. No energy bars, no countdowns, no ads between levels. Just a board, some marbles, and a moment of \"oh, that's how.\"",
+        "We wanted a game that respects your time and attention. No energy bars, no countdowns, nothing that interrupts a puzzle. Just a board, some marbles, and a moment of \"oh, that's how.\"",
       ],
     },
     {
@@ -196,13 +208,22 @@ export const about = {
         "The art, the sounds and the music are made in code, not bought or downloaded. The game is written in GDScript with the Godot Engine, and the same code runs on Android and in your browser.",
       ],
     },
+    {
+      heading: "How it stays free",
+      paragraphs: [
+        "Plumb is free, on Android and in your browser. The Android app has a few ads, placed so they never touch a puzzle: a banner at the bottom of the level list, an occasional ad between levels once you have solved the first dozen, and a short video you can choose to watch for an extra hint. Nothing ever appears over the board or while you play, and the web version never shows ads.",
+        "If you would rather play without them, the Supporter pack is a one-time purchase in the app. It turns the ads off for good, makes every hint free, and helps pay for the next game.",
+      ],
+    },
   ],
   teamNote: "Shravan decides what the game is, plays every build and has the final say. Claude writes most of the code, the level generator and solver, the art and sound pipelines and this website, in conversation with Shravan in Claude Code.",
   facts: [
     ["Developer", "Shravan Goswami, with Claude Opus 5.5"],
     ["Genre", "Logic puzzle"],
     ["Platforms", "Android (Google Play), web browser"],
-    ["Price", "Free, no ads, no in-app purchases"],
+    ["Price", "Free to play"],
+    ["Ads", "In the Android app only, never during play"],
+    ["In-app purchase", "The Supporter pack, once: turns the ads off and makes every hint free"],
     ["Engine", "Godot Engine"],
   ],
 } as const;
