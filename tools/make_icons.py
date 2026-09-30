@@ -37,12 +37,19 @@ def icon(size, rounded=True):
     b = r * 0.88
     ox, oy = -r * 0.06, -r * 0.08
     d.ellipse([cx + ox - b, cy + oy - b, cx + ox + b, cy + oy + b], fill=CORAL)
+    # The gloss goes on its own layer: ImageDraw replaces pixels rather than blending, so a translucent
+    # fill drawn straight onto the icon would punch see-through holes in it.
+    gloss = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(gloss)
     g = r * 0.3
     gx, gy = cx - r * 0.3, cy - r * 0.34
-    d.ellipse([gx - g, gy - g, gx + g, gy + g], fill=(255, 255, 255, 128))
+    gd.ellipse([gx - g, gy - g, gx + g, gy + g], fill=(255, 255, 255, 128))
+    img.alpha_composite(gloss)
+    gloss = Image.new("RGBA", (s, s), (0, 0, 0, 0))
     h = r * 0.13
     hx, hy = cx - r * 0.36, cy - r * 0.4
-    d.ellipse([hx - h, hy - h, hx + h, hy + h], fill=(255, 255, 255, 220))
+    ImageDraw.Draw(gloss).ellipse([hx - h, hy - h, hx + h, hy + h], fill=(255, 255, 255, 220))
+    img.alpha_composite(gloss)
     return img.resize((size, size), Image.LANCZOS)
 
 
