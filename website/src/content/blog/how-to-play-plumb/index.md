@@ -12,7 +12,7 @@ video: trailer
 
 Plumb is a puzzle about gravity. There is a board, a few marbles and a few holes, and one thing you can do: tilt the board. That is the whole control scheme, and it is enough for a game that gets surprisingly deep.
 
-This guide covers everything you need to play your first levels. It takes about two minutes to read, and less to try.
+This guide covers everything you need to play your first levels. It takes about two minutes to read, and less to try. Level 1 also opens with a short guide on the board itself, which you can skip and replay any time from **How to play** in Settings.
 
 ## One swipe moves every marble
 

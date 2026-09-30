@@ -26,9 +26,17 @@ Plumb has no ads and no analytics. It does not know who you are, it does not nee
 
 ## Quiet by default, and yours to change
 
-The look is paper and marbles, with soft shadows and one typeface. The sounds are gentle clicks and rolls, and the music is an ambient loop you can switch off. In Settings you can turn sound, music and vibration on or off, and nothing else asks for your attention.
+The look is paper and marbles, with soft shadows and one typeface. The sounds are gentle clicks and rolls, and the music is an ambient loop you can switch off.
 
-![Plumb's settings sheet with switches for sound, music and vibration](./images/plumb-settings.webp "Settings: sound, music and vibration, each one a single switch")
+Settings opens from the gear on every screen, even halfway through a level, so you never have to leave a puzzle to turn the music down. In it you can:
+
+- turn sound, music and vibration on or off, each with one switch;
+- pick the theme: **Light** is the warm paper Plumb was designed in, **Dark** is the same room at dusk, and **Auto** follows your phone;
+- replay the first level's short guide from **How to play**.
+
+Nothing else asks for your attention.
+
+![Plumb's settings sheet with switches for sound, music and vibration, the theme and How to play](./images/plumb-settings.webp "Settings: sound, music and vibration switches, the theme, and How to play")
 
 ## Progress you can see
 
