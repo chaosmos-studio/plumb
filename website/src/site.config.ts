@@ -228,16 +228,20 @@ export const about = {
   ],
 } as const;
 
+// The Privacy page's game-specific facts. Check them against the game's save.gd and export_presets.cfg
+// before every release, and move `updated` whenever what the page says changes.
 export const privacy = {
-  description: "Plumb's privacy policy: the game collects no personal data, has no ads, no analytics and no accounts, and keeps your progress on your own device.",
+  updated: "2026-09-30",
+  description: "Plumb's privacy policy: what the game keeps on your device, the AdMob ads and your consent choices in the Android app, the Supporter pack, and the web version.",
   stores: [
     "the stars you have earned on each level, which is also how levels unlock;",
     "whether you have seen or skipped the first level's tutorial;",
     "your theme choice: Auto, Light or Dark;",
-    "your sound, music and vibration settings.",
+    "your sound, music and vibration settings;",
+    "how many of the day's free hints you have used, so they can start again at midnight.",
   ],
-  permissions: "The Android app asks for one permission: vibration, so a tap can buzz lightly when vibration is switched on. It asks for no location, camera, microphone, contacts, files or network access.",
-  audience: "Plumb is suitable for everyone. Because the app collects no data from anyone, it collects none from children.",
+  permissions: "The Android app asks for vibration, so a tap can buzz lightly when vibration is switched on. It also has network access, which the ads and the Supporter pack need: Google's ads SDK adds the internet, network state and advertising ID permissions, and Google Play Billing adds its billing permission. It asks for no location, camera, microphone, contacts or files, and the game plays fully offline.",
+  audience: "Plumb is a gentle game that anyone can enjoy, but it is not directed at children under 13, and we do not knowingly collect personal information from them. The ads in the Android app are limited to content rated PG. If you believe a child under 13 has used the app and have a question about their data, email us.",
 } as const;
 
 // The credits page's sections after the team, mirroring the game's CREDITS.md and credits.gd.

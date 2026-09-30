@@ -3,9 +3,14 @@ import Base from "../layouts/Base.astro";
 import Crumbs from "../components/Crumbs.astro";
 import { privacy, site } from "../site.config";
 import { breadcrumbs } from "../utils/schema";
-const effective = new Date(site.launched).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+const updated = new Date(privacy.updated).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 // Visit counting is off unless site.config.ts has a Cloudflare token, and this page says so only when it is on.
 const analytics = Boolean(site.analytics.cloudflareToken);
+const google = {
+  partners: "https://policies.google.com/technologies/partner-sites",
+  privacy: "https://policies.google.com/privacy",
+  playTerms: "https://play.google.com/about/play-terms/",
+};
 ---
 <Base
   title="Privacy policy"
@@ -16,24 +21,24 @@ const analytics = Boolean(site.analytics.cloudflareToken);
   <section class="narrow section" data-pagefind-body>
     <Crumbs trail={[{ label: "Privacy policy" }]} />
     <p class="eyebrow">Privacy policy</p>
-    <h1>Your game stays <span class="accent">yours</span></h1>
-    <p class="lede">{site.name} collects no personal data. There are no ads, no analytics{analytics && " in the app"}, no accounts, and nothing you do in the game leaves your device.</p>
-    <p class="muted">Effective {effective}. This policy covers the {site.name} app on Google Play, the web version you can play in a browser, and this website.</p>
+    <h1>Your data, in <span class="accent">plain words</span></h1>
+    <p class="lede">{site.name} keeps your progress on your device, has no accounts and sends nothing of its own. The Android app shows ads from Google AdMob, which collects some data to show and measure them, and offers one optional purchase through Google Play. The web version never shows ads.</p>
+    <p class="muted">Last updated {updated}. This policy covers the {site.name} app on Google Play, the web version you can play in a browser, and this website.</p>
 
     <ul class="summary">
-      <li>No personal data collected</li>
-      <li>No ads</li>
-      <li>{analytics ? "No tracking or cookies" : "No analytics or tracking"}</li>
       <li>No accounts or sign-in</li>
-      <li>Works fully offline</li>
+      <li>Progress stays on your device</li>
+      <li>Ads from Google AdMob, Android only</li>
+      <li>Your consent where the law requires it</li>
+      <li>Plays fully offline</li>
     </ul>
 
     <div class="prose">
       <h2>Who we are</h2>
       <p>{site.name} is made by Shravan Goswami, with Claude Opus 5.5 (an AI model by Anthropic) as co-developer, and published on Google Play by Shravan Goswami. Questions about this policy go to <a href={`mailto:${site.email}`}>{site.email}</a>.</p>
 
-      <h2>What the app collects</h2>
-      <p>Nothing. The app contains no advertising, analytics, crash-reporting or social SDKs, and it does not ask for your name, email or any account. It has no internet permission, so it cannot send data anywhere, and it does not collect, sell or share personal or sensitive information.</p>
+      <h2>What the game collects</h2>
+      <p>Nothing of its own. {site.name} has no accounts, no analytics and no crash reporting of its own, and it never asks for your name or email. Your progress and settings stay on your device, and the game sends nothing to us or to anyone else. The only data that leaves the Android app is what Google's ads and Google Play collect, described below. We do not receive that data ourselves: AdMob shows us only totals, such as how many ads were shown.</p>
 
       <h2>What the app stores on your device</h2>
       <p>To remember your progress, the app keeps a small settings file in its private storage on your phone. It holds:</p>
@@ -42,17 +47,39 @@ const analytics = Boolean(site.analytics.cloudflareToken);
       </ul>
       <p>That file never leaves your device. You can erase it at any time with Settings, Reset progress in the game, or by clearing the app's storage or uninstalling it.</p>
 
+      <h2>Ads in the Android app</h2>
+      <p>The Android app shows ads through Google AdMob, using the Google Mobile Ads SDK. They are kept away from play: a banner at the bottom of the level list, now and then a full-screen ad between levels once you have solved the first dozen, and a short video you can choose to watch for an extra hint. No ad appears during a level. Ads are limited to content rated PG, suitable for most audiences with parental guidance.</p>
+      <p>To show ads, measure how they perform and prevent fraud, the SDK collects the following and sends it to Google:</p>
+      <ul>
+        <li>device identifiers, including your device's advertising ID;</li>
+        <li>your approximate location, worked out from your IP address;</li>
+        <li>how you interact with ads, such as which ads are shown to you and whether you tap them;</li>
+        <li>diagnostics, such as how the app and the ads perform, and crash data from the SDK.</li>
+      </ul>
+      <p>Google uses this data under its own policies: <a href={google.partners} rel="noopener">how Google uses information from sites or apps that use its services</a>, and <a href={google.privacy} rel="noopener">Google's privacy policy</a>. Ads need a connection, so while you play offline no ads are requested and nothing is sent.</p>
+
+      <h2>Your choices about ads</h2>
+      <p>When the app starts, it checks with Google's consent tool, the User Messaging Platform, before it asks for any ads. Where the law requires a choice, such as in the European Economic Area, the UK and Switzerland, and in some US states, it shows Google's consent form first. Whether ads are personalised depends on that choice, where the law requires one, and on your phone's ads settings. Ads that are not personalised still use some data, for example to limit how often you see the same ad, to measure it and to prevent fraud.</p>
+      <ul>
+        <li>Where a choice is required, <strong>Privacy choices</strong> in the game's Settings opens the form again, so you can change your answer at any time.</li>
+        <li>You can reset or delete your advertising ID, or turn off personalised ads, in your phone's Settings, under Privacy and then Ads, or Google and then Ads, depending on the phone.</li>
+        <li>The consent tool keeps your answer on your device, so the form does not ask again every time.</li>
+      </ul>
+
+      <h2>The Supporter pack</h2>
+      <p>The Android app offers one optional purchase, the Supporter pack. It is bought once, turns off the banner and the ads between levels, and makes every hint free, so no video is ever needed. Google Play Billing handles the purchase from start to finish: your payment details go to Google, under <a href={google.privacy} rel="noopener">Google's privacy policy</a> and <a href={google.playTerms} rel="noopener">Google Play's terms</a>, and never reach us. The game learns only whether the pack was bought, which it checks with Google Play when it starts.</p>
+
       <h2>The web version</h2>
-      <p>When you play in a browser, the same progress and settings are saved in your browser's own storage for this site, on your computer or phone. They are not sent to us. Clearing the site's data in your browser erases them.</p>
+      <p>When you play in a browser, the game never shows ads and sells nothing, and it loads no ads or billing code. Your progress and settings are saved in your browser's own storage for this site, on your computer or phone. They are not sent to us. Clearing the site's data in your browser erases them.</p>
 
       <h2>Permissions</h2>
       <p>{privacy.permissions}</p>
 
       <h2>Google Play</h2>
-      <p>The app is downloaded through Google Play. Google may collect data about installs, devices and app crashes as part of running the store, under <a href="https://policies.google.com/privacy" rel="noopener">Google's privacy policy</a>. That happens outside the app, and we only see anonymous totals such as install counts in the Play Console.</p>
+      <p>The app is downloaded through Google Play. Google may collect data about installs, devices and app crashes as part of running the store, under <a href={google.privacy} rel="noopener">Google's privacy policy</a>. That happens outside the app, and we only see anonymous totals such as install counts in the Play Console.</p>
 
       <h2>This website</h2>
-      <p>This site is a set of static pages hosted on GitHub Pages. GitHub may log standard technical data such as IP addresses for security, as described in <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" rel="noopener">GitHub's privacy statement</a>. {analytics ? "The site itself uses no cookies and no trackers, and counts visits as described below." : "The site itself uses no cookies, no analytics and no trackers."} Search runs entirely in your browser from a file on this site, and your light or dark theme choice is kept in your browser's local storage.</p>
+      <p>This site is a set of static pages hosted on GitHub Pages and served through Cloudflare. Both may log standard technical data, such as IP addresses, to keep the service secure and working, as described in <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" rel="noopener">GitHub's privacy statement</a> and <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener">Cloudflare's privacy policy</a>. {analytics ? "The site sets no cookies of its own and uses no trackers, and counts visits as described below." : "The site sets no cookies of its own and uses no analytics or trackers."} Cloudflare may set a strictly necessary security cookie that tells people from bots, as its <a href="https://developers.cloudflare.com/fundamentals/reference/policies-compliances/cloudflare-cookies/" rel="noopener">cookie policy</a> describes. Search runs entirely in your browser from a file on this site, and your light or dark theme choice is kept in your browser's local storage.</p>
 
       {analytics && (
         <>
@@ -68,7 +95,7 @@ const analytics = Boolean(site.analytics.cloudflareToken);
       <p>{privacy.audience}</p>
 
       <h2>Changes</h2>
-      <p>If a future version ever changes what the app does with data, this page will be updated before that version is released, and the effective date above will change.</p>
+      <p>If a future version changes what the app does with data, this page will be updated before that version is released, and the date at the top will change.</p>
 
       <h2>Contact</h2>
       <p>Email <a href={`mailto:${site.email}`}>{site.email}</a> with any question about privacy.</p>
