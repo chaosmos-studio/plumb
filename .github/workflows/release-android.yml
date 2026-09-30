@@ -253,6 +253,7 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KEYSTORE_ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          PINNED_SHA256: ${{ vars.UPLOAD_KEY_SHA256 }}
         run: |
           set -euo pipefail
           if [ -n "$KEYSTORE_BASE64$KEYSTORE_ALIAS$KEYSTORE_PASSWORD" ]; then
@@ -273,6 +274,16 @@ jobs:
           fi
           sha="$(keytool -list -v -keystore "$key" -storepass "$pass" -alias "$alias" | sed -n 's/^[[:space:]]*SHA256: //p')"
           test -n "$sha"
+          # Play rejects any upload not signed with the key it first saw, so a pinned key must match exactly.
+          if [ "$upload" = true ]; then
+            if [ -n "$PINNED_SHA256" ] && [ "$sha" != "$PINNED_SHA256" ]; then
+              echo "::error::the upload key in this repository's secrets is $sha, but UPLOAD_KEY_SHA256 pins $PINNED_SHA256, the key Play knows. Restore the pinned key with tools/backup_upload_keys.sh --restore and send it again with tools/make_upload_key.sh"
+              exit 1
+            fi
+            if [ -z "$PINNED_SHA256" ]; then
+              echo "::warning::UPLOAD_KEY_SHA256 is not set, so nothing checks that this is the key Play knows. Run tools/make_upload_key.sh once more to pin it"
+            fi
+          fi
           {
             echo "GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$key"
             echo "GODOT_ANDROID_KEYSTORE_RELEASE_USER=$alias"
