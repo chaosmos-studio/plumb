@@ -72,11 +72,22 @@ pit level has a pit in play. A rule change can never silently break the level se
 ## 4. Screens
 
 - **Title**: the wordmark, a seesaw of marbles rolling back and forth, Play (continues at the first
-  unsolved level), Levels, a sound toggle, the star total.
+  unsolved level), Levels, the star total.
 - **Levels**: twenty tiles a page with the stars each has earned; the next level in the accent colour;
   later levels locked.
 - **Play**: level and par, the board, Undo and Restart, Hint, one line of guidance on the levels that
   introduce something, the result card (stars, moves against par, Next), and a pit banner (Undo).
+- **Settings**, a gear on every screen: sound, music, vibration, the theme (Auto, Light or Dark), How to
+  play, About, Credits, and a guarded reset.
+- **The guide** on level 1, once, and again from How to play: the goal and the help buttons on two
+  cards, then the swipe itself, drawn by a ghost finger in the direction the solver would tilt next.
+  Skip ends it at any point.
+- **The ending**, after the last level is solved for the first time: a note from Shravan, signed, and
+  on the web a GitHub Sponsors button. Google Play has made apps remove links like it, so the Android
+  build shows the note alone (`GameCredits.SPONSOR_ON_ANDROID`).
+
+Plumb is designed in its warm paper light; its dark theme is the same room at dusk, with walls lighter
+than the floor so walls, floor and pits still read as three heights.
 
 ## 5. Monetization
 
