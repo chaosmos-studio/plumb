@@ -261,7 +261,7 @@ export const privacy = {
     "whether you own the Supporter pack, as Google Play last reported it, so the pack keeps working offline;",
     "how many of the day's free hints you have used, so they can start again at midnight.",
   ],
-  permissions: "The Android app asks for vibration, so a tap can buzz lightly when vibration is switched on. It also has network access, which the ads and the Supporter pack need: Google's ads SDK adds the internet, network state and advertising ID permissions, and Google Play Billing adds its billing permission. It asks for no location, camera, microphone, contacts or files, and the game plays fully offline.",
+  permissions: "The Android app asks for vibration, so a tap can buzz lightly when vibration is switched on. It also has network access, which the ads and the Supporter pack need: Google's ads SDK adds the internet, network state, advertising ID and basic phone state permissions, and the wake lock and foreground service permissions its background tasks use, and Google Play Billing adds its billing permission. It asks for no location, camera, microphone, contacts or files, and the game plays fully offline.",
   audience: "Plumb is a gentle game that anyone can enjoy, but it is not directed at children under 13, and we do not knowingly collect personal information from them. The ads in the Android app are limited to content rated PG. If you believe a child under 13 has used the app and have a question about their data, email us.",
 } as const;
 
@@ -274,6 +274,10 @@ export const credits = [
       { name: "Outfit", detail: "Typeface by the Outfit Project Authors, SIL Open Font License 1.1. Used as two static weights with overlapping contours merged.", href: "https://github.com/Outfitio/Outfit-Fonts" },
       { name: "Sound and music", detail: "Every sound effect and the ambient music loop are synthesised in code for this game. None are third-party.", href: "" },
       { name: "Art and levels", detail: "Drawn and generated in code, and every level proven solvable by the game's own solver.", href: "" },
+      { name: "Godot AdMob Plugin", detail: "By Poing Studios, MIT licence. Shows Google's ads in the Android app.", href: "https://github.com/poingstudios/godot-admob-plugin" },
+      { name: "Godot Google Play Billing", detail: "By the Godot Foundation's contributors, MIT licence. Handles the Supporter pack.", href: "https://github.com/godot-sdk-integrations/godot-google-play-billing" },
+      { name: "Google Mobile Ads SDK and User Messaging Platform", detail: "Google's ads and consent libraries in the Android app, under Google's terms.", href: "https://developers.google.com/admob/android" },
+      { name: "Google Play Billing Library", detail: "Google's in-app purchase library in the Android app, under the Android SDK licence.", href: "https://developer.android.com/google/play/billing" },
     ],
   },
   {
