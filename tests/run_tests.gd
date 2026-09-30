@@ -5,11 +5,11 @@ extends SceneTree
 # CI greps the last line for "0 failed", so keep that wording.
 
 const InputMapGen: GDScript = preload("res://tools/make_input_map.gd")
-## The least contrast each pairing needs, as a WCAG ratio, in both palettes: body text, the quiet
-## captions, the primary button's label and the reset warning.
 ## Google's official test app, which the AdMob plugin also falls back to when the setting is unset.
 const ADMOB_SETTINGS: GDScript = preload("res://addons/admob/internal/services/project_settings_service.gd")
 const APP_ID_SETTING: String = "admob/general/android/app_id"
+## The least contrast each pairing needs, as a WCAG ratio, in both palettes: body text, the quiet
+## captions, the primary button's label and the reset warning.
 const CONTRAST: Array = [["ink", "bg", 7.0], ["ink", "surface", 7.0], ["muted", "bg", 3.0],
 	["muted", "surface", 3.0], ["accent_ink", "accent", 3.0], ["danger", "surface", 3.0]]
 
