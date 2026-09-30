@@ -31,7 +31,12 @@ var _undo: IconButton
 var _restart: IconButton
 var _hint: IconButton
 var _sheet: Sheet
+var _prompt: Sheet
 var _coach: Coach
+var _guided: bool = false
+var _leaving: bool = false
+var _hint_board: TiltBoard
+var _hint_route: PackedInt32Array = PackedInt32Array()
 
 func _ready() -> void:
 	level = Pack.current
@@ -53,6 +58,7 @@ func _ready() -> void:
 	_view.show_board(board, _fit())
 	_view.intro()
 	_refresh()
+	EventBus.settings_changed.connect(_dress_hint)
 	EventBus.level_started.emit(level)
 	if Coach.due(level):
 		_guide()
@@ -74,7 +80,7 @@ func _layout() -> void:
 # --- Input --------------------------------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
-	if is_instance_valid(_coach) and _coach.blocks_input:
+	if (is_instance_valid(_coach) and _coach.blocks_input) or is_instance_valid(_prompt):
 		return
 	if is_instance_valid(_sheet):
 		if event.is_action_pressed("retry"):
@@ -168,21 +174,42 @@ func _on_restart() -> void:
 	_coach_next()
 
 ## Shows where every marble would go on the solver's next tilt. Waits out a roll in progress rather than
-## ignoring the tap, and always answers: a preview, or a short note saying why there is none.
+## ignoring the tap, and always answers: a preview, or a short note saying why there is none. A hint the
+## board cannot give costs nothing; one it can goes through the hint gate, which may offer a video.
 func _on_hint() -> void:
-	if finished:
+	if finished or is_instance_valid(_prompt):
 		return
 	while _view.busy:
 		await get_tree().process_frame
-	if board.lost:
-		Toast.say(self, "Undo first: a marble fell in")
+	if _hint_path().is_empty():
 		return
-	var path: PackedInt32Array = TiltSolver.new().solve(board, HINT_SEARCH)
+	_prompt = HintGate.request(self, level, _reveal_hint)
+
+## After the gate, or a video, the board is read again: it is the board now that the hint is for.
+func _reveal_hint() -> void:
+	if finished:
+		return
+	var path: PackedInt32Array = _hint_path()
 	if path.is_empty():
-		Toast.say(self, "No way home from here. Undo or restart")
 		return
 	_view.show_hint(path[0], board)
 	Audio.play(&"hint", -4.0)
+	_dress_hint()
+
+## The solver's route from here, or empty with a note saying why there is none. Solved once per board.
+func _hint_path() -> PackedInt32Array:
+	if board.lost:
+		Toast.say(self, "Undo first: a marble fell in")
+		return PackedInt32Array()
+	if _hint_board != board:
+		_hint_board = board
+		_hint_route = TiltSolver.new().solve(board, HINT_SEARCH)
+	if _hint_route.is_empty():
+		Toast.say(self, "No way home from here. Undo or restart")
+	return _hint_route
+
+func _dress_hint() -> void:
+	HintGate.dress(_hint, level)
 
 func _refresh() -> void:
 	_moves.set_value(str(history.size()))
@@ -248,6 +275,7 @@ func _guide() -> void:
 		return
 	_coach = Coach.open(self)
 	_coach.closed.connect(func(_completed: bool) -> void: _refresh())
+	_guided = true
 	await _coach.step("Roll each marble into the hole of its own colour.", [_board_light()], &"", Vector2.ZERO,
 		Vector2.ZERO, true)
 	await _coach.step("Stuck on a level? The bulb shows your next tilt. Undo takes one back, and restart begins again.",
@@ -316,10 +344,17 @@ func _on_finale() -> void:
 	_close_sheet()
 	Finale.open(self, _to_levels)
 
+## The one place an ad between levels may come, and only when the pacing allows one.
 func _on_next() -> void:
 	if level + 1 >= Pack.count():
 		_to_levels()
 		return
+	if _leaving:
+		return
+	_leaving = true
+	Ads.maybe_interstitial(_advance, _guided)
+
+func _advance() -> void:
 	Pack.current = level + 1
 	Screens.go(Brand.GAME_SCENE)
 
@@ -334,6 +369,7 @@ func _build_ui() -> void:
 	back.pressed.connect(_to_levels)
 	_hint = UI.icon_button(&"hint", "Hint")
 	_hint.pressed.connect(_on_hint)
+	_dress_hint()
 	Hud.top(_ui, back, Hud.level_heading(level), _hint)
 
 	var stats: HBoxContainer = HBoxContainer.new()
