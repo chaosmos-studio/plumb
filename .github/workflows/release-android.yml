@@ -1,26 +1,21 @@
 name: Release Android
 
+# The version, Play's version code and the release notes all come from the newest section of CHANGELOG.md
+# (its rules are in the comment at its top), so a release needs no inputs: Actions, Release Android, Run.
 on:
   workflow_dispatch:
     inputs:
-      version_name:
-        description: "Version name players see, e.g. 0.1.0. The release is tagged v<version_name>."
-        required: true
-        type: string
-      version_code:
-        description: "Version code. Blank means the run number + 100. Play rejects a code it has seen before."
-        required: false
-        type: string
-      prerelease:
-        description: "Mark the GitHub release as a prerelease"
-        required: false
-        type: boolean
-        default: true
       dry_run:
-        description: "Build and check everything and keep the files as a workflow artifact, but make no tag and no GitHub release"
+        description: "Build and check everything and keep the files as a workflow artifact, but make no tag, no GitHub release and no Play upload"
         required: false
         type: boolean
         default: false
+      play_track:
+        description: "Also upload the AAB to this Google Play track (needs the PLAY_SERVICE_ACCOUNT_JSON secret). Production goes up as a draft"
+        required: false
+        type: choice
+        default: none
+        options: [none, internal, alpha, beta, production]
 
 permissions:
   contents: write
@@ -40,40 +35,109 @@ jobs:
       BUILD_TOOLS: "36.1.0"
       BUNDLETOOL: "1.18.3"
       GAME: ${{ github.event.repository.name }}
-      VERSION_NAME: ${{ inputs.version_name }}
       DRY_RUN: ${{ inputs.dry_run }}
+      PLAY_TRACK: ${{ inputs.play_track }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v5
 
-      # Fails before the long build if the tag is taken or the code would not be new to Play. Earlier codes are
-      # read back from the release notes, which is where this workflow records them. A dry run makes no tag, so
-      # a taken one does not stop it.
-      - name: Pick the version
-        env:
-          CODE_INPUT: ${{ inputs.version_code }}
-          RUN_NUMBER: ${{ github.run_number }}
+      # The same rules as the kit's Changelog (kit/ui/changelog.gd), which the game's tests run, so a
+      # changelog this refuses has already failed locally. It writes the player notes and Play's "What's new"
+      # to build/release/.
+      - name: Read the version from CHANGELOG.md
         run: |
           set -euo pipefail
-          if ! [[ "$VERSION_NAME" =~ ^[0-9]+(\.[0-9]+){1,3}(-[0-9A-Za-z.]+)?$ ]]; then
-            echo "version_name '$VERSION_NAME' should look like 0.1.0 or 0.1.0-beta.1" >&2
-            exit 1
-          fi
-          code="${CODE_INPUT:-$(( RUN_NUMBER + 100 ))}"
-          if ! [[ "$code" =~ ^[1-9][0-9]{0,9}$ ]] || (( code > 2100000000 )); then
-            echo "version_code '$code' must be a whole number from 1 to 2100000000" >&2
-            exit 1
-          fi
-          tag="v$VERSION_NAME"
-          if [ "$DRY_RUN" != true ] && [ -n "$(git ls-remote --tags origin "refs/tags/$tag")" ]; then
-            echo "tag $tag already exists: pick a new version_name, or remove it with gh release delete $tag --cleanup-tag" >&2
-            exit 1
+          mkdir -p build/release/whatsnew
+          python3 - <<'EOF'
+          import os, re, sys
+
+          PLAY_LIMIT = 500
+          MAX_CODE = 2100000000
+          HEADING = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)( - [0-9]{4}-[0-9]{2}-[0-9]{2})?")
+
+          def fail(message):
+              print(f"::error file=CHANGELOG.md::{message}")
+              sys.exit(1)
+
+          if not os.path.isfile("CHANGELOG.md"):
+              fail("CHANGELOG.md is missing: the release is named and described by its newest ## x.y.z section")
+          text = re.sub(r"<!--.*?-->", "", open("CHANGELOG.md", encoding="utf-8").read(), flags=re.S)
+          lines = [line.rstrip() for line in text.split("\n")]
+          start = next((i for i, line in enumerate(lines) if line.startswith("## ")), None)
+          if start is None:
+              fail('no "## x.y.z" section')
+          heading = lines[start][3:].strip()
+          parts = HEADING.fullmatch(heading)
+          if parts is None or len(parts.group(1)) > 6:
+              fail(f'the newest heading "## {heading}" is not a plain x.y.z (a " - YYYY-MM-DD" after it is allowed)')
+          major, minor, patch = (int(parts.group(n)) for n in (1, 2, 3))
+          code = major * 10000 + minor * 100 + patch
+          if minor > 99 or patch > 99:
+              fail(f"{heading}: minor and patch run 0 to 99, since the version code is major * 10000 + minor * 100 + patch")
+          if not 1 <= code <= MAX_CODE:
+              fail(f"{heading} gives version code {code}, outside Play's 1 to {MAX_CODE}")
+          version = f"{major}.{minor}.{patch}"
+          notes = []
+          for line in lines[start + 1:]:
+              if line.startswith("## "):
+                  break
+              if line == "":
+                  continue
+              if not line.startswith("- ") or line[2:].strip() == "":
+                  fail(f'every line under "## {heading}" must be one "- " note, not "{line}"')
+              notes.append(line[2:].strip())
+          play = "\n".join("- " + note for note in notes)
+          if not notes:
+              fail(f'the {version} section has no "- " notes: they are the release notes and Play\'s "What\'s new"')
+          if len(play) > PLAY_LIMIT:
+              fail(f"the {version} notes are {len(play)} characters, over Play's {PLAY_LIMIT}")
+
+          def write(path, content):
+              with open(path, "w", encoding="utf-8") as f:
+                  f.write(content)
+
+          write("build/release/notes.md", play + "\n")
+          write("build/release/whatsnew/whatsnew-en-US", play)
+          write("build/release/play-release-notes.txt", f"<en-US>\n{play}\n</en-US>\n")
+          write("build/release/version.env", f"VERSION_NAME={version}\nVERSION_CODE={code}\nTAG=v{version}\n")
+          print(f"CHANGELOG.md: version {version}, version code {code}")
+          print("Play notes:")
+          print(open("build/release/play-release-notes.txt", encoding="utf-8").read(), end="")
+          EOF
+          cat build/release/version.env >> "$GITHUB_ENV"
+
+      # Fails before the long build if the tag is taken, the code would not be new to Play, or a Play upload
+      # could not work. Earlier codes are read back from the release notes, which is where this workflow
+      # records them. A dry run makes no tag, so a taken one only warns.
+      - name: Check the version
+        env:
+          HAS_UPLOAD_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+          HAS_PLAY_ACCOUNT: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+        run: |
+          set -euo pipefail
+          if [ -n "$(git ls-remote --tags origin "refs/tags/$TAG")" ]; then
+            if [ "$DRY_RUN" = true ]; then
+              echo "::warning::tag $TAG already exists, so a real release would stop here"
+            else
+              echo "::error::tag $TAG already exists: add a new section at the top of CHANGELOG.md (a rebuild bumps the patch number)"
+              exit 1
+            fi
           fi
           highest="$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate --jq '.[].body' \
             | grep -oE 'Version code: [0-9]+' | grep -oE '[0-9]+' | sort -n | tail -1 || true)"
-          if [ -n "$highest" ] && (( code <= highest )); then
-            echo "version_code $code is not above $highest, the highest code already released" >&2
+          if [ -n "$highest" ] && (( VERSION_CODE <= highest )); then
+            echo "::error::version code $VERSION_CODE ($VERSION_NAME) is not above $highest, the highest code already released: raise the version in CHANGELOG.md"
             exit 1
+          fi
+          if [ "$PLAY_TRACK" != none ]; then
+            if [ "$HAS_PLAY_ACCOUNT" != true ]; then
+              echo "::error::play_track is $PLAY_TRACK, but the repository has no PLAY_SERVICE_ACCOUNT_JSON secret"
+              exit 1
+            fi
+            if [ "$HAS_UPLOAD_KEY" != true ]; then
+              echo "::error::Play only takes builds signed with the upload key, and the repository has no ANDROID_KEYSTORE_* secrets"
+              exit 1
+            fi
           fi
           package="$(sed -n 's/^package\/unique_name="\(.*\)"$/\1/p' export_presets.cfg | sort -u)"
           title="$(sed -n 's/^config\/name="\(.*\)"$/\1/p' project.godot)"
@@ -82,15 +146,17 @@ jobs:
             exit 1
           fi
           {
-            echo "VERSION_CODE=$code"
-            echo "TAG=$tag"
             echo "PACKAGE=$package"
             echo "TITLE=$title"
           } >> "$GITHUB_ENV"
+          play="no Play upload"
+          if [ "$PLAY_TRACK" != none ]; then
+            play="uploading to the $PLAY_TRACK track on Google Play"
+          fi
           if [ "$DRY_RUN" = true ]; then
-            echo "dry run: building $title ($package) $VERSION_NAME with version code $code, no tag or release"
+            echo "dry run: building $title ($package) $VERSION_NAME with version code $VERSION_CODE, no tag, release or upload"
           else
-            echo "releasing $title ($package) $tag with version code $code"
+            echo "releasing $title ($package) $TAG with version code $VERSION_CODE, $play"
           fi
 
       - name: Install Godot and export templates
@@ -250,6 +316,8 @@ jobs:
           grep -q "^native-code: .*'arm64-v8a'" <<< "$badging"
           grep "^uses-permission:" <<< "$badging" || true
           unzip -l "$APK" | grep "levels/levels.json"
+          # The game reads its version from the changelog at runtime.
+          unzip -l "$APK" | grep "assets/CHANGELOG.md"
           # A game with the AdMob plugin ships only the parts it runs: no samples, editor art or mocks.
           if [ -d addons/admob ] && unzip -l "$APK" | grep -E "addons/admob/(gdscript/sample|assets|internal/mock)/"; then
             echo "the APK carries parts of the AdMob plugin its export filter should leave out" >&2
@@ -277,6 +345,7 @@ jobs:
           test "$(manifest /manifest/@android:versionCode)" = "$VERSION_CODE"
           test "$(manifest /manifest/@android:versionName)" = "$VERSION_NAME"
           test "$(manifest /manifest/uses-sdk/@android:targetSdkVersion)" = 36
+          echo "MIN_SDK=$(manifest /manifest/uses-sdk/@android:minSdkVersion)" >> "$GITHUB_ENV"
           has_permission() { [[ " $permissions " == *" $1 "* ]] || { echo "missing permission $1" >&2; return 1; }; }
           # Ads need the AdMob app id in the manifest, the network and the advertising id; purchases need billing.
           if [ -d addons/admob ]; then
@@ -291,48 +360,81 @@ jobs:
           fi
           unzip -l "$AAB" | grep "lib/.*/libgodot_android.so"
           unzip -l "$AAB" | grep "levels/levels.json"
+          unzip -l "$AAB" | grep "assets/CHANGELOG.md"
 
+      # The player notes first, then the build, then Play's "What's new" ready to paste. The "Version code: N"
+      # line is what the version check reads back on later runs.
       - name: Write the release notes
         run: |
           set -euo pipefail
           if [ "$UPLOAD_KEY" = true ]; then
-            signing="Signed with the upload key from the repository secrets (certificate SHA-256 $KEY_SHA256), so the AAB can go to Google Play."
+            signing="Signed with the upload key from the repository secrets, so the AAB can go to Google Play."
           else
             signing="**Signed with a throwaway key: sideload only, not uploadable to Play.** Each such build has a new key, so uninstall an earlier one before installing this. Run tools/make_upload_key.sh once to sign with a real upload key."
           fi
-          cat > notes.md <<EOF
-          $TITLE $VERSION_NAME for Android.
-
-          - Version code: $VERSION_CODE
-          - Version name: $VERSION_NAME
-          - Package: $PACKAGE
-          - Target SDK 36, min SDK 24, arm64-v8a and armeabi-v7a
-          - Commit: $GITHUB_SHA
-
-          \`$(basename "$AAB")\` is the bundle for Google Play. \`$(basename "$APK")\` installs straight on a phone.
-
-          $signing
-          EOF
-          cat notes.md
+          case "$PLAY_TRACK" in
+            internal) play="sent to internal testing" ;;
+            alpha) play="sent to closed testing (the alpha track)" ;;
+            beta) play="sent to open testing (the beta track)" ;;
+            production) play="a draft on production: review it and send it for review in Play Console" ;;
+            *) play="not uploaded, the AAB is attached for Play Console" ;;
+          esac
+          if [ "$DRY_RUN" = true ]; then
+            play="not uploaded (dry run)"
+          fi
+          {
+            cat build/release/notes.md
+            echo
+            echo "### Build"
+            echo
+            echo "- Package: \`$PACKAGE\`"
+            echo "- Version code: $VERSION_CODE"
+            echo "- Target SDK 36, min SDK $MIN_SDK, arm64-v8a and armeabi-v7a"
+            echo "- Signer SHA-256: \`$KEY_SHA256\`"
+            echo "- $signing"
+            echo "- Google Play: $play"
+            echo "- Commit: $GITHUB_SHA"
+            echo
+            echo "\`$(basename "$AAB")\` is the bundle for Google Play. \`$(basename "$APK")\` installs straight on a phone."
+            echo
+            echo "### Google Play \"What's new\""
+            echo
+            echo "Paste this into the release notes box in Play Console. It is also attached as \`play-release-notes.txt\`."
+            echo
+            echo '```'
+            cat build/release/play-release-notes.txt
+            echo '```'
+          } > build/release/body.md
+          cat build/release/body.md
 
       - uses: actions/upload-artifact@v6
         with:
-          name: ${{ github.event.repository.name }}-${{ inputs.version_name }}-android
+          name: ${{ github.event.repository.name }}-${{ env.VERSION_NAME }}-android
           path: |
             build/android/*.aab
             build/android/*.apk
+            build/release/play-release-notes.txt
           if-no-files-found: error
+
+      # Before the GitHub release, so a failed upload leaves no tag and the same version can run again. The
+      # API cannot create an app, so each app's first AAB goes up by hand in Play Console. Production goes up
+      # as a draft, which leaves sending it for review to Play Console.
+      - name: Upload to Google Play
+        if: ${{ !inputs.dry_run && inputs.play_track != 'none' }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ env.PACKAGE }}
+          releaseFiles: ${{ env.AAB }}
+          releaseName: ${{ env.VERSION_CODE }} (${{ env.VERSION_NAME }})
+          tracks: ${{ inputs.play_track }}
+          status: ${{ inputs.play_track == 'production' && 'draft' || 'completed' }}
+          whatsNewDirectory: build/release/whatsnew
 
       - name: Publish the GitHub release
         if: ${{ !inputs.dry_run }}
-        env:
-          PRERELEASE: ${{ inputs.prerelease }}
         run: |
           set -euo pipefail
-          flags=()
-          if [ "$PRERELEASE" = true ]; then
-            flags+=(--prerelease)
-          fi
-          gh release create "$TAG" "$AAB" "$APK" --target "$GITHUB_SHA" --title "$TITLE $VERSION_NAME" \
-            --notes-file notes.md "${flags[@]}"
-          gh release view "$TAG" --json url,assets --jq '.url, (.assets[] | "\(.name) \(.size) bytes")'
+          gh release create "$TAG" "$AAB" "$APK" build/release/play-release-notes.txt --target "$GITHUB_SHA" \
+            --title "$TITLE $VERSION_NAME" --notes-file build/release/body.md --latest
+          gh release view "$TAG" --json url,isPrerelease,assets --jq '.url, "prerelease: \(.isPrerelease)", (.assets[] | "\(.name) \(.size) bytes")'
