@@ -11,6 +11,8 @@ signal closed(completed: bool)
 
 const LAYER: int = 40
 const SCRIM_ALPHA: float = 0.34
+## A dark screen dimmed toward a darker scrim barely changes, so dark themes dim harder.
+const SCRIM_ALPHA_DARK: float = 0.6
 const FEATHER: float = 34.0
 const CARD_WIDTH: float = 580.0
 const CARD_GAP: float = 56.0
@@ -23,8 +25,16 @@ static var enabled: bool = true
 static var requested: bool = false
 
 var done: bool = false
-## True while a step waits for a tap, when the game should take no moves.
-var waiting: bool = false
+## True while a step waits for a tap.
+var waiting: bool:
+	get:
+		return _waiting
+## What the game's input handler checks: `waiting`, and also the rest of the frame in which a tap or Skip
+## ended a step, since Godot delivers a tap twice (as a touch and as a mouse click) and the twin must not
+## reach the game as a fresh press.
+var blocks_input: bool:
+	get:
+		return _waiting or Engine.get_process_frames() == _tapped_at
 var _root: Control
 var _scrim: ColorRect
 var _catcher: Control
@@ -32,7 +42,10 @@ var _card: PanelContainer
 var _text: Label
 var _foot: Label
 var _finger: _Finger
+var _halo: _Halo
 var _serial: int = 0
+var _waiting: bool = false
+var _tapped_at: int = -1
 
 ## Whether this level should open with the guide.
 static func due(level: int) -> bool:
@@ -61,7 +74,7 @@ func _init() -> void:
 	_scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var m: ShaderMaterial = ShaderMaterial.new()
 	m.shader = preload("res://kit/ui/spotlight.gdshader")
-	m.set_shader_parameter("scrim", Color(Brand.SCRIM, SCRIM_ALPHA))
+	m.set_shader_parameter("scrim", Color(Brand.SCRIM, SCRIM_ALPHA_DARK if Appearance.dark else SCRIM_ALPHA))
 	m.set_shader_parameter("strength", 0.0)
 	_scrim.material = m
 	_root.add_child(_scrim)
@@ -70,6 +83,8 @@ func _init() -> void:
 	_catcher.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_catcher.gui_input.connect(_on_catch)
 	_root.add_child(_catcher)
+	_halo = _Halo.new()
+	add_child(_halo)
 	_finger = _Finger.new()
 	add_child(_finger)
 	_card = _build_card()
@@ -88,7 +103,7 @@ func step(text: String, holes: Array[Vector3] = [], gesture: StringName = &"", f
 		return
 	_serial += 1
 	var serial: int = _serial
-	waiting = wait_tap
+	_waiting = wait_tap
 	_catcher.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_finger.show_gesture(&"", from, to)
 	if _card.modulate.a > 0.0:
@@ -109,26 +124,28 @@ func step(text: String, holes: Array[Vector3] = [], gesture: StringName = &"", f
 	await _fade(_card, 1.0)
 	if wait_tap and not done and serial == _serial:
 		await advanced
-		waiting = false
+		_waiting = false
 
 ## The player got there: the guide fades away.
 func finish() -> void:
 	_close(true)
 
 func _on_skip() -> void:
+	_tapped_at = Engine.get_process_frames()
 	_close(false)
 
 func _close(completed: bool) -> void:
 	if done:
 		return
 	done = true
-	waiting = false
+	_waiting = false
 	requested = false
 	Save.set_tutorial_seen(true)
 	advanced.emit()
 	_catcher.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_finger.show_gesture(&"", Vector2.ZERO, Vector2.ZERO)
+	_halo.show_holes([])
 	var t: Tween = create_tween().set_parallel(true)
 	t.tween_property(_card, "modulate:a", 0.0, FADE)
 	t.tween_method(_strength, (_scrim.material as ShaderMaterial).get_shader_parameter("strength"), 0.0, FADE * 1.5)
@@ -140,6 +157,7 @@ func _on_catch(event: InputEvent) -> void:
 	var press: bool = (event is InputEventMouseButton and (event as InputEventMouseButton).pressed) or \
 		(event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed)
 	if press and _foot.visible and _card.modulate.a >= 1.0:
+		_tapped_at = Engine.get_process_frames()
 		_catcher.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		Audio.play(&"tap", -10.0)
 		advanced.emit()
@@ -153,6 +171,7 @@ func _light(holes: Array[Vector3]) -> void:
 	var m: ShaderMaterial = _scrim.material as ShaderMaterial
 	m.set_shader_parameter("holes", packed)
 	m.set_shader_parameter("count", mini(holes.size(), Spotlight.MAX_HOLES))
+	_halo.show_holes(holes.slice(0, Spotlight.MAX_HOLES))
 	if float(m.get_shader_parameter("strength")) < 1.0:
 		create_tween().tween_method(_strength, float(m.get_shader_parameter("strength")), 1.0, Spotlight.FADE_IN)
 
@@ -232,6 +251,28 @@ func _build_card() -> PanelContainer:
 	skip.pressed.connect(_on_skip)
 	foot.add_child(skip)
 	return card
+
+## A soft ring breathing around each lit place, so what to look at stands out on either theme.
+class _Halo extends Node2D:
+	var holes: Array[Vector3] = []
+	var _t: float = 0.0
+
+	func show_holes(lit: Array[Vector3]) -> void:
+		holes = lit
+		_t = 0.0
+		set_process(not holes.is_empty())
+		queue_redraw()
+
+	func _process(delta: float) -> void:
+		_t += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var pale: Color = Brand.INK if Appearance.dark else Brand.SURFACE
+		var breath: float = 0.5 + 0.5 * sin(_t * 2.6)
+		var fade: float = clampf(_t / 0.3, 0.0, 1.0)
+		for h: Vector3 in holes:
+			draw_arc(Vector2(h.x, h.y), h.z + 4.0 + 5.0 * breath, 0.0, TAU, 72, Color(pale, (0.3 + 0.25 * breath) * fade), 3.0, true)
 
 ## A soft ghost of a fingertip, pressing for a tap and gliding for a swipe, on a loop until the step
 ## changes.

@@ -74,7 +74,7 @@ func _layout() -> void:
 # --- Input --------------------------------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
-	if is_instance_valid(_coach) and _coach.waiting:
+	if is_instance_valid(_coach) and _coach.blocks_input:
 		return
 	if is_instance_valid(_sheet):
 		if event.is_action_pressed("retry"):
