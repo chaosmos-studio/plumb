@@ -3,6 +3,7 @@ extends Control
 
 ## A bottom sheet: the screen dims, a rounded panel rises from the bottom, and whatever the caller puts
 ## in `content` sits in it. Results, failures and settings all use it, so every modal moves the same way.
+## The Levels screen's banner steps aside while any sheet is open.
 
 signal closed
 
@@ -10,6 +11,7 @@ const RISE_TIME: float = 0.34
 const FALL_TIME: float = 0.22
 const RADIUS: int = 52
 const SCRIM_ALPHA: float = 0.42
+const LAYER: int = 60
 
 var content: VBoxContainer
 var dismissable: bool = true
@@ -17,10 +19,16 @@ var _scrim: ColorRect
 var _panel: PanelContainer
 var _closing: bool = false
 
-## Opens a sheet over `host`. With `dismissable`, tapping the dimmed area closes it.
+## Opens a sheet over `host`, and over the layer `host` is drawn on if that is higher, as for the ending.
+## With `dismissable`, tapping the dimmed area closes it.
 static func open(host: Node, can_dismiss: bool = true) -> Sheet:
 	var canvas: CanvasLayer = CanvasLayer.new()
-	canvas.layer = 60
+	canvas.layer = LAYER
+	var above: Node = host
+	while above != null and not above is CanvasLayer:
+		above = above.get_parent()
+	if above != null:
+		canvas.layer = maxi(LAYER, (above as CanvasLayer).layer + 1)
 	host.add_child(canvas)
 	var sheet: Sheet = Sheet.new()
 	sheet.dismissable = can_dismiss
@@ -60,6 +68,12 @@ func _init() -> void:
 	content.add_theme_constant_override("separation", 24)
 	content.alignment = BoxContainer.ALIGNMENT_CENTER
 	column.add_child(content)
+
+func _enter_tree() -> void:
+	Ads.cover(true)
+
+func _exit_tree() -> void:
+	Ads.cover(false)
 
 func _ready() -> void:
 	_rise()

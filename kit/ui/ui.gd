@@ -6,8 +6,9 @@ extends RefCounted
 ## warm paper game and a night-sky one.
 ##
 ## The kit expects the game to provide: a `Brand` class (names, a light and a dark palette, fonts and
-## scene paths, as in any game's brand.gd), a `GameCredits` class (credits.gd), and the autoloads
-## `EventBus`, `Save`, `Pack`, `Screens` and `Audio`.
+## scene paths, as in any game's brand.gd), a `GameCredits` class (credits.gd), a `GameMonetize` class
+## (monetize.gd, the ad and product ids: see kit/monetize/ads.gd for the rest of what ads need), and the
+## autoloads `EventBus`, `Save`, `Pack`, `Screens` and `Audio`.
 
 enum Style { PRIMARY, SECONDARY, GHOST }
 

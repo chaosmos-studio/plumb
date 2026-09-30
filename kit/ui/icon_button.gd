@@ -19,6 +19,11 @@ var badge: String = "":
 	set(value):
 		badge = value
 		queue_redraw()
+## An icon in the badge instead of text, such as the play mark on a hint that needs a video.
+var badge_icon: StringName = &"":
+	set(value):
+		badge_icon = value
+		queue_redraw()
 
 func _init() -> void:
 	custom_minimum_size = Vector2(SIZE, SIZE)
@@ -48,9 +53,12 @@ func _paint() -> void:
 	if not accent:
 		draw_arc(c, r, 0.0, TAU, 48, Brand.LINE, 2.0, true)
 	Icons.draw(self, icon_name, c, r * 1.3, ink)
-	if badge != "":
+	if badge != "" or badge_icon != &"":
 		var at: Vector2 = c + Vector2(r * 0.72, -r * 0.72)
 		draw_circle(at, 20.0, Brand.ACCENT, true, -1.0, true)
+		if badge_icon != &"":
+			Icons.draw(self, badge_icon, at + Vector2(1.5, 0.0), 30.0, Brand.ACCENT_INK)
+			return
 		var font: Font = UI.ui_font()
 		var text_size: Vector2 = font.get_string_size(badge, HORIZONTAL_ALIGNMENT_LEFT, -1, 22)
 		draw_string(font, at + Vector2(-text_size.x * 0.5, 8.0), badge, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Brand.ACCENT_INK)

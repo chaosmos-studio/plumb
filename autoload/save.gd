@@ -17,10 +17,17 @@ var haptics_on: bool = true
 var theme: int = Appearance.native()
 ## Whether the first level's guide has been seen through or skipped.
 var tutorial_seen: bool = false
+## Whether this Google account owns the Supporter pack, as Play last said, so it holds offline.
+var supporter: bool = false
+## The local date of the last free hint taken, and how many were taken that day.
+var hint_day: String = ""
+var hints_used: int = 0
 
 func _ready() -> void:
 	restore()
 	Appearance.apply(theme)
+	Supporter.start()
+	Ads.start()
 
 func best(level: int) -> int:
 	return stars[level] if level < stars.size() else 0
@@ -52,7 +59,7 @@ func total_stars() -> int:
 		n += s
 	return n
 
-## Forgets every star. Settings are kept.
+## Forgets every star. Settings, the Supporter pack and today's hints are kept.
 func reset() -> void:
 	stars = PackedByteArray()
 	store()
@@ -81,6 +88,16 @@ func set_tutorial_seen(seen: bool) -> void:
 	tutorial_seen = seen
 	store()
 
+func set_supporter(on: bool) -> void:
+	supporter = on
+	store()
+	EventBus.settings_changed.emit()
+
+func set_hints(day: String, used: int) -> void:
+	hint_day = day
+	hints_used = used
+	store()
+
 func restore() -> void:
 	var file: ConfigFile = ConfigFile.new()
 	if file.load(path) != OK:
@@ -93,6 +110,9 @@ func restore() -> void:
 	haptics_on = bool(file.get_value("settings", "haptics_on", true))
 	theme = clampi(int(file.get_value("settings", "theme", Appearance.native())), 0, Appearance.Choice.size() - 1)
 	tutorial_seen = bool(file.get_value("progress", "tutorial_seen", false))
+	supporter = bool(file.get_value("monetize", "supporter", false))
+	hint_day = str(file.get_value("monetize", "hint_day", ""))
+	hints_used = maxi(int(file.get_value("monetize", "hints_used", 0)), 0)
 
 func store() -> void:
 	var file: ConfigFile = ConfigFile.new()
@@ -102,4 +122,7 @@ func store() -> void:
 	file.set_value("settings", "haptics_on", haptics_on)
 	file.set_value("settings", "theme", theme)
 	file.set_value("progress", "tutorial_seen", tutorial_seen)
+	file.set_value("monetize", "supporter", supporter)
+	file.set_value("monetize", "hint_day", hint_day)
+	file.set_value("monetize", "hints_used", hints_used)
 	file.save(path)
