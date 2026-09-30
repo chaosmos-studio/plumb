@@ -209,7 +209,12 @@ export const about = {
 
 export const privacy = {
   description: "Plumb's privacy policy: the game collects no personal data, has no ads, no analytics and no accounts, and keeps your progress on your own device.",
-  stores: ["the stars you have earned on each level, which is also how levels unlock;", "your sound, music and vibration settings."],
+  stores: [
+    "the stars you have earned on each level, which is also how levels unlock;",
+    "whether you have seen or skipped the first level's tutorial;",
+    "your theme choice: Auto, Light or Dark;",
+    "your sound, music and vibration settings.",
+  ],
   permissions: "The Android app asks for one permission: vibration, so a tap can buzz lightly when vibration is switched on. It asks for no location, camera, microphone, contacts, files or network access.",
   audience: "Plumb is suitable for everyone. Because the app collects no data from anyone, it collects none from children.",
 } as const;
