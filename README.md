@@ -31,7 +31,8 @@ python3 tools/make_font.py                                    # the seam-free st
 ```
 
 `PLAN.md` is the design and the roadmap, `MATH.md` explains the rules, the solver and the generator,
-and `CREDITS.md` lists the one third-party asset (the font).
+and `CREDITS.md` lists what is third-party: the font, and the AdMob and Play billing plugins of the Android
+build.
 
 ## Releasing
 
@@ -40,7 +41,11 @@ Android builds come from the **Release Android** workflow, started by hand from 
 ```
 gh workflow run release-android.yml -f version_name=0.1.0                      # a prerelease
 gh workflow run release-android.yml -f version_name=1.0.0 -f prerelease=false  # a full release
+gh workflow run release-android.yml -f version_name=0.2.0 -f dry_run=true      # build and check only
 ```
+
+A dry run builds and checks everything and keeps the AAB and APK as a workflow artifact, but makes no tag and
+no GitHub release.
 
 It runs the tests and the smoke robot, exports a signed AAB and APK through the Gradle build (target SDK 36,
 arm64-v8a and armeabi-v7a), checks both, and publishes them on a GitHub release tagged `v<version_name>`.
