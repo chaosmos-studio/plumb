@@ -30,6 +30,7 @@ func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out))
 	# Raw captures are build products: without this Godot imports every one, and a local export packs them.
 	var ignore: String = ProjectSettings.globalize_path("res://build/.gdignore")
+	DirAccess.make_dir_recursive_absolute(ignore.get_base_dir())
 	if not FileAccess.file_exists(ignore):
 		FileAccess.open(ignore, FileAccess.WRITE).close()
 	var spec: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(spec_path))

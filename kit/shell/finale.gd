@@ -76,6 +76,7 @@ func _build(on_done: Callable) -> void:
 	column.add_child(UI.centred(line))
 	var offer: String = support_button()
 	if offer != "":
+		column.add_child(UI.spacer(10))
 		var give: Button = UI.button(offer, UI.Style.PRIMARY)
 		give.custom_minimum_size.x = 460.0
 		give.pressed.connect(func() -> void:
