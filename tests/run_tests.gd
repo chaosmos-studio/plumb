@@ -36,6 +36,7 @@ func _initialize() -> void:
 	_test_adaptive_banner()
 	_test_monetize_ids()
 	_test_presets_and_plugins()
+	_test_changelog()
 	_test_saved_monetization()
 	_test_settings_variants()
 	_test_about_variants()
@@ -405,6 +406,32 @@ func _test_presets_and_plugins() -> void:
 		elif presets.get_value(section, "platform") == "Web":
 			_check("the web build leaves the plugins out", exclude.contains("addons/*")
 				and exclude.contains("kit/monetize/android/*"))
+
+# The release workflow names the build, derives Play's version code and fills Play's "What's new" from
+# CHANGELOG.md's newest section by these same rules, so a changelog it would refuse fails here first.
+func _test_changelog() -> void:
+	var top: Changelog.Entry = Changelog.parse(FileAccess.get_file_as_string(Changelog.PATH))
+	_check("CHANGELOG.md's newest section can be released: %s" % top.error, top.error == "")
+	_check("Settings and About show that section's version", top.version != "" and Changelog.version() == top.version)
+	_check("project.godot keeps no second version",
+		str(ProjectSettings.get_setting("application/config/version", "")) == "")
+	var presets: ConfigFile = ConfigFile.new()
+	presets.load("res://export_presets.cfg")
+	for section: String in presets.get_sections():
+		if presets.has_section_key(section, "include_filter"):
+			_check("%s ships CHANGELOG.md" % presets.get_value(section, "name"),
+				String(presets.get_value(section, "include_filter")).contains("CHANGELOG.md"))
+	var dated: Changelog.Entry = Changelog.parse("<!--\n## 9.9.9\n-->\n# Changelog\n\n## 1.2.3 - 2026-10-01\n\n- One\n- Two\n\n## 1.2.2\n\n- Old\n")
+	_check("a dated heading reads as its version, past a heading in a comment", dated.error == "" and dated.version == "1.2.3")
+	_check("the section ends at the next heading", dated.notes == PackedStringArray(["One", "Two"]))
+	_check("Play's text is one - line per note", dated.play_text() == "- One\n- Two")
+	_check("1.2.3 is version code 10203 and 1.0.0 is 10000",
+		dated.code == 10203 and Changelog.parse("## 1.0.0\n- A").code == 10000)
+	_check("Play's text may be exactly its limit", Changelog.parse("## 1.0.0\n- " + "x".repeat(Changelog.PLAY_LIMIT - 2)).error == "")
+	for bad: String in ["", "## Unreleased\n- A", "## 1.2\n- A", "## v1.2.3\n- A", "## 1.02.3\n- A", "## 1.100.0\n- A",
+			"## 1.0.100\n- A", "## 0.0.0\n- A", "## 1.0.0\n", "## 1.0.0\n- A\n  wrapped", "## 1.0.0\n### Fixes\n- A",
+			"## 1.0.0\n-\n", "## 1.0.0\n- " + "x".repeat(Changelog.PLAY_LIMIT - 1)]:
+		_check("the release rules refuse \"%s\"" % bad.left(40).c_escape(), Changelog.parse(bad).error != "")
 
 func _test_saved_monetization() -> void:
 	var save: Node = root.get_node("Save")
