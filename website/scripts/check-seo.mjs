@@ -69,6 +69,10 @@ for (const file of htmlFiles) {
     const ok = existsSync(local) && (statSync(local).isFile() || existsSync(join(local, "index.html")));
     if (!ok) problems.push(`${rel}: broken internal link ${path}`);
   }
+  // Links within a page, such as the table of contents, must land on an element with that id.
+  for (const [, id] of html.matchAll(/href="#([^"]+)"/g)) {
+    if (!html.includes(`id="${id}"`)) problems.push(`${rel}: link to #${id} has no target on the page`);
+  }
 }
 
 for (const f of ["robots.txt", "sitemap-index.xml", "sitemap-images.xml", "rss.xml", "manifest.webmanifest", "pagefind/pagefind.js"]) {
