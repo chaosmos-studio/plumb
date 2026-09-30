@@ -11,7 +11,6 @@ config_version=5
 [application]
 
 config/name="Plumb"
-config/version="0.1.0"
 run/main_scene="res://scenes/shell/title.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/bg_color=Color(0.9529412, 0.92941177, 0.8901961, 1)
