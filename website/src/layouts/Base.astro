@@ -16,13 +16,15 @@ const props = Astro.props;
   <head>
     <Head {...props} />
     <script is:inline define:vars={{ key: site.themeStorageKey }}>
-      // Set the theme before first paint, so a dark-mode visitor never sees a light flash.
+      // Set the theme before first paint, so a dark-mode visitor never sees a light flash, and mark that
+      // scripts run, so no-script fallbacks such as the inline contents hide before they are drawn.
       let stored = null;
       try {
         stored = localStorage.getItem(key);
       } catch (e) {}
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       document.documentElement.dataset.theme = stored || (prefersDark ? "dark" : "light");
+      document.documentElement.classList.add("js");
     </script>
   </head>
   <body>

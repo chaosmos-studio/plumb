@@ -15,6 +15,10 @@
   --wrap: 1120px;
   --prose: 720px;
   --gutter: clamp(16px, 4vw, 32px);
+  /* The sticky header's height plus a little air: where an anchor lands and where the contents rail sticks. */
+  --anchor-offset: 96px;
+  --toc-rail: 240px;
+  --toc-gap: 64px;
 }
 
 *,
@@ -26,7 +30,7 @@
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
-  scroll-padding-top: 96px;
+  scroll-padding-top: var(--anchor-offset);
 }
 
 body {
