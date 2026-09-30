@@ -9,6 +9,13 @@ extends RefCounted
 ## (the note after the last level). Levels are 1-based here, as a player counts them. Any action takes a
 ## "dark/" prefix to stage it in the dark theme; without one it is in the game's own look.
 ##
+## The ads and the Supporter pack, as the Google Play build shows them unless the variant says web:
+## levelsad (the grid with a stand-in banner of the real size), supporter[:web|:owned] (the support
+## sheet), hintvideo:N (the video prompt on level N), hintbadge:N:K (level N's hint button after K of the
+## day's free hints), settings:privacy (Settings where the consent message asks for privacy choices),
+## about:play and ending:play|web|owned|pack (pack: the Play ending with its Supporter sheet open). Store
+## shots never use these.
+##
 ## Films also call perform(game, verb, arg) on a staged game: solve (arg = most moves), hint, tilt
 ## (arg = L, R, U or D), fail (tilts into a pit), undo, wait (arg = seconds).
 
@@ -27,7 +34,13 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 	# Saved as well as applied, so a staged Settings sheet shows the theme the shot is in.
 	Save.theme = Appearance.Choice.DARK if dark else Appearance.native()
 	Appearance.apply(Save.theme)
+	Ads.preview = false
+	Ads.use(null)
+	Supporter.on_play = OS.has_feature("android")
+	Supporter.price = ""
+	Save.supporter = false
 	var parts: PackedStringArray = action.split(":")
+	var variant: String = parts[1] if parts.size() > 1 else ""
 	var verb: String = parts[0]
 	var n: int = int(parts[1]) - 1 if parts.size() > 1 else 0
 	var k: int = int(parts[2]) if parts.size() > 2 else 0
@@ -39,13 +52,21 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 		"levels":
 			host.add_child(load(Brand.LEVELS_SCENE).instantiate())
 			await _wait(host, 0.5)
+		"levelsad":
+			Ads.preview = true
+			host.add_child(load(Brand.LEVELS_SCENE).instantiate())
+			await _wait(host, 0.5)
 		"settings":
+			if variant == "privacy":
+				Supporter.on_play = true
+				Ads.use(_PreviewAds.new())
 			var title: Node = load(Brand.TITLE_SCENE).instantiate()
 			host.add_child(title)
 			await _wait(host, 0.3)
 			Settings.open(title)
 			await _wait(host, 0.6)
 		"about", "credits":
+			Supporter.on_play = variant == "play" or (variant == "" and Supporter.on_play)
 			var home: Node = load(Brand.TITLE_SCENE).instantiate()
 			host.add_child(home)
 			await _wait(host, 0.3)
@@ -53,6 +74,23 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 				About.open(home)
 			else:
 				Credits.open(home)
+			await _wait(host, 0.6)
+		"supporter":
+			Supporter.on_play = variant != "web"
+			Supporter.price = "$2.99"
+			Save.supporter = variant == "owned"
+			var front: Node = load(Brand.TITLE_SCENE).instantiate()
+			host.add_child(front)
+			await _wait(host, 0.3)
+			Supporter.open(front)
+			await _wait(host, 0.6)
+		"hintbadge":
+			Ads.use(_PreviewAds.new())
+			Save.set_hints(HintGate.today(), k)
+			await _game(host, n)
+		"hintvideo":
+			var asked: Node = await _game(host, n)
+			HintGate.ask(asked, func() -> void: pass)
 			await _wait(host, 0.6)
 		"play":
 			await _game(host, n)
@@ -114,9 +152,16 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			await _wait(host, 0.8)
 			Coach.enabled = false
 		"ending":
+			if variant != "":
+				Supporter.on_play = variant != "web"
+				Save.supporter = variant == "owned"
+				Supporter.price = "$2.99"
 			var last: Node = await _game(host, Pack.count() - 1)
-			Finale.open(last, func() -> void: pass)
+			var finale: Finale = Finale.open(last, func() -> void: pass)
 			await _wait(host, 1.2)
+			if variant == "pack":
+				Supporter.open(finale)
+				await _wait(host, 0.6)
 		"hero":
 			var game5: Node = await _game(host, n)
 			for child: Node in game5.get_children():
@@ -226,3 +271,9 @@ func _seed_progress() -> void:
 
 func _wait(host: Node, seconds: float) -> void:
 	await host.get_tree().create_timer(seconds).timeout
+
+## A stand-in ad network for captures: nothing to show, but it counts as ads being possible, and its
+## consent message asks for privacy choices.
+class _PreviewAds extends AdBackend:
+	func privacy_required() -> bool:
+		return true
