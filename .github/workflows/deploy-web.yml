@@ -3,8 +3,9 @@ name: Deploy Web Build
 on:
   push:
     branches: [main]
-    # The website has its own workflow; a blog post should not rebuild the game.
-    paths-ignore: ["website/**", "store/**", "assets/store/**", "**.md"]
+    # The website has its own workflow; a blog post should not rebuild the game. CHANGELOG.md does, since
+    # the game shows the version it names.
+    paths: ["**", "!website/**", "!store/**", "!assets/store/**", "!**.md", "CHANGELOG.md"]
   workflow_dispatch:
 
 permissions:
@@ -66,6 +67,8 @@ jobs:
           mkdir -p build/web
           "$GODOT_BIN" --headless --export-release "Web" build/web/index.html
           test -f build/web/index.html
+          # The game reads its version from CHANGELOG.md, so the file itself must be in the pack.
+          python3 -c "import sys; sys.exit(open('CHANGELOG.md', 'rb').read() not in open('build/web/index.pck', 'rb').read())"
           grep -q "roll every marble home" build/web/index.html
 
       - name: Copy the loading page's font and icons
