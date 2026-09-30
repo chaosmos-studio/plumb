@@ -194,6 +194,9 @@ func _strength(v: float) -> void:
 func _build_card() -> PanelContainer:
 	var card: PanelContainer = PanelContainer.new()
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
+	# The card says "Tap to continue", so a tap on it counts as much as one beside it. Skip, a child,
+	# still takes its own press first.
+	card.gui_input.connect(_on_catch)
 	card.modulate.a = 0.0
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = Brand.SURFACE
