@@ -15,7 +15,7 @@ const NAMES: PackedStringArray = ["Auto", "Light", "Dark"]
 static var dark: bool = false
 ## Set by a screen that is rebuilding itself, read back by the new copy of it (see `rebuild`).
 static var kept: Variant = null
-static var _listening: bool = false
+static var _watcher: Node
 
 ## The choice a new player starts with: the look the game was designed in.
 static func native() -> int:
@@ -38,9 +38,10 @@ static func apply(choice: int) -> void:
 	Brand.use(dark)
 	UI.reset_theme()
 	RenderingServer.set_default_clear_color(Brand.BG)
-	if not _listening and DisplayServer.get_name() != "headless":
-		_listening = true
-		DisplayServer.set_system_theme_change_callback(func() -> void: _on_system_change.call_deferred())
+	var tree: SceneTree = Engine.get_main_loop() as SceneTree
+	if _watcher == null and tree != null and DisplayServer.get_name() != "headless":
+		_watcher = _Watcher.new()
+		tree.root.add_child.call_deferred(_watcher)
 	EventBus.theme_changed.emit()
 
 ## The player's pick from Settings: saved, applied, and the screen rebuilt around them.
@@ -75,3 +76,16 @@ static func _on_system_change() -> void:
 	var tree: SceneTree = Engine.get_main_loop() as SceneTree
 	if tree != null:
 		rebuild(tree)
+
+## Holds the system theme callback for as long as the app runs. The callback must be cleared before the
+## engine shuts down, or DisplayServer calls into freed script state on quit and the process aborts, so a
+## node in the tree owns it and lets go when it leaves.
+class _Watcher extends Node:
+	func _ready() -> void:
+		DisplayServer.set_system_theme_change_callback(_changed)
+
+	func _exit_tree() -> void:
+		DisplayServer.set_system_theme_change_callback(Callable())
+
+	func _changed() -> void:
+		Appearance._on_system_change.call_deferred()
