@@ -292,7 +292,8 @@ func _draw_hint() -> void:
 			draw_circle(a.lerp(b, t), cell * 0.058, Color(colour, alpha), true, -1.0, true)
 		match path[2]:
 			&"sink":
-				draw_arc(b, cell * (0.42 + 0.06 * pulse), 0.0, TAU, 40, Color(colour, 0.9), cell * 0.06, true)
+				# Outside the hole's own ring, which sits at 0.41 and would hide a hint drawn on it.
+				draw_arc(b, cell * (0.52 + 0.05 * pulse), 0.0, TAU, 40, Color(colour, 0.9), cell * 0.06, true)
 			&"pit":
 				draw_arc(b, cell * (0.4 + 0.06 * pulse), 0.0, TAU, 40, Color(Palette.DANGER, 0.9), cell * 0.06, true)
 			_:
