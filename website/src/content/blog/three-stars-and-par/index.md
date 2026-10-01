@@ -38,9 +38,9 @@ The chart below is par for every level in order. It climbs one step at a time an
 
 ## A worked example: a par 3 level
 
-Here is level 10 solved in its par of three moves. Watch what each tilt is for.
+Here is an early level solved in its par of three moves. Watch what each tilt is for.
 
-![Four frames of Plumb level 10: the start and the board after each of three tilts](./images/plumb-par-three-route.webp "Level 10 in par: every tilt either parks a marble against a wall or drops one home")
+![Four frames of a Plumb level: the start and the board after each of three tilts](./images/plumb-par-three-route.webp "A level in par: every tilt either parks a marble against a wall or drops one home")
 
 The pattern is common: the first tilt usually **parks** a marble somewhere useful, lining it up with its hole, and the later tilts **drop** marbles home, often two at once.
 

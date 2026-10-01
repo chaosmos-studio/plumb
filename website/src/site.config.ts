@@ -130,7 +130,7 @@ export const faq = [
   },
   {
     q: "Does Plumb have ads?",
-    a: "The Android app does, and never while you play: a banner on the level list, an occasional ad between levels once you have solved the first dozen, and short videos you can choose to watch for extra hints. The one-time Supporter pack turns them off for good. The web version never shows ads.",
+    a: "The Android app does, and none ever covers a puzzle: a banner on the level list and below the board, an occasional ad between levels once you have solved the first dozen, and short videos you can choose to watch for extra hints. The one-time Supporter pack turns them off for good. The web version never shows ads.",
   },
   {
     q: "What is the Supporter pack?",
@@ -231,7 +231,7 @@ export const about = {
     {
       heading: "How it stays free",
       paragraphs: [
-        "Plumb is free, on Android and in your browser. The Android app has a few ads, placed so they never touch a puzzle: a banner at the bottom of the level list, an occasional ad between levels once you have solved the first dozen, and a short video you can choose to watch for an extra hint. Nothing ever appears over the board or while you play, and the web version never shows ads.",
+        "Plumb is free, on Android and in your browser. The Android app has a few ads, placed so they never touch a puzzle: a banner at the bottom of the level list and below the board, an occasional ad between levels once you have solved the first dozen, and a short video you can choose to watch for an extra hint. Nothing ever appears over the board, no full-screen ad interrupts a level, and the web version never shows ads.",
         "If you would rather play without them, the Supporter pack is a one-time purchase in the app. It turns the ads off for good, makes every hint free, and helps pay for the next game.",
       ],
     },

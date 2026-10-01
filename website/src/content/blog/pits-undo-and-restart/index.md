@@ -8,7 +8,7 @@ cover: ./images/cover.webp
 coverAlt: "A Plumb board with square pits and several marbles, tilted on a warm background"
 ---
 
-Around level 35, Plumb adds its only hazard: the **square pit**. This post explains how pits work and why you should never be afraid of them.
+Around level 28, Plumb adds its only hazard: the **square pit**. This post explains how pits work and why you should never be afraid of them.
 
 ## How pits work
 

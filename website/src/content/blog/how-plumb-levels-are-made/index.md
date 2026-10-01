@@ -38,7 +38,7 @@ The levels are then chosen and ordered so that par and the score **never drop** 
 
 ![A chart of par by level rising in small steps without ever dropping](./images/plumb-difficulty-ramp.webp "Par, level by level: small steps up, and never back down")
 
-New ideas arrive gently. The second marble appears at level 9, the second colour at level 17 and the first pit at level 35, and each one first shows up on a board that is easy for its position.
+New ideas arrive gently. The second marble appears at level 4, the second colour at level 9 and the first pit at level 28, and each one first shows up on a board that is easy for its position.
 
 ![Three Plumb boards from early, middle and late in the game, growing in size and number of marbles](./images/plumb-early-middle-late.webp "Early, middle and late: bigger boards, more marbles and colours, and pits")
 

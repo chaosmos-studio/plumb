@@ -28,11 +28,11 @@ Holes come in colours. A marble drops into a hole of **its own colour** the mome
 
 One hole can take every marble of its colour, so two red marbles can both end up in the same red hole. Get every marble home and the level is solved.
 
-![A Plumb board with teal and coral marbles and a hole of each colour](./images/plumb-two-colours.webp "From level 17 there are two colours: each marble only drops into a hole of its own colour")
+![A Plumb board with teal and coral marbles and a hole of each colour](./images/plumb-two-colours.webp "From level 9 there are two colours: each marble only drops into a hole of its own colour")
 
 ## Watch out for pits
 
-Later levels add **square pits**. A pit swallows any marble that rolls over it, whatever its colour, and that ends the attempt. You will see pits for the first time around level 35, once you are comfortable with how marbles roll.
+Later levels add **square pits**. A pit swallows any marble that rolls over it, whatever its colour, and that ends the attempt. You will see pits for the first time around level 28, once you are comfortable with how marbles roll.
 
 Losing a marble is not a big deal. **Undo** takes back your last tilt, and **restart** puts the whole board back. There are no lives and no timer, so a mistake only costs you a second. There is more on that in [pits, undo and restart](../pits-undo-and-restart/).
 

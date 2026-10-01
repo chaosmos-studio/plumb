@@ -22,11 +22,11 @@ Falling into a pit costs you a move, not a life. [Undo](../pits-undo-and-restart
 
 Plumb is free, and the Android app pays its way with a few ads. We put them where they never touch a puzzle:
 
-- a banner at the bottom of the level list, and nowhere else;
+- a banner at the bottom of the level list, and one below the board while you play, never over it;
 - now and then an ad between levels, only after you tap **Next level** on a solved board, and never before you have solved the first dozen;
 - a short video you can choose to watch for an extra hint, once the day's free hints are used.
 
-No ad ever appears while you play, over the board, or after a marble falls. If you would rather have none at all, the **Supporter pack** is a one-time purchase in the app that turns them off for good and makes every hint free. The web version never shows ads.
+No ad ever covers the board, interrupts a level, or appears after a marble falls. If you would rather have none at all, the **Supporter pack** is a one-time purchase in the app that turns them off for good and makes every hint free. The web version never shows ads.
 
 The game itself still does not know who you are. There is no account, and your progress stays on your device. The ads come from Google, which collects some data to show them; the [privacy policy](../../privacy/) explains what, and how to change your choices.
 
