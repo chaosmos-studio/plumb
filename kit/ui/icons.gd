@@ -6,7 +6,8 @@ extends RefCounted
 ## each end of a stroke, which is all a line icon needs to look finished.
 
 const NAMES: Array[StringName] = [&"back", &"close", &"next", &"undo", &"restart", &"hint", &"settings",
-	&"sound", &"sound_off", &"music", &"music_off", &"haptics", &"theme", &"play", &"levels", &"lock", &"check"]
+	&"sound", &"sound_off", &"music", &"music_off", &"haptics", &"theme", &"play", &"levels", &"lock", &"check",
+	&"heart"]
 
 static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour: Color, w: float = -1.0) -> void:
 	if w < 0.0:
@@ -105,6 +106,15 @@ static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour:
 			ci.draw_style_box(body, Rect2(c + Vector2(-0.19, -0.02) * s, Vector2(0.38, 0.28) * s))
 		&"check":
 			_stroke(ci, [c + Vector2(-0.22, 0.02) * s, c + Vector2(-0.06, 0.18) * s, c + Vector2(0.24, -0.14) * s], colour, w)
+		&"heart":
+			# The classic heart curve, which spans 32 by 29 units with its tip at y = -17.
+			var outline: Array[Vector2] = []
+			for k: int in range(41):
+				var t: float = TAU * k / 40.0
+				var hx: float = 16.0 * pow(sin(t), 3.0)
+				var hy: float = 13.0 * cos(t) - 5.0 * cos(2.0 * t) - 2.0 * cos(3.0 * t) - cos(4.0 * t)
+				outline.append(c + Vector2(hx, -hy - 2.5) * (0.0155 * s))
+			_stroke(ci, outline, colour, w)
 
 ## A polyline with round caps and joins: a dot at every vertex covers the notches a thick line leaves.
 static func _stroke(ci: CanvasItem, points: Array[Vector2], colour: Color, w: float) -> void:

@@ -17,7 +17,8 @@ const PRESS_SCALE: float = 0.965
 const PRESS_TIME: float = 0.08
 const RELEASE_TIME: float = 0.22
 const PILL_HEIGHT: float = 104.0
-const ICON_TEXTURE: int = 256
+## Big enough for the launch intro, the largest place the icon is drawn.
+const ICON_TEXTURE: int = 384
 
 static var _theme: Theme
 static var _display: Font

@@ -49,6 +49,8 @@ func _ready() -> void:
 	gear.offset_bottom = gear.offset_top + IconButton.SIZE
 	gear.pressed.connect(func() -> void: Settings.open(self))
 	ui.add_child(gear)
+	Supporter.add_title_button(self, ui, gear)
+	Intro.play(self)
 
 	var tally: HBoxContainer = HBoxContainer.new()
 	tally.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)

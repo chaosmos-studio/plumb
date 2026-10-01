@@ -58,6 +58,7 @@ func _ready() -> void:
 	Save.music_on = false
 	EventBus.settings_changed.emit()
 	Coach.enabled = false
+	Intro.enabled = false
 	Appearance.apply(Appearance.native())
 	director = load("res://tools/director.gd").new()
 	if "film" in director:

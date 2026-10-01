@@ -32,7 +32,8 @@ static func request(host: Node, level: int, give: Callable) -> Sheet:
 	give.call()
 	return null
 
-## "Watch a short video for a hint?", with Watch and Not now.
+## "Watch a short video for a hint?", with Watch and Not now, and on Google Play the Supporter pack
+## as the way to have no ads and every hint free.
 static func ask(host: Node, give: Callable) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
@@ -51,6 +52,12 @@ static func ask(host: Node, give: Callable) -> Sheet:
 			if give.is_valid():
 				give.call()))
 	c.add_child(watch)
+	if Supporter.on_play and not Supporter.active():
+		var pack: Button = UI.button("Remove ads, unlimited hints", UI.Style.SECONDARY)
+		pack.pressed.connect(func() -> void:
+			sheet.close()
+			Supporter.open(host))
+		c.add_child(pack)
 	var later: Button = UI.button("Not now", UI.Style.GHOST)
 	later.pressed.connect(sheet.close)
 	c.add_child(later)

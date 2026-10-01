@@ -61,6 +61,20 @@ static func say(text: String) -> void:
 	if tree != null and tree.current_scene != null:
 		Toast.say(tree.current_scene, text)
 
+## The title screen's way to the pack: a heart in the corner opposite `gear`, the settings button, on
+## Google Play only and never for a Supporter.
+static func add_title_button(host: Node, ui: Control, gear: Control) -> void:
+	if not on_play or active():
+		return
+	var heart: IconButton = UI.icon_button(&"heart", "Supporter pack")
+	heart.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	heart.offset_left = -gear.offset_right
+	heart.offset_right = -gear.offset_left
+	heart.offset_top = gear.offset_top
+	heart.offset_bottom = gear.offset_bottom
+	heart.pressed.connect(func() -> void: open(host))
+	ui.add_child(heart)
+
 ## The support sheet: the pack with its price, Support and Restore on Google Play; one Sponsor on GitHub
 ## button elsewhere.
 static func open(host: Node) -> Sheet:
