@@ -7,6 +7,9 @@ extends RefCounted
 const SIDE: float = 32.0
 const TOP: float = 40.0
 const BOTTOM_LIFT: float = 64.0
+## The least room between the bottom row and a banner under it, so a tap meant for undo, the hint or
+## restart never lands on the ad.
+const BANNER_GAP: float = 48.0
 
 static func top(ui: Control, left: Control, centre: Control, right: Control) -> HBoxContainer:
 	var safe: Dictionary = UI.safe_margins(ui.get_viewport())
@@ -37,6 +40,30 @@ static func bottom(ui: Control, controls: Array[Control], separation: int = 44) 
 	for c: Control in controls:
 		row.add_child(c)
 	return row
+
+## How much higher the bottom row, the caption and the board's floor must sit for a banner `height`
+## design pixels tall (Ads.show_banner's callback), and 0 with none.
+static func banner_lift(height: float) -> float:
+	return maxf(0.0, height + BANNER_GAP - BOTTOM_LIFT) if height > 0.0 else 0.0
+
+## The banner under a play screen, once AdPacing says one is due: the bottom row and the caption lift clear
+## of it, and `on_lift` hears the lift so the board can fit the room left. The room is held from the first
+## frame, so the board does not move when the ad loads, and the banner goes with the screen.
+static func banner(host: Node, row: Control, caption: Control, on_lift: Callable) -> void:
+	var rest: PackedFloat32Array = PackedFloat32Array([row.offset_top, row.offset_bottom, caption.offset_top,
+		caption.offset_bottom])
+	var apply: Callable = func(height: float) -> void:
+		var lift: float = banner_lift(height)
+		row.offset_top = rest[0] - lift
+		row.offset_bottom = rest[1] - lift
+		caption.offset_top = rest[2] - lift
+		caption.offset_bottom = rest[3] - lift
+		on_lift.call(lift)
+	var expected: float = Ads.expected_banner_height(host)
+	if expected > 0.0:
+		apply.call(expected)
+	host.tree_exiting.connect(Ads.hide_banner)
+	Ads.show_banner(host, apply)
 
 ## The settings button every play screen carries, so sound and music are one tap away mid-level.
 static func settings(host: Node) -> IconButton:

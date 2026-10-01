@@ -2,7 +2,8 @@ extends Node2D
 
 ## The level grid, shared by every game in the kit: twenty tiles to a page, swipe or tap the chevrons
 ## to turn pages, and the page holding the next level to play opens first. On Android, once a few levels
-## are solved, a banner sits at the foot of this screen only, and the pager lifts clear of it.
+## are solved, a banner sits at the foot of this screen, as it does under the play screen, and the pager
+## lifts clear of it.
 
 const PER_PAGE: int = 20
 const COLUMNS: int = 4

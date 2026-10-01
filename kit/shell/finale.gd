@@ -41,6 +41,13 @@ static func open(host: Node, on_done: Callable) -> Finale:
 	finale._build(on_done)
 	return finale
 
+## A banner is a native view drawn over the whole game, so the ending hides it as a Sheet does.
+func _enter_tree() -> void:
+	Ads.cover(true)
+
+func _exit_tree() -> void:
+	Ads.cover(false)
+
 func _build(on_done: Callable) -> void:
 	# Already in the tree, where anchors alone would keep the zero rect it started with.
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

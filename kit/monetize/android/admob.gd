@@ -2,7 +2,7 @@ extends AdBackend
 
 ## Google AdMob through the Poing Studios plugin, loaded by Ads on Android only: Google's consent message
 ## (UMP) first, then the Mobile Ads SDK with ads rated PG at most, then one interstitial and one rewarded
-## ad kept loaded. The banner is made the first time the Levels screen wants it and kept for the session.
+## ad kept loaded. The banner is made the first time a screen wants it and kept for the session.
 ## Debug builds always ask for Google's test units, so a phone under test never sees a real ad.
 
 const TEST_BANNER: String = "ca-app-pub-3940256099942544/9214589741"

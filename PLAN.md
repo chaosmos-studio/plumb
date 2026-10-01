@@ -98,9 +98,11 @@ the Android build only; the web build and desktop runs have no ads and no pack, 
 answers "not available" at once. The numbers are constants in `kit/monetize/pacing.gd` (`AdPacing`),
 tested on their edges in `tests/run_tests.gd`.
 
-- **Banner**: one anchored adaptive AdMob banner at the foot of the Levels screen, and nowhere else. It
-  appears once 3 levels are solved, steps aside while any sheet is open, and the pager lifts clear of it
-  with a 32 px gap (at least 24, for AdMob's accidental-click rules).
+- **Banner**: one anchored adaptive AdMob banner at the foot of the Levels screen and of the play screen,
+  never over the board and never on a guided level. It appears once 3 levels are solved and steps aside
+  while any sheet or the ending is open. The pager lifts clear of it with a 32 px gap, and the play
+  screen's bottom row and caption with a 48 px gap, holding that room from the first frame so the board
+  never moves when the ad loads (AdMob's accidental-click rules).
 - **Between levels**: an interstitial only when a solved level is left with Next level, and only once 12
   levels are solved in all, 4 levels have been solved this session since the last one, 4 minutes have
   passed since any full-screen ad and 3 since the app started. Never after level 1's guide, on the ending,

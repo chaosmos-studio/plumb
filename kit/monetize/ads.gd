@@ -98,6 +98,21 @@ static func show_banner(host: Node, on_height: Callable) -> void:
 		on_height.call(_height)
 	_backend.set_banner(_covers == 0)
 
+## The banner's height in design pixels if a screen asking now would get one: the real one once a banner
+## has loaded this session, Google's adaptive height for this screen before that, and 0 when none is
+## due. A play screen reserves this from its first frame, so its board never jumps when the ad arrives.
+static func expected_banner_height(host: Node) -> float:
+	if not AdPacing.banner_due(solved(), Supporter.active()) or not (preview or live()):
+		return 0.0
+	if _height > 0.0:
+		return _height
+	var view: Vector2 = host.get_viewport().get_visible_rect().size
+	var window: Vector2 = Vector2(DisplayServer.window_get_size())
+	var dpi: float = float(DisplayServer.screen_get_dpi())
+	var width_dp: float = window.x * 160.0 / dpi if dpi > 0.0 and window.x > 0.0 else PREVIEW_WIDTH_DP
+	var per_dp: float = view.x / width_dp
+	return adaptive_height_dp(width_dp, view.y / per_dp) * per_dp
+
 static func hide_banner() -> void:
 	_wanted = false
 	_on_height = Callable()

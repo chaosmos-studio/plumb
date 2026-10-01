@@ -35,6 +35,7 @@ var _prompt: Sheet
 var _coach: Coach
 var _guided: bool = false
 var _leaving: bool = false
+var _banner_room: float = 0.0
 var _hint_board: TiltBoard
 var _hint_route: PackedInt32Array = PackedInt32Array()
 ## The board the last hint was given for, so asking again on it costs nothing.
@@ -71,11 +72,11 @@ func keep() -> Dictionary:
 
 func _fit() -> Vector2:
 	var size: Vector2 = get_viewport_rect().size
-	return Vector2(size.x - SIDE_MARGIN * 2.0, size.y - TOP_SPACE - BOTTOM_SPACE)
+	return Vector2(size.x - SIDE_MARGIN * 2.0, size.y - TOP_SPACE - BOTTOM_SPACE - _banner_room)
 
 func _layout() -> void:
 	var size: Vector2 = get_viewport_rect().size
-	_view.home = Vector2(size.x * 0.5, TOP_SPACE + (size.y - TOP_SPACE - BOTTOM_SPACE) * 0.5)
+	_view.home = Vector2(size.x * 0.5, TOP_SPACE + (size.y - TOP_SPACE - BOTTOM_SPACE - _banner_room) * 0.5)
 	if _view.board != null:
 		_view.show_board(board, _fit())
 
@@ -397,4 +398,13 @@ func _build_ui() -> void:
 	_restart = UI.icon_button(&"restart", "Restart")
 	_restart.pressed.connect(_on_restart)
 	var row: Array[Control] = [_undo, _restart, Hud.settings(self)]
-	Hud.bottom(_ui, row)
+	var bar: HBoxContainer = Hud.bottom(_ui, row)
+	if not Coach.due(level):
+		Hud.banner(self, bar, _caption, _on_lift)
+
+## The banner's room under the bottom row: the board fits what is left. During _ready the first layout,
+## which comes after the UI is built, picks it up.
+func _on_lift(lift: float) -> void:
+	_banner_room = lift
+	if is_node_ready():
+		_layout()

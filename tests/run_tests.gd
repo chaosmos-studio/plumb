@@ -46,9 +46,11 @@ func _initialize() -> void:
 	_test_about_variants()
 	_test_finale_variants()
 	_test_support_and_hint_sheets()
+	_test_supporter_entry_points()
 	# The root takes new children only once _initialize has handed control back to the engine.
 	await process_frame
 	_test_sheets_fit_a_phone()
+	_test_play_screen_banner()
 	await _test_sheet_rises_before_layout()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -560,6 +562,63 @@ func _test_support_and_hint_sheets() -> void:
 	supporter.set("on_play", old[0])
 	supporter.set("price", old[1])
 	save.set("supporter", old[2])
+
+func _test_supporter_entry_points() -> void:
+	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
+	var gate: GDScript = load("res://kit/monetize/hint_gate.gd")
+	var save: Node = root.get_node("Save")
+	var old: Array = [supporter.get("on_play"), save.get("supporter")]
+	save.set("supporter", false)
+	supporter.set("on_play", true)
+	var host: Node = Node.new()
+	gate.call("ask", host, func() -> void: pass)
+	var texts: PackedStringArray = PackedStringArray()
+	for b: Node in host.find_children("*", "Button", true, false):
+		texts.append((b as Button).text)
+	host.free()
+	_check("on Google Play the video prompt also offers the pack",
+		texts == PackedStringArray(["Watch", "Remove ads, unlimited hints", "Not now"]))
+	# On Google Play, on the web, and for a Supporter: the title's heart, then whether one should show.
+	for case: Array in [[true, false, true], [false, false, false], [true, true, false]]:
+		supporter.set("on_play", case[0])
+		save.set("supporter", case[1])
+		var ui: Control = Control.new()
+		var gear: Control = Control.new()
+		gear.offset_left = -128.0
+		gear.offset_right = -32.0
+		supporter.call("add_title_button", ui, ui, gear)
+		_check("the title's heart shows on Google Play only, never for a Supporter (%s)" % [case],
+			(ui.get_child_count() == 1) == bool(case[2]))
+		ui.free()
+		gear.free()
+	supporter.set("on_play", old[0])
+	save.set("supporter", old[1])
+
+func _test_play_screen_banner() -> void:
+	var hud: GDScript = load("res://kit/shell/hud.gd")
+	var ads: GDScript = load("res://kit/monetize/ads.gd")
+	_check("no banner, no lift", is_zero_approx(float(hud.call("banner_lift", 0.0))))
+	var height: float = 120.0
+	var lift: float = hud.call("banner_lift", height)
+	_check("the bottom row clears a banner by the gap",
+		is_equal_approx(lift + float(hud.get("BOTTOM_LIFT")) - height, float(hud.get("BANNER_GAP"))))
+	var save: Node = root.get_node("Save")
+	var old: Array = [save.get("stars"), ads.get("preview")]
+	var stars: PackedByteArray = PackedByteArray()
+	stars.resize(int(root.get_node("Pack").call("count")))
+	for i: int in range(int(AdPacing.BANNER_AFTER)):
+		stars[i] = 3
+	save.set("stars", stars)
+	var host: Control = Control.new()
+	root.add_child(host)
+	ads.set("preview", true)
+	var room: float = ads.call("expected_banner_height", host)
+	_check("a play screen holds the banner's room before the ad loads (%.0f)" % room, room >= 50.0)
+	ads.set("preview", false)
+	_check("and none where no ad can show", is_zero_approx(float(ads.call("expected_banner_height", host))))
+	host.free()
+	save.set("stars", old[0])
+	ads.set("preview", old[1])
 
 # A line that cannot wrap widens the whole sheet past the screen, as one long credit once did.
 func _test_sheets_fit_a_phone() -> void:
