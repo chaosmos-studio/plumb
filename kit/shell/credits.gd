@@ -12,6 +12,7 @@ static func open(host: Node) -> Sheet:
 	c.add_child(UI.title("Credits", 56))
 	var scroll: ScrollContainer = ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	var height: float = host.get_viewport().get_visible_rect().size.y * MAX_HEIGHT
 	scroll.custom_minimum_size = Vector2(0, height)
 	c.add_child(scroll)
