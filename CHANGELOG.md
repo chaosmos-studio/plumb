@@ -18,7 +18,8 @@ To ship: add a new section at the top, push, then Actions > Release Android > Ru
 
 ## 1.0.1 - 2026-10-02
 
-- Settings, hints and every other panel now open all the way on every phone.
+- Panels open all the way on every phone, and a swipe down closes them.
+- Swipe the level grid sideways to turn the page.
 - A quicker start: two marbles from level 4 and a second colour from level 9.
 - The icon shows whole on your home screen, and the game opens with a little spin.
 - The Supporter pack is a tap away from the title screen and the hint prompt.
