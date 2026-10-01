@@ -29,7 +29,7 @@ static func open(host: Node) -> Sheet:
 	links.add_theme_constant_override("separation", 20)
 	if Supporter.on_play:
 		links.add_child(_link("Privacy", GameCredits.PRIVACY, UI.Style.SECONDARY))
-		links.add_child(_link("Support", GameCredits.SUPPORT, UI.Style.GHOST))
+		links.add_child(_link("Help", GameCredits.SUPPORT, UI.Style.GHOST))
 	else:
 		links.add_child(_link("Website", GameCredits.WEBSITE, UI.Style.SECONDARY))
 		links.add_child(_link("Privacy", GameCredits.PRIVACY, UI.Style.GHOST))

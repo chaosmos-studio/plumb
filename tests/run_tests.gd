@@ -15,6 +15,10 @@ const CONTRAST: Array = [["ink", "bg", 7.0], ["ink", "surface", 7.0], ["muted", 
 
 var _passed: int = 0
 var _failed: int = 0
+## Set by a test to open a sheet from _process, which runs just before process_frame: where a tap lands
+## on a fast-refresh phone's frame that had no physics step to lay the new sheet out first.
+var _open_in_process: Callable = Callable()
+var _opened: Control
 
 func _initialize() -> void:
 	_test_input_map_is_wired()
@@ -42,8 +46,18 @@ func _initialize() -> void:
 	_test_about_variants()
 	_test_finale_variants()
 	_test_support_and_hint_sheets()
+	# The root takes new children only once _initialize has handed control back to the engine.
+	await process_frame
+	_test_sheets_fit_a_phone()
+	await _test_sheet_rises_before_layout()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
+
+func _process(_delta: float) -> bool:
+	if _open_in_process.is_valid():
+		_opened = _open_in_process.call()
+		_open_in_process = Callable()
+	return false
 
 func _check(name: String, cond: bool) -> void:
 	if cond:
@@ -493,11 +507,11 @@ func _test_about_variants() -> void:
 	var old: bool = supporter.get("on_play")
 	supporter.set("on_play", true)
 	var play: PackedStringArray = _buttons(about)
-	_check("About on Google Play links to Privacy and Support", play.has("Privacy") and play.has("Support"))
+	_check("About on Google Play links to Privacy and Help", play.has("Privacy") and play.has("Help"))
 	_check("and not to the website, which has sponsor links", not play.has("Website"))
 	supporter.set("on_play", false)
 	var web: PackedStringArray = _buttons(about)
-	_check("About on the web links to the website and Privacy", web.has("Website") and web.has("Privacy") and not web.has("Support"))
+	_check("About on the web links to the website and Privacy", web.has("Website") and web.has("Privacy") and not web.has("Help"))
 	supporter.set("on_play", old)
 
 func _test_finale_variants() -> void:
@@ -546,6 +560,45 @@ func _test_support_and_hint_sheets() -> void:
 	supporter.set("on_play", old[0])
 	supporter.set("price", old[1])
 	save.set("supporter", old[2])
+
+# A line that cannot wrap widens the whole sheet past the screen, as one long credit once did.
+func _test_sheets_fit_a_phone() -> void:
+	var design_width: float = float(ProjectSettings.get_setting("display/window/size/viewport_width"))
+	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
+	var old: bool = supporter.get("on_play")
+	var openers: Dictionary = {
+		"settings": load("res://kit/shell/settings.gd"),
+		"about": load("res://kit/shell/about.gd"),
+		"credits": load("res://kit/shell/credits.gd"),
+		"supporter": supporter,
+	}
+	for play: bool in [true, false]:
+		supporter.set("on_play", play)
+		for kind: String in openers:
+			var host: Control = Control.new()
+			root.add_child(host)
+			var sheet: Control = (openers[kind] as GDScript).call("open", host)
+			var width: float = (sheet.get("_panel") as Control).get_combined_minimum_size().x
+			_check("the %s sheet fits a phone's width (%.0f of %.0f)" % [kind, width, design_width], width <= design_width)
+			host.free()
+	supporter.set("on_play", old)
+
+func _test_sheet_rises_before_layout() -> void:
+	var settings: GDScript = load("res://kit/shell/settings.gd")
+	var canvas: CanvasLayer = CanvasLayer.new()
+	root.add_child(canvas)
+	var host: Control = Control.new()
+	host.set_anchors_preset(Control.PRESET_FULL_RECT)
+	canvas.add_child(host)
+	_open_in_process = func() -> Control: return settings.call("open", host)
+	while _open_in_process.is_valid():
+		await process_frame
+	await create_timer(0.8).timeout
+	var view: Rect2 = _opened.get_viewport_rect()
+	var panel: Rect2 = (_opened.get("_panel") as Control).get_global_rect()
+	_check("a sheet opened before layout still rises fully (top %.0f, bottom %.0f of %.0f)" % [panel.position.y, panel.end.y, view.size.y],
+		absf(panel.end.y - view.size.y) < 2.0 and panel.position.y >= 0.0)
+	canvas.free()
 
 ## An ad network whose consent message asks for privacy choices.
 class _ConsentAds extends AdBackend:

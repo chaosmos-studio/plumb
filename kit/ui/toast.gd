@@ -47,13 +47,17 @@ func _ready() -> void:
 	var margins: float = get_theme_stylebox("panel").get_minimum_size().x
 	var text_width: float = UI.ui_font().get_string_size(_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
 	_label.custom_minimum_size.x = minf(ceilf(text_width) + 2.0, get_viewport_rect().size.x - SIDE_ROOM - margins)
-	await get_tree().process_frame
-	var view: Vector2 = get_viewport_rect().size
-	size.x = minf(size.x, view.x - SIDE_ROOM)
-	position = Vector2((view.x - size.x) * 0.5, view.y - FROM_BOTTOM)
+	# Anchored at the bottom centre rather than measured, since its size may only be laid out frames later.
+	set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	grow_horizontal = Control.GROW_DIRECTION_BOTH
+	grow_vertical = Control.GROW_DIRECTION_END
+	offset_left = 0.0
+	offset_right = 0.0
+	offset_top = -FROM_BOTTOM
+	offset_bottom = -FROM_BOTTOM
 	var t: Tween = create_tween()
 	t.tween_property(self, "modulate:a", 1.0, 0.18)
-	t.parallel().tween_property(self, "position:y", position.y - 16.0, 0.24).set_ease(Tween.EASE_OUT)
+	t.parallel().tween_property(self, "offset_top", -FROM_BOTTOM - 16.0, 0.24).set_ease(Tween.EASE_OUT)
 	t.tween_interval(HOLD)
 	t.tween_property(self, "modulate:a", 0.0, 0.3)
 	t.tween_callback(func() -> void: get_parent().queue_free())

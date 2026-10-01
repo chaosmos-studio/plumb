@@ -33,6 +33,7 @@ static func _section(list: VBoxContainer, title: String, items: Array) -> void:
 		var item: Dictionary = entry
 		var name_label: Label = UI.label(String(item["name"]), 30)
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		list.add_child(name_label)
 		var detail: Label = UI.label(String(item["detail"]), 24, Brand.MUTED)
 		detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT

@@ -16,7 +16,13 @@ const LAYER: int = 60
 var content: VBoxContainer
 var dismissable: bool = true
 var _scrim: ColorRect
+## The panel stays where its anchors put it; this full-screen holder is what slides, by `_drop` of the
+## panel's current height. On a frame with no physics step Godot lays the panel out only after the next
+## process_frame, so its height is not known when the sheet opens: it is measured on every step instead.
+var _slide: Control
 var _panel: PanelContainer
+var _drop: float = 1.0
+var _motion: Tween
 var _closing: bool = false
 
 ## Opens a sheet over `host`, and over the layer `host` is drawn on if that is higher, as for the ending.
@@ -43,6 +49,10 @@ func _init() -> void:
 	_scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_scrim.gui_input.connect(_on_scrim_input)
 	add_child(_scrim)
+	_slide = Control.new()
+	_slide.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_slide.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_slide)
 	_panel = PanelContainer.new()
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = Brand.SURFACE
@@ -58,7 +68,7 @@ func _init() -> void:
 	_panel.add_theme_stylebox_override("panel", style)
 	_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	add_child(_panel)
+	_slide.add_child(_panel)
 	var column: VBoxContainer = VBoxContainer.new()
 	column.add_theme_constant_override("separation", 26)
 	_panel.add_child(column)
@@ -76,24 +86,26 @@ func _exit_tree() -> void:
 	Ads.cover(false)
 
 func _ready() -> void:
-	_rise()
+	# Below the screen whatever the panel's height turns out to be, until the first step measures it.
+	_slide.position.y = get_viewport_rect().size.y
+	_motion = create_tween().set_parallel(true)
+	_motion.tween_method(_set_drop, 1.0, 0.0, RISE_TIME).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+	_motion.tween_property(_scrim, "color:a", SCRIM_ALPHA, RISE_TIME)
 
-func _rise() -> void:
-	await get_tree().process_frame
-	var rest: float = _panel.position.y
-	_panel.position.y = rest + _panel.size.y + 40.0
-	var t: Tween = create_tween().set_parallel(true)
-	t.tween_property(_panel, "position:y", rest, RISE_TIME).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
-	t.tween_property(_scrim, "color:a", SCRIM_ALPHA, RISE_TIME)
+func _set_drop(drop: float) -> void:
+	_drop = drop
+	_slide.position.y = drop * (_panel.size.y + 40.0)
 
 func close() -> void:
 	if _closing:
 		return
 	_closing = true
-	var t: Tween = create_tween().set_parallel(true)
-	t.tween_property(_panel, "position:y", _panel.position.y + _panel.size.y + 40.0, FALL_TIME).set_ease(Tween.EASE_IN)
-	t.tween_property(_scrim, "color:a", 0.0, FALL_TIME)
-	await t.finished
+	if _motion != null:
+		_motion.kill()
+	_motion = create_tween().set_parallel(true)
+	_motion.tween_method(_set_drop, _drop, 1.0, FALL_TIME).set_ease(Tween.EASE_IN)
+	_motion.tween_property(_scrim, "color:a", 0.0, FALL_TIME)
+	await _motion.finished
 	closed.emit()
 	get_parent().queue_free()
 
