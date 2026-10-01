@@ -18,9 +18,11 @@ To ship: add a new section at the top, push, then Actions > Release Android > Ru
 
 ## 1.0.1 - 2026-10-02
 
-- Settings, hints and every other panel now open all the way on every phone, fast-refresh screens included.
-- The credits fit on the screen.
-- In About, the link to the help page is now called Help.
+- Settings, hints and every other panel now open all the way on every phone.
+- A quicker start: two marbles from level 4 and a second colour from level 9.
+- The icon shows whole on your home screen, and the game opens with a little spin.
+- The Supporter pack is a tap away from the title screen and the hint prompt.
+- The credits fit on the screen, and About's help link is now called Help.
 
 ## 1.0.0
 
