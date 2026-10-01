@@ -4,12 +4,16 @@ A design for review. Nothing here is built yet.
 
 ## The idea
 
-500 levels as 25 chapters of 20. Each chapter brings one new rule. Its first level shows that rule alone on
-a small, easy board, with a one-line caption. The next few levels explore it, and the rest of the chapter
-mixes it with one or two rules the player already knows. Difficulty climbs inside a chapter and dips a
-little at the start of the next, the sawtooth that keeps a long puzzle game fresh (Portal, Baba Is You,
-Stephen's Sausage Roll all pace this way). A chapter is exactly one page of the Levels screen, so the page
-can carry its name.
+500 levels as 25 chapters of 20, and room for more chapters after them. Each chapter brings one new rule.
+Its first level makes that rule the thing to notice, with a one-line caption, and the rest of the chapter
+explores it and mixes it with rules the player already knows. A chapter is exactly one page of the Levels
+screen, so the page can carry its name.
+
+**Difficulty never drops, across all 500 levels.** Every level is at least as hard as the one before it,
+chapter starts included: the measured difficulty (par and bits, `MATH.md` section 5) rises steadily from
+level 1 to the last, the way it does in the 120 levels today. A chapter's first level is not an easier
+board. The new rule is simple on its own, and the rest of the board carries the difficulty the ramp asks
+for at that point, so the rule is learnt without the game getting easier.
 
 Every rule must keep the two promises the game already makes: the solver proves every level and finds par,
 and no level repeats another. So each rule below is something the tilt solver can search and the generator
@@ -58,7 +62,8 @@ grows); L changes how a tilt resolves.
 ## The 25 chapters
 
 Twenty-one new rules after the four the game already has, chosen for how well they read on a phone, how
-well they combine, and what they cost. Chapter 25 brings no new rule and mixes everything: the finale.
+well they combine, and what they cost. Chapter 25 brings no new rule: it mixes every rule so far, and new
+chapters can follow it in later updates.
 
 | Chapter | Levels | New rule | Mixed with |
 | --- | --- | --- | --- |
@@ -86,7 +91,7 @@ well they combine, and what they cost. Chapter 25 brings no new rule and mixes e
 | 22 | 421-440 | Glass posts | stones |
 | 23 | 441-460 | Colour mixing | paint pads, colour gates |
 | 24 | 461-480 | Moving holes | stop pads |
-| 25 | 481-500 | Finale: everything | all |
+| 25 | 481-500 | Every rule so far, mixed | all |
 
 Held in reserve for later updates: locked direction, twin marbles, hole capacity, ice holes, mirror halves,
 turnstiles, gravity cells, sticky floor, fragile marbles.
@@ -111,4 +116,4 @@ In waves, each one a store update players can feel:
 | 1.1 | 1 to 10 | 200 | stop pads, one-way gates, plugs, colour gates, paint pads, cracked floor |
 | 1.2 | 11 to 15 | 300 | stones, portals, bumpers, switches, keys |
 | 1.3 | 16 to 20 | 400 | blinking walls, conveyors, springs, wrap edges, magnets |
-| 1.4 | 21 to 25 | 500 | numbered marbles, glass posts, colour mixing, moving holes, the finale |
+| 1.4 | 21 to 25 | 500 | numbered marbles, glass posts, colour mixing, moving holes, every rule mixed |
