@@ -2,14 +2,18 @@
 
 Run from the project root: python3 tools/make_icons.py   (needs Pillow)
 
-Writes web/ (favicons, touch icon, 192/512 app icons) and assets/branding/icon.png (the project icon,
-also the source for the Play Store's 512 icon). Drawn at 4x and downsampled, which is the cheap way to
+Writes web/ (favicons, touch icon, 192/512 app icons), assets/branding/icon.png (the project icon,
+also the source for the Play Store's 512 icon) and the Android adaptive icon's two layers beside it. Drawn at 4x and downsampled, which is the cheap way to
 get clean anti-aliased edges out of PIL.
 """
 
 import os
+import sys
 
 from PIL import Image, ImageDraw, ImageFilter
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "kit", "tools"))
+from adaptive_icon import write_adaptive  # noqa: E402
 
 PAPER = (243, 237, 227)
 TRAY = (226, 216, 200)
@@ -18,14 +22,15 @@ CORAL_RIM = (199, 83, 83)
 SUPER = 4
 
 
-def icon(size, rounded=True):
+def icon(size, rounded=True, backdrop=True):
     s = size * SUPER
     img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    radius = int(s * 0.22) if rounded else 0
-    d.rounded_rectangle([0, 0, s - 1, s - 1], radius=radius, fill=PAPER)
-    inset = int(s * 0.14)
-    d.rounded_rectangle([inset, inset, s - inset, s - inset], radius=int(s * 0.12), fill=TRAY)
+    if backdrop:
+        radius = int(s * 0.22) if rounded else 0
+        d.rounded_rectangle([0, 0, s - 1, s - 1], radius=radius, fill=PAPER)
+        inset = int(s * 0.14)
+        d.rounded_rectangle([inset, inset, s - inset, s - inset], radius=int(s * 0.12), fill=TRAY)
     # Shadow, rim, body, gloss: the same layering the game draws marbles with.
     cx, cy, r = s * 0.5, s * 0.5, s * 0.25
     shadow = Image.new("RGBA", (s, s), (0, 0, 0, 0))
@@ -63,7 +68,9 @@ def main():
     icon(192).save("web/icon-192.png")
     icon(512).save("web/icon-512.png")
     icon(512, rounded=False).save("assets/branding/icon.png")
-    print("wrote web/ icons and assets/branding/icon.png")
+    # On the phone the mask shows only the tray, so the adaptive icon is the marble on the tray's colour.
+    write_adaptive(lambda n: icon(n, rounded=False, backdrop=False), lambda n: Image.new("RGBA", (n, n), TRAY + (255,)))
+    print("wrote web/ icons, assets/branding/icon.png and the adaptive icon layers")
 
 
 if __name__ == "__main__":
