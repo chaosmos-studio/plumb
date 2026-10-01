@@ -16,6 +16,12 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
+## 1.0.1 - 2026-10-02
+
+- Settings, hints and every other panel now open all the way on every phone, fast-refresh screens included.
+- The credits fit on the screen.
+- In About, the link to the help page is now called Help.
+
 ## 1.0.0
 
 - Swipe to tilt the board and every marble rolls at once. Roll each one into the hole of its own colour.
