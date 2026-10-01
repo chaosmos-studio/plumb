@@ -52,6 +52,8 @@ func _initialize() -> void:
 	_test_sheets_fit_a_phone()
 	_test_play_screen_banner()
 	await _test_sheet_rises_before_layout()
+	await _test_sheet_drags_closed()
+	await _test_levels_swipe()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -658,6 +660,51 @@ func _test_sheet_rises_before_layout() -> void:
 	_check("a sheet opened before layout still rises fully (top %.0f, bottom %.0f of %.0f)" % [panel.position.y, panel.end.y, view.size.y],
 		absf(panel.end.y - view.size.y) < 2.0 and panel.position.y >= 0.0)
 	canvas.free()
+
+func _test_sheet_drags_closed() -> void:
+	var settings: GDScript = load("res://kit/shell/settings.gd")
+	var canvas: CanvasLayer = CanvasLayer.new()
+	root.add_child(canvas)
+	var host: Control = Control.new()
+	host.set_anchors_preset(Control.PRESET_FULL_RECT)
+	canvas.add_child(host)
+	var sheet: Control = settings.call("open", host)
+	await create_timer(0.6).timeout
+	var panel: Control = sheet.get("_panel")
+	var grip: Vector2 = panel.get_global_rect().position + Vector2(panel.size.x * 0.5, 30.0)
+	_touch_drag(sheet, grip, grip + Vector2(0.0, 40.0))
+	await create_timer(0.4).timeout
+	_check("a short drag down springs the sheet back", is_instance_valid(sheet) and is_zero_approx(float(sheet.get("_drop"))))
+	_touch_drag(sheet, grip, grip + Vector2(0.0, panel.size.y * 0.6))
+	await create_timer(0.5).timeout
+	_check("a long drag down closes it", not is_instance_valid(sheet))
+	canvas.free()
+
+func _test_levels_swipe() -> void:
+	var levels: Node = load(Brand.LEVELS_SCENE).instantiate()
+	root.add_child(levels)
+	await process_frame
+	var first: int = levels.get("_page")
+	var step: int = -1 if first > 0 else 1
+	var mid: Vector2 = (levels.get("_centre") as Control).get_global_rect().get_center()
+	_touch_drag(levels, mid, mid + Vector2(-200.0 * step, 10.0))
+	_check("a sideways swipe on the grid turns the page", int(levels.get("_page")) == first + step)
+	levels.queue_free()
+	await process_frame
+
+## A finger pressed at `from`, moved to `to` in a few steps and lifted, handed to `target`'s _input.
+func _touch_drag(target: Node, from: Vector2, to: Vector2) -> void:
+	var press: InputEventScreenTouch = InputEventScreenTouch.new()
+	press.pressed = true
+	press.position = from
+	target.call("_input", press)
+	for k: int in range(1, 6):
+		var move: InputEventScreenDrag = InputEventScreenDrag.new()
+		move.position = from.lerp(to, k / 5.0)
+		target.call("_input", move)
+	var lift: InputEventScreenTouch = InputEventScreenTouch.new()
+	lift.position = to
+	target.call("_input", lift)
 
 ## An ad network whose consent message asks for privacy choices.
 class _ConsentAds extends AdBackend:

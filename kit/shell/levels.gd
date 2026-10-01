@@ -20,7 +20,9 @@ var _grid: GridContainer
 var _dots: _PageDots
 var _prev: IconButton
 var _next: IconButton
-var _drag_from: float = -1.0
+var _drag_from: Vector2 = Vector2(-1.0, -1.0)
+## Set when a swipe turns the page, so the tile the finger lifted on is not opened as well.
+var _swiped: bool = false
 var _pager: HBoxContainer
 var _centre: CenterContainer
 var _floor: float = PAGER_FLOOR
@@ -55,7 +57,6 @@ func _ready() -> void:
 	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
 	centre.offset_top = 200.0 + float(safe["top"])
 	centre.mouse_filter = Control.MOUSE_FILTER_PASS
-	centre.gui_input.connect(_on_grid_input)
 	ui.add_child(centre)
 	_grid = GridContainer.new()
 	_grid.columns = COLUMNS
@@ -125,16 +126,23 @@ func _star_chip() -> Control:
 func _pages() -> int:
 	return int(ceil(Pack.count() / float(PER_PAGE)))
 
-func _on_grid_input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch:
-		var touch: InputEventScreenTouch = event
-		if touch.pressed:
-			_drag_from = touch.position.x
-		elif _drag_from >= 0.0:
-			var dx: float = touch.position.x - _drag_from
-			_drag_from = -1.0
-			if absf(dx) >= SWIPE:
-				_show(_page + (1 if dx < 0.0 else -1), 1 if dx < 0.0 else -1)
+## Swipes are read before the GUI, since nearly all of the grid is tiles, which would keep the touch for
+## themselves. A sideways swipe anywhere on the grid turns the page.
+func _input(event: InputEvent) -> void:
+	if not event is InputEventScreenTouch or (event as InputEventScreenTouch).index != 0 or Sheet.any_open():
+		return
+	var touch: InputEventScreenTouch = event
+	if touch.pressed:
+		_swiped = false
+		_drag_from = touch.position if _centre.get_global_rect().has_point(touch.position) else Vector2(-1.0, -1.0)
+		return
+	if _drag_from.x < 0.0:
+		return
+	var moved: Vector2 = touch.position - _drag_from
+	_drag_from = Vector2(-1.0, -1.0)
+	if absf(moved.x) >= SWIPE and absf(moved.x) > absf(moved.y):
+		_swiped = true
+		_show(_page + (1 if moved.x < 0.0 else -1), 1 if moved.x < 0.0 else -1)
 
 ## Shows a page; `from` slides the grid in from the right (1), the left (-1) or not at all (0).
 func _show(page: int, from: int) -> void:
@@ -148,6 +156,8 @@ func _show(page: int, from: int) -> void:
 	for i: int in range(_page * PER_PAGE, mini(Pack.count(), (_page + 1) * PER_PAGE)):
 		var tile: LevelTile = LevelTile.new(i, Save.best(i), Save.unlocked(i), i == frontier and Save.best(i) == 0)
 		tile.pressed.connect(func() -> void:
+			if _swiped:
+				return
 			Pack.current = i
 			_leave(Brand.GAME_SCENE))
 		_grid.add_child(tile)

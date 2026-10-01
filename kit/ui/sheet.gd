@@ -3,18 +3,32 @@ extends Control
 
 ## A bottom sheet: the screen dims, a rounded panel rises from the bottom, and whatever the caller puts
 ## in `content` sits in it. Results, failures and settings all use it, so every modal moves the same way.
-## The Levels screen's banner steps aside while any sheet is open.
+## A dismissable sheet closes on a tap on the dimmed area or a drag down on its panel. The banner steps
+## aside while any sheet is open.
 
 signal closed
 
 const RISE_TIME: float = 0.34
 const FALL_TIME: float = 0.22
+const SETTLE_TIME: float = 0.2
 const RADIUS: int = 52
 const SCRIM_ALPHA: float = 0.42
 const LAYER: int = 60
+## A drag down past this share of the panel's height closes the sheet on release, as does a flick faster
+## than FLICK pixels a second. Less than SLOP pixels of movement is still a tap, so a button pressed with a
+## shaky finger still works.
+const DRAG_CLOSE: float = 0.3
+const FLICK: float = 1400.0
+const SLOP: float = 14.0
+
+## Open sheets, newest last: only the top one follows a drag.
+static var _open: Array[Sheet] = []
 
 var content: VBoxContainer
 var dismissable: bool = true
+var _touch_from: float = -1.0
+var _dragging: bool = false
+var _flick: bool = false
 var _scrim: ColorRect
 ## The panel stays where its anchors put it; this full-screen holder is what slides, by `_drop` of the
 ## panel's current height. On a frame with no physics step Godot lays the panel out only after the next
@@ -40,6 +54,9 @@ static func open(host: Node, can_dismiss: bool = true) -> Sheet:
 	sheet.dismissable = can_dismiss
 	canvas.add_child(sheet)
 	return sheet
+
+static func any_open() -> bool:
+	return not _open.is_empty()
 
 func _init() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -80,9 +97,11 @@ func _init() -> void:
 	column.add_child(content)
 
 func _enter_tree() -> void:
+	_open.append(self)
 	Ads.cover(true)
 
 func _exit_tree() -> void:
+	_open.erase(self)
 	Ads.cover(false)
 
 func _ready() -> void:
@@ -115,6 +134,51 @@ func _on_scrim_input(event: InputEvent) -> void:
 	if (event is InputEventMouseButton and (event as InputEventMouseButton).pressed) or \
 			(event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed):
 		close()
+
+## The drag is read before the GUI, so it works wherever on the panel the finger lands, buttons and labels
+## included, except inside a list that scrolls, where a drag scrolls the list.
+func _input(event: InputEvent) -> void:
+	if not dismissable or _closing or _open.back() != self:
+		return
+	if event is InputEventScreenTouch and (event as InputEventScreenTouch).index == 0:
+		var touch: InputEventScreenTouch = event
+		if touch.pressed:
+			_touch_from = touch.position.y if _grabs(touch.position) else -1.0
+			_dragging = false
+			_flick = false
+		elif _touch_from >= 0.0:
+			_touch_from = -1.0
+			if _dragging:
+				_dragging = false
+				if _drop > DRAG_CLOSE or _flick:
+					close()
+				else:
+					_settle()
+	elif event is InputEventScreenDrag and _touch_from >= 0.0 and (event as InputEventScreenDrag).index == 0:
+		var drag: InputEventScreenDrag = event
+		var down: float = drag.position.y - _touch_from
+		if not _dragging and down > SLOP:
+			_dragging = true
+			if _motion != null:
+				_motion.kill()
+		if _dragging:
+			_set_drop(maxf(0.0, down - SLOP) / (_panel.size.y + 40.0))
+			_scrim.color.a = SCRIM_ALPHA * (1.0 - _drop)
+			_flick = drag.velocity.y > FLICK
+
+func _grabs(at: Vector2) -> bool:
+	if not _panel.get_global_rect().has_point(at):
+		return false
+	for scroll: Node in _panel.find_children("*", "ScrollContainer", true, false):
+		if (scroll as Control).get_global_rect().has_point(at):
+			return false
+	return true
+
+## Back up into place after a drag that did not go far enough.
+func _settle() -> void:
+	_motion = create_tween().set_parallel(true)
+	_motion.tween_method(_set_drop, _drop, 0.0, SETTLE_TIME).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_motion.tween_property(_scrim, "color:a", SCRIM_ALPHA, SETTLE_TIME)
 
 ## The small bar at the top of a sheet that says "this slides".
 class _Grip extends Control:
