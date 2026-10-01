@@ -22,7 +22,7 @@ the marble behind it in the same step: two marbles of one colour in a line both 
 
 ### Things to try
 
-- In `board.gd`, reverse the sort and play level 9, where two marbles start side by side: lines of
+- In `board.gd`, reverse the sort and play level 11, where two marbles start side by side: lines of
   marbles leave gaps. The solver still works, but par changes, which `tests/run_tests.gd` will report.
 
 `tilt()` is also the hot path of everything else: the generator makes millions of tilts. Its
@@ -39,7 +39,7 @@ as a string key, so two positions that differ only in which identical marble is 
 
 The state space is far smaller than it looks. After any tilt, most marbles rest against a wall or
 another marble, so few positions are reachable at all. Measured on the shipped set: the hardest level
-needs 1,616 positions before the search meets par, the average is 128, and re-solving all 120 levels
+needs 984 positions before the search meets par, the average is 122, and re-solving all 120 levels
 takes 0.6 seconds. Counting free cells would suggest billions.
 
 A position with a marble down a pit is never expanded: it can only be escaped by undo, which the search
@@ -64,8 +64,8 @@ levels it keeps (section 5), a rule for when two of them are the same (section 4
 from everything it kept, a run that climbs (section 6).
 
 The generator owns its RNG and shuffles with its own Fisher-Yates, so the level set depends on the seed
-alone: `tools/generate_levels.gd -- seed=2026` always writes the same file, byte for byte. Three runs
-of the shipped seed took 129 to 167 seconds on a machine running other jobs, nearly half of it in the
+alone: `tools/generate_levels.gd -- seed=2026` always writes the same file, byte for byte. Runs of the
+shipped seed take about two and a half minutes on a machine running other jobs, nearly half of it in the
 last phase.
 
 ---
@@ -116,7 +116,7 @@ chance that they clear the board in exactly par tilts. The level's score is
 
 the bits of luck a blind guess needs: each bit halves the chance. It is also what the game scores,
 since three stars means par. A level where one tilt in three wins is worth 1.6 bits; the last level of
-the new set is worth 18.4, a chance of about one in 350,000.
+the new set is worth 18.1, a chance of about one in 280,000.
 
 p is computed exactly, not sampled, on the graph the solver already builds (`TiltDifficulty.of`). A walk
 that wins in par tilts must stand, after d tilts, on a position first reached at depth d: if it ever
@@ -125,13 +125,13 @@ position shares its chance evenly among its moving tilts; chance that flows to a
 layer deeper is kept, chance that flows back, sideways or into a pit is lost, and whatever reaches a
 cleared board at depth par is p. It is the solver's own breadth-first search, finished to the end of its
 last layer, and measuring all 120 levels takes 0.7 seconds. A Monte Carlo player would need millions of
-games to see a one-in-350,000 event at all.
+games to see a one-in-280,000 event at all.
 
 Why it is the right proxy:
 
 - **Par is the backbone.** Along a single route with k moving tilts at each step, bits is the sum of
-  log2(k): par times the log of the branching. Across the new set bits runs from 1.0 to 1.7 per move of
-  par, and its correlation with par is 0.996.
+  log2(k): par times the log of the branching. Across the new set bits runs from 1.0 to 1.8 per move of
+  par, and its correlation with par is 0.995.
 - **At one par, it sees the rest.** A level with more tempting wrong tilts scores higher; one with more
   routes to par scores lower. More marbles mean fewer tilts that move nothing and fewer routes that work
   for all of them at once: in the old set, par-4 levels averaged 3.6 bits with one marble, 5.1 with two
@@ -143,7 +143,7 @@ Why it is the right proxy:
   tilt could reach a pit before par.
 
 The alternatives are weaker. Par alone has 13 values for 120 levels and sees nothing but length. The
-count of positions searched spans more than an order of magnitude at one par (41 to 1,201 among the new
+count of positions searched spans more than an order of magnitude at one par (24 to 450 among the new
 par-11 levels) and grows with marbles far faster than a level gets harder. It does serve as the
 tie-break: bits values sit on a lattice of sums of log2 of 1 to 4, so several levels can share one, and
 at equal bits the level with more positions closer than par, more for a planner to rule out, is the
@@ -153,9 +153,15 @@ harder one (`TiltDifficulty.easier_than`).
 
 ## 6. Filling a ramp that never dips
 
-Thirteen phases in `generator.gd` fix what a board holds. From phase to phase only growth is allowed:
-4x4 with one marble, then 5x5, two marbles sharing a hole, two colours, three marbles, pits on 6x6,
-three colours on 6x7, and so on up to 7x8 with four colours, eight marbles and three pits.
+Twelve phases in `generator.gd` fix what a board holds. From phase to phase only growth is allowed:
+4x4 with one marble, then two marbles sharing a hole on 5x5, two colours on 5x6, three marbles, pits on
+6x6, three colours on 6x7, and so on up to 7x8 with four colours, eight marbles and three pits.
+
+The single marble gets three levels and no more: one tilt, then two where the marble has to stop
+against something first. One marble is solved the moment it is seen, so a run of them teaches nothing
+new. An earlier schedule spent eight levels on it and reached a second colour only at level 17, long
+enough for a player to decide the game was dull. Now two marbles arrive at level 4 and two colours at 9,
+and the levels that freed go one each to the eight phases from three marbles on.
 
 The ramp gives every level a target par and a target in bits, along one curve:
 
@@ -172,7 +178,7 @@ chooses the phase's count of candidates in that order with par never falling, mi
     Σ 2 (par - par target)² + (bits - bits target)²  +  0.5 for each repeated bits value
 
 in O(pool² × count) steps. A phase's first level aims where the level before it aimed, so a second
-marble, a second colour or the first pit arrives without a step up: levels 9, 17 and 35, which is where
+marble, a second colour or the first pit arrives without a step up: levels 4, 9 and 28, which is where
 the tutorial captions land.
 
 Measured before and after:
@@ -182,7 +188,7 @@ Measured before and after:
 | par falls from one level to next   | 7 (at 11, 21, 36, 51, 71, 91, 106) | 0 |
 | easier than the level before       | 53                        | 0       |
 | biggest single rise                | 3.9 bits (level 99)       | 0.6     |
-| longest run at one bits value      | 3                         | 4       |
+| longest run at one bits value      | 3                         | 5       |
 | a marble taken away                | at 51 and 91              | never   |
 | near repeats                       | 53 pairs                  | 0       |
 
@@ -191,15 +197,15 @@ Levels at each par:
 | par     | 1 | 2 | 3 | 4 | 5  | 6  | 7  | 8  | 9  | 10 | 11 | 12 | 13 |
 |---------|---|---|---|---|----|----|----|----|----|----|----|----|----|
 | old set | 1 | 6 | 9 | 9 | 24 | 15 | 12 | 12 | 8  | 10 | 6  | 3  | 5  |
-| new set | 1 | 6 | 8 | 8 | 10 | 8  | 12 | 11 | 11 | 13 | 11 | 13 | 8  |
+| new set | 1 | 6 | 8 | 8 | 8  | 11 | 11 | 11 | 12 | 10 | 13 | 13 | 8  |
 
 Bits at levels 1, 11, 21 and so on to 111, then 120:
 
     old set  1.6  3.6  3.6  6.8  7.2  7.2  7.6  6.6 12.9 10.9 11.9 16.7  17.7
-    new set  1.6  4.2  6.2  7.2  8.9 10.2 11.3 12.7 13.9 14.9 15.9 17.1  18.4
+    new set  1.6  4.2  6.2  7.3  8.8 10.3 11.3 12.5 13.9 14.9 15.9 17.1  18.1
 
-The old tiers' marble counts went 1, 1, 2, 2, 4, 3, 6, 4, 8. The new phases' only grow: 1, 1, 1, 2, 2,
-3, 3, 4, 4, 5, 6, 6, 8.
+The old tiers' marble counts went 1, 1, 2, 2, 4, 3, 6, 4, 8. The new phases' only grow: 1, 1, 2, 2, 3,
+3, 4, 4, 5, 6, 6, 8.
 
 ### Things to try
 

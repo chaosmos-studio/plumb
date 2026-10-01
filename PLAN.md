@@ -48,15 +48,17 @@ same rules. No timers, no lives, no energy. No hand-made levels.
 
 ## 3. Difficulty
 
-Thirteen phases in `scripts/tilt/generator.gd` fix the board size, colours, marbles, wall density, pits
-and a par window, and from phase to phase each only grows: one marble on 4x4 at level 1, a second marble
-sharing its hole at level 9, a second colour at 17, the first pit at 35, and four colours, eight marbles
-and three pits on 7x8 from level 105. A random board is kept only if the solver proves it solvable
+Twelve phases in `scripts/tilt/generator.gd` fix the board size, colours, marbles, wall density, pits
+and a par window, and from phase to phase each only grows: one marble on 4x4 for levels 1 to 3 (one
+tilt, then a stop and a two-tilt route), a second marble sharing its hole at level 4, a second colour at
+9, the first pit at 28, and four colours, eight marbles and three pits on 7x8 from level 104. The opening
+is short on purpose: a board with one marble is solved before it is read, and eight of them in a row made
+the game look dull before it got going. A random board is kept only if the solver proves it solvable
 inside the window.
 
 Difficulty is measured, not guessed. The score is the bits of luck a player tilting at random needs to
 clear the board in par (`scripts/tilt/difficulty.gd`, `MATH.md` section 5). Each phase pools candidates
-and keeps the run that follows a ramp in both par and bits, par 1 to 13 and 1.6 to 18.4 bits over the
+and keeps the run that follows a ramp in both par and bits, par 1 to 13 and 1.6 to 18.1 bits over the
 120 levels, so neither ever falls from one level to the next. Each new mechanic arrives on a level no
 harder than the one before it.
 

@@ -230,7 +230,7 @@ func _tutorial() -> String:
 		return "Swipe to tilt the board"
 	if level == 1:
 		return "Every marble rolls until it hits something"
-	if level == 3:
+	if level == 2:
 		return "Par is the fewest moves possible"
 	if _first_sharing_a_hole():
 		return "One hole takes every marble of its colour"
