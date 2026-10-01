@@ -8,6 +8,10 @@
 
 config_version=5
 
+[admob]
+
+general/android/app_id="ca-app-pub-3135321730568420~4276024954"
+
 [application]
 
 config/name="Plumb"
