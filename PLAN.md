@@ -123,10 +123,10 @@ tested on their edges in `tests/run_tests.gd`.
   it, and its About links only to the site's Privacy and Support pages, which carry no sponsor links.
 
 The ids live in `monetize.gd` (`GameMonetize`): the AdMob app id, the banner, interstitial and rewarded
-units, and the product id. They are Google's test ids until the owner creates the real ones in AdMob; the
+units, and the product id. They are the real AdMob ids; debug builds load Google's test units instead. The
 project setting `admob/general/android/app_id` must stay equal to the app id, and a test checks it. Still
-the owner's to do: the AdMob app and units, the consent message in AdMob's Privacy and messaging, the
-`supporter` product in Play Console with license testers, and app-ads.txt at the domain's root.
+the owner's to do: the `supporter` product in Play Console with license testers, and linking the AdMob app
+to the Play listing once it is live.
 
 ## 6. Project architecture
 
