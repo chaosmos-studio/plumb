@@ -17,8 +17,22 @@ func _ready() -> void:
 	await _shoot_level(20, "level_021_won", false, true)
 	await _shoot_lost()
 	await _shoot_rolling(60, "level_061_rolling")
+	# A board from each chapter that brings a tile, one level in so the chapter card is not over it.
+	for c: int in range(4, Pack.chapters.size()):
+		await _shoot_level(Pack.chapter_first(c) + 1, "chapter_%02d" % (c + 1), false, false)
+	await _shoot_card(Pack.chapter_first(4))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://shots.cfg"))
 	get_tree().quit()
+
+## The first level of a chapter, with its card up.
+func _shoot_card(level: int) -> void:
+	Pack.current = level
+	var game: Node = load("res://scenes/game/game.tscn").instantiate()
+	add_child(game)
+	await get_tree().create_timer(0.8).timeout
+	await _save("chapter_card")
+	game.queue_free()
+	await get_tree().process_frame
 
 func _first_pit_level() -> int:
 	for i: int in range(Pack.count()):
@@ -39,7 +53,8 @@ func _shoot_level(level: int, name: String, hint: bool, solve: bool) -> void:
 	Pack.current = level
 	var game: Node = load("res://scenes/game/game.tscn").instantiate()
 	add_child(game)
-	for i: int in range(10):
+	# Long enough for every marble to have popped in.
+	for i: int in range(50):
 		await get_tree().process_frame
 	if hint:
 		for i: int in range(40):
