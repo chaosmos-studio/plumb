@@ -42,25 +42,31 @@ same rules. No timers, no lives, no energy. No hand-made levels.
 - **Holes** accept any number of marbles of their colour, the moment one rolls over them. Marbles roll
   straight over holes of other colours.
 - **Pits** (square voids) swallow any marble and lose the level. Undo is one tap.
+- **Tiles** from chapter 5 on, one new per chapter (`CHAPTERS.md`, `MATH.md` section 8): a stop pad halts a
+  marble that rolls onto it; a one-way gate lets marbles through in its own direction only; a ringed
+  hole, a plug, takes one marble and closes; a colour gate lets only its own colour through; paint turns a
+  marble its colour; cracked floor gives way into a pit once a marble rolls off it.
 - **Undo** steps back one tilt and gives the move back. **Restart** returns to the start. **Hint**
   points the way the solver would tilt next, from wherever the board is now.
 - A tilt that moves nothing is not a move: the tray twitches and nothing is counted.
 
 ## 3. Difficulty
 
-Twelve phases in `scripts/tilt/generator.gd` fix the board size, colours, marbles, wall density, pits
-and a par window, and from phase to phase each only grows: one marble on 4x4 for levels 1 to 3 (one
-tilt, then a stop and a two-tilt route), a second marble sharing its hole at level 4, a second colour at
-9, the first pit at 28, and four colours, eight marbles and three pits on 7x8 from level 104. The opening
-is short on purpose: a board with one marble is solved before it is read, and eight of them in a row made
-the game look dull before it got going. A random board is kept only if the solver proves it solvable
+Levels come in chapters of 20, one page of the Levels screen each (`CHAPTERS.md`). The first four teach
+the game itself: one marble on 4x4 for levels 1 to 3 (one tilt, then a stop and a two-tilt route), a
+second marble sharing its hole, a second and third colour, pits, and four colours on 7x7 by level 80.
+Each chapter after that brings one tile, taught by a card and a caption on its first level, and every
+one of its levels needs that tile: the same board without it solves in a different par, or not at all.
+Phases inside each chapter (`scripts/tilt/generator.gd`) fix the board size, colours, marbles, wall
+density, pits, tiles and a par window. A random board is kept only if the solver proves it solvable
 inside the window.
 
 Difficulty is measured, not guessed. The score is the bits of luck a player tilting at random needs to
 clear the board in par (`scripts/tilt/difficulty.gd`, `MATH.md` section 5). Each phase pools candidates
-and keeps the run that follows a ramp in both par and bits, par 1 to 13 and 1.6 to 18.1 bits over the
-120 levels, so neither ever falls from one level to the next. Each new mechanic arrives on a level no
-harder than the one before it.
+and keeps the run that follows a ramp in both par and bits, pinned to the 500 levels planned, so that
+neither ever falls from one level to the next, chapter starts included, and no more than five levels in a
+row share a score. The 200 levels of 1.1 run from par 1 and 1.6 bits to par 14 and 22.8 bits (`MATH.md`
+section 8).
 
 No level repeats another. Compared over the eight rotations and mirrors with colour ignored, two boards
 of one size must differ in 30% of their cells, or in half of them when one solution clears both
@@ -68,8 +74,9 @@ of one size must differ in 30% of their cells, or in half of them when one solut
 
 The fairness invariants, all checked from the boards by `tests/run_tests.gd` on every run: every shipped
 level solves in exactly its stated par under the current rules, no level replays another, none is easier
-than the one before, par never falls, no level takes away room, a colour, a marble or a pit, and every
-pit level has a pit in play. A rule change can never silently break the level set.
+than the one before, par never falls, no more than five in a row are equally hard, within a chapter no
+level takes away room, a colour, a marble or a pit, and every pit level has a pit in play. A rule change
+can never silently break the level set.
 
 ## 4. Screens
 
@@ -163,8 +170,9 @@ generator are Plumb's own.
 - **M1 - The full loop**: title, level select, stars, progress, sounds, web preview. Done.
 - **M2 - Feel pass**: marble trails, marbles popping in at level start, and an ambient music loop with its
   own toggle are done. Still to do: a tray light that follows the tilt.
-- **M3 - Content**: new tile types generated the same way (one-way arrows, ice, sticky floor) past
-  level 120, and daily puzzles from a date seed.
+- **M3 - Content**: 500 levels in 25 chapters, one new rule each (`CHAPTERS.md`), shipped in waves. 1.1,
+  chapters 1 to 10 with stop pads, one-way gates, plugs, colour gates, paint and cracked floor: built.
+  1.2 to 1.4, chapters 11 to 25: designed. Daily puzzles from a date seed may follow.
 - **M4 - Monetization**: the Levels banner, paced interstitials on Next level, rewarded hints past the
   free ones, UMP consent, and the Supporter pack through Play Billing. Built and tested headless (unit
   tests and the smoke robot against a stand-in ad network); a CI dry run proves the Android build carries

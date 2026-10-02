@@ -153,6 +153,10 @@ harder one (`TiltDifficulty.easier_than`).
 
 ## 6. Filling a ramp that never dips
 
+This section is the 120-level set of 1.0, where the idea was worked out. Since 1.1 the phases sit in
+chapters and the ramp runs over 500 levels (section 8), but the pools and the dynamic program are the
+same.
+
 Twelve phases in `generator.gd` fix what a board holds. From phase to phase only growth is allowed:
 4x4 with one marble, then two marbles sharing a hole on 5x5, two colours on 5x6, three marbles, pits on
 6x6, three colours on 6x7, and so on up to 7x8 with four colours, eight marbles and three pits.
@@ -225,7 +229,107 @@ because two extra moves on a par-2 board is a different solve, while four extra 
 still a good one. Par still runs from 1 to 13, so the leeway runs from 2 to 7 as before; what changed is
 that it now grows steadily, since par never falls from one level to the next.
 
-## 8. The title seesaw: one dimension of physics
+## 8. Chapters: a rule every level has to need
+
+From chapter 5 on, each chapter adds one tile (`scripts/tilt/board.gd`, `CHAPTERS.md`): stop pads, one-way
+gates, plugs, colour gates, paint and cracked floor. Each one is a small change to section 1's step loop,
+which is why the simulation stays front first and one cell per step:
+
+- a marble may enter a cell only if `enterable` says so: not a wall, a gate only along its own direction,
+  a colour gate only in its own colour;
+- a marble that enters a stop pad is marked halted and skipped for the rest of the tilt, so the ones
+  behind it stop against it as they would against a wall;
+- paint changes a marble's colour as it enters, so the hole check that follows uses the new colour;
+- a plug that takes a marble becomes floor, and cracked floor becomes a pit once a marble has rolled
+  off it.
+
+The last two change the board itself, not just where the marbles are, so section 2's solver key needs
+them. Both changes are permanent, so the set of them is the whole difference: the key is the sorted
+marbles, then the sorted list of changes. Two boards with the marbles in the same places but one crack
+gone are different positions, and the search keeps them apart.
+
+**A level must need its chapter's rule.** A random board with a stop pad on it will often solve just as
+well without the pad, and a level like that teaches nothing. So every candidate in a chapter is solved a
+second time with that chapter's tiles turned back into plain floor (or its plugs into ordinary holes), and
+kept only if that plain board's par is different. Rules come in two kinds, and the test catches both:
+
+- a rule that helps (a stop pad, paint) shows by the plain board getting harder or unsolvable;
+- a rule that restricts (a gate, a plug, cracked floor) shows by the plain board getting easier.
+
+An early version kept a candidate only when the plain board got harder, which suits stop pads but almost
+never passes for plugs: taking a plug away only ever gives the marbles more room. Chapter 7 stalled at
+4 candidates from 15,000 proposals.
+
+The second search only has to look `par` moves deep: finding a shorter solution, or proving there is
+none of length par, settles it. Breadth-first order makes that bound free (stop expanding at depth par),
+and it keeps the second search no bigger than the first. A search that hits its state limit first proves
+nothing either way, so that candidate is turned down rather than counted as needing its rule.
+
+**The window moves with the levels.** Section 6's pool takes candidates within a bit of the ramp, but
+par and bits may never fall, so once the levels run ahead of the ramp (by level 120 they sit at 14.3 bits
+against a target of 13.65) the window's upper edge comes down to meet the last level and the pool
+starves. Now a phase that starts ahead shifts its whole window up by how far ahead it is. The dynamic
+program still aims at the ramp itself, so it keeps choosing the lowest candidates it can, and the levels
+drift back toward the curve whenever the pools allow.
+
+Aiming at a ramp below the levels has a side effect: the cheapest run is the lowest candidate over and
+over, and chapter 7 came out as ten levels at exactly 15.1 bits. Two fixes were tried:
+
+- Aim at the ramp raised by the same amount as the window. Each phase then aims a little above where the
+  last one ended, the `FLAT` cost for a repeat (0.5) is more than an overshoot of 0.7 bits costs, and the
+  overshoots compound: by level 110 the levels were 3.5 bits above the ramp and still climbing.
+- Keep aiming at the ramp, and allow no more than 3 levels in a row on one bits value. Small boards come
+  in few distinct values, so every forced step was a jump of up to 0.6 bits, the early chapters ran far
+  ahead, and chapter 4 had nothing left to climb to.
+- Keep aiming at the ramp, and make a plateau dearer the longer it runs: extending a run of `m` equal
+  levels costs `FLAT × m`, so a run of five costs 0.5 + 1 + 1.5 + 2 = 5, and `RUN` = 5 is a hard limit
+  behind that. The program's state becomes (candidate, how many levels in a row end on its value), as in
+  Apsis's play order, and the run carries over phase boundaries. This is the one kept: chapters 1 to 6
+  climb with no run longer than five, and the levels sit about two bits above the ramp by level 120.
+
+**The ramp runs over 500 levels**, the whole planned game, not the chapters made so far. Section 6's curve
+is now
+
+    t = (i / 499)^0.55        par = 1 + 15 t        bits = 1.6 + 26.4 t
+
+so the 200 levels made today aim exactly where they will sit in the finished game, and adding the next
+chapters later leaves them, and every player's stars on them, as they are.
+
+The shipped 200, measured (bits from the generator's own measure, rounded):
+
+| Chapter | Levels | Boards | Marbles | Par | Bits | Ramp at the chapter's end |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 Roll home | 1-20 | 4x4 to 5x6 | 1-2 | 1-4 | 1.6-6.2 | 6.0 |
+| 2 Three colours | 21-40 | 5x6, 6x6 | 3 | 4-6 | 6.2-8.6 | 8.1 |
+| 3 Pits | 41-60 | 6x6 | 3-4 | 6-7 | 8.6-10.5 | 9.8 |
+| 4 Four colours | 61-80 | 6x7, 7x7 | 4-5 | 7-8 | 10.9-13.1 | 11.2 |
+| 5 Stop pads | 81-100 | 6x7, 7x7 | 4-5 | 8-9 | 13.2-14.5 | 12.4 |
+| 6 One-way gates | 101-120 | 6x7, 7x7 | 4-5 | 9-10 | 14.5-15.5 | 13.6 |
+| 7 Plugs | 121-140 | 7x7 | 5 | 10-11 | 15.7-17.1 | 14.7 |
+| 8 Colour gates | 141-160 | 7x7, 7x8 | 5 | 11-13 | 17.3-18.7 | 15.7 |
+| 9 Paint | 161-180 | 7x7, 7x8 | 5 | 13 | 18.7-20.4 | 16.6 |
+| 10 Cracked floor | 181-200 | 7x7, 7x8 | 5 | 14 | 20.7-22.8 | 17.5 |
+
+The first four chapters follow the ramp closely. From chapter 5 the levels run ahead of it, by about
+five bits at level 200, because a board that needs its tile is harder than a plain one of the same size.
+They still never fall, and no more than 5 in a row share a value. That leaves a gentler climb, about 5 bits
+over 300 levels, for the chapters to come, which suits boards that are already as large as a phone shows
+well.
+
+### Things to try
+
+- Comment out the `needs` check in `add_phase` and regenerate chapter 5: count how many of its levels
+  still solve in par with the pads ignored.
+- Give a phase `"crack": 6` and watch the pools: past a few cracks most boards lose a marble to a pit
+  on every route, and the pool fills slowly. Even at 3 cracks, about four in five proposals are
+  unsolvable.
+- Set `ahead` to 0 in `add_phase` and regenerate: some phase past level 120 cannot fill its run.
+- Set `FLAT` back to a flat cost per repeat (drop the `× m`) and regenerate: the plateaus come back
+  wherever the levels are ahead of the ramp, right up to `RUN`.
+
+---
+
+## 9. The title seesaw: one dimension of physics
 
 The toy on the title is the one place with real physics, and it needs only one dimension: a position
 along the bar per marble. Each frame, gravity along a bar tilted by `angle` accelerates each marble by

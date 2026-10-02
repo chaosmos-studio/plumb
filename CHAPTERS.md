@@ -1,6 +1,7 @@
 # Plumb to 500 levels: chapters
 
-A design for review. Nothing here is built yet.
+The plan for Plumb's 500 levels. Chapters 1 to 10 are built (update 1.1); the rest are designed. How the
+chapters are generated, and why every level needs its rule, is in `MATH.md` section 8.
 
 ## The idea
 
@@ -102,8 +103,8 @@ turnstiles, gravity cells, sticky floor, fragile marbles.
   number instead of 25 page dots.
 - **A chapter card** opens the first level of each chapter: the rule's name and one line about it.
 - **Captions** teach each rule on its first level, as the game does now for colours and pits.
-- **Saves** keep stars for all 500 levels. The current 120 become chapters 1 to 6, regenerated so the
-  schedule is one piece.
+- **Saves** keep stars for all 500 levels. The 120 levels of 1.0 are regenerated as chapters 1 to 4
+  and the first two new rules, chapters 5 and 6, so the schedule is one piece.
 - **Generation** runs per chapter, so one chapter can be remade without touching the others. A full
   run grows from about 3 minutes to roughly half an hour.
 
