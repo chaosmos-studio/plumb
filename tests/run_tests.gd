@@ -24,6 +24,7 @@ func _initialize() -> void:
 	_test_input_map_is_wired()
 	_test_orientation_is_an_int()
 	_test_tilt_rules()
+	_test_chapter_tiles()
 	_test_solver()
 	_test_difficulty()
 	_test_novelty()
@@ -116,6 +117,70 @@ func _test_tilt_rules() -> void:
 	m = b.tilt(TiltBoard.LEFT)
 	_check("the front marble sinks and the one behind rolls through", b.is_won() and m.events.size() == 2)
 
+static func _tiled(rows: Array, marbles: Array, tiles: Array) -> TiltBoard:
+	return TiltBoard.from_dict({"rows": rows, "marbles": marbles, "tiles": tiles})
+
+func _test_chapter_tiles() -> void:
+	var m: TiltMove
+	var b: TiltBoard = _tiled(["...."], [[0, 0, 0]], [[2, 0, "stop", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("a stop pad halts a marble rolling onto it", b.marble_cell[0] == 2)
+	b.tilt(TiltBoard.RIGHT)
+	_check("and the next tilt rolls it off again", b.marble_cell[0] == 3)
+
+	b = _tiled(["...."], [[0, 0, 0], [1, 0, 0]], [[3, 0, "stop", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("a marble behind stops against one on a pad", b.marble_cell[1] == 3 and b.marble_cell[0] == 2)
+
+	b = _tiled(["..."], [[0, 0, 0]], [[1, 0, "gate", TiltBoard.LEFT]])
+	_check("a gate blocks a marble coming the wrong way", not b.tilt(TiltBoard.RIGHT).changed())
+	b = _tiled(["..."], [[2, 0, 0]], [[1, 0, "gate", TiltBoard.LEFT]])
+	b.tilt(TiltBoard.LEFT)
+	_check("and lets one through its own way", b.marble_cell[0] == 0)
+
+	b = _tiled(["..."], [[0, 0, 1]], [[1, 0, "door", 0]])
+	_check("a door blocks other colours", not b.tilt(TiltBoard.RIGHT).changed())
+	b = _tiled(["..."], [[0, 0, 0]], [[1, 0, "door", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("and lets its own colour through", b.marble_cell[0] == 2)
+
+	b = _tiled(["..1"], [[0, 0, 0]], [[1, 0, "paint", 1]])
+	m = b.tilt(TiltBoard.RIGHT)
+	_check("paint repaints a marble, which then drops into its new colour", b.is_won() and m.events[0]["kind"] == &"paint")
+
+	b = _tiled(["..."], [[0, 0, 0]], [[1, 0, "crack", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("cracked floor gives way once a marble has rolled off it", b.cells[1] == TiltBoard.Cell.PIT and not b.lost)
+	_check("and the opened pit is part of the solver's key", b.key().contains("|"))
+	b = _tiled(["...."], [[0, 0, 0], [1, 0, 0]], [[1, 0, "crack", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("so a marble following another across it falls in", b.lost)
+
+	b = _tiled(["..0."], [[0, 0, 0], [3, 0, 0]], [[2, 0, "plug", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("a plug takes one marble", b.marble_cell[0] == TiltBoard.GONE and b.holes[2] == TiltBoard.NO_HOLE)
+	b.tilt(TiltBoard.LEFT)
+	_check("then closes, so the next marble rolls over it", b.marble_cell[1] == 0)
+	_check("and the closed plug is part of the solver's key", b.key().contains("|"))
+
+	var round_trip: TiltBoard = TiltBoard.from_dict(_tiled(["0..."], [[3, 0, 0]],
+		[[1, 0, "gate", 2], [2, 0, "paint", 1], [0, 0, "plug", 0]]).to_dict())
+	_check("tiles and plugs survive the level file", round_trip.tiles[1] == TiltBoard.Tile.GATE
+		and round_trip.tile_value[1] == 2 and round_trip.tiles[2] == TiltBoard.Tile.PAINT and round_trip.plugs[0] == 1)
+
+	var turned: TiltBoard = TiltNovelty.transform(_tiled(["..."], [[0, 0, 0]], [[1, 0, "gate", TiltBoard.RIGHT]]), 1)
+	_check("mirroring a board turns its gates", turned.tile_value[1] == TiltBoard.LEFT)
+
+	# The pad is the only way to stop above the hole; without it the marble can't get in at all.
+	var pad: TiltBoard = _tiled(["....", "#0##"], [[0, 0, 0]], [[1, 0, "stop", 0]])
+	_check("a level needs a helping rule when the plain board can't be solved", TiltGenerator.needs(pad, "stop", 2))
+	# The gate turns the marble back, so it has to go round: two moves instead of one without it.
+	var gate: TiltBoard = _tiled(["0..", "..."], [[2, 0, 0]], [[1, 0, "gate", TiltBoard.RIGHT]])
+	_check("and a restricting rule when the plain board solves in fewer moves", TiltGenerator.needs(gate, "gate", 3))
+	# Here the pad sits off the marble's path, so the plain board solves just as fast.
+	var idle: TiltBoard = _tiled(["...0", "...."], [[0, 0, 0]], [[1, 1, "stop", 0]])
+	_check("and does not when the tile changes nothing", not TiltGenerator.needs(idle, "stop", 1))
+
 func _test_solver() -> void:
 	var solver: TiltSolver = TiltSolver.new()
 	var b: TiltBoard = _board(["..0", "...", "..."], [[0, 2, 0]])
@@ -129,6 +194,8 @@ func _test_solver() -> void:
 	b = _board(["0#."], [[2, 0, 0]])
 	path = solver.solve(b)
 	_check("a marble walled off from its hole is unsolvable", path.is_empty() and solver.exhausted())
+	path = solver.solve(_board(["..0", "...", "..."], [[0, 2, 0]]), TiltSolver.DEFAULT_LIMIT, 1)
+	_check("a search held to one move finds no two-move solution, and says it looked", path.is_empty() and solver.exhausted())
 
 	b = _board(["x..0"], [[1, 0, 0]])
 	path = solver.solve(b)
@@ -183,6 +250,12 @@ func _test_level_pack() -> void:
 		return
 	var levels: Array = (data as Dictionary)["levels"]
 	_check("the pack has every level", levels.size() == TiltGenerator.level_count())
+	_check("the pack lists every chapter", _same_chapters((data as Dictionary).get("chapters", []), TiltGenerator.chapter_list()))
+	var opens: Dictionary = {}
+	var at: int = 0
+	for chapter: Dictionary in TiltGenerator.chapter_list():
+		opens[at] = true
+		at += int(chapter["count"])
 	var solver: TiltSolver = TiltSolver.new()
 	var boards: Array[TiltBoard] = []
 	var measures: Array[TiltDifficulty] = []
@@ -219,6 +292,8 @@ func _test_level_pack() -> void:
 	var shorter: Array[int] = []
 	var less: Array[int] = []
 	var tame: Array[int] = []
+	var flat: Array[int] = []
+	var run: int = 1
 	for i: int in range(levels.size()):
 		if _pits(boards[i]) > 0 and measures[i].risk <= 0.0:
 			tame.append(i + 1)
@@ -228,15 +303,33 @@ func _test_level_pack() -> void:
 			easier.append(i + 1)
 		if measures[i].par < measures[i - 1].par:
 			shorter.append(i + 1)
+		run = run + 1 if measures[i].bits == measures[i - 1].bits else 1
+		if run > TiltGenerator.RUN:
+			flat.append(i + 1)
+		# A new chapter's tiles carry some of the load, so its first board may hold less than the last
+		# chapter's, as long as it measures no easier.
 		var a: TiltBoard = boards[i - 1]
 		var b: TiltBoard = boards[i]
-		if (b.cells.size() < a.cells.size() or b.marble_cell.size() < a.marble_cell.size()
+		if not opens.has(i) and (b.cells.size() < a.cells.size() or b.marble_cell.size() < a.marble_cell.size()
 				or _colours(b) < _colours(a) or _pits(b) < _pits(a)):
 			less.append(i + 1)
 	_check("no level is easier than the one before (at: %s)" % str(easier), easier.is_empty())
 	_check("par never falls (at: %s)" % str(shorter), shorter.is_empty())
-	_check("no level takes away room, a colour, a marble or a pit (at: %s)" % str(less), less.is_empty())
+	_check("no more than %d levels in a row are equally hard (at: %s)" % [TiltGenerator.RUN, str(flat)], flat.is_empty())
+	_check("within a chapter no level takes away room, a colour, a marble or a pit (at: %s)" % str(less),
+		less.is_empty())
 	_check("every pit level has a pit in play (not: %s)" % str(tame), tame.is_empty())
+
+## Whether a chapter list read back from JSON, where every number is a float, matches the generator's.
+static func _same_chapters(read: Array, made: Array) -> bool:
+	if read.size() != made.size():
+		return false
+	for c: int in range(made.size()):
+		var a: Dictionary = read[c]
+		var b: Dictionary = made[c]
+		if a.get("name") != b["name"] or a.get("line") != b["line"] or int(a.get("count", -1)) != int(b["count"]):
+			return false
+	return true
 
 static func _colours(b: TiltBoard) -> int:
 	var seen: Dictionary = {}
