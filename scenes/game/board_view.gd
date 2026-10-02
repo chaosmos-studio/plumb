@@ -32,6 +32,9 @@ var _hint_dir: int = -1
 var _hint_paths: Array[Array] = []
 var _hint_t: float = 0.0
 var _hint_nudge: Tween
+## Cells a tilt being played changes partway through, drawn as they were until their step comes: the
+## board already holds the outcome. Cell to [kind (&"crack" or &"plug"), the plug's colour].
+var _pending: Dictionary = {}
 
 func _ready() -> void:
 	set_process(false)
@@ -67,10 +70,12 @@ func intro() -> void:
 ## Puts every marble where the board says, at once: after an undo or a restart.
 func sync(b: TiltBoard, pop_in: bool = true) -> void:
 	_clear_hint()
+	_pending.clear()
 	board = b
 	_shown = b.marble_cell.duplicate()
 	for i: int in range(_marbles.size()):
 		var marble: Marble = _marbles[i]
+		marble.colour = Palette.marble(b.marble_colour[i])
 		var gone: bool = b.marble_cell[i] == TiltBoard.GONE
 		var was_hidden: bool = not marble.visible or marble.scale.x < 0.5
 		marble.visible = not gone
@@ -124,6 +129,11 @@ func _draw() -> void:
 		var at: Vector2i = board.coords(i)
 		var rect: Rect2 = Rect2(_origin + Vector2(at) * cell + Vector2(gap, gap), Vector2(cell, cell) - Vector2(gap, gap) * 2.0)
 		var c: Vector2 = rect.get_center()
+		var pending: Array = _pending.get(i, [])
+		if not pending.is_empty() and pending[0] == &"crack":
+			draw_style_box(tile, rect)
+			_draw_crack(c)
+			continue
 		match board.cells[i]:
 			TiltBoard.Cell.WALL:
 				draw_style_box(wall, rect)
@@ -134,13 +144,79 @@ func _draw() -> void:
 				draw_style_box(pit_depth, rect.grow_individual(-cell * 0.1, -cell * 0.16, -cell * 0.1, -cell * 0.06))
 			_:
 				draw_style_box(tile, rect)
+				_draw_tile(i, rect, c)
 				var hole: int = board.holes[i]
+				var plug: bool = board.plugs[i] == 1
+				if not pending.is_empty():
+					hole = int(pending[1])
+					plug = true
 				if hole != TiltBoard.NO_HOLE:
 					var ring: Color = Palette.marble(hole)
 					draw_circle(c, cell * 0.41, ring, true, -1.0, true)
 					draw_circle(c, cell * 0.33, Palette.HOLE, true, -1.0, true)
 					draw_circle(c + Vector2(0, cell * 0.06), cell * 0.25, Palette.HOLE.darkened(0.45), true, -1.0, true)
+					if plug:
+						# A plug's dashed outer ring: it is good for one marble.
+						for k: int in range(8):
+							var a: float = TAU * k / 8.0
+							draw_arc(c, cell * 0.47, a, a + TAU / 16.0, 6, Color(Palette.WALL, 0.75), cell * 0.045, true)
 	_draw_hint()
+
+## The tile on floor cell `i`, if any. Each reads by shape before colour: a mat, chevrons, a coloured frame,
+## a splash, cracks.
+func _draw_tile(i: int, rect: Rect2, c: Vector2) -> void:
+	var value: int = board.tile_value[i]
+	match board.tiles[i]:
+		TiltBoard.Tile.STOP:
+			var pad: StyleBoxFlat = StyleBoxFlat.new()
+			pad.bg_color = Color(Palette.WALL, 0.2)
+			pad.border_color = Color(Palette.WALL, 0.6)
+			pad.set_border_width_all(int(maxf(2.0, cell * 0.05)))
+			pad.set_corner_radius_all(int(cell * 0.14))
+			pad.anti_aliasing = true
+			draw_style_box(pad, rect.grow(-cell * 0.12))
+			draw_circle(c, cell * 0.1, Color(Palette.WALL, 0.6), false, maxf(2.0, cell * 0.045), true)
+		TiltBoard.Tile.GATE:
+			var d: Vector2 = Vector2(TiltBoard.DIRS[value])
+			var side: Vector2 = d.orthogonal()
+			var ink: Color = Color(Palette.WALL, 0.7)
+			var w: float = cell * 0.07
+			for along: float in [-0.12, 0.1]:
+				var tip: Vector2 = c + d * cell * (along + 0.08)
+				var arm_a: Vector2 = tip - (d * 0.15 + side * 0.17) * cell
+				var arm_b: Vector2 = tip - (d * 0.15 - side * 0.17) * cell
+				draw_polyline(PackedVector2Array([arm_a, tip, arm_b]), ink, w, true)
+				for p: Vector2 in [arm_a, tip, arm_b]:
+					draw_circle(p, w * 0.5, ink, true, -1.0, true)
+		TiltBoard.Tile.DOOR:
+			var colour: Color = Palette.marble(value)
+			var frame: StyleBoxFlat = StyleBoxFlat.new()
+			frame.bg_color = Color(colour, 0.16)
+			frame.border_color = colour
+			frame.set_border_width_all(int(maxf(3.0, cell * 0.08)))
+			frame.set_corner_radius_all(int(cell * 0.14))
+			frame.anti_aliasing = true
+			draw_style_box(frame, rect.grow(-cell * 0.05))
+		TiltBoard.Tile.PAINT:
+			var colour: Color = Palette.marble(value)
+			draw_circle(c, cell * 0.2, colour, true, -1.0, true)
+			draw_circle(c + Vector2(0.21, -0.17) * cell, cell * 0.07, colour, true, -1.0, true)
+			draw_circle(c + Vector2(-0.22, 0.12) * cell, cell * 0.055, colour, true, -1.0, true)
+			draw_circle(c + Vector2(0.14, 0.22) * cell, cell * 0.045, colour, true, -1.0, true)
+		TiltBoard.Tile.CRACK:
+			_draw_crack(c)
+
+func _draw_crack(c: Vector2) -> void:
+	var ink: Color = Color(Palette.HOLE, 0.65)
+	var w: float = maxf(2.0, cell * 0.045)
+	var main: PackedVector2Array = PackedVector2Array()
+	for p: Vector2 in [Vector2(-0.3, -0.24), Vector2(-0.08, -0.05), Vector2(-0.16, 0.12), Vector2(0.06, 0.3)]:
+		main.append(c + p * cell)
+	draw_polyline(main, ink, w, true)
+	var branch: PackedVector2Array = PackedVector2Array()
+	for p: Vector2 in [Vector2(-0.08, -0.05), Vector2(0.17, -0.11), Vector2(0.3, 0.05)]:
+		branch.append(c + p * cell)
+	draw_polyline(branch, ink, w, true)
 
 # --- Animation ----------------------------------------------------------------------------------------
 
@@ -148,6 +224,14 @@ func _draw() -> void:
 func play(move: TiltMove) -> void:
 	busy = true
 	_clear_hint()
+	for event: Dictionary in move.events:
+		match event["kind"]:
+			&"crack":
+				_pending[int(event["cell"])] = [&"crack", 0]
+			&"plug":
+				_pending[int(event["cell"])] = [&"plug", board.marble_colour[int(event["marble"])]]
+	if not _pending.is_empty():
+		queue_redraw()
 	_tip(move.dir)
 	Audio.play(&"roll", -9.0, randf_range(0.95, 1.05))
 	var d: Vector2i = TiltBoard.DIRS[move.dir]
@@ -160,8 +244,18 @@ func play(move: TiltMove) -> void:
 			tween.tween_property(_marbles[id], "position", centre(_shown[id]), STEP_TIME)
 		await tween.finished
 		for event: Dictionary in move.events:
-			if int(event["step"]) == step:
-				_drop(int(event["marble"]), event["kind"])
+			if int(event["step"]) != step:
+				continue
+			match event["kind"]:
+				&"sink", &"pit":
+					_drop(int(event["marble"]), event["kind"])
+				&"paint":
+					_repaint(int(event["marble"]), int(event["colour"]))
+				&"crack", &"plug":
+					_pending.erase(int(event["cell"]))
+					queue_redraw()
+					if event["kind"] == &"crack":
+						Audio.play(&"pit", -14.0, 1.35)
 	if not move.stopped.is_empty():
 		_bump(move.stopped, d)
 		Audio.play(&"clack", -4.0, randf_range(0.94, 1.06))
@@ -221,6 +315,17 @@ func _drop(id: int, kind: StringName) -> void:
 		_shake()
 	t.chain().tween_callback(func() -> void: marble.visible = false)
 
+## A marble rolling over paint takes the new colour with a ring of it.
+func _repaint(id: int, colour: int) -> void:
+	var marble: Marble = _marbles[id]
+	marble.colour = Palette.marble(colour)
+	var ring: Ripple = Ripple.new()
+	ring.colour = marble.colour
+	ring.start_radius = cell * 0.2
+	ring.end_radius = cell * 0.55
+	ring.position = marble.position
+	add_child(ring)
+
 func _shake() -> void:
 	var base: Vector2 = home
 	var t: Tween = create_tween()
@@ -245,7 +350,7 @@ func show_hint(dir: int, from: TiltBoard) -> void:
 		var end_cell: int = probe.marble_cell[m]
 		var kind: StringName = &"roll"
 		for event: Dictionary in move.events:
-			if int(event["marble"]) == m:
+			if int(event["marble"]) == m and (event["kind"] == &"sink" or event["kind"] == &"pit"):
 				kind = event["kind"]
 				end_cell = int(event["cell"])
 		if end_cell == start_cell:
