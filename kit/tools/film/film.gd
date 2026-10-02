@@ -59,6 +59,7 @@ func _ready() -> void:
 	EventBus.settings_changed.emit()
 	Coach.enabled = false
 	Intro.enabled = false
+	ChapterCard.enabled = false
 	Appearance.apply(Appearance.native())
 	director = load("res://tools/director.gd").new()
 	if "film" in director:

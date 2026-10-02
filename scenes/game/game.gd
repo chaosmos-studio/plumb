@@ -65,6 +65,13 @@ func _ready() -> void:
 	EventBus.level_started.emit(level)
 	if Coach.due(level):
 		_guide()
+	elif not kept is Dictionary and _opens_chapter() > 0:
+		ChapterCard.show_for(self, _opens_chapter())
+
+## The chapter this level is the first of, or -1.
+func _opens_chapter() -> int:
+	var chapter: int = Pack.chapter_of(level)
+	return chapter if chapter >= 0 and Pack.chapter_first(chapter) == level else -1
 
 ## What a rebuild for a new theme carries over: the level as far as it has been played.
 func keep() -> Dictionary:
@@ -232,6 +239,8 @@ func _tutorial() -> String:
 		return "Every marble rolls until it hits something"
 	if level == 2:
 		return "Par is the fewest moves possible"
+	if _opens_chapter() > 0:
+		return Pack.chapter_line(_opens_chapter())
 	if _first_sharing_a_hole():
 		return "One hole takes every marble of its colour"
 	if _first_with_pits():

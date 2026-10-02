@@ -1,7 +1,8 @@
 extends Node2D
 
-## The level grid, shared by every game in the kit: twenty tiles to a page, swipe or tap the chevrons
-## to turn pages, and the page holding the next level to play opens first. On Android, once a few levels
+## The level grid, shared by every game in the kit: a page per chapter, named above the grid, for a game
+## whose level file has chapters, otherwise twenty tiles to a page. Swipe or tap the chevrons to turn
+## pages, and the page holding the next level to play opens first. On Android, once a few levels
 ## are solved, a banner sits at the foot of this screen, as it does under the play screen, and the pager
 ## lifts clear of it.
 
@@ -11,6 +12,7 @@ const SWIPE: float = 70.0
 ## Room under the pager with no banner, and the least room between the pager and a banner, so no tap
 ## meant for a chevron lands on the ad.
 const PAGER_FLOOR: float = 54.0
+const HEADING_HEIGHT: float = 72.0
 const BANNER_GAP: float = 32.0
 const GRID_GAP: float = 20.0
 const LIFT_TIME: float = 0.28
@@ -23,6 +25,9 @@ var _next: IconButton
 var _drag_from: Vector2 = Vector2(-1.0, -1.0)
 ## Set when a swipe turns the page, so the tile the finger lifted on is not opened as well.
 var _swiped: bool = false
+## The page's chapter, shown above the grid when the game has chapters.
+var _chapter_number: Label
+var _chapter_name: Label
 var _pager: HBoxContainer
 var _centre: CenterContainer
 var _floor: float = PAGER_FLOOR
@@ -52,10 +57,25 @@ func _ready() -> void:
 	chip.offset_bottom = chip.offset_top + 44.0
 	ui.add_child(chip)
 
+	var grid_top: float = 200.0 + float(safe["top"])
+	if not Pack.chapters.is_empty():
+		var heading: VBoxContainer = VBoxContainer.new()
+		heading.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+		heading.offset_top = chip.offset_bottom + 14.0
+		heading.offset_bottom = heading.offset_top + HEADING_HEIGHT
+		heading.alignment = BoxContainer.ALIGNMENT_CENTER
+		heading.add_theme_constant_override("separation", 2)
+		heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_chapter_number = UI.caption("", 20)
+		heading.add_child(_chapter_number)
+		_chapter_name = UI.label("", 36)
+		heading.add_child(_chapter_name)
+		ui.add_child(heading)
+		grid_top = heading.offset_bottom + 12.0
 	var centre: CenterContainer = CenterContainer.new()
 	_centre = centre
 	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
-	centre.offset_top = 200.0 + float(safe["top"])
+	centre.offset_top = grid_top
 	centre.mouse_filter = Control.MOUSE_FILTER_PASS
 	ui.add_child(centre)
 	_grid = GridContainer.new()
@@ -83,7 +103,7 @@ func _ready() -> void:
 	pager.add_child(_next)
 
 	_place(_floor)
-	_show(Save.frontier(Pack.count()) / PER_PAGE, 0)
+	_show(_page_of(Save.frontier(Pack.count())), 0)
 	Ads.show_banner(self, _lift)
 	_settled = true
 
@@ -123,8 +143,27 @@ func _star_chip() -> Control:
 	chip.add_child(UI.label(str(Save.total_stars()), 30, Brand.MUTED))
 	return chip
 
+## A game with chapters (Pack.chapters) gets a page per chapter, named; one without, pages of PER_PAGE.
 func _pages() -> int:
+	if not Pack.chapters.is_empty():
+		return Pack.chapters.size()
 	return int(ceil(Pack.count() / float(PER_PAGE)))
+
+func _page_first(page: int) -> int:
+	return Pack.chapter_first(page) if not Pack.chapters.is_empty() else page * PER_PAGE
+
+func _page_end(page: int) -> int:
+	if not Pack.chapters.is_empty():
+		return mini(Pack.count(), _page_first(page) + int(Pack.chapters[page]["count"]))
+	return mini(Pack.count(), (page + 1) * PER_PAGE)
+
+## The page holding `level`, the last page for a level past the end.
+func _page_of(level: int) -> int:
+	if Pack.chapters.is_empty():
+		@warning_ignore("integer_division")
+		return level / PER_PAGE
+	var chapter: int = Pack.chapter_of(level)
+	return chapter if chapter >= 0 else Pack.chapters.size() - 1
 
 ## Swipes are read before the GUI, since nearly all of the grid is tiles, which would keep the touch for
 ## themselves. A sideways swipe anywhere on the grid turns the page.
@@ -153,7 +192,10 @@ func _show(page: int, from: int) -> void:
 	for child: Node in _grid.get_children():
 		child.queue_free()
 	var frontier: int = Save.frontier(Pack.count())
-	for i: int in range(_page * PER_PAGE, mini(Pack.count(), (_page + 1) * PER_PAGE)):
+	if _chapter_name != null:
+		_chapter_number.text = "Chapter %d" % (_page + 1)
+		_chapter_name.text = Pack.chapter_name(_page)
+	for i: int in range(_page_first(_page), _page_end(_page)):
 		var tile: LevelTile = LevelTile.new(i, Save.best(i), Save.unlocked(i), i == frontier and Save.best(i) == 0)
 		tile.pressed.connect(func() -> void:
 			if _swiped:

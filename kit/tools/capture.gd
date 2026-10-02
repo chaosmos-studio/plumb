@@ -27,6 +27,7 @@ func _ready() -> void:
 	# Every capture shows the game in its own look, whatever this machine's player last picked.
 	Coach.enabled = false
 	Intro.enabled = false
+	ChapterCard.enabled = false
 	Appearance.apply(Appearance.native())
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out))
 	# Raw captures are build products: without this Godot imports every one, and a local export packs them.
