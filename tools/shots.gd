@@ -21,8 +21,40 @@ func _ready() -> void:
 	for c: int in range(4, Pack.chapters.size()):
 		await _shoot_level(Pack.chapter_first(c) + 1, "chapter_%02d" % (c + 1), false, false)
 	await _shoot_card(Pack.chapter_first(4))
+	await _shoot_shop()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://shots.cfg"))
 	get_tree().quit()
+
+## The Google Play shop as a new player sees it, with stand-in prices, and a board in each marble set.
+func _shoot_shop() -> void:
+	Supporter.on_play = true
+	var staged: Dictionary = {GameMonetize.COMPLETE_ID: "$4.99", GameMonetize.LEVELS_ID: "$1.99", GameMonetize.LOOKS_ID: "$1.99",
+		"tip_1": "$0.99", "tip_2": "$1.99", "tip_5": "$4.99", "tip_10": "$9.99", "tip_20": "$19.99", "tip_50": "$49.99"}
+	Shop.prices = staged
+	Supporter.price = "$2.99"
+	await _shoot_sheet(func(host: Node) -> void: Shop.open(host), "shop")
+	await _shoot_sheet(func(host: Node) -> void: Shop.tips(host), "tip_jar")
+	await _shoot_sheet(func(host: Node) -> void: Shop.offer(host, GameMonetize.LEVELS_ID), "offer_levels")
+	await _shoot_sheet(func(host: Node) -> void: Looks.open(host), "looks")
+	for look: String in ["glass", "gems", "planets", "candy"]:
+		GameLooks.use(look)
+		Appearance.apply(Save.theme)
+		await _shoot_level(110, "look_%s" % look, false, false)
+	GameLooks.use("classic")
+	Appearance.apply(Save.theme)
+	Supporter.on_play = false
+
+func _shoot_sheet(open: Callable, name: String) -> void:
+	var node: Node = load("res://scenes/shell/title.tscn").instantiate()
+	add_child(node)
+	for i: int in range(10):
+		await get_tree().process_frame
+	open.call(node)
+	for i: int in range(40):
+		await get_tree().process_frame
+	await _save(name)
+	node.queue_free()
+	await get_tree().process_frame
 
 ## The first level of a chapter, with its card up.
 func _shoot_card(level: int) -> void:
