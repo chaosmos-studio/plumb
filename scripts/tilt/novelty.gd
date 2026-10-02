@@ -13,7 +13,9 @@ const LAYOUT_SHARE: float = 0.3
 ## Boards closer than this share that one route solves are the same level played twice.
 const ROUTE_SHARE: float = 0.5
 
-enum Kind { FLOOR, WALL, PIT, HOLE, MARBLE, MARBLE_ON_HOLE }
+enum Kind { FLOOR, WALL, PIT, HOLE, MARBLE, MARBLE_ON_HOLE, PLUG, STOP, GATE, DOOR, PAINT, CRACK }
+## The layout kind of each TiltBoard.Tile, colour and direction aside.
+const TILE_KINDS: Array[int] = [Kind.FLOOR, Kind.STOP, Kind.GATE, Kind.DOOR, Kind.PAINT, Kind.CRACK]
 
 ## A board's eight views, each as the colour-blind kind of every cell, ready for fast comparison.
 class Views:
@@ -89,10 +91,13 @@ static func layout(board: TiltBoard) -> PackedByteArray:
 			TiltBoard.Cell.PIT:
 				out[i] = Kind.PIT
 			_:
-				out[i] = Kind.FLOOR if board.holes[i] == TiltBoard.NO_HOLE else Kind.HOLE
+				if board.holes[i] != TiltBoard.NO_HOLE:
+					out[i] = Kind.PLUG if board.plugs[i] == 1 else Kind.HOLE
+				else:
+					out[i] = TILE_KINDS[board.tiles[i]]
 	for c: int in board.marble_cell:
 		if c != TiltBoard.GONE:
-			out[c] = Kind.MARBLE_ON_HOLE if out[c] == Kind.HOLE else Kind.MARBLE
+			out[c] = Kind.MARBLE_ON_HOLE if out[c] == Kind.HOLE or out[c] == Kind.PLUG else Kind.MARBLE
 	return out
 
 ## The board under symmetry `s`, marbles and all.
@@ -105,6 +110,10 @@ static func transform(board: TiltBoard, s: int) -> TiltBoard:
 		var j: int = out.index(_map(board.coords(i), s, w, h))
 		out.cells[j] = board.cells[i]
 		out.holes[j] = board.holes[i]
+		out.plugs[j] = board.plugs[i]
+		out.tiles[j] = board.tiles[i]
+		var gate: bool = board.tiles[i] == TiltBoard.Tile.GATE
+		out.tile_value[j] = transform_dir(board.tile_value[i], s) if gate else board.tile_value[i]
 	for m: int in range(board.marble_cell.size()):
 		if board.marble_cell[m] != TiltBoard.GONE:
 			out.add_marble(_map(board.coords(board.marble_cell[m]), s, w, h), board.marble_colour[m])
@@ -146,6 +155,19 @@ static func canonical(board: TiltBoard) -> String:
 					text += "x"
 				_:
 					text += "." if t.holes[i] == TiltBoard.NO_HOLE else _label(relabel, t.holes[i])
+			if t.plugs[i] == 1:
+				text += "u"
+			match t.tiles[i]:
+				TiltBoard.Tile.STOP:
+					text += "s"
+				TiltBoard.Tile.GATE:
+					text += "g" + str(t.tile_value[i])
+				TiltBoard.Tile.DOOR:
+					text += "d" + _label(relabel, t.tile_value[i])
+				TiltBoard.Tile.PAINT:
+					text += "p" + _label(relabel, t.tile_value[i])
+				TiltBoard.Tile.CRACK:
+					text += "k"
 			if marble_at.has(i):
 				text += "o" + _label(relabel, int(marble_at[i]))
 		if best == "" or text < best:
