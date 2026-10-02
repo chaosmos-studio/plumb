@@ -23,6 +23,8 @@ static func open(host: Node) -> Sheet:
 		c.add_child(role)
 	if Supporter.active():
 		c.add_child(UI.label("Thank you for being a Supporter", 26, Brand.MUTED))
+	elif Save.tips > 0:
+		c.add_child(UI.label("Thank you for the tips", 26, Brand.MUTED))
 	c.add_child(UI.spacer(8))
 	var links: HBoxContainer = HBoxContainer.new()
 	links.alignment = BoxContainer.ALIGNMENT_CENTER

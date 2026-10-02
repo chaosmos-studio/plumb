@@ -105,6 +105,8 @@ func _ready() -> void:
 	_place(_floor)
 	_show(_page_of(Save.frontier(Pack.count())), 0)
 	Ads.show_banner(self, _lift)
+	# Every level, bought from a locked tile, opens the grid where it stands.
+	EventBus.settings_changed.connect(func() -> void: _show(_page, 0))
 	_settled = true
 
 func _exit_tree() -> void:
@@ -196,9 +198,13 @@ func _show(page: int, from: int) -> void:
 		_chapter_number.text = "Chapter %d" % (_page + 1)
 		_chapter_name.text = Pack.chapter_name(_page)
 	for i: int in range(_page_first(_page), _page_end(_page)):
-		var tile: LevelTile = LevelTile.new(i, Save.best(i), Save.unlocked(i), i == frontier and Save.best(i) == 0)
+		var open: bool = Save.unlocked(i)
+		var tile: LevelTile = LevelTile.new(i, Save.best(i), open, i == frontier and Save.best(i) == 0, Supporter.on_play)
 		tile.pressed.connect(func() -> void:
 			if _swiped:
+				return
+			if not open:
+				Shop.offer(self, GameMonetize.LEVELS_ID)
 				return
 			Pack.current = i
 			_leave(Brand.GAME_SCENE))

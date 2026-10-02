@@ -11,12 +11,13 @@ var stars: int = 0
 var locked: bool = false
 var is_next: bool = false
 
-func _init(index: int, earned: int, open: bool, next: bool) -> void:
+## A locked tile still takes a tap when `offers` is set, on Google Play, where it offers Every level.
+func _init(index: int, earned: int, open: bool, next: bool, offers: bool = false) -> void:
 	level = index
 	stars = earned
 	locked = not open
 	is_next = next
-	disabled = locked
+	disabled = locked and not offers
 	custom_minimum_size = Vector2(SIZE, SIZE)
 	focus_mode = Control.FOCUS_NONE
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if open else Control.CURSOR_ARROW

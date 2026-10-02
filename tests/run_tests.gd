@@ -48,6 +48,7 @@ func _initialize() -> void:
 	_test_finale_variants()
 	_test_support_and_hint_sheets()
 	_test_supporter_entry_points()
+	_test_shop()
 	# The root takes new children only once _initialize has handed control back to the engine.
 	await process_frame
 	_test_sheets_fit_a_phone()
@@ -547,27 +548,40 @@ func _test_changelog() -> void:
 func _test_saved_monetization() -> void:
 	var save: Node = root.get_node("Save")
 	var real: String = save.get("path")
-	var old: Array = [save.get("supporter"), save.get("hint_day"), save.get("hints_used"), save.get("stars")]
+	var old: Array = [save.get("supporter"), save.get("hint_day"), save.get("hints_used"), save.get("stars"),
+		save.get("owned"), save.get("tips"), save.get("look")]
 	save.set("path", "user://test_monetize.cfg")
 	save.set("supporter", true)
 	save.set("hint_day", "2026-09-30")
 	save.set("hints_used", 2)
+	save.set("owned", PackedStringArray([GameMonetize.LEVELS_ID]))
+	save.set("tips", 3)
+	save.set("look", "gems")
 	save.call("store")
 	save.set("supporter", false)
 	save.set("hint_day", "")
 	save.set("hints_used", 0)
+	save.set("owned", PackedStringArray())
+	save.set("tips", 0)
+	save.set("look", "")
 	save.call("restore")
 	_check("the Supporter pack is saved", bool(save.get("supporter")))
 	_check("today's free hints are saved", String(save.get("hint_day")) == "2026-09-30" and int(save.get("hints_used")) == 2)
+	_check("other purchases, tips and the look are saved", (save.get("owned") as PackedStringArray) == PackedStringArray([GameMonetize.LEVELS_ID])
+		and int(save.get("tips")) == 3 and String(save.get("look")) == "gems")
 	save.call("reset")
 	save.call("restore")
-	_check("resetting progress keeps the Supporter pack", bool(save.get("supporter")))
+	_check("resetting progress keeps every purchase and tip", bool(save.get("supporter"))
+		and (save.get("owned") as PackedStringArray).size() == 1 and int(save.get("tips")) == 3)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_monetize.cfg"))
 	save.set("path", real)
 	save.set("supporter", old[0])
 	save.set("hint_day", old[1])
 	save.set("hints_used", old[2])
 	save.set("stars", old[3])
+	save.set("owned", old[4])
+	save.set("tips", old[5])
+	save.set("look", old[6])
 
 ## The text of every button a kit sheet builds, on a host outside the tree so nothing animates.
 func _buttons(opener: GDScript, method: String = "open") -> PackedStringArray:
@@ -586,14 +600,14 @@ func _test_settings_variants() -> void:
 	var old_supporter: bool = save.get("supporter")
 	save.set("supporter", false)
 	var plain: PackedStringArray = _buttons(settings)
-	_check("settings offers Support the game", plain.has("Support the game"))
+	_check("settings offers the looks and a way to support the game", plain.has(GameLooks.TITLE) and plain.has("Support"))
 	_check("and no privacy choices where no consent message asks for them", not plain.has("Privacy choices"))
 	var consent: _ConsentAds = _ConsentAds.new()
 	ads.call("use", consent)
 	_check("privacy choices appear when the consent message requires them", _buttons(settings).has("Privacy choices"))
 	save.set("supporter", true)
 	var supporter: PackedStringArray = _buttons(settings)
-	_check("a Supporter still finds Support the game", supporter.has("Support the game"))
+	_check("a Supporter still finds a way to support the game", supporter.has("Support"))
 	_check("but no privacy choices, since no ads load for them", not supporter.has("Privacy choices"))
 	ads.call("use", null)
 	save.set("supporter", old_supporter)
@@ -641,12 +655,12 @@ func _test_support_and_hint_sheets() -> void:
 	_check("the web's support sheet is one Sponsor on GitHub button", _buttons(supporter) == PackedStringArray(["Sponsor on GitHub"]))
 	supporter.set("on_play", true)
 	supporter.set("price", "")
-	_check("the Play sheet sells the pack and restores it",
-		_buttons(supporter) == PackedStringArray(["Support the game", "Restore purchase"]))
+	_check("the Play sheet sells the pack, restores it, and leads to the shop",
+		_buttons(supporter) == PackedStringArray(["Support the game", "Restore purchase", "See the shop"]))
 	supporter.set("price", "$2.99")
 	_check("with the price once Play gives it", _buttons(supporter).has("Support for $2.99"))
 	save.set("supporter", true)
-	_check("a Supporter's sheet only thanks them", _buttons(supporter).is_empty())
+	_check("a Supporter's sheet thanks them and sells nothing", _buttons(supporter) == PackedStringArray(["See the shop"]))
 	var host: Node = Node.new()
 	gate.call("ask", host, func() -> void: pass)
 	var texts: PackedStringArray = PackedStringArray()
@@ -673,21 +687,90 @@ func _test_supporter_entry_points() -> void:
 	host.free()
 	_check("on Google Play the video prompt also offers the pack",
 		texts == PackedStringArray(["Watch", "Remove ads, unlimited hints", "Not now"]))
-	# On Google Play, on the web, and for a Supporter: the title's heart, then whether one should show.
-	for case: Array in [[true, false, true], [false, false, false], [true, true, false]]:
+	# On Google Play, on the web, for a Supporter, and for an owner of the Complete pack: the title's heart,
+	# then whether one should show. It leads to the shop, so it stays while any pack is left to have.
+	var old_owned: PackedStringArray = save.get("owned")
+	for case: Array in [[true, false, [], true], [false, false, [], false], [true, true, [], true],
+			[true, false, [GameMonetize.COMPLETE_ID], false]]:
 		supporter.set("on_play", case[0])
 		save.set("supporter", case[1])
+		save.set("owned", PackedStringArray(case[2]))
 		var ui: Control = Control.new()
 		var gear: Control = Control.new()
 		gear.offset_left = -128.0
 		gear.offset_right = -32.0
 		supporter.call("add_title_button", ui, ui, gear)
-		_check("the title's heart shows on Google Play only, never for a Supporter (%s)" % [case],
-			(ui.get_child_count() == 1) == bool(case[2]))
+		_check("the title's heart shows on Google Play only, while a pack is left to have (%s)" % [case],
+			(ui.get_child_count() == 1) == bool(case[3]))
 		ui.free()
 		gear.free()
 	supporter.set("on_play", old[0])
 	save.set("supporter", old[1])
+	save.set("owned", old_owned)
+
+## Every label a kit sheet builds, for sheets whose rows are labels inside buttons.
+func _labels(opener: GDScript, method: String, args: Array = []) -> PackedStringArray:
+	var host: Node = Node.new()
+	opener.callv(method, [host] + args)
+	var texts: PackedStringArray = PackedStringArray()
+	for l: Node in host.find_children("*", "Label", true, false):
+		texts.append((l as Label).text)
+	for b: Node in host.find_children("*", "Button", true, false):
+		if (b as Button).text != "":
+			texts.append((b as Button).text)
+	host.free()
+	return texts
+
+func _test_shop() -> void:
+	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
+	var shop: GDScript = load("res://kit/monetize/shop.gd")
+	var looks: GDScript = load("res://kit/ui/looks.gd")
+	var save: Node = root.get_node("Save")
+	var old: Array = [supporter.get("on_play"), save.get("supporter"), save.get("owned"), save.get("tips"), save.get("look"),
+		save.get("path")]
+	save.set("path", "user://test_shop.cfg")
+	supporter.set("on_play", true)
+	save.set("supporter", false)
+	save.set("owned", PackedStringArray())
+	_check("with nothing bought, ads stay, levels open by solving, and only the first look is open",
+		not shop.call("ads_off") and not shop.call("levels_open") and not shop.call("looks_open")
+		and looks.call("is_open", "classic") and not looks.call("is_open", "gems"))
+	_check("a level not reached yet is locked", not save.call("unlocked", 150))
+	var sold: PackedStringArray = _labels(shop, "open")
+	_check("the shop lists the Complete pack, every pack, the tip jar and Restore", sold.has("Complete pack")
+		and sold.has("Supporter pack") and sold.has("Every level") and sold.has(GameLooks.PACK) and sold.has("Tip jar")
+		and sold.has("Restore purchases"))
+	shop.call("grant", GameMonetize.LEVELS_ID, true)
+	_check("Every level opens every level", shop.call("levels_open") and save.call("unlocked", 150)
+		and save.call("unlocked", TiltGenerator.level_count() - 1))
+	_check("and once part of it is owned the Complete pack is no longer sold", not shop.call("offers_complete")
+		and not _labels(shop, "open").has("Complete pack"))
+	shop.call("grant", GameMonetize.LEVELS_ID, false)
+	_check("a refund locks the levels again", not save.call("unlocked", 150))
+	shop.call("grant", GameMonetize.COMPLETE_ID, true)
+	_check("the Complete pack holds all three", shop.call("ads_off") and shop.call("levels_open") and shop.call("looks_open")
+		and shop.call("has_everything") and looks.call("is_open", "gems"))
+	shop.call("grant", GameMonetize.COMPLETE_ID, false)
+	save.set("look", "gems")
+	_check("a look the pack no longer opens falls back to the free one", looks.call("current") == "classic")
+	var jar: PackedStringArray = _labels(shop, "tips")
+	_check("the tip jar holds a tip for each size", jar.count("Tip") == GameMonetize.TIP_IDS.size())
+	var tips: int = save.get("tips")
+	shop.call("tipped")
+	_check("a tip that went through is counted", int(save.get("tips")) == tips + 1)
+	supporter.set("on_play", false)
+	_check("off Google Play every look is open and nothing is sold", shop.call("looks_open") and looks.call("is_open", "gems")
+		and _labels(shop, "open").has("Sponsor on GitHub"))
+	var tile: BaseButton = load("res://kit/shell/level_tile.gd").new(150, 0, false, false, true)
+	_check("on Google Play a locked tile still takes a tap, to offer Every level", not tile.disabled)
+	tile.free()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_shop.cfg"))
+	supporter.set("on_play", old[0])
+	save.set("supporter", old[1])
+	save.set("owned", old[2])
+	save.set("tips", old[3])
+	save.set("look", old[4])
+	save.set("path", old[5])
 
 func _test_play_screen_banner() -> void:
 	var hud: GDScript = load("res://kit/shell/hud.gd")

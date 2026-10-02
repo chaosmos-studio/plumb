@@ -1,14 +1,15 @@
 class_name StoreBackend
 extends Node
 
-## What the Supporter class asks of a store. This base sells nothing, which is every build but Android's;
-## Play billing (android/play_billing.gd) fills it in. It lives in the tree while the app runs, since the
-## plugin calls back into it.
+## What the Shop asks of a store. This base sells nothing, which is every build but Android's; Play
+## billing (android/play_billing.gd) fills it in. It lives in the tree while the app runs, since the plugin
+## calls back into it.
 
-## Something the Supporter sheet shows has changed: the price arrived, or the pack was bought.
+## Something a shop sheet shows has changed: a price arrived, or something was bought.
 signal changed
 
-func buy() -> void:
+## Starts buying product `id` (GameMonetize).
+func buy(_id: String) -> void:
 	pass
 
 ## Asks the store what this account owns. `quiet` for the check at every launch; the Restore button

@@ -2,7 +2,7 @@ class_name Settings
 extends RefCounted
 
 ## The settings sheet, reachable from every screen: switches for sound, music and haptics, the theme,
-## the first level's guide again, a way to support the game, the About and Credits sheets, the consent
+## the first level's guide again, the game's looks and the shop, the About and Credits sheets, the consent
 ## choices where the law asks for them, a guarded reset, and the version line.
 
 const RESET_ARM_TIME: float = 3.0
@@ -29,9 +29,18 @@ static func open(host: Node) -> Sheet:
 		sheet.close()
 		Coach.replay())
 	c.add_child(guide)
-	var support: Button = UI.button("Support the game", UI.Style.SECONDARY)
-	support.pressed.connect(func() -> void: Supporter.open(host))
-	c.add_child(support)
+	# Looks and the shop share a row, so the sheet still fits a 16:9 phone. Off Google Play the shop is the
+	# way to support the game.
+	var extras: HBoxContainer = HBoxContainer.new()
+	extras.alignment = BoxContainer.ALIGNMENT_CENTER
+	extras.add_theme_constant_override("separation", 20)
+	var looks_button: Button = UI.button(GameLooks.TITLE, UI.Style.SECONDARY)
+	looks_button.pressed.connect(func() -> void: Looks.open(host))
+	extras.add_child(looks_button)
+	var support: Button = UI.button("Shop" if Supporter.on_play else "Support", UI.Style.SECONDARY)
+	support.pressed.connect(func() -> void: Shop.open(host))
+	extras.add_child(support)
+	c.add_child(extras)
 	var more: HBoxContainer = HBoxContainer.new()
 	more.alignment = BoxContainer.ALIGNMENT_CENTER
 	more.add_theme_constant_override("separation", 20)

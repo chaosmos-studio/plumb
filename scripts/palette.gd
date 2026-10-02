@@ -53,4 +53,4 @@ static func use(dark: bool) -> void:
 	HOLE = p["hole"]
 	PIT = p["pit"]
 	DANGER = p["danger"]
-	MARBLES.assign(p["marbles"])
+	MARBLES.assign(GameLooks.marbles(dark, p["marbles"]))

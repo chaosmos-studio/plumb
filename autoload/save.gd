@@ -19,12 +19,19 @@ var theme: int = Appearance.native()
 var tutorial_seen: bool = false
 ## Whether this Google account owns the Supporter pack, as Play last said, so it holds offline.
 var supporter: bool = false
+## The other one-time products it owns (GameMonetize ids), the same way.
+var owned: PackedStringArray = PackedStringArray()
+## How many tips it has given. They open nothing; About says thank you.
+var tips: int = 0
+## The look in use (GameLooks), or "" for the game's own.
+var look: String = ""
 ## The local date of the last free hint taken, and how many were taken that day.
 var hint_day: String = ""
 var hints_used: int = 0
 
 func _ready() -> void:
 	restore()
+	Looks.use_saved()
 	Appearance.apply(theme)
 	Supporter.start()
 	Ads.start()
@@ -32,9 +39,9 @@ func _ready() -> void:
 func best(level: int) -> int:
 	return stars[level] if level < stars.size() else 0
 
-## Level 0 is always open; any other opens once the one before it has been solved.
+## Level 0 is always open; any other opens once the one before it has been solved, or with Every level.
 func unlocked(level: int) -> bool:
-	return level == 0 or best(level - 1) > 0
+	return level == 0 or best(level - 1) > 0 or Shop.levels_open()
 
 ## Keeps the best result. Returns true if this was an improvement.
 func record(level: int, earned: int) -> bool:
@@ -59,7 +66,7 @@ func total_stars() -> int:
 		n += s
 	return n
 
-## Forgets every star. Settings, the Supporter pack and today's hints are kept.
+## Forgets every star. Settings, purchases, tips and today's hints are kept.
 func reset() -> void:
 	stars = PackedByteArray()
 	store()
@@ -93,6 +100,24 @@ func set_supporter(on: bool) -> void:
 	store()
 	EventBus.settings_changed.emit()
 
+func set_owned(id: String, on: bool) -> void:
+	if owned.has(id) == on:
+		return
+	if on:
+		owned.append(id)
+	else:
+		owned.remove_at(owned.find(id))
+	store()
+	EventBus.settings_changed.emit()
+
+func add_tip() -> void:
+	tips += 1
+	store()
+
+func set_look(id: String) -> void:
+	look = id
+	store()
+
 func set_hints(day: String, used: int) -> void:
 	hint_day = day
 	hints_used = used
@@ -113,6 +138,11 @@ func restore() -> void:
 	supporter = bool(file.get_value("monetize", "supporter", false))
 	hint_day = str(file.get_value("monetize", "hint_day", ""))
 	hints_used = maxi(int(file.get_value("monetize", "hints_used", 0)), 0)
+	var bought: Variant = file.get_value("monetize", "owned", PackedStringArray())
+	if bought is PackedStringArray:
+		owned = bought
+	tips = maxi(int(file.get_value("monetize", "tips", 0)), 0)
+	look = str(file.get_value("settings", "look", ""))
 
 func store() -> void:
 	var file: ConfigFile = ConfigFile.new()
@@ -125,4 +155,7 @@ func store() -> void:
 	file.set_value("monetize", "supporter", supporter)
 	file.set_value("monetize", "hint_day", hint_day)
 	file.set_value("monetize", "hints_used", hints_used)
+	file.set_value("monetize", "owned", owned)
+	file.set_value("monetize", "tips", tips)
+	file.set_value("settings", "look", look)
 	file.save(path)
