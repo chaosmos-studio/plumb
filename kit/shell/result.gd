@@ -33,22 +33,28 @@ static func won(host: Node, heading: String, earned: int, detail: PackedStringAr
 		_award(host, icons[k], 0.4 + k * STAR_GAP)
 	return sheet
 
-## Opens the failure sheet.
+## Opens the failure sheet. It leads with Undo when `on_undo` is given, or else with `more_text` when
+## `on_more` is given (Revive's one more heart or tap), with retry then a quiet choice beside Levels.
 static func failed(host: Node, heading: String, line: String, retry_text: String, on_retry: Callable,
-		on_levels: Callable, on_undo: Callable = Callable()) -> Sheet:
+		on_levels: Callable, on_undo: Callable = Callable(), more_text: String = "",
+		on_more: Callable = Callable()) -> Sheet:
 	var sheet: Sheet = Sheet.open(host, false)
 	var c: VBoxContainer = sheet.content
 	c.add_child(UI.title(heading, 64))
 	c.add_child(UI.label(line, 30, Brand.MUTED))
 	c.add_child(UI.spacer(6))
-	var primary_text: String = "Undo" if on_undo.is_valid() else retry_text
-	var primary: Button = UI.button(primary_text, UI.Style.PRIMARY)
-	primary.pressed.connect(on_undo if on_undo.is_valid() else on_retry)
+	var lead: Callable = on_undo if on_undo.is_valid() else on_more
+	var primary: Button = UI.button(retry_text, UI.Style.PRIMARY)
+	if on_undo.is_valid():
+		primary.text = "Undo"
+	elif on_more.is_valid():
+		primary.text = more_text
+	primary.pressed.connect(lead if lead.is_valid() else on_retry)
 	c.add_child(primary)
 	var row: HBoxContainer = HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 20)
-	if on_undo.is_valid():
+	if lead.is_valid():
 		var again: Button = UI.button(retry_text, UI.Style.GHOST)
 		again.pressed.connect(on_retry)
 		row.add_child(again)
