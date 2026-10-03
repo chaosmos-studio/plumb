@@ -79,7 +79,8 @@ static func open(host: Node) -> Sheet:
 	return sheet
 
 class _Card extends BaseButton:
-	const SIZE: Vector2 = Vector2(300, 150)
+	## Two to a row with the gap between them, inside the sheet's margins on a 720 wide screen.
+	const SIZE: Vector2 = Vector2(296, 150)
 
 	var id: String = ""
 	var chosen: bool = false
