@@ -28,13 +28,16 @@ var _marbles: Array[Marble] = []
 ## Where each marble is drawn, which lags the board during an animation.
 var _shown: PackedInt32Array = PackedInt32Array()
 var _hint_dir: int = -1
-## [from cell, to cell, kind, colour] for each marble the hinted tilt would move.
+## [route (_route), kind, colour] for each marble the hinted tilt would move.
 var _hint_paths: Array[Array] = []
 var _hint_t: float = 0.0
 var _hint_nudge: Tween
 ## Cells a tilt being played changes partway through, drawn as they were until their step comes: the
-## board already holds the outcome. Cell to [kind (&"crack" or &"plug"), the plug's colour].
+## board already holds the outcome. Cell to [kind, value]: &"crack"; &"plug" with the plug's colour;
+## &"fill", a pit a stone will fill; &"key" and &"lock" with their colour.
 var _pending: Dictionary = {}
+## Which hatches are drawn open: those held for the tilt being played, which the rules fix as it starts.
+var _hatches: PackedByteArray = PackedByteArray()
 
 func _ready() -> void:
 	set_process(false)
@@ -49,7 +52,8 @@ func show_board(b: TiltBoard, fit: Vector2) -> void:
 	_marbles.clear()
 	for i: int in range(b.marble_cell.size()):
 		var marble: Marble = Marble.new()
-		marble.radius = cell * 0.36
+		marble.radius = cell * (0.38 if b.is_stone(i) else 0.36)
+		marble.stone = b.is_stone(i)
 		marble.colour = Palette.marble(b.marble_colour[i])
 		add_child(marble)
 		_marbles.append(marble)
@@ -73,6 +77,7 @@ func sync(b: TiltBoard, pop_in: bool = true) -> void:
 	_pending.clear()
 	board = b
 	_shown = b.marble_cell.duplicate()
+	_hatches = b.held_open()
 	for i: int in range(_marbles.size()):
 		var marble: Marble = _marbles[i]
 		marble.colour = Palette.marble(b.marble_colour[i])
@@ -130,10 +135,20 @@ func _draw() -> void:
 		var rect: Rect2 = Rect2(_origin + Vector2(at) * cell + Vector2(gap, gap), Vector2(cell, cell) - Vector2(gap, gap) * 2.0)
 		var c: Vector2 = rect.get_center()
 		var pending: Array = _pending.get(i, [])
-		if not pending.is_empty() and pending[0] == &"crack":
-			draw_style_box(tile, rect)
-			_draw_crack(c)
-			continue
+		if not pending.is_empty():
+			match pending[0]:
+				&"crack":
+					draw_style_box(tile, rect)
+					_draw_crack(c)
+					continue
+				&"fill":
+					draw_style_box(pit_face, rect)
+					draw_style_box(pit_depth, rect.grow_individual(-cell * 0.1, -cell * 0.16, -cell * 0.1, -cell * 0.06))
+					continue
+				&"key", &"lock":
+					draw_style_box(tile, rect)
+					_draw_tile_as(TiltBoard.Tile.KEY if pending[0] == &"key" else TiltBoard.Tile.LOCK, int(pending[1]), rect, c)
+					continue
 		match board.cells[i]:
 			TiltBoard.Cell.WALL:
 				draw_style_box(wall, rect)
@@ -144,10 +159,10 @@ func _draw() -> void:
 				draw_style_box(pit_depth, rect.grow_individual(-cell * 0.1, -cell * 0.16, -cell * 0.1, -cell * 0.06))
 			_:
 				draw_style_box(tile, rect)
-				_draw_tile(i, rect, c)
+				_draw_tile_as(board.tiles[i], board.tile_value[i], rect, c)
 				var hole: int = board.holes[i]
 				var plug: bool = board.plugs[i] == 1
-				if not pending.is_empty():
+				if not pending.is_empty() and pending[0] == &"plug":
 					hole = int(pending[1])
 					plug = true
 				if hole != TiltBoard.NO_HOLE:
@@ -162,11 +177,11 @@ func _draw() -> void:
 							draw_arc(c, cell * 0.47, a, a + TAU / 16.0, 6, Color(Palette.WALL, 0.75), cell * 0.045, true)
 	_draw_hint()
 
-## The tile on floor cell `i`, if any. Each reads by shape before colour: a mat, chevrons, a coloured frame,
-## a splash, cracks.
-func _draw_tile(i: int, rect: Rect2, c: Vector2) -> void:
-	var value: int = board.tile_value[i]
-	match board.tiles[i]:
+## A tile drawn on a floor cell. Each reads by shape before colour: a mat, chevrons, a coloured frame, a
+## splash, cracks, a whirl, a slanted bar, a round plate, a barred hatch, a key, a padlock. Portals,
+## switches and hatches carry one dot or two, so the pairs read without colours of their own.
+func _draw_tile_as(tile: int, value: int, rect: Rect2, c: Vector2) -> void:
+	match tile:
 		TiltBoard.Tile.STOP:
 			var pad: StyleBoxFlat = StyleBoxFlat.new()
 			pad.bg_color = Color(Palette.WALL, 0.2)
@@ -205,6 +220,76 @@ func _draw_tile(i: int, rect: Rect2, c: Vector2) -> void:
 			draw_circle(c + Vector2(0.14, 0.22) * cell, cell * 0.045, colour, true, -1.0, true)
 		TiltBoard.Tile.CRACK:
 			_draw_crack(c)
+		TiltBoard.Tile.PORTAL:
+			var ink: Color = Color(Palette.WALL, 0.75)
+			draw_circle(c, cell * 0.36, Color(Palette.WALL, 0.12), true, -1.0, true)
+			for k: int in range(3):
+				var a: float = TAU * k / 3.0
+				draw_arc(c, cell * 0.3, a, a + TAU / 4.0, 10, ink, cell * 0.06, true)
+				draw_arc(c, cell * 0.18, a + 0.6, a + 0.6 + TAU / 5.0, 8, ink, cell * 0.05, true)
+			_draw_pair(value, c, ink)
+		TiltBoard.Tile.BUMPER:
+			var ink: Color = Palette.WALL
+			var reach: float = cell * 0.32
+			var a: Vector2 = c + (Vector2(-reach, reach) if value == TiltBoard.SLASH else Vector2(-reach, -reach))
+			var b: Vector2 = c + (Vector2(reach, -reach) if value == TiltBoard.SLASH else Vector2(reach, reach))
+			draw_line(a, b, Palette.WALL_LIP, cell * 0.16, true)
+			draw_line(a, b, ink, cell * 0.11, true)
+			for p: Vector2 in [a, b]:
+				draw_circle(p, cell * 0.08, Palette.WALL_LIP, true, -1.0, true)
+		TiltBoard.Tile.SWITCH:
+			var ink: Color = Color(Palette.WALL, 0.7)
+			draw_circle(c, cell * 0.33, Color(Palette.WALL, 0.14), true, -1.0, true)
+			draw_arc(c, cell * 0.33, 0.0, TAU, 36, ink, cell * 0.05, true)
+			draw_arc(c, cell * 0.22, 0.0, TAU, 28, Color(ink, 0.5), cell * 0.03, true)
+			_draw_pair(value, c, ink)
+		TiltBoard.Tile.HATCH:
+			var open: bool = value < _hatches.size() and _hatches[value] == 1
+			var ink: Color = Palette.WALL
+			if open:
+				var frame: StyleBoxFlat = StyleBoxFlat.new()
+				frame.bg_color = Color(0, 0, 0, 0)
+				frame.border_color = Color(ink, 0.45)
+				frame.set_border_width_all(int(maxf(2.0, cell * 0.04)))
+				frame.set_corner_radius_all(int(cell * 0.12))
+				frame.anti_aliasing = true
+				draw_style_box(frame, rect.grow(-cell * 0.06))
+			else:
+				var plate: StyleBoxFlat = StyleBoxFlat.new()
+				plate.bg_color = Color(ink, 0.85)
+				plate.set_corner_radius_all(int(cell * 0.12))
+				plate.anti_aliasing = true
+				draw_style_box(plate, rect.grow(-cell * 0.06))
+				for k: int in range(3):
+					var x: float = (k - 1) * cell * 0.22
+					draw_line(c + Vector2(x, -cell * 0.3), c + Vector2(x, cell * 0.3), Palette.WALL_LIP, cell * 0.07, true)
+			_draw_pair(value, c + Vector2(0, cell * 0.26), Palette.TILE if not open else Color(ink, 0.6))
+		TiltBoard.Tile.KEY:
+			var colour: Color = Palette.marble(value)
+			draw_circle(c + Vector2(-cell * 0.13, 0), cell * 0.15, colour, false, cell * 0.07, true)
+			draw_line(c + Vector2(cell * 0.02, 0), c + Vector2(cell * 0.32, 0), colour, cell * 0.08, true)
+			draw_line(c + Vector2(cell * 0.24, 0), c + Vector2(cell * 0.24, cell * 0.12), colour, cell * 0.07, true)
+			draw_line(c + Vector2(cell * 0.14, 0), c + Vector2(cell * 0.14, cell * 0.09), colour, cell * 0.07, true)
+		TiltBoard.Tile.LOCK:
+			var colour: Color = Palette.marble(value)
+			var block: StyleBoxFlat = StyleBoxFlat.new()
+			block.bg_color = colour.lerp(Palette.WALL, 0.45)
+			block.border_color = colour
+			block.set_border_width_all(int(maxf(3.0, cell * 0.07)))
+			block.set_corner_radius_all(int(cell * 0.14))
+			block.anti_aliasing = true
+			draw_style_box(block, rect.grow(-cell * 0.04))
+			draw_arc(c + Vector2(0, -cell * 0.06), cell * 0.12, PI, TAU, 12, Palette.TILE, cell * 0.06, true)
+			draw_rect(Rect2(c + Vector2(-cell * 0.16, -cell * 0.06), Vector2(cell * 0.32, cell * 0.24)), Palette.TILE, true)
+			draw_circle(c + Vector2(0, cell * 0.05), cell * 0.04, block.bg_color, true, -1.0, true)
+
+## One dot or two, for the first or second portal, switch or hatch pair on a board.
+func _draw_pair(pair: int, at: Vector2, ink: Color) -> void:
+	if pair == 0:
+		draw_circle(at, cell * 0.05, ink, true, -1.0, true)
+	else:
+		for side: float in [-1.0, 1.0]:
+			draw_circle(at + Vector2(side * cell * 0.06, 0), cell * 0.045, ink, true, -1.0, true)
 
 func _draw_crack(c: Vector2) -> void:
 	var ink: Color = Color(Palette.HOLE, 0.65)
@@ -230,36 +315,70 @@ func play(move: TiltMove) -> void:
 				_pending[int(event["cell"])] = [&"crack", 0]
 			&"plug":
 				_pending[int(event["cell"])] = [&"plug", board.marble_colour[int(event["marble"])]]
+			&"fill":
+				_pending[int(event["cell"])] = [&"fill", 0]
+			&"key":
+				_pending[int(event["cell"])] = [&"key", int(event["colour"])]
+				for lock: int in event["opened"]:
+					_pending[lock] = [&"lock", int(event["colour"])]
 	if not _pending.is_empty():
 		queue_redraw()
 	_tip(move.dir)
 	Audio.play(&"roll", -9.0, randf_range(0.95, 1.05))
-	var d: Vector2i = TiltBoard.DIRS[move.dir]
 	for step: int in range(move.steps.size()):
 		var tween: Tween = create_tween().set_parallel(true)
-		for m: Variant in move.steps[step]:
-			var id: int = int(m)
-			var at: Vector2i = board.coords(_shown[id]) + d
-			_shown[id] = board.index(at)
-			tween.tween_property(_marbles[id], "position", centre(_shown[id]), STEP_TIME)
+		var jumps: Dictionary = {}
+		for event: Dictionary in move.events:
+			if int(event["step"]) == step and event["kind"] == &"portal":
+				jumps[int(event["marble"])] = int(event["cell"])
+		for k: int in range(move.steps[step].size()):
+			var id: int = int(move.steps[step][k])
+			_shown[id] = move.cells[step][k]
+			if jumps.has(id):
+				# Into the portal, then out of its twin at once.
+				var marble: Marble = _marbles[id]
+				var twin: Vector2 = centre(_shown[id])
+				tween.tween_property(marble, "position", centre(int(jumps[id])), STEP_TIME)
+				tween.chain().tween_callback(func() -> void:
+					marble.position = twin
+					marble.scale = Vector2(0.6, 0.6))
+				tween.parallel().tween_property(marble, "scale", Vector2.ONE, STEP_TIME * 2.0).set_delay(STEP_TIME)
+			else:
+				tween.tween_property(_marbles[id], "position", centre(_shown[id]), STEP_TIME)
 		await tween.finished
 		for event: Dictionary in move.events:
 			if int(event["step"]) != step:
 				continue
 			match event["kind"]:
-				&"sink", &"pit":
+				&"sink", &"pit", &"fill":
 					_drop(int(event["marble"]), event["kind"])
+					if event["kind"] == &"fill":
+						_pending.erase(int(event["cell"]))
+						queue_redraw()
 				&"paint":
 					_repaint(int(event["marble"]), int(event["colour"]))
+				&"bounce":
+					_bump([int(event["marble"])] as Array[int], Vector2i(1, 1))
+					Audio.play(&"clack", -12.0, 1.4)
+				&"portal":
+					Audio.play(&"tap", -8.0, 1.6)
+				&"key":
+					_pending.erase(int(event["cell"]))
+					for lock: int in event["opened"]:
+						_pending.erase(lock)
+					queue_redraw()
+					Audio.play(&"clack", -6.0, 1.8)
 				&"crack", &"plug":
 					_pending.erase(int(event["cell"]))
 					queue_redraw()
 					if event["kind"] == &"crack":
 						Audio.play(&"pit", -14.0, 1.35)
 	if not move.stopped.is_empty():
-		_bump(move.stopped, d)
+		_bump(move.stopped, TiltBoard.DIRS[move.dir])
 		Audio.play(&"clack", -4.0, randf_range(0.94, 1.06))
 		Audio.buzz(8)
+	_hatches = board.held_open()
+	queue_redraw()
 	busy = false
 
 ## A swipe that moves nothing still answers: the tray twitches and settles.
@@ -295,7 +414,13 @@ func _bump(ids: Array[int], d: Vector2i) -> void:
 func _drop(id: int, kind: StringName) -> void:
 	var marble: Marble = _marbles[id]
 	var t: Tween = create_tween().set_parallel(true)
-	if kind == &"sink":
+	if kind == &"fill":
+		# A stone settles into the pit and becomes the floor: no shake, nothing lost.
+		t.tween_property(marble, "scale", Vector2(0.8, 0.8), 0.2).set_ease(Tween.EASE_IN)
+		t.tween_property(marble, "modulate", Color(1, 1, 1, 0.0), 0.2).set_delay(0.06)
+		Audio.play(&"pit", -10.0, 0.7)
+		Audio.buzz(20)
+	elif kind == &"sink":
 		t.tween_property(marble, "scale", Vector2(0.15, 0.15), 0.18).set_ease(Tween.EASE_IN)
 		t.tween_property(marble, "modulate", Color(0.5, 0.5, 0.5, 0.0), 0.18)
 		var ring: Ripple = Ripple.new()
@@ -345,17 +470,18 @@ func show_hint(dir: int, from: TiltBoard) -> void:
 	var move: TiltMove = probe.tilt(dir)
 	for m: int in range(from.marble_cell.size()):
 		var start_cell: int = from.marble_cell[m]
-		if start_cell == TiltBoard.GONE:
+		if start_cell == TiltBoard.GONE or not move.moved(m):
 			continue
-		var end_cell: int = probe.marble_cell[m]
 		var kind: StringName = &"roll"
+		var jumps: Dictionary = {}
 		for event: Dictionary in move.events:
-			if int(event["marble"]) == m and (event["kind"] == &"sink" or event["kind"] == &"pit"):
+			if int(event["marble"]) != m:
+				continue
+			if event["kind"] == &"sink" or event["kind"] == &"pit":
 				kind = event["kind"]
-				end_cell = int(event["cell"])
-		if end_cell == start_cell:
-			continue
-		_hint_paths.append([start_cell, end_cell, kind, from.marble_colour[m]])
+			elif event["kind"] == &"portal":
+				jumps[int(event["step"])] = int(event["cell"])
+		_hint_paths.append([_route(move, m, start_cell, jumps), kind, from.marble_colour[m]])
 	_hint_dir = dir
 	_hint_t = 0.0
 	set_process(true)
@@ -364,6 +490,20 @@ func show_hint(dir: int, from: TiltBoard) -> void:
 	_hint_nudge.tween_callback(func() -> void: _tip(dir, 0.55))
 	_hint_nudge.tween_interval(0.9)
 	queue_redraw()
+
+## The cells marble `m` passes through on `move`, from `start`, so a trail can turn where a bumper turns it.
+## A portal's cell comes before its twin, with -1 between, where the trail breaks for the jump.
+static func _route(move: TiltMove, m: int, start: int, jumps: Dictionary) -> PackedInt32Array:
+	var route: PackedInt32Array = PackedInt32Array([start])
+	for step: int in range(move.steps.size()):
+		var k: int = move.steps[step].find(m)
+		if k < 0:
+			continue
+		if jumps.has(step):
+			route.append(int(jumps[step]))
+			route.append(-1)
+		route.append(move.cells[step][k])
+	return route
 
 func _clear_hint() -> void:
 	if _hint_nudge != null and _hint_nudge.is_valid():
@@ -383,19 +523,23 @@ func _draw_hint() -> void:
 		return
 	var pulse: float = 0.5 + 0.5 * sin(_hint_t * 5.0)
 	for path: Array in _hint_paths:
-		var a: Vector2 = centre(int(path[0]))
-		var b: Vector2 = centre(int(path[1]))
-		var colour: Color = Palette.marble(int(path[3]))
-		var length: float = a.distance_to(b)
+		var route: PackedInt32Array = path[0]
+		var colour: Color = Palette.marble(int(path[2]))
+		var b: Vector2 = centre(route[route.size() - 1])
 		var step: float = cell * 0.22
-		var n: int = int(length / step)
-		for k: int in range(1, n):
-			var t: float = float(k) / float(n)
-			# Dots travel along the trail, so the direction reads even in a still frame.
-			var phase: float = fmod(t - _hint_t * 0.8, 1.0)
-			var alpha: float = 0.35 + 0.6 * (1.0 - absf(phase * 2.0 - 1.0))
-			draw_circle(a.lerp(b, t), cell * 0.058, Color(colour, alpha), true, -1.0, true)
-		match path[2]:
+		for s: int in range(route.size() - 1):
+			if route[s] < 0 or route[s + 1] < 0:
+				continue
+			var from: Vector2 = centre(route[s])
+			var to: Vector2 = centre(route[s + 1])
+			var n: int = maxi(int(from.distance_to(to) / step), 1)
+			for k: int in range(1 if s == 0 else 0, n):
+				var t: float = float(k) / float(n)
+				# Dots travel along the trail, so the direction reads even in a still frame.
+				var phase: float = fmod(float(s) * 0.25 + t * 0.25 - _hint_t * 0.8, 1.0)
+				var alpha: float = 0.35 + 0.6 * (1.0 - absf(phase * 2.0 - 1.0))
+				draw_circle(from.lerp(to, t), cell * 0.058, Color(colour, alpha), true, -1.0, true)
+		match path[1]:
 			&"sink":
 				# Outside the hole's own ring, which sits at 0.41 and would hide a hint drawn on it.
 				draw_arc(b, cell * (0.52 + 0.05 * pulse), 0.0, TAU, 40, Color(colour, 0.9), cell * 0.06, true)

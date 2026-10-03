@@ -14,6 +14,11 @@ var colour: Color = Color.WHITE:
 	set(value):
 		colour = value
 		queue_redraw()
+## A stone, drawn as a rounded grey rock in every marble set, so it never passes for a marble.
+var stone: bool = false:
+	set(value):
+		stone = value
+		queue_redraw()
 
 ## The tail is worked out from how far the marble moved since last frame, so anything that moves it
 ## (a roll, an undo, the title toy) gets one without asking.
@@ -42,6 +47,9 @@ func _draw() -> void:
 		var tail: PackedVector2Array = PackedVector2Array([side, _tail, -side])
 		draw_colored_polygon(tail, Color(colour, 0.28))
 	draw_circle(Vector2(r * 0.08, r * 0.22), r * 0.98, Color(0.2, 0.16, 0.1, 0.18), true, -1.0, true)
+	if stone:
+		_stone(r)
+		return
 	match GameLooks.finish:
 		GameLooks.Finish.GLASS:
 			_glass(r)
@@ -55,6 +63,20 @@ func _draw() -> void:
 			draw_circle(Vector2.ZERO, r, colour.darkened(0.22), true, -1.0, true)
 			draw_circle(Vector2(-r * 0.06, -r * 0.08), r * 0.88, colour, true, -1.0, true)
 			_gloss(r)
+
+## A rock: a lumpy outline, a darker underside and a few flecks, matte where a marble shines.
+func _stone(r: float) -> void:
+	var lumps: PackedVector2Array = PackedVector2Array()
+	var shape: Array[float] = [1.0, 0.9, 0.97, 0.86, 0.95, 0.88, 1.0, 0.92, 0.85, 0.96]
+	for k: int in range(shape.size()):
+		lumps.append(Vector2.from_angle(TAU * k / shape.size() + 0.2) * r * 1.02 * shape[k])
+	draw_colored_polygon(lumps, colour.darkened(0.25))
+	var top: PackedVector2Array = PackedVector2Array()
+	for p: Vector2 in lumps:
+		top.append(p * 0.84 + Vector2(-r * 0.05, -r * 0.08))
+	draw_colored_polygon(top, colour)
+	for fleck: Vector3 in [Vector3(-0.3, -0.25, 0.09), Vector3(0.28, 0.1, 0.07), Vector3(-0.05, 0.35, 0.06), Vector3(0.12, -0.4, 0.05)]:
+		draw_circle(Vector2(fleck.x, fleck.y) * r, fleck.z * r, colour.darkened(0.35), true, -1.0, true)
 
 func _gloss(r: float) -> void:
 	draw_circle(Vector2(-r * 0.3, -r * 0.34), r * 0.3, Color(1, 1, 1, 0.5), true, -1.0, true)

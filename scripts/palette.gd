@@ -15,6 +15,7 @@ const LIGHT: Dictionary = {
 	"hole": Color("2c3140"),
 	"pit": Color("16171d"),
 	"danger": Color("ff6b6b"),
+	"stone": Color("a39b8f"),
 	"marbles": [Color("ff6b6b"), Color("22b5a6"), Color("ffb020"), Color("7b6cf6")],
 }
 
@@ -27,6 +28,7 @@ const DARK: Dictionary = {
 	"hole": Color("111217"),
 	"pit": Color("050506"),
 	"danger": Color("ff7b7b"),
+	"stone": Color("9b968e"),
 	"marbles": [Color("ff7474"), Color("2cc4b4"), Color("ffbb33"), Color("8f82ff")],
 }
 
@@ -38,10 +40,12 @@ static var WALL_LIP: Color = LIGHT["wall_lip"]
 static var HOLE: Color = LIGHT["hole"]
 static var PIT: Color = LIGHT["pit"]
 static var DANGER: Color = LIGHT["danger"]
+## A stone's grey: no marble colour, so it never reads as one that belongs in a hole.
+static var STONE: Color = LIGHT["stone"]
 static var MARBLES: Array[Color] = Array(LIGHT["marbles"], TYPE_COLOR, &"", null)
 
 static func marble(colour: int) -> Color:
-	return MARBLES[colour % MARBLES.size()]
+	return STONE if colour == TiltBoard.STONE else MARBLES[colour % MARBLES.size()]
 
 static func use(dark: bool) -> void:
 	var p: Dictionary = DARK if dark else LIGHT
@@ -53,4 +57,5 @@ static func use(dark: bool) -> void:
 	HOLE = p["hole"]
 	PIT = p["pit"]
 	DANGER = p["danger"]
+	STONE = p["stone"]
 	MARBLES.assign(GameLooks.marbles(dark, p["marbles"]))
