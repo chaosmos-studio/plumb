@@ -86,52 +86,52 @@ const CHAPTERS: Array = [
 	]},
 	{"name": "Blinking walls", "rule": "blink", "line": "Blinking walls switch after every tilt that moves",
 		"search": 30000, "phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 21, {"blink": 4}],
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 21, {"blink": 4, "switch": 1}],
+		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"blink": 4}],
+		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"blink": 4, "switch": 1}],
 	]},
 	{"name": "Conveyors", "rule": "conveyor", "line": "Once the board stops, a conveyor carries its marble on",
 		"search": 30000, "phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 21, {"conveyor": 3}],
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 21, {"conveyor": 3, "bumper": 2}],
+		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"conveyor": 3}],
+		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"conveyor": 3, "bumper": 2}],
 	]},
 	{"name": "Springs", "rule": "spring", "line": "A spring jumps a marble over the next square",
 		"search": 30000, "phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 21, {"spring": 3}],
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 21, {"spring": 3, "crack": 3}],
+		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"spring": 3}],
+		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"spring": 3, "crack": 3}],
 	]},
 	{"name": "Wrap edges", "rule": "wrap", "line": "Off one edge and back in at the other",
 		"search": 30000, "phases": [
-		[10, 8, 8, 3, 5, 0.17, 1, 16, 21, {"wrap": 1}],
-		[10, 8, 8, 3, 5, 0.17, 1, 16, 21, {"wrap": 1, "portal": 1}],
+		[10, 8, 8, 3, 5, 0.17, 1, 16, 24, {"wrap": 1}],
+		[10, 8, 8, 3, 5, 0.17, 1, 16, 24, {"wrap": 1, "portal": 1}],
 	]},
 	{"name": "Magnets", "rule": "magnet", "line": "A marble stops as soon as it rolls beside a magnet",
 		"search": 30000, "phases": [
-		[10, 8, 8, 3, 5, 0.14, 1, 16, 21, {"magnet": 2}],
-		[10, 8, 8, 3, 5, 0.14, 1, 16, 21, {"magnet": 2, "conveyor": 2}],
+		[10, 8, 8, 3, 5, 0.14, 1, 16, 24, {"magnet": 2}],
+		[10, 8, 8, 3, 5, 0.14, 1, 16, 24, {"magnet": 2, "conveyor": 2}],
 	]},
 	{"name": "Numbered marbles", "rule": "number", "line": "Numbered marbles drop in order, 1 first",
-		"search": 30000, "phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 21, {"number": 3}],
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 21, {"number": 3, "plug": true}],
+		"search": 40000, "phases": [
+		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"number": 3}],
+		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"number": 3, "plug": true}],
 	]},
 	{"name": "Glass posts", "rule": "glass", "line": "Glass stops a marble once, then shatters",
-		"search": 30000, "phases": [
-		[10, 8, 8, 3, 5, 0.14, 1, 16, 21, {"glass": 3}],
-		[10, 8, 8, 3, 5, 0.14, 1, 16, 21, {"glass": 3, "stone": 1}],
+		"search": 40000, "phases": [
+		[10, 8, 8, 3, 5, 0.14, 1, 16, 24, {"glass": 3}],
+		[10, 8, 8, 3, 5, 0.14, 1, 16, 24, {"glass": 3, "stone": 1}],
 	]},
 	{"name": "Ice holes", "rule": "ice", "line": "An icy hole only takes a marble that stops on it",
-		"search": 30000, "phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 21, {"ice": 2}],
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 21, {"ice": 3, "stop": 2}],
+		"search": 40000, "phases": [
+		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"ice": 2}],
+		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"ice": 3, "stop": 2}],
 	]},
 	{"name": "Turning lock", "rule": "locked", "line": "One way is locked, and the lock turns after every tilt",
-		"search": 30000, "phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 21, {"locked": 1}],
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 21, {"locked": 1, "spring": 2}],
+		"search": 40000, "phases": [
+		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"locked": 1}],
+		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"locked": 1, "spring": 2}],
 	]},
-	{"name": "Everything", "rule": "mix", "line": "Every rule so far, mixed", "search": 30000, "phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 21, {"mix": 2}],
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 21, {"mix": 3}],
+	{"name": "Everything", "rule": "mix", "line": "Every rule so far, mixed", "search": 40000, "phases": [
+		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"mix": 2}],
+		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"mix": 3}],
 	]},
 ]
 ## What a mixed chapter (rule "mix") draws its rules from, one entry per rule, each with the marks that
@@ -176,6 +176,11 @@ const BATCH: int = 24
 ## Chapters from this one on ship in TiltDifficulty.before's order, par first, rather than with par and
 ## bits each never falling (MATH.md section 10). Every level before them keeps both, which also keeps this.
 const BY_PAR_FROM: int = 13
+## From this chapter on a phase pools only boards at the last level's par or one more, so its pool crowds
+## the low end of what it may ship and par climbs slowly, and it pools POOL_LATE boards per level it ships
+## rather than POOL, packing them closer in bits (MATH.md section 10).
+const CLOSE_FROM: int = 15
+const POOL_LATE: int = 8
 
 class Candidate:
 	var board: TiltBoard
@@ -283,14 +288,17 @@ func add_phase(chapter: int, p: int) -> bool:
 	var ahead: float = 0.0 if last == null else maxf(last.bits - target_bits(first), 0.0)
 	var lo: float = -1.0 if by_par else target_bits(first) + ahead - BAND
 	var hi: float = 1e9 if by_par else target_bits(first + count - 1) + ahead + BAND
+	var close: bool = chapter >= CLOSE_FROM and last != null
+	var cap: int = mini(par_max, last.par + 1) if close else par_max
+	var size: int = count * (POOL_LATE if chapter >= CLOSE_FROM else POOL)
 	var pool: Array[Candidate] = []
 	attempts = 0
 	if chapter < PARALLEL_FROM:
-		while pool.size() < count * POOL and attempts < count * ATTEMPTS:
+		while pool.size() < size and attempts < count * ATTEMPTS:
 			attempts += 1
 			_keep(_try(_propose(phase), phase, rule, limit, lo, hi, last), pool)
 	else:
-		_fill(pool, chapter, p, lo, hi, last)
+		_fill(pool, chapter, p, lo, hi, last, cap, size)
 	pooled = pool.size()
 	var run: Array[Candidate] = _run(pool, first, count, last, _streak(by_par), by_par)
 	if run.is_empty():
@@ -306,15 +314,16 @@ func add_phase(chapter: int, p: int) -> bool:
 ## the search, par and bits in the window, no easier than the last level, its pits a real risk where the
 ## phase has pits, and needing the chapter's rule. Null if it fails any of them.
 static func _try(board: TiltBoard, phase: Array, rule: String, limit: int, lo: float, hi: float,
-		last: TiltDifficulty, by_par: bool = false) -> Candidate:
+		last: TiltDifficulty, by_par: bool = false, cap: int = -1) -> Candidate:
 	if board == null or not _open(board):
 		return null
+	var deepest: int = cap if cap > 0 else int(phase[8])
 	# A plain search finds par first, so a board outside the phase's window never pays for the measure,
 	# which carries every position's chance as well. Its count of positions differs a little from the
 	# measure's, so the chapters made before it keep the one way they were made.
-	if by_par and TiltSolver.new().solve(board, limit, int(phase[8])).size() < int(phase[7]):
+	if by_par and TiltSolver.new().solve(board, limit, deepest).size() < int(phase[7]):
 		return null
-	var m: TiltDifficulty = TiltDifficulty.of(board, int(phase[8]), limit)
+	var m: TiltDifficulty = TiltDifficulty.of(board, deepest, limit)
 	if m.par < int(phase[7]) or m.bits < lo or m.bits > hi:
 		return null
 	if last != null and (m.before(last) if by_par else (m.par < last.par or m.easier_than(last))):
@@ -332,20 +341,22 @@ func _keep(c: Candidate, pool: Array[Candidate]) -> void:
 	c.order = pool.size()
 	pool.append(c)
 
-## The batched pool (PARALLEL_FROM): the farm's batches, merged in batch order until the pool is full or
-## the phase's attempts are spent.
-func _fill(pool: Array[Candidate], chapter: int, p: int, lo: float, hi: float, last: TiltDifficulty) -> void:
+## The batched pool (PARALLEL_FROM): the farm's batches, merged in batch order until the pool holds `size`
+## or the phase's attempts are spent. `cap` is the deepest par it searches for.
+func _fill(pool: Array[Candidate], chapter: int, p: int, lo: float, hi: float, last: TiltDifficulty, cap: int,
+		size: int) -> void:
 	var count: int = CHAPTERS[chapter]["phases"][p][0]
 	var batches: int = ceili(float(count * ATTEMPTS) / BATCH)
 	var job: Dictionary = {"chapter": chapter, "phase": p, "seed": rng.randi(), "batches": batches,
-		"lo": lo, "hi": hi, "last": {} if last == null else {"par": last.par, "bits": last.bits, "states": last.states}}
+		"lo": lo, "hi": hi, "cap": cap,
+		"last": {} if last == null else {"par": last.par, "bits": last.bits, "states": last.states}}
 	farm.start(job)
 	for b: int in range(batches):
-		if pool.size() >= count * POOL:
+		if pool.size() >= size:
 			break
 		attempts += BATCH
 		for c: Candidate in farm.take(b):
-			if pool.size() < count * POOL:
+			if pool.size() < size:
 				_keep(c, pool)
 	farm.stop()
 
@@ -367,7 +378,7 @@ static func batch(job: Dictionary, b: int) -> Array[Candidate]:
 	var found: Array[Candidate] = []
 	for k: int in range(BATCH):
 		var c: Candidate = _try(own._propose(phase), phase, rule, limit, float(job["lo"]), float(job["hi"]), last,
-			chapter >= BY_PAR_FROM)
+			chapter >= BY_PAR_FROM, int(job.get("cap", phase[8])))
 		if c != null:
 			found.append(c)
 	return found
