@@ -13,9 +13,11 @@ const LAYOUT_SHARE: float = 0.3
 ## Boards closer than this share that one route solves are the same level played twice.
 const ROUTE_SHARE: float = 0.5
 
-enum Kind { FLOOR, WALL, PIT, HOLE, MARBLE, MARBLE_ON_HOLE, PLUG, STOP, GATE, DOOR, PAINT, CRACK }
+enum Kind { FLOOR, WALL, PIT, HOLE, MARBLE, MARBLE_ON_HOLE, PLUG, STOP, GATE, DOOR, PAINT, CRACK, PORTAL, BUMPER,
+	SWITCH, HATCH, KEY, LOCK, STONE }
 ## The layout kind of each TiltBoard.Tile, colour and direction aside.
-const TILE_KINDS: Array[int] = [Kind.FLOOR, Kind.STOP, Kind.GATE, Kind.DOOR, Kind.PAINT, Kind.CRACK]
+const TILE_KINDS: Array[int] = [Kind.FLOOR, Kind.STOP, Kind.GATE, Kind.DOOR, Kind.PAINT, Kind.CRACK, Kind.PORTAL,
+	Kind.BUMPER, Kind.SWITCH, Kind.HATCH, Kind.KEY, Kind.LOCK]
 
 ## A board's eight views, each as the colour-blind kind of every cell, ready for fast comparison.
 class Views:
@@ -95,8 +97,13 @@ static func layout(board: TiltBoard) -> PackedByteArray:
 					out[i] = Kind.PLUG if board.plugs[i] == 1 else Kind.HOLE
 				else:
 					out[i] = TILE_KINDS[board.tiles[i]]
-	for c: int in board.marble_cell:
-		if c != TiltBoard.GONE:
+	for m: int in range(board.marble_cell.size()):
+		var c: int = board.marble_cell[m]
+		if c == TiltBoard.GONE:
+			continue
+		if board.is_stone(m):
+			out[c] = Kind.STONE
+		else:
 			out[c] = Kind.MARBLE_ON_HOLE if out[c] == Kind.HOLE or out[c] == Kind.PLUG else Kind.MARBLE
 	return out
 
@@ -112,8 +119,15 @@ static func transform(board: TiltBoard, s: int) -> TiltBoard:
 		out.holes[j] = board.holes[i]
 		out.plugs[j] = board.plugs[i]
 		out.tiles[j] = board.tiles[i]
-		var gate: bool = board.tiles[i] == TiltBoard.Tile.GATE
-		out.tile_value[j] = transform_dir(board.tile_value[i], s) if gate else board.tile_value[i]
+		match board.tiles[i]:
+			TiltBoard.Tile.GATE:
+				out.tile_value[j] = transform_dir(board.tile_value[i], s)
+			TiltBoard.Tile.BUMPER:
+				# Mirroring one axis turns "/" into "\"; swapping the axes keeps each slant.
+				var flips: bool = (s & 1 != 0) != (s & 2 != 0)
+				out.tile_value[j] = 1 - board.tile_value[i] if flips else board.tile_value[i]
+			_:
+				out.tile_value[j] = board.tile_value[i]
 	for m: int in range(board.marble_cell.size()):
 		if board.marble_cell[m] != TiltBoard.GONE:
 			out.add_marble(_map(board.coords(board.marble_cell[m]), s, w, h), board.marble_colour[m])
@@ -168,8 +182,21 @@ static func canonical(board: TiltBoard) -> String:
 					text += "p" + _label(relabel, t.tile_value[i])
 				TiltBoard.Tile.CRACK:
 					text += "k"
+				TiltBoard.Tile.PORTAL:
+					text += "w"
+				TiltBoard.Tile.BUMPER:
+					text += "b" + str(t.tile_value[i])
+				TiltBoard.Tile.SWITCH:
+					text += "z"
+				TiltBoard.Tile.HATCH:
+					text += "h"
+				TiltBoard.Tile.KEY:
+					text += "y" + _label(relabel, t.tile_value[i])
+				TiltBoard.Tile.LOCK:
+					text += "l" + _label(relabel, t.tile_value[i])
 			if marble_at.has(i):
-				text += "o" + _label(relabel, int(marble_at[i]))
+				var colour: int = int(marble_at[i])
+				text += "r" if colour == TiltBoard.STONE else "o" + _label(relabel, colour)
 		if best == "" or text < best:
 			best = text
 	return best

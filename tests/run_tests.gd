@@ -25,6 +25,7 @@ func _initialize() -> void:
 	_test_orientation_is_an_int()
 	_test_tilt_rules()
 	_test_chapter_tiles()
+	_test_wave_two_tiles()
 	_test_solver()
 	_test_difficulty()
 	_test_novelty()
@@ -120,6 +121,71 @@ func _test_tilt_rules() -> void:
 
 static func _tiled(rows: Array, marbles: Array, tiles: Array) -> TiltBoard:
 	return TiltBoard.from_dict({"rows": rows, "marbles": marbles, "tiles": tiles})
+
+func _test_wave_two_tiles() -> void:
+	var s: int = TiltBoard.STONE
+	var b: TiltBoard = _tiled(["0.."], [[2, 0, s]], [])
+	b.tilt(TiltBoard.LEFT)
+	_check("a stone rolls over a hole and never drops in", b.marble_cell[0] == 0)
+	_check("and a board with only stones left is won", b.is_won())
+	b = _tiled(["0x.."], [[3, 0, 0], [2, 0, s]], [])
+	var m: TiltMove = b.tilt(TiltBoard.LEFT)
+	_check("a stone fills the pit it rolls into", b.cells[1] == TiltBoard.Cell.FLOOR and b.marble_cell[1] == TiltBoard.GONE
+		and not b.lost and b.key().contains("|"))
+	_check("and the marble behind rolls over it home", b.marble_cell[0] == TiltBoard.GONE and b.is_won()
+		and m.events.any(func(e: Dictionary) -> bool: return e["kind"] == &"fill"))
+
+	b = _tiled(["......"], [[0, 0, 0]], [[1, 0, "portal", 0], [4, 0, "portal", 0]])
+	m = b.tilt(TiltBoard.RIGHT)
+	_check("a marble that rolls into a portal comes out of its twin, still rolling", b.marble_cell[0] == 5
+		and m.events.any(func(e: Dictionary) -> bool: return e["kind"] == &"portal" and int(e["to"]) == 4))
+	_check("and the animation is told it landed on the twin", m.cells[0][0] == 4)
+	b = _tiled(["...#"], [[0, 0, 0], [2, 0, 1]], [[1, 0, "portal", 0], [2, 0, "portal", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("a portal whose twin is taken is shut", b.marble_cell[0] == 0)
+
+	b = _tiled([".....", "....."], [[0, 0, 0]], [[2, 0, "bumper", TiltBoard.BACKSLASH]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("a backslash bumper turns a marble rolling right downwards", b.marble_cell[0] == b.index(Vector2i(2, 1)))
+	b = _tiled([".....", "....."], [[0, 1, 0]], [[2, 1, "bumper", TiltBoard.SLASH]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("and a slash bumper upwards", b.marble_cell[0] == b.index(Vector2i(2, 0)))
+	# Four bumpers round a wall send a marble round and round: it stops where it came round to.
+	b = _tiled(["...", ".#.", "..."], [[1, 0, 0]], [[2, 0, "bumper", TiltBoard.BACKSLASH],
+		[2, 2, "bumper", TiltBoard.SLASH], [0, 2, "bumper", TiltBoard.BACKSLASH], [0, 0, "bumper", TiltBoard.SLASH]])
+	m = b.tilt(TiltBoard.RIGHT)
+	_check("a marble sent round a loop of bumpers stops once round", m.length() < 12 and b.marble_cell[0] != TiltBoard.GONE)
+
+	b = _tiled(["....", ".#.."], [[0, 0, 0]], [[2, 0, "hatch", 0], [0, 1, "switch", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("a hatch is shut while nothing rests on its switch", b.marble_cell[0] == 1)
+	b = _tiled(["....", ".#.."], [[0, 0, 0], [0, 1, s]], [[2, 0, "hatch", 0], [0, 1, "switch", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("and open while a stone rests on it", b.marble_cell[0] == 3)
+
+	b = _tiled(["......"], [[0, 0, 0]], [[1, 0, "key", 0], [4, 0, "lock", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("rolling over a key opens the lock of its colour for good", b.marble_cell[0] == 5
+		and b.tiles[4] == TiltBoard.Tile.NONE and b.tiles[1] == TiltBoard.Tile.NONE and b.key().contains("|"))
+	b = _tiled(["......"], [[2, 0, 0]], [[1, 0, "key", 0], [4, 0, "lock", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("a lock stays shut until its key is used", b.marble_cell[0] == 3)
+	b = _tiled(["......"], [[0, 0, 0]], [[1, 0, "key", 1], [4, 0, "lock", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("and another colour's key leaves it shut", b.marble_cell[0] == 3)
+
+	var dressed: TiltBoard = _tiled(["....", "...."], [[0, 0, 0], [3, 1, s]], [[1, 0, "portal", 0], [2, 1, "portal", 0],
+		[2, 0, "bumper", 1], [0, 1, "switch", 0], [3, 0, "hatch", 0], [1, 1, "key", 2], [3, 1, "lock", 2]])
+	_check("the new tiles and stones survive a round trip", TiltBoard.from_dict(dressed.to_dict()).to_dict() == dressed.to_dict())
+	var mirrored: TiltBoard = TiltNovelty.transform(dressed, 1)
+	_check("mirroring a board turns its bumpers the other way", mirrored.tile_value[mirrored.index(Vector2i(1, 0))] == 0)
+	_check("a stone is told apart from a marble in a layout", TiltNovelty.layout(dressed)[dressed.index(Vector2i(3, 1))]
+		== TiltNovelty.Kind.STONE)
+	var plain: TiltBoard = TiltGenerator.without(dressed, "stone")
+	_check("taking stones away leaves the marbles", plain.marble_cell.size() == 1 and not plain.is_stone(0))
+	plain = TiltGenerator.without(dressed, "switch")
+	_check("taking switches away takes their hatches too", not plain.tiles.has(TiltBoard.Tile.SWITCH)
+		and not plain.tiles.has(TiltBoard.Tile.HATCH))
 
 func _test_chapter_tiles() -> void:
 	var m: TiltMove
