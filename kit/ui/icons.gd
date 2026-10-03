@@ -7,7 +7,7 @@ extends RefCounted
 
 const NAMES: Array[StringName] = [&"back", &"close", &"next", &"undo", &"restart", &"hint", &"settings",
 	&"sound", &"sound_off", &"music", &"music_off", &"haptics", &"theme", &"play", &"levels", &"lock", &"check",
-	&"heart"]
+	&"heart", &"shop"]
 
 static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour: Color, w: float = -1.0) -> void:
 	if w < 0.0:
@@ -115,6 +115,11 @@ static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour:
 				var hy: float = 13.0 * cos(t) - 5.0 * cos(2.0 * t) - 2.0 * cos(3.0 * t) - cos(4.0 * t)
 				outline.append(c + Vector2(hx, -hy - 2.5) * (0.0155 * s))
 			_stroke(ci, outline, colour, w)
+		&"shop":
+			# A shopping bag: a body that widens a little toward the bottom, and a handle over it.
+			_stroke(ci, [c + Vector2(-0.2, -0.1) * s, c + Vector2(0.2, -0.1) * s, c + Vector2(0.24, 0.26) * s,
+				c + Vector2(-0.24, 0.26) * s, c + Vector2(-0.2, -0.1) * s], colour, w)
+			ci.draw_arc(c + Vector2(0, -0.1) * s, 0.11 * s, PI, TAU, 16, colour, w, true)
 
 ## A polyline with round caps and joins: a dot at every vertex covers the notches a thick line leaves.
 static func _stroke(ci: CanvasItem, points: Array[Vector2], colour: Color, w: float) -> void:

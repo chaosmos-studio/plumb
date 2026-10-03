@@ -44,19 +44,19 @@ static func say(text: String) -> void:
 	if tree != null and tree.current_scene != null:
 		Toast.say(tree.current_scene, text)
 
-## The title screen's way to the shop: a heart in the corner opposite `gear`, the settings button, on
-## Google Play only, while there is still a pack to have.
+## The title screen's way to the shop: a shopping bag in the corner opposite `gear`, the settings button,
+## on Google Play only. It stays once every pack is had, since the tip jar is always there.
 static func add_title_button(host: Node, ui: Control, gear: Control) -> void:
-	if not on_play or Shop.has_everything():
+	if not on_play:
 		return
-	var heart: IconButton = UI.icon_button(&"heart", "Shop")
-	heart.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	heart.offset_left = -gear.offset_right
-	heart.offset_right = -gear.offset_left
-	heart.offset_top = gear.offset_top
-	heart.offset_bottom = gear.offset_bottom
-	heart.pressed.connect(func() -> void: Shop.open(host))
-	ui.add_child(heart)
+	var shop: IconButton = UI.icon_button(&"shop", "Shop")
+	shop.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	shop.offset_left = -gear.offset_right
+	shop.offset_right = -gear.offset_left
+	shop.offset_top = gear.offset_top
+	shop.offset_bottom = gear.offset_bottom
+	shop.pressed.connect(func() -> void: Shop.open(host))
+	ui.add_child(shop)
 
 ## The support sheet: the Supporter pack with its price and Restore on Google Play; one Sponsor on GitHub
 ## button elsewhere.
