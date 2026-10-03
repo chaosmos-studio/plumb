@@ -19,8 +19,8 @@ extends RefCounted
 ## the board stops carry a marble resting on them their way; springs, which jump a marble leaving them
 ## over the next cell; magnets, which stop a marble that arrives beside them; glass posts, which stop a
 ## marble once and shatter; ice holes, which take only a marble resting on them when the board stops;
-## numbered marbles, which drop only in order; edges that wrap round; and one direction the board cannot
-## be tilted.
+## numbered marbles, which drop only in order; edges that wrap round; and a lock on one direction the
+## board cannot be tilted, which turns a quarter clockwise after every tilt.
 ##
 ## Pure logic with no nodes, so the solver, the level generator and the tests all run the exact rules
 ## the player sees.
@@ -42,6 +42,8 @@ const ICE_NAME: String = "ice"
 ## `wrap` bits: left and right edges joined, top and bottom joined.
 const WRAP_X: int = 1
 const WRAP_Y: int = 2
+## The direction a quarter clockwise from each of DIRS: left to up, right to down, up to right, down to left.
+const CLOCKWISE: Array[int] = [UP, DOWN, RIGHT, LEFT]
 ## A bumper's two slants.
 const SLASH: int = 0
 const BACKSLASH: int = 1
@@ -77,7 +79,8 @@ var lost: bool = false
 var changes: PackedInt32Array = PackedInt32Array()
 ## Which edges wrap round (WRAP_X, WRAP_Y).
 var wrap: int = 0
-## The direction this board cannot be tilted, or -1.
+## The direction this board cannot be tilted now, or -1. It turns a quarter clockwise after every tilt
+## that changes something.
 var locked: int = -1
 ## Tilts that moved something, counted mod 2: a blinking wall whose value equals it is up.
 var beat: int = 0
@@ -359,6 +362,8 @@ func tilt(dir: int) -> TiltMove:
 			move.stopped.append(m)
 	if move.changed():
 		beat = 1 - beat
+		if locked >= 0:
+			locked = CLOCKWISE[locked]
 	return move
 
 ## Turns every marble resting on a conveyor, and not yet heading its way, to the conveyor's way. Whether
@@ -456,7 +461,8 @@ func _give_way(cell: int, step: int, move: TiltMove) -> void:
 
 ## A compact, order-independent key for the solver: the sorted list of (cell, colour, number) of live
 ## marbles, then the sorted lasting changes, since two boards with the marbles in the same places differ if
-## a crack gave way or a plug closed on one of them, and on a board with blinking walls the beat.
+## a crack gave way or a plug closed on one of them, and on a board with blinking walls the beat, and with a
+## lock the way it faces.
 func key() -> String:
 	var parts: PackedInt32Array = PackedInt32Array()
 	for m: int in range(marble_cell.size()):
@@ -474,7 +480,7 @@ func key() -> String:
 		for v: int in lasting:
 			tail.append(str(v))
 		out += "|" + ",".join(tail)
-	return out + ("|b%d" % beat if blinks else "")
+	return out + ("|b%d" % beat if blinks else "") + ("|l%d" % locked if locked >= 0 else "")
 
 func to_dict() -> Dictionary:
 	var rows: Array[String] = []

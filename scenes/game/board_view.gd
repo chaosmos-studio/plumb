@@ -40,6 +40,8 @@ var _pending: Dictionary = {}
 var _hatches: PackedByteArray = PackedByteArray()
 ## Which blinking walls are drawn up: those up for the tilt being played, or for the next one at rest.
 var _up: PackedByteArray = PackedByteArray()
+## The side the lock is drawn on: where it was for the tilt being played, which turns it once it ends.
+var _locked: int = -1
 
 func _ready() -> void:
 	set_process(false)
@@ -81,6 +83,7 @@ func sync(b: TiltBoard, pop_in: bool = true) -> void:
 	_shown = b.marble_cell.duplicate()
 	_hatches = b.held_open()
 	_up = b.raised()
+	_locked = b.locked
 	for i: int in range(_marbles.size()):
 		var marble: Marble = _marbles[i]
 		marble.colour = Palette.marble(b.marble_colour[i])
@@ -208,8 +211,8 @@ func _draw_edges() -> void:
 			var mid: float = r.position.x + (x + 0.5) * cell
 			for y: float in [r.position.y - cell * 0.16, r.end.y + cell * 0.16]:
 				draw_arc(Vector2(mid, y), cell * 0.12, 0.0, TAU, 20, ink, w * 0.7, true)
-	if board.locked >= 0:
-		var d: Vector2 = Vector2(TiltBoard.DIRS[board.locked])
+	if _locked >= 0:
+		var d: Vector2 = Vector2(TiltBoard.DIRS[_locked])
 		var side: Vector2 = d.orthogonal().abs()
 		var mid: Vector2 = r.get_center() + d * ((r.size * 0.5).dot(d.abs()) + cell * 0.16)
 		var half: float = (r.size * 0.5).dot(side) - cell * 0.3
@@ -496,6 +499,7 @@ func play(move: TiltMove) -> void:
 		Audio.buzz(8)
 	_hatches = board.held_open()
 	_up = board.raised()
+	_locked = board.locked
 	queue_redraw()
 	busy = false
 
