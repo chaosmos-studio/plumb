@@ -454,7 +454,7 @@ little differently, so the chapters made before keep the one way they were made.
 **Pools on worker processes.** A pool is hundreds to thousands of proposals, each a breadth-first search of
 up to 24,000 positions, one at a time. GDScript threads do not help: one thread proposes about 4 boards a
 second here, and four, eight or twelve together manage about 8, since they spend their time waiting on each
-other. Separate Godot processes share nothing and scale with the cores. So from chapter 12 a phase draws one
+other. Separate Godot processes share nothing and scale with the cores. So from chapter 11 a phase draws one
 number from the generator's random stream, and batch b of 24 proposals is seeded from that number and b
 alone. Worker processes take batches in turn and write each as a line of JSON; the main process merges them
 strictly in batch order and stops the workers once the pool is full. Where or when a batch ran never shows:

@@ -171,7 +171,7 @@ const ATTEMPTS: int = 1500
 ## generator's RNG and the batch's index, and the batches are merged in index order, so the levels depend
 ## only on the seed, never on where or when a batch ran. The chapters before keep the one-at-a-time way
 ## they were made, so a full run still writes the levels already shipped.
-const PARALLEL_FROM: int = 11
+const PARALLEL_FROM: int = 10
 const BATCH: int = 24
 ## Chapters from this one on ship in TiltDifficulty.before's order, par first, rather than with par and
 ## bits each never falling (MATH.md section 10). Every level before them keeps both, which also keeps this.
@@ -296,7 +296,7 @@ func add_phase(chapter: int, p: int) -> bool:
 	if chapter < PARALLEL_FROM:
 		while pool.size() < size and attempts < count * ATTEMPTS:
 			attempts += 1
-			_keep(_try(_propose(phase), phase, rule, limit, lo, hi, last), pool)
+			_keep(_try(_propose(phase), phase, rule, limit, lo, hi, last, by_par, cap), pool)
 	else:
 		_fill(pool, chapter, p, lo, hi, last, cap, size)
 	pooled = pool.size()
