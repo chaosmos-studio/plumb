@@ -90,3 +90,15 @@ func easier_than(other: TiltDifficulty) -> bool:
 	if bits != other.bits:
 		return bits < other.bits
 	return states < other.states
+
+## The order levels ship in from TiltGenerator.BY_PAR_FROM on: by par, then as `easier_than`. A level that
+## needs a move more comes after one that needs fewer, whatever its bits, so bits may start lower again
+## each time par steps up, and the climb can go on for hundreds of levels (MATH.md section 10).
+func before(other: TiltDifficulty) -> bool:
+	if par != other.par:
+		return par < other.par
+	return easier_than(other)
+
+## Whether two levels are equally hard in that order, which RUN limits.
+func same_as(other: TiltDifficulty, by_par: bool) -> bool:
+	return bits == other.bits and (not by_par or par == other.par)

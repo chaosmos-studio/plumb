@@ -263,8 +263,13 @@ func _test_wave_three_tiles() -> void:
 	m = b.tilt(TiltBoard.LEFT)
 	_check("and takes one that stops on it", b.is_won() and m.changed())
 
-	b = TiltBoard.from_dict({"rows": ["...."], "marbles": [[0, 0, 0]], "locked": TiltBoard.RIGHT})
-	_check("the locked direction does nothing", not b.tilt(TiltBoard.RIGHT).changed() and b.marble_cell[0] == 0)
+	b = TiltBoard.from_dict({"rows": ["....", "...."], "marbles": [[0, 0, 0]], "locked": TiltBoard.RIGHT})
+	_check("the locked direction does nothing", not b.tilt(TiltBoard.RIGHT).changed() and b.marble_cell[0] == 0
+		and b.locked == TiltBoard.RIGHT)
+	b.tilt(TiltBoard.DOWN)
+	_check("a tilt that moves turns the lock a quarter clockwise", b.locked == TiltBoard.DOWN and b.key().contains("|l"))
+	b.tilt(TiltBoard.RIGHT)
+	_check("so the way that was locked opens", b.marble_cell[0] == b.index(Vector2i(3, 1)) and b.locked == TiltBoard.LEFT)
 
 	var dressed: TiltBoard = TiltBoard.from_dict({"rows": ["0...", "..1."], "marbles": [[1, 0, 0, 1], [3, 1, 1, 2]],
 		"tiles": [[2, 0, "blink", 1], [3, 0, "conveyor", TiltBoard.DOWN], [0, 1, "spring", 0], [1, 1, "magnet", 0],
@@ -463,16 +468,21 @@ func _test_level_pack() -> void:
 	var tame: Array[int] = []
 	var flat: Array[int] = []
 	var run: int = 1
+	var by_par_from: int = 0
+	for c: int in range(TiltGenerator.BY_PAR_FROM):
+		by_par_from += TiltGenerator.chapter_size(c)
 	for i: int in range(levels.size()):
 		if _pits(boards[i]) > 0 and measures[i].risk <= 0.0:
 			tame.append(i + 1)
 		if i == 0:
 			continue
-		if measures[i].easier_than(measures[i - 1]):
+		# From chapter 16 levels ship par first, so bits may start lower when par steps up.
+		var by_par: bool = i >= by_par_from
+		if measures[i].before(measures[i - 1]) if by_par else measures[i].easier_than(measures[i - 1]):
 			easier.append(i + 1)
 		if measures[i].par < measures[i - 1].par:
 			shorter.append(i + 1)
-		run = run + 1 if measures[i].bits == measures[i - 1].bits else 1
+		run = run + 1 if measures[i].same_as(measures[i - 1], by_par) else 1
 		if run > TiltGenerator.RUN:
 			flat.append(i + 1)
 		# A new chapter's tiles carry some of the load, so its first board may hold less than the last
