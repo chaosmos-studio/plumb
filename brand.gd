@@ -76,3 +76,18 @@ static func use(dark: bool) -> void:
 	SHADOW = p["shadow"]
 	SCRIM = p["scrim"]
 	Palette.use(dark)
+
+## Called by the kit's Appearance for a colour theme (Themes): the kit's colours from it, and the board's
+## worked out from the same seed by Palette. Gold and danger stay the game's own.
+static func use_theme(t: Dictionary, dark: bool) -> void:
+	use(dark)
+	BG = t["bg"]
+	SURFACE = t["surface"]
+	LINE = t["line"]
+	INK = t["ink"]
+	MUTED = t["muted"]
+	ACCENT = t["accent"]
+	ACCENT_INK = t["accent_ink"]
+	SHADOW = t["shadow"]
+	SCRIM = t["scrim"]
+	Palette.use_theme(t, dark)

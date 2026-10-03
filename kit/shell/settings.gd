@@ -2,8 +2,8 @@ class_name Settings
 extends RefCounted
 
 ## The settings sheet, reachable from every screen: switches for sound, music and haptics, the theme,
-## the first level's guide again, the game's looks and the shop, the About and Credits sheets, the consent
-## choices where the law asks for them, a guarded reset, and the version line.
+## the first level's guide again, the colour themes, the game's looks and the shop, the About and Credits
+## sheets, the consent choices where the law asks for them, a guarded reset, and the version line.
 
 const RESET_ARM_TIME: float = 3.0
 ## The two quiet buttons at the foot sit closer when there are two, so the sheet still fits a 16:9 phone.
@@ -24,11 +24,19 @@ static func open(host: Node) -> Sheet:
 		Appearance.choose(choice, host.get_tree(), func(scene: Node) -> void: Settings.open(scene)))
 	c.add_child(_row(&"theme", "Theme", looks))
 	c.add_child(UI.spacer(6))
+	# The guide and the colour themes share a row, as the looks and the shop share the next.
+	var help: HBoxContainer = HBoxContainer.new()
+	help.alignment = BoxContainer.ALIGNMENT_CENTER
+	help.add_theme_constant_override("separation", 20)
 	var guide: Button = UI.button("How to play", UI.Style.SECONDARY)
 	guide.pressed.connect(func() -> void:
 		sheet.close()
 		Coach.replay())
-	c.add_child(guide)
+	help.add_child(guide)
+	var colours: Button = UI.button("Colours", UI.Style.SECONDARY)
+	colours.pressed.connect(func() -> void: Themes.open(host))
+	help.add_child(colours)
+	c.add_child(help)
 	# Looks and the shop share a row, so the sheet still fits a 16:9 phone. Off Google Play the shop is the
 	# way to support the game.
 	var extras: HBoxContainer = HBoxContainer.new()

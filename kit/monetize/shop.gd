@@ -1,20 +1,24 @@
 class_name Shop
 extends RefCounted
 
-## Everything the Google Play build sells, in one place. Four one-time products: the Supporter pack (no
+## Everything the Google Play build sells, in one place. Five one-time products: the Supporter pack (no
 ## ads, every hint free), Every level (play any level without solving the one before), the Looks pack
-## (every look in Looks) and the Complete pack (all three, for less than apart). And a tip jar: tips that
-## can be bought again and again and open nothing, a way to say thanks. Play sells only fixed prices, so
-## the jar holds a row of them, from small to generous.
+## (every look in Looks), the Themes pack (every colour theme in Themes) and the Complete pack (all four,
+## for less than apart). And a tip jar: tips that can be bought again and again and open nothing, a way to
+## say thanks. Play sells only fixed prices, so the jar holds a row of them, from small to generous.
 ##
 ## Play's Payments policy allows no other way to pay inside an app and no pointing to one, so every other
 ## build sells nothing: it has no ads, opens every look, and asks for support through GitHub Sponsors
 ## (Supporter.open). Nothing sold is needed to play: every level opens by solving the one before.
 ##
-## The kit expects from the game: in `GameMonetize`, SUPPORTER_ID, LEVELS_ID, LOOKS_ID, COMPLETE_ID and
+## The kit expects from the game: in `GameMonetize`, SUPPORTER_ID, LEVELS_ID, LOOKS_ID, THEMES_ID, COMPLETE_ID and
 ## TIP_IDS, each a one-time product in Play Console (the tips sold as consumable); in `Save`, `supporter`,
 ## `owned` and `tips`, with `set_supporter`, `set_owned` and `add_tip`; and in `GameLooks`, the pack's
 ## name and line.
+
+const THEMES_PACK: String = "Themes pack"
+const THEMES_LINE: String = "Sepia, Nord, Dracula and nine more"
+const THEMES_ROW: String = "Twelve colour themes"
 
 ## Prices in the player's currency as Play gives them, by product id; empty until Play has answered.
 static var prices: Dictionary = {}
@@ -32,7 +36,7 @@ static func start() -> void:
 ## The one-time products, in the order the shop lists them.
 static func one_time_ids() -> PackedStringArray:
 	return PackedStringArray([GameMonetize.COMPLETE_ID, GameMonetize.SUPPORTER_ID, GameMonetize.LEVELS_ID,
-		GameMonetize.LOOKS_ID])
+		GameMonetize.LOOKS_ID, GameMonetize.THEMES_ID])
 
 static func all_ids() -> PackedStringArray:
 	return one_time_ids() + GameMonetize.TIP_IDS
@@ -45,7 +49,8 @@ static func owns(id: String) -> bool:
 
 ## What the Complete pack holds.
 static func parts() -> PackedStringArray:
-	return PackedStringArray([GameMonetize.SUPPORTER_ID, GameMonetize.LEVELS_ID, GameMonetize.LOOKS_ID])
+	return PackedStringArray([GameMonetize.SUPPORTER_ID, GameMonetize.LEVELS_ID, GameMonetize.LOOKS_ID,
+		GameMonetize.THEMES_ID])
 
 ## Whether `id` is had, bought alone or in the Complete pack.
 static func has(id: String) -> bool:
@@ -60,6 +65,10 @@ static func levels_open() -> bool:
 ## Every look, everywhere but Google Play, where the pack opens them.
 static func looks_open() -> bool:
 	return not Supporter.on_play or has(GameMonetize.LOOKS_ID)
+
+## Every colour theme, everywhere but Google Play, where the Themes pack opens them.
+static func themes_open() -> bool:
+	return not Supporter.on_play or has(GameMonetize.THEMES_ID)
 
 static func has_everything() -> bool:
 	for id: String in parts():
@@ -120,28 +129,34 @@ static func title(id: String) -> String:
 		return "Every level"
 	if id == GameMonetize.LOOKS_ID:
 		return GameLooks.PACK
+	if id == GameMonetize.THEMES_ID:
+		return THEMES_PACK
 	return "Tip"
 
 static func line(id: String) -> String:
 	if id == GameMonetize.COMPLETE_ID:
-		return "All three below, for less"
+		return "All four below, for less"
 	if id == GameMonetize.SUPPORTER_ID:
 		return "No ads, and every hint free"
 	if id == GameMonetize.LEVELS_ID:
 		return "Play any level, solved or not"
 	if id == GameMonetize.LOOKS_ID:
 		return GameLooks.PACK_LINE
+	if id == GameMonetize.THEMES_ID:
+		return THEMES_LINE
 	return ""
 
 static func rows(id: String) -> PackedStringArray:
 	if id == GameMonetize.COMPLETE_ID:
-		return PackedStringArray(["No ads, every hint free", "Every level open", GameLooks.PACK_ROW])
+		return PackedStringArray(["No ads, every hint free", "Every level open", GameLooks.PACK_ROW, THEMES_ROW])
 	if id == GameMonetize.SUPPORTER_ID:
 		return Supporter.SHEET_ROWS
 	if id == GameMonetize.LEVELS_ID:
 		return PackedStringArray(["Every level open now", "Stars still earned by solving"])
 	if id == GameMonetize.LOOKS_ID:
 		return PackedStringArray([GameLooks.PACK_ROW, "Pick one any time in Settings"])
+	if id == GameMonetize.THEMES_ID:
+		return PackedStringArray([THEMES_ROW, "Each in light and dark, picked in Settings"])
 	return PackedStringArray()
 
 # --- Sheets -------------------------------------------------------------------------------------------

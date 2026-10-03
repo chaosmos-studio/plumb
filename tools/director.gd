@@ -8,7 +8,8 @@ extends RefCounted
 ## boardhint:N:K, which also hide the HUD, guide:K (level 1's guide at step K, counting from 0) and ending
 ## (the note after the last level). Levels are 1-based here, as a player counts them. Any action takes a
 ## "dark/" prefix to stage it in the dark theme; without one it is in the game's own look. Also looks[:owned]
-## (the marble sets sheet) and tiles[::K] (every mark from chapter 16 on, after K tilts).
+## (the marble sets sheet), colours (the colour themes sheet), themed:ID:K (level K in colour theme ID)
+## and tiles[::K] (every mark from chapter 16 on, after K tilts).
 ##
 ## The ads and the Supporter pack, as the Google Play build shows them unless the variant says web:
 ## levelsad (the grid with a stand-in banner of the real size), supporter[:web|:owned] (the support
@@ -41,6 +42,7 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 	action = action.trim_prefix("dark/")
 	# Saved as well as applied, so a staged Settings sheet shows the theme the shot is in.
 	Save.theme = Appearance.Choice.DARK if dark else Appearance.native()
+	Save.palette = ""
 	Appearance.apply(Save.theme)
 	Ads.preview = false
 	Ads.use(null)
@@ -66,6 +68,18 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			await _wait(host, 0.3)
 			Looks.open(home)
 			await _wait(host, 0.7)
+		"colours":
+			Supporter.on_play = true
+			var front: Node = load(Brand.TITLE_SCENE).instantiate()
+			host.add_child(front)
+			await _wait(host, 0.3)
+			Themes.open(front)
+			await _wait(host, 0.7)
+		"themed":
+			# Level K in colour theme `variant`, as the Themes pack shows it.
+			Save.palette = variant
+			Appearance.apply(Save.theme)
+			await _game(host, k - 1)
 		"tiles":
 			# Every mark from chapter 16 on, on one board, to see how each reads (`k` tilts it that many times
 			# left and right, so blinking walls show both ways).

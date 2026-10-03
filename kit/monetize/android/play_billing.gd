@@ -149,6 +149,8 @@ func _thanks(id: String) -> String:
 		return "Every level is open. Thank you"
 	if id == GameMonetize.LOOKS_ID:
 		return "Every look is yours, in Settings. Thank you"
+	if id == GameMonetize.THEMES_ID:
+		return "Every colour theme is yours, in Settings. Thank you"
 	if id == GameMonetize.COMPLETE_ID:
 		return "Everything is yours. Thank you"
 	return "Thank you for supporting %s" % Brand.NAME

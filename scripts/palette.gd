@@ -59,3 +59,19 @@ static func use(dark: bool) -> void:
 	DANGER = p["danger"]
 	STONE = p["stone"]
 	MARBLES.assign(GameLooks.marbles(dark, p["marbles"]))
+
+## The board in a colour theme (Themes), from its background, surface and ink: the tray a shade off the
+## background, the floor its surface, walls the ink let down toward the background (lighter than the floor
+## by night, darker by day, as in the game's own palettes), holes and pits deeper still. Marbles keep the
+## marble set's colours.
+static func use_theme(t: Dictionary, dark: bool) -> void:
+	use(dark)
+	var bg: Color = t["bg"]
+	var surface: Color = t["surface"]
+	var ink: Color = t["ink"]
+	TRAY = bg.darkened(0.25) if dark else bg.lerp(ink, 0.1)
+	TILE = surface.lerp(ink, 0.1) if dark else surface
+	WALL = ink.lerp(bg, 0.45) if dark else ink.lerp(bg, 0.22)
+	WALL_LIP = WALL.darkened(0.3)
+	HOLE = bg.darkened(0.6) if dark else ink.darkened(0.1)
+	PIT = bg.darkened(0.85) if dark else ink.darkened(0.55)

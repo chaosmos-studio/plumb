@@ -80,7 +80,7 @@ func _draw() -> void:
 ## A number in a dark disc on the marble's face, so it reads on every colour and finish.
 func _number(r: float) -> void:
 	draw_circle(Vector2(r * 0.04, r * 0.06), r * 0.5, Color(0.08, 0.08, 0.1, 0.72), true, -1.0, true)
-	var font: Font = UI.ui_font()
+	var font: Font = load(Brand.FONT_UI)
 	var size: int = int(r * 0.78)
 	var text: String = str(number)
 	var w: Vector2 = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size)

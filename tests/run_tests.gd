@@ -35,6 +35,7 @@ func _initialize() -> void:
 	_test_level_pack()
 	_test_appearance()
 	_test_contrast()
+	_test_themes()
 	_test_saved_settings()
 	_test_guide_and_ending()
 	_test_banner_pacing()
@@ -536,6 +537,30 @@ func _test_contrast() -> void:
 			_check("Brand.%s %s on %s has contrast %.1f, needs %.1f" % [palette, pair[0], pair[1], ratio, pair[2]],
 				ratio >= float(pair[2]))
 
+## Every colour theme, light and dark, reads as well as the game's own palettes, and so does the board in it.
+func _test_themes() -> void:
+	var themes: GDScript = load("res://kit/ui/themes.gd")
+	for id: String in themes.call("ids"):
+		for dark: bool in [false, true]:
+			var t: Dictionary = themes.call("colours", id, dark)
+			if t.is_empty():
+				continue
+			var p: Dictionary = t.duplicate()
+			p["danger"] = (Brand.DARK if dark else Brand.LIGHT)["danger"]
+			var short: PackedStringArray = PackedStringArray()
+			for pair: Array in CONTRAST:
+				var ratio: float = _contrast(p[pair[0]], p[pair[1]])
+				if ratio < float(pair[2]):
+					short.append("%s on %s %.1f" % [pair[0], pair[1], ratio])
+			# The board needs no more than the game's own dark board gives: holes also carry a coloured ring.
+			Brand.use_theme(t, dark)
+			for pair: Array in [["wall", Palette.WALL, 2.0], ["hole", Palette.HOLE, 1.5], ["pit", Palette.PIT, 1.5]]:
+				var ratio: float = _contrast(pair[1], Palette.TILE)
+				if ratio < float(pair[2]):
+					short.append("%s on floor %.1f" % [pair[0], ratio])
+			_check("the %s theme reads in %s: %s" % [id, "dark" if dark else "light", ", ".join(short)], short.is_empty())
+	Brand.use(Brand.NATIVE_DARK)
+
 static func _contrast(a: Color, b: Color) -> float:
 	var la: float = a.srgb_to_linear().get_luminance()
 	var lb: float = b.srgb_to_linear().get_luminance()
@@ -854,11 +879,11 @@ func _test_supporter_entry_points() -> void:
 	host.free()
 	_check("on Google Play the video prompt also offers the pack",
 		texts == PackedStringArray(["Watch", "Remove ads, unlimited hints", "Not now"]))
-	# On Google Play, on the web, for a Supporter, and for an owner of the Complete pack: the title's heart,
-	# then whether one should show. It leads to the shop, so it stays while any pack is left to have.
+	# On Google Play, on the web, for a Supporter, and for an owner of the Complete pack: the title's shop
+	# button, then whether one should show. The tip jar is always there, so it shows on Google Play always.
 	var old_owned: PackedStringArray = save.get("owned")
 	for case: Array in [[true, false, [], true], [false, false, [], false], [true, true, [], true],
-			[true, false, [GameMonetize.COMPLETE_ID], false]]:
+			[true, false, [GameMonetize.COMPLETE_ID], true]]:
 		supporter.set("on_play", case[0])
 		save.set("supporter", case[1])
 		save.set("owned", PackedStringArray(case[2]))
@@ -867,7 +892,7 @@ func _test_supporter_entry_points() -> void:
 		gear.offset_left = -128.0
 		gear.offset_right = -32.0
 		supporter.call("add_title_button", ui, ui, gear)
-		_check("the title's heart shows on Google Play only, while a pack is left to have (%s)" % [case],
+		_check("the title's shop button shows on Google Play only (%s)" % [case],
 			(ui.get_child_count() == 1) == bool(case[3]))
 		ui.free()
 		gear.free()
@@ -905,8 +930,17 @@ func _test_shop() -> void:
 	_check("a level not reached yet is locked", not save.call("unlocked", 150))
 	var sold: PackedStringArray = _labels(shop, "open")
 	_check("the shop lists the Complete pack, every pack, the tip jar and Restore", sold.has("Complete pack")
-		and sold.has("Supporter pack") and sold.has("Every level") and sold.has(GameLooks.PACK) and sold.has("Tip jar")
-		and sold.has("Restore purchases"))
+		and sold.has("Supporter pack") and sold.has("Every level") and sold.has(GameLooks.PACK) and sold.has("Themes pack")
+		and sold.has("Tip jar") and sold.has("Restore purchases"))
+	var themes: GDScript = load("res://kit/ui/themes.gd")
+	_check("with nothing bought only the game's own colours are open", not shop.call("themes_open")
+		and themes.call("is_open", "own") and not themes.call("is_open", "nord"))
+	save.set("palette", "nord")
+	_check("a saved theme the pack has not opened falls back to the game's own", themes.call("current") == "own")
+	shop.call("grant", GameMonetize.THEMES_ID, true)
+	_check("the Themes pack opens every theme", shop.call("themes_open") and themes.call("current") == "nord")
+	shop.call("grant", GameMonetize.THEMES_ID, false)
+	save.set("palette", "")
 	shop.call("grant", GameMonetize.LEVELS_ID, true)
 	_check("Every level opens every level", shop.call("levels_open") and save.call("unlocked", 150)
 		and save.call("unlocked", TiltGenerator.level_count() - 1))
@@ -915,8 +949,8 @@ func _test_shop() -> void:
 	shop.call("grant", GameMonetize.LEVELS_ID, false)
 	_check("a refund locks the levels again", not save.call("unlocked", 150))
 	shop.call("grant", GameMonetize.COMPLETE_ID, true)
-	_check("the Complete pack holds all three", shop.call("ads_off") and shop.call("levels_open") and shop.call("looks_open")
-		and shop.call("has_everything") and looks.call("is_open", "gems"))
+	_check("the Complete pack holds all four", shop.call("ads_off") and shop.call("levels_open") and shop.call("looks_open")
+		and shop.call("themes_open") and shop.call("has_everything") and looks.call("is_open", "gems"))
 	shop.call("grant", GameMonetize.COMPLETE_ID, false)
 	save.set("look", "gems")
 	_check("a look the pack no longer opens falls back to the free one", looks.call("current") == "classic")

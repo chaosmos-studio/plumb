@@ -25,6 +25,8 @@ var owned: PackedStringArray = PackedStringArray()
 var tips: int = 0
 ## The look in use (GameLooks), or "" for the game's own.
 var look: String = ""
+## The colour theme in use (Themes), or "" for the game's own.
+var palette: String = ""
 ## The local date of the last free hint taken, and how many were taken that day.
 var hint_day: String = ""
 var hints_used: int = 0
@@ -118,6 +120,10 @@ func set_look(id: String) -> void:
 	look = id
 	store()
 
+func set_palette(id: String) -> void:
+	palette = id
+	store()
+
 func set_hints(day: String, used: int) -> void:
 	hint_day = day
 	hints_used = used
@@ -143,6 +149,7 @@ func restore() -> void:
 		owned = bought
 	tips = maxi(int(file.get_value("monetize", "tips", 0)), 0)
 	look = str(file.get_value("settings", "look", ""))
+	palette = str(file.get_value("settings", "palette", ""))
 
 func store() -> void:
 	var file: ConfigFile = ConfigFile.new()
@@ -158,4 +165,5 @@ func store() -> void:
 	file.set_value("monetize", "owned", owned)
 	file.set_value("monetize", "tips", tips)
 	file.set_value("settings", "look", look)
+	file.set_value("settings", "palette", palette)
 	file.save(path)

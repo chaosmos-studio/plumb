@@ -11,10 +11,12 @@ const BANNER_ID: String = "ca-app-pub-3135321730568420/4401816337"
 const INTERSTITIAL_ID: String = "ca-app-pub-3135321730568420/1199928764"
 const REWARDED_ID: String = "ca-app-pub-3135321730568420/9789874380"
 ## One-time products in Play Console, under Monetize with Play, Products, One-time products: the Supporter
-## pack, Every level, the Looks pack (Plumb's marble sets) and the Complete pack, which holds all three.
+## pack, Every level, the Looks pack (Plumb's marble sets), the Themes pack (the kit's colour themes) and
+## the Complete pack, which holds all four.
 const SUPPORTER_ID: String = "supporter"
 const LEVELS_ID: String = "all_levels"
 const LOOKS_ID: String = "looks"
+const THEMES_ID: String = "themes"
 const COMPLETE_ID: String = "complete"
 ## The tip jar, smallest first: one-time products too, but consumed after each purchase so they can be
 ## bought again. Named for their intended US prices: 0.99, 1.99, 4.99, 9.99, 19.99 and 49.99.

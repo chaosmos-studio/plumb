@@ -2,11 +2,13 @@ class_name Appearance
 extends RefCounted
 
 ## Light or dark. Each game's Brand holds two palettes and names the one it was designed in; the player
-## keeps that, picks the other, or lets the phone decide. Every screen reads Brand while it builds, so a
-## change rebuilds the current screen rather than repainting it piece by piece.
+## keeps that, picks the other, or lets the phone decide, and may lay a colour theme over either (Themes).
+## Every screen reads Brand while it builds, so a change rebuilds the current screen rather than
+## repainting it piece by piece.
 ##
 ## The kit expects from the game: `Brand.use(dark)`, `Brand.NATIVE_DARK`, `Save.theme` and
-## `Save.set_theme(choice)`, and `EventBus.theme_changed` for anything that outlives a screen.
+## `Save.set_theme(choice)`, what Themes asks for, and `EventBus.theme_changed` for anything that outlives
+## a screen.
 
 enum Choice { AUTO, LIGHT, DARK }
 
@@ -35,7 +37,11 @@ static func resolve(choice: int) -> bool:
 ## Switches every colour the kit and the game read. Screens built after this use the new palette.
 static func apply(choice: int) -> void:
 	dark = resolve(choice)
-	Brand.use(dark)
+	var themed: Dictionary = Themes.colours(Themes.current(), dark)
+	if themed.is_empty():
+		Brand.use(dark)
+	else:
+		Brand.use_theme(themed, dark)
 	UI.reset_theme()
 	RenderingServer.set_default_clear_color(Brand.BG)
 	var tree: SceneTree = Engine.get_main_loop() as SceneTree
