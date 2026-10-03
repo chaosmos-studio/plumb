@@ -14,10 +14,11 @@ const LAYOUT_SHARE: float = 0.3
 const ROUTE_SHARE: float = 0.5
 
 enum Kind { FLOOR, WALL, PIT, HOLE, MARBLE, MARBLE_ON_HOLE, PLUG, STOP, GATE, DOOR, PAINT, CRACK, PORTAL, BUMPER,
-	SWITCH, HATCH, KEY, LOCK, STONE }
+	SWITCH, HATCH, KEY, LOCK, STONE, BLINK, CONVEYOR, SPRING, MAGNET, GLASS, ICE }
 ## The layout kind of each TiltBoard.Tile, colour and direction aside.
 const TILE_KINDS: Array[int] = [Kind.FLOOR, Kind.STOP, Kind.GATE, Kind.DOOR, Kind.PAINT, Kind.CRACK, Kind.PORTAL,
-	Kind.BUMPER, Kind.SWITCH, Kind.HATCH, Kind.KEY, Kind.LOCK]
+	Kind.BUMPER, Kind.SWITCH, Kind.HATCH, Kind.KEY, Kind.LOCK, Kind.BLINK, Kind.CONVEYOR, Kind.SPRING, Kind.MAGNET,
+	Kind.GLASS]
 
 ## A board's eight views, each as the colour-blind kind of every cell, ready for fast comparison.
 class Views:
@@ -94,7 +95,7 @@ static func layout(board: TiltBoard) -> PackedByteArray:
 				out[i] = Kind.PIT
 			_:
 				if board.holes[i] != TiltBoard.NO_HOLE:
-					out[i] = Kind.PLUG if board.plugs[i] == 1 else Kind.HOLE
+					out[i] = Kind.PLUG if board.plugs[i] == 1 else (Kind.ICE if board.ice[i] == 1 else Kind.HOLE)
 				else:
 					out[i] = TILE_KINDS[board.tiles[i]]
 	for m: int in range(board.marble_cell.size()):
@@ -104,7 +105,8 @@ static func layout(board: TiltBoard) -> PackedByteArray:
 		if board.is_stone(m):
 			out[c] = Kind.STONE
 		else:
-			out[c] = Kind.MARBLE_ON_HOLE if out[c] == Kind.HOLE or out[c] == Kind.PLUG else Kind.MARBLE
+			var holed: bool = out[c] == Kind.HOLE or out[c] == Kind.PLUG or out[c] == Kind.ICE
+			out[c] = Kind.MARBLE_ON_HOLE if holed else Kind.MARBLE
 	return out
 
 ## The board under symmetry `s`, marbles and all.
@@ -118,19 +120,24 @@ static func transform(board: TiltBoard, s: int) -> TiltBoard:
 		out.cells[j] = board.cells[i]
 		out.holes[j] = board.holes[i]
 		out.plugs[j] = board.plugs[i]
-		out.tiles[j] = board.tiles[i]
+		out.ice[j] = board.ice[i]
+		out.set_tile(out.coords(j), board.tiles[i] as TiltBoard.Tile, board.tile_value[i])
 		match board.tiles[i]:
-			TiltBoard.Tile.GATE:
+			TiltBoard.Tile.GATE, TiltBoard.Tile.CONVEYOR:
 				out.tile_value[j] = transform_dir(board.tile_value[i], s)
 			TiltBoard.Tile.BUMPER:
 				# Mirroring one axis turns "/" into "\"; swapping the axes keeps each slant.
 				var flips: bool = (s & 1 != 0) != (s & 2 != 0)
 				out.tile_value[j] = 1 - board.tile_value[i] if flips else board.tile_value[i]
-			_:
-				out.tile_value[j] = board.tile_value[i]
 	for m: int in range(board.marble_cell.size()):
 		if board.marble_cell[m] != TiltBoard.GONE:
-			out.add_marble(_map(board.coords(board.marble_cell[m]), s, w, h), board.marble_colour[m])
+			out.add_marble(_map(board.coords(board.marble_cell[m]), s, w, h), board.marble_colour[m],
+				board.marble_number[m])
+	out.wrap = board.wrap
+	if s & 4 and board.wrap in [TiltBoard.WRAP_X, TiltBoard.WRAP_Y]:
+		out.wrap = TiltBoard.WRAP_X + TiltBoard.WRAP_Y - board.wrap
+	out.locked = -1 if board.locked < 0 else transform_dir(board.locked, s)
+	out.beat = board.beat
 	return out
 
 static func transform_dir(dir: int, s: int) -> int:
@@ -158,9 +165,9 @@ static func canonical(board: TiltBoard) -> String:
 		var t: TiltBoard = transform(board, s)
 		var marble_at: Dictionary = {}
 		for m: int in range(t.marble_cell.size()):
-			marble_at[t.marble_cell[m]] = t.marble_colour[m]
+			marble_at[t.marble_cell[m]] = t.marble_colour[m] + 16 * t.marble_number[m]
 		var relabel: Dictionary = {}
-		var text: String = "%dx%d:" % [t.width, t.height]
+		var text: String = "%dx%d:w%dl%d:" % [t.width, t.height, t.wrap, t.locked]
 		for i: int in range(t.cells.size()):
 			match t.cells[i]:
 				TiltBoard.Cell.WALL:
@@ -194,9 +201,22 @@ static func canonical(board: TiltBoard) -> String:
 					text += "y" + _label(relabel, t.tile_value[i])
 				TiltBoard.Tile.LOCK:
 					text += "l" + _label(relabel, t.tile_value[i])
+				TiltBoard.Tile.BLINK:
+					text += "n" + str(t.tile_value[i])
+				TiltBoard.Tile.CONVEYOR:
+					text += "c" + str(t.tile_value[i])
+				TiltBoard.Tile.SPRING:
+					text += "j"
+				TiltBoard.Tile.MAGNET:
+					text += "m"
+				TiltBoard.Tile.GLASS:
+					text += "q"
+			if t.ice[i] == 1:
+				text += "i"
 			if marble_at.has(i):
-				var colour: int = int(marble_at[i])
-				text += "r" if colour == TiltBoard.STONE else "o" + _label(relabel, colour)
+				var colour: int = int(marble_at[i]) % 16
+				var number: int = int(marble_at[i]) / 16
+				text += "r" if colour == TiltBoard.STONE else "o" + _label(relabel, colour) + ("#%d" % number if number > 0 else "")
 		if best == "" or text < best:
 			best = text
 	return best

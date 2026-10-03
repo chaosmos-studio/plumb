@@ -26,6 +26,7 @@ func _initialize() -> void:
 	_test_tilt_rules()
 	_test_chapter_tiles()
 	_test_wave_two_tiles()
+	_test_wave_three_tiles()
 	_test_solver()
 	_test_difficulty()
 	_test_novelty()
@@ -186,6 +187,106 @@ func _test_wave_two_tiles() -> void:
 	plain = TiltGenerator.without(dressed, "switch")
 	_check("taking switches away takes their hatches too", not plain.tiles.has(TiltBoard.Tile.SWITCH)
 		and not plain.tiles.has(TiltBoard.Tile.HATCH))
+
+func _test_wave_three_tiles() -> void:
+	var b: TiltBoard = _tiled(["...."], [[0, 0, 0]], [[2, 0, "blink", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("a blinking wall that is up stops a marble, and the beat moves on", b.marble_cell[0] == 1 and b.beat == 1
+		and b.key().contains("|b1"))
+	b = _tiled(["...."], [[0, 0, 0]], [[2, 0, "blink", 1]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("one that is down lets it roll over", b.marble_cell[0] == 3)
+	_check("a tilt that moves nothing leaves the beat", not b.tilt(TiltBoard.RIGHT).changed() and b.beat == 1)
+	b = _tiled(["...."], [[0, 0, 0], [1, 0, 0]], [[1, 0, "blink", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("a blinking wall never rises under a marble", b.marble_cell[0] == 2 and b.marble_cell[1] == 3)
+
+	b = _tiled(["....", "...."], [[0, 0, 0]], [[3, 0, "conveyor", TiltBoard.DOWN]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("once the board stops, a conveyor carries its marble on", b.marble_cell[0] == b.index(Vector2i(3, 1)))
+	b = _tiled(["....", "...."], [[0, 0, 0]], [[1, 0, "conveyor", TiltBoard.DOWN]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("a marble rolling over a conveyor is not carried", b.marble_cell[0] == 3)
+	b = _tiled(["...."], [[3, 0, 0]], [[3, 0, "conveyor", TiltBoard.RIGHT]])
+	_check("a conveyor heading into a wall is no move", not b.tilt(TiltBoard.UP).changed())
+
+	b = _tiled(["..#.."], [[0, 0, 0]], [[1, 0, "spring", 0]])
+	var m: TiltMove = b.tilt(TiltBoard.RIGHT)
+	_check("a spring jumps a marble over the next square", b.marble_cell[0] == 4
+		and m.events.any(func(e: Dictionary) -> bool: return e["kind"] == &"jump" and int(e["to"]) == 3))
+	b = _tiled(["..#"], [[0, 0, 0]], [[1, 0, "spring", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("a spring with nowhere to land keeps its marble", b.marble_cell[0] == 1)
+
+	b = TiltBoard.from_dict({"rows": ["0..."], "marbles": [[2, 0, 0]], "wrap": TiltBoard.WRAP_X})
+	m = b.tilt(TiltBoard.RIGHT)
+	_check("off one edge and back in at the other", b.is_won() and m.events.any(func(e: Dictionary) -> bool:
+		return e["kind"] == &"wrap"))
+	b = TiltBoard.from_dict({"rows": ["...."], "marbles": [[1, 0, 0]], "wrap": TiltBoard.WRAP_X})
+	b.tilt(TiltBoard.RIGHT)
+	_check("with nothing in the way, a marble comes round to where it began and stops", b.marble_cell[0] == 1)
+
+	b = _tiled(["......", "......"], [[0, 0, 0]], [[3, 1, "magnet", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("a marble rolling past a magnet stops beside it", b.marble_cell[0] == 3)
+	b = _tiled(["......", "......"], [[0, 1, 0]], [[3, 1, "magnet", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("and one rolling at it stops before it", b.marble_cell[0] == b.index(Vector2i(2, 1)))
+
+	b = _board(["0...#.0"], [[2, 0, 0, 2], [5, 0, 0, 1]])
+	b.tilt(TiltBoard.LEFT)
+	_check("a numbered marble rolls onto its hole out of turn and waits there", b.marble_cell[0] == 0)
+	b.tilt(TiltBoard.RIGHT)
+	_check("number 1 drops first", b.marble_cell[1] == TiltBoard.GONE and b.marble_cell[0] == 3)
+	b.tilt(TiltBoard.LEFT)
+	_check("then number 2", b.is_won())
+	b = _board(["0..", "0.."], [[0, 0, 0, 2], [2, 1, 0, 1]])
+	b.tilt(TiltBoard.LEFT)
+	_check("one waiting on its hole drops as soon as its turn comes", b.marble_cell[0] == TiltBoard.GONE
+		and b.marble_cell[1] == TiltBoard.GONE)
+
+	b = _tiled(["....."], [[0, 0, 0]], [[3, 0, "glass", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("a glass post stops a marble, then shatters", b.marble_cell[0] == 2 and b.tiles[3] == TiltBoard.Tile.NONE
+		and b.key().contains("|"))
+	b.tilt(TiltBoard.RIGHT)
+	_check("and the marble rolls on next time", b.marble_cell[0] == 4)
+	b = _tiled(["....."], [[2, 0, 0]], [[3, 0, "glass", 0]])
+	_check("striking glass counts as a move even when nothing rolls", b.tilt(TiltBoard.RIGHT).changed()
+		and b.marble_cell[0] == 2)
+
+	b = _tiled([".0.."], [[3, 0, 0]], [[1, 0, "ice", 0]])
+	b.tilt(TiltBoard.LEFT)
+	_check("an ice hole lets a marble roll over it", b.marble_cell[0] == 0)
+	b = _tiled(["#0.."], [[3, 0, 0]], [[1, 0, "ice", 0]])
+	m = b.tilt(TiltBoard.LEFT)
+	_check("and takes one that stops on it", b.is_won() and m.changed())
+
+	b = TiltBoard.from_dict({"rows": ["...."], "marbles": [[0, 0, 0]], "locked": TiltBoard.RIGHT})
+	_check("the locked direction does nothing", not b.tilt(TiltBoard.RIGHT).changed() and b.marble_cell[0] == 0)
+
+	var dressed: TiltBoard = TiltBoard.from_dict({"rows": ["0...", "..1."], "marbles": [[1, 0, 0, 1], [3, 1, 1, 2]],
+		"tiles": [[2, 0, "blink", 1], [3, 0, "conveyor", TiltBoard.DOWN], [0, 1, "spring", 0], [1, 1, "magnet", 0],
+		[3, 0, "glass", 0], [2, 1, "ice", 0]], "wrap": TiltBoard.WRAP_Y, "locked": TiltBoard.UP})
+	_check("the wave three marks survive a round trip", TiltBoard.from_dict(dressed.to_dict()).to_dict() == dressed.to_dict())
+	var turned: TiltBoard = TiltNovelty.transform(dressed, 4)
+	_check("swapping the axes swaps the wrapping edge and turns the locked direction",
+		turned.wrap == TiltBoard.WRAP_X and turned.locked == TiltBoard.LEFT and turned.marble_number[0] == 1)
+	_check("a layout tells an ice hole from a hole", TiltNovelty.layout(dressed)[dressed.index(Vector2i(2, 1))]
+		== TiltNovelty.Kind.ICE)
+	var on: PackedStringArray = TiltGenerator.rules_on(dressed)
+	_check("a board lists the rules it carries", on.has("blink") and on.has("glass") and on.has("ice")
+		and on.has("number") and on.has("wrap") and on.has("locked"))
+	var plain: TiltBoard = TiltGenerator.without(dressed, "number")
+	_check("taking the rules off: numbers", plain.marble_number[0] == 0 and plain.marble_number[1] == 0)
+	plain = TiltGenerator.without(TiltGenerator.without(TiltGenerator.without(dressed, "ice"), "wrap"), "locked")
+	_check("ice, wrap and the locked direction", not plain.ice.has(1) and plain.wrap == 0 and plain.locked == -1)
+	plain = TiltGenerator.without(dressed, "glass")
+	_check("and a tile", not plain.tiles.has(TiltBoard.Tile.GLASS))
+	# Only the conveyor brings the marble home: with it taken off there is no solution, so the rule is needed.
+	var needed: TiltBoard = _tiled(["..", ".0"], [[0, 0, 0]], [[1, 0, "conveyor", TiltBoard.DOWN]])
+	_check("a board needs a rule its solution cannot do without", TiltGenerator.needs(needed, "conveyor", 1)
+		and TiltGenerator.needs(needed, "mix", 1))
 
 func _test_chapter_tiles() -> void:
 	var m: TiltMove
