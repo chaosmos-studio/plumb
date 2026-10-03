@@ -19,6 +19,17 @@ var stone: bool = false:
 	set(value):
 		stone = value
 		queue_redraw()
+## A numbered marble's number, drawn on it, or 0.
+var number: int = 0:
+	set(value):
+		number = value
+		queue_redraw()
+## The finish to draw in (GameLooks.Finish), or -1 for the marble set in use: the Looks cards show each
+## set in its own.
+var finish: int = -1:
+	set(value):
+		finish = value
+		queue_redraw()
 
 ## The tail is worked out from how far the marble moved since last frame, so anything that moves it
 ## (a roll, an undo, the title toy) gets one without asking.
@@ -50,7 +61,7 @@ func _draw() -> void:
 	if stone:
 		_stone(r)
 		return
-	match GameLooks.finish:
+	match finish if finish >= 0 else GameLooks.finish:
 		GameLooks.Finish.GLASS:
 			_glass(r)
 		GameLooks.Finish.GEM:
@@ -63,6 +74,18 @@ func _draw() -> void:
 			draw_circle(Vector2.ZERO, r, colour.darkened(0.22), true, -1.0, true)
 			draw_circle(Vector2(-r * 0.06, -r * 0.08), r * 0.88, colour, true, -1.0, true)
 			_gloss(r)
+	if number > 0:
+		_number(r)
+
+## A number in a dark disc on the marble's face, so it reads on every colour and finish.
+func _number(r: float) -> void:
+	draw_circle(Vector2(r * 0.04, r * 0.06), r * 0.5, Color(0.08, 0.08, 0.1, 0.72), true, -1.0, true)
+	var font: Font = UI.ui_font()
+	var size: int = int(r * 0.78)
+	var text: String = str(number)
+	var w: Vector2 = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size)
+	draw_string(font, Vector2(r * 0.04 - w.x * 0.5, r * 0.06 + size * 0.36), text, HORIZONTAL_ALIGNMENT_LEFT, -1, size,
+		Color.WHITE)
 
 ## A rock: a lumpy outline, a darker underside and a few flecks, matte where a marble shines.
 func _stone(r: float) -> void:
