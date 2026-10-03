@@ -76,13 +76,13 @@ const CHAPTERS: Array = [
 	]},
 	{"name": "Switches", "rule": "switch", "line": "A door is open while something rests on its switch", "search": 20000,
 		"phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 15, 18, {"switch": 1, "stone": 1}],
-		[10, 8, 8, 3, 6, 0.15, 1, 16, 18, {"switch": 2, "stone": 1}],
+		[10, 8, 8, 3, 5, 0.15, 1, 17, 19, {"switch": 1, "stone": 1}],
+		[10, 8, 8, 3, 6, 0.15, 1, 17, 19, {"switch": 2, "stone": 1}],
 	]},
 	{"name": "Keys and locks", "rule": "key", "line": "Rolling over a key opens every lock of its colour", "search": 20000,
 		"phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 18, {"key": 1, "door": 1}],
-		[10, 8, 8, 3, 6, 0.15, 1, 16, 18, {"key": 2, "door": 1}],
+		[10, 8, 8, 3, 5, 0.15, 1, 17, 19, {"key": 1, "door": 1}],
+		[10, 8, 8, 3, 6, 0.15, 1, 17, 19, {"key": 2, "door": 1}],
 	]},
 	{"name": "Blinking walls", "rule": "blink", "line": "Blinking walls switch after every tilt that moves",
 		"search": 24000, "phases": [
@@ -175,7 +175,7 @@ const PARALLEL_FROM: int = 11
 const BATCH: int = 24
 ## Chapters from this one on ship in TiltDifficulty.before's order, par first, rather than with par and
 ## bits each never falling (MATH.md section 10). Every level before them keeps both, which also keeps this.
-const BY_PAR_FROM: int = 15
+const BY_PAR_FROM: int = 13
 
 class Candidate:
 	var board: TiltBoard
@@ -308,6 +308,11 @@ func add_phase(chapter: int, p: int) -> bool:
 static func _try(board: TiltBoard, phase: Array, rule: String, limit: int, lo: float, hi: float,
 		last: TiltDifficulty, by_par: bool = false) -> Candidate:
 	if board == null or not _open(board):
+		return null
+	# A plain search finds par first, so a board outside the phase's window never pays for the measure,
+	# which carries every position's chance as well. Its count of positions differs a little from the
+	# measure's, so the chapters made before it keep the one way they were made.
+	if by_par and TiltSolver.new().solve(board, limit, int(phase[8])).size() < int(phase[7]):
 		return null
 	var m: TiltDifficulty = TiltDifficulty.of(board, int(phase[8]), limit)
 	if m.par < int(phase[7]) or m.bits < lo or m.bits > hi:
