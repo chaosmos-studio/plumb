@@ -1,7 +1,9 @@
 # Plumb to 500 levels: chapters
 
-The plan for Plumb's 500 levels. Chapters 1 to 10 are built (update 1.1); the rest are designed. How the
-chapters are generated, and why every level needs its rule, is in `MATH.md` section 8.
+The plan for Plumb's 500 levels. Chapters 1 to 15 are built (updates 1.1 and 1.2); the rest are designed.
+How the chapters are generated, and why every level needs its rule, is in `MATH.md` sections 8 and 9. As
+built, a switch holds its hatch open for a whole tilt if something rests on it as the tilt starts, and a
+portal whose twin is taken is shut.
 
 ## The idea
 

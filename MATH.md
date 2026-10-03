@@ -273,7 +273,7 @@ program still aims at the ramp itself, so it keeps choosing the lowest candidate
 drift back toward the curve whenever the pools allow.
 
 Aiming at a ramp below the levels has a side effect: the cheapest run is the lowest candidate over and
-over, and chapter 7 came out as ten levels at exactly 15.1 bits. Two fixes were tried:
+over, and chapter 7 came out as ten levels at exactly 15.1 bits. Four fixes were tried:
 
 - Aim at the ramp raised by the same amount as the window. Each phase then aims a little above where the
   last one ended, the `FLAT` cost for a repeat (0.5) is more than an overshoot of 0.7 bits costs, and the
@@ -282,10 +282,12 @@ over, and chapter 7 came out as ten levels at exactly 15.1 bits. Two fixes were 
   in few distinct values, so every forced step was a jump of up to 0.6 bits, the early chapters ran far
   ahead, and chapter 4 had nothing left to climb to.
 - Keep aiming at the ramp, and make a plateau dearer the longer it runs: extending a run of `m` equal
-  levels costs `FLAT × m`, so a run of five costs 0.5 + 1 + 1.5 + 2 = 5, and `RUN` = 5 is a hard limit
-  behind that. The program's state becomes (candidate, how many levels in a row end on its value), as in
-  Apsis's play order, and the run carries over phase boundaries. This is the one kept: chapters 1 to 6
-  climb with no run longer than five, and the levels sit about two bits above the ramp by level 120.
+  levels costs `FLAT × m`, so a run of five costs 0.5 + 1 + 1.5 + 2 = 5. The climb was even, but too
+  steep: par 12 and 18.8 bits by level 150, and chapter 8 had nothing left to climb to either.
+- Keep aiming at the ramp, a flat `FLAT` per repeat, and `RUN` = 5 as a hard limit: no more than five
+  levels in a row on one bits value. The program's state becomes (candidate, how many levels in a row end
+  on its value), as in Apsis's play order, and the run carries over phase boundaries. Each forced step is
+  the smallest the pool offers. This is the one kept: all 200 levels climb with no run longer than five.
 
 **The ramp runs over 500 levels**, the whole planned game, not the chapters made so far. Section 6's curve
 is now
@@ -324,12 +326,64 @@ well.
   on every route, and the pool fills slowly. Even at 3 cracks, about four in five proposals are
   unsolvable.
 - Set `ahead` to 0 in `add_phase` and regenerate: some phase past level 120 cannot fill its run.
-- Set `FLAT` back to a flat cost per repeat (drop the `× m`) and regenerate: the plateaus come back
-  wherever the levels are ahead of the ramp, right up to `RUN`.
+- Set `RUN` to 10 and regenerate: the plateaus come back wherever the levels are ahead of the ramp.
 
 ---
 
-## 9. The title seesaw: one dimension of physics
+## 9. Turns, jumps and boards that change
+
+Chapters 11 to 15 bring rules section 1's step loop could not hold as it was: a stone, a portal, a bumper,
+a switch with its hatch, and a key with its locks.
+
+**Headings.** Until a bumper, every marble rolled the tilt's way, so "front first" was one sort and one
+pass per step. A bumper turns a marble a quarter, so each marble now carries its own heading, and a step is
+repeated passes: any marble whose next cell along its heading is free moves, a marble moving into a cell
+another has just left included, until a pass moves nothing. With every heading the same this is exactly the
+old loop, since the marble in front always goes first, and the 200 levels of 1.1 re-solve to the same par.
+A "/" bumper maps (dx, dy) to (-dy, -dx) and a "\" to (dy, dx).
+
+**Portals.** A marble rolling into a portal lands on its twin in the same step and rolls on from there, the
+same way. A portal whose twin is taken is shut, like a wall, so two marbles can never meet in one cell.
+Bumpers and portals together can send a marble round a loop forever, so a marble that comes back to a cell
+it has already been on in this tilt, heading the same way, stops there. The test suite builds such a loop
+from four bumpers round a wall.
+
+**Switches are read when a tilt starts.** A hatch is open for a whole tilt if something rests on its switch
+as the tilt begins. Deciding it step by step would make the answer depend on the order marbles move in
+within a step, which a player cannot see. Read at the start, it is a rule about where things are, which is
+all the solver's key holds, so no new state is needed.
+
+**Stones** are kept with the marbles in a colour no hole has (`TiltBoard.STONE`): every rule that moves a
+marble moves a stone, no hole ever matches it, and the win counts marbles only. A stone that rolls into a
+pit fills it, and the pit becomes floor for good. Like cracked floor, a used key and its opened locks, that
+is a lasting change, so the solver's key carries it: changes are now kept as `cell × 4 + kind`.
+
+**What "without the rule" means** for each (`TiltGenerator.without`): stones taken off the board; portals,
+bumpers turned to plain floor; switches taken with their hatches, so every door is simply open; keys taken
+with their locks. The level must then play differently, as in section 8.
+
+**Deeper search for deeper puzzles.** At par 15 to 18 the number of positions grows past section 8's limit
+of 12,000 often enough that pools starve, so a chapter may set its own (`"search"`, 20,000 from chapter 11).
+Chapters 1 to 10 keep the limit they were made with: a larger one would admit candidates they turned down,
+and change levels players have already played.
+
+**Making a wave without remaking the ones before.** The generator is one random stream from the seed, so
+making chapter 11 used to mean making chapters 1 to 10 again first, about 25 minutes, and every later wave
+longer still. Now the level file keeps the generator's random state at the end of every chapter
+(`rng_states`), and `resume=10` keeps chapters 1 to 10 as they are, measures them again for the run picker
+and the likeness test, restores the state, and goes on: the same file as a full run, in a fraction of the
+time. The states are kept as strings, because JSON numbers are doubles and a 64-bit state does not fit in
+their 53 bits of mantissa.
+
+### Things to try
+
+- Delete the loop guard in `TiltBoard._arrive` and run the tests: the four-bumper loop never ends.
+- Make hatches follow their switch step by step, and see how often a level's par changes when two marbles
+  swap places in `order`.
+
+---
+
+## 10. The title seesaw: one dimension of physics
 
 The toy on the title is the one place with real physics, and it needs only one dimension: a position
 along the bar per marble. Each frame, gravity along a bar tilted by `angle` accelerates each marble by
