@@ -7,7 +7,8 @@ extends RefCounted
 ## won:N, failed:N (the shortest fall into a pit), hero:N (the board with the HUD hidden), and for the website board:N[:LRUD], boardsolve:N:K and
 ## boardhint:N:K, which also hide the HUD, guide:K (level 1's guide at step K, counting from 0) and ending
 ## (the note after the last level). Levels are 1-based here, as a player counts them. Any action takes a
-## "dark/" prefix to stage it in the dark theme; without one it is in the game's own look.
+## "dark/" prefix to stage it in the dark theme; without one it is in the game's own look. Also looks[:owned]
+## (the marble sets sheet) and tiles[::K] (every mark from chapter 16 on, after K tilts).
 ##
 ## The ads and the Supporter pack, as the Google Play build shows them unless the variant says web:
 ## levelsad (the grid with a stand-in banner of the real size), supporter[:web|:owned] (the support
@@ -20,6 +21,13 @@ extends RefCounted
 ## (arg = L, R, U or D), fail (tilts into a pit), undo, wait (arg = seconds).
 
 const SETTLE: float = 0.9
+## The board the `tiles` action shows.
+const TILES: Dictionary = {
+	"rows": ["0.....", "......", "..#...", "....1.", "......", ".x...2"],
+	"marbles": [[1, 1, 0, 1], [3, 0, 1, 2], [5, 4, 2], [2, 4, 9]],
+	"tiles": [[2, 0, "blink", 0], [3, 1, "blink", 1], [4, 0, "conveyor", 3], [0, 3, "spring", 0],
+		[3, 4, "magnet", 0], [1, 2, "glass", 0], [4, 3, "ice", 0], [0, 5, "conveyor", 1]],
+	"wrap": 1, "locked": 2}
 
 var _settle: float = SETTLE
 ## Set by the film runner, which draws the finger for each move; null for stills.
@@ -49,6 +57,30 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 		"title":
 			host.add_child(load(Brand.TITLE_SCENE).instantiate())
 			await _wait(host, 1.2)
+		"looks":
+			# Every marble set unlocked when the variant says so, as the Looks pack shows them.
+			Save.owned = PackedStringArray([GameMonetize.LOOKS_ID]) if variant == "owned" else PackedStringArray()
+			Supporter.on_play = true
+			var home: Node = load(Brand.TITLE_SCENE).instantiate()
+			host.add_child(home)
+			await _wait(host, 0.3)
+			Looks.open(home)
+			await _wait(host, 0.7)
+		"tiles":
+			# Every mark from chapter 16 on, on one board, to see how each reads (`k` tilts it that many times
+			# left and right, so blinking walls show both ways).
+			var holder: Node2D = Node2D.new()
+			host.add_child(holder)
+			var view: BoardView = BoardView.new()
+			holder.add_child(view)
+			var size: Vector2 = (host as Node).get_viewport().get_visible_rect().size
+			view.home = size * 0.5
+			var board: TiltBoard = TiltBoard.from_dict(TILES)
+			view.show_board(board, Vector2(size.x * 0.9, size.x * 0.9))
+			for t: int in range(k):
+				var move: TiltMove = board.tilt(TiltBoard.LEFT if t % 2 == 0 else TiltBoard.RIGHT)
+				await view.play(move)
+			await _wait(host, 0.6)
 		"levels":
 			host.add_child(load(Brand.LEVELS_SCENE).instantiate())
 			await _wait(host, 0.5)

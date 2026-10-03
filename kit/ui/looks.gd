@@ -9,9 +9,10 @@ extends RefCounted
 ##
 ## The kit expects from the game: `GameLooks.LOOKS`, an Array of {"id", "name"} with the free one first;
 ## `GameLooks.use(id)`, which makes the next `Brand.use` paint (or the next note play) in that look;
-## `GameLooks.swatch(id)`, the colours its card shows; `GameLooks.preview(id)`, anything a card does when
-## tapped beyond picking, such as a few notes; `GameLooks.TITLE`, `PACK`, `PACK_LINE` and `PACK_ROW`; and
-## `Save.look` with `Save.set_look(id)`.
+## `GameLooks.swatch(id)`, the colours its card shows; `GameLooks.sample(id, colour, radius)`, a node that
+## shows one of those colours as that look really draws it (a marble in its finish), or null for a plain
+## disc; `GameLooks.preview(id)`, anything a card does when tapped beyond picking, such as a few notes;
+## `GameLooks.TITLE`, `PACK`, `PACK_LINE` and `PACK_ROW`; and `Save.look` with `Save.set_look(id)`.
 
 static func ids() -> PackedStringArray:
 	var out: PackedStringArray = PackedStringArray()
@@ -81,10 +82,14 @@ static func open(host: Node) -> Sheet:
 class _Card extends BaseButton:
 	## Two to a row with the gap between them, inside the sheet's margins on a 720 wide screen.
 	const SIZE: Vector2 = Vector2(296, 150)
+	const SWATCH: float = 18.0
+	const SWATCH_GAP: float = 10.0
 
 	var id: String = ""
 	var chosen: bool = false
 	var open: bool = true
+	## The colours drawn as plain discs because the look gave no sample for them.
+	var _discs: Array = []
 
 	func _init(look: String, in_use: bool, available: bool) -> void:
 		id = look
@@ -93,6 +98,20 @@ class _Card extends BaseButton:
 		custom_minimum_size = SIZE
 		focus_mode = Control.FOCUS_NONE
 		UI.press_feedback(self)
+		var colours: Array = GameLooks.swatch(id)
+		for k: int in range(colours.size()):
+			var sample: Node2D = GameLooks.sample(id, colours[k] as Color, SWATCH)
+			if sample == null:
+				_discs.append(k)
+				continue
+			sample.position = _spot(k, colours.size())
+			sample.modulate.a = 1.0 if open else 0.45
+			add_child(sample)
+
+	## Where the k-th of n swatches sits, centred in a row near the top of the card.
+	static func _spot(k: int, n: int) -> Vector2:
+		var width: float = n * SWATCH * 2.0 + (n - 1) * SWATCH_GAP
+		return Vector2(SIZE.x * 0.5 - width * 0.5 + SWATCH + k * (SWATCH * 2.0 + SWATCH_GAP), 3.0 + 50.0)
 
 	func _draw() -> void:
 		var rect: Rect2 = Rect2(Vector2(3, 3), size - Vector2(6, 6))
@@ -104,13 +123,8 @@ class _Card extends BaseButton:
 		box.set_border_width_all(4 if chosen else 2)
 		draw_style_box(box, rect)
 		var colours: Array = GameLooks.swatch(id)
-		var r: float = 18.0
-		var gap: float = 10.0
-		var width: float = colours.size() * r * 2.0 + (colours.size() - 1) * gap
-		var at: Vector2 = Vector2(rect.get_center().x - width * 0.5 + r, rect.position.y + 50.0)
-		for colour: Variant in colours:
-			draw_circle(at, r, Color(colour as Color, 1.0 if open else 0.45), true, -1.0, true)
-			at.x += r * 2.0 + gap
+		for k: int in _discs:
+			draw_circle(_spot(k, colours.size()), SWATCH, Color(colours[k] as Color, 1.0 if open else 0.45), true, -1.0, true)
 		var font: Font = UI.ui_font()
 		var text: String = Looks.name_of(id)
 		var ink: Color = Brand.INK if open else Brand.MUTED

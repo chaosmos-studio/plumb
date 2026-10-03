@@ -48,5 +48,13 @@ static func swatch(id: String) -> Array:
 	var colours: Array = SETS.get(id, SETS["classic"])[0]
 	return colours if not colours.is_empty() else Palette.LIGHT["marbles"]
 
+## A marble in that set's finish, so each card shows glass as glass and gems as gems.
+static func sample(id: String, colour: Color, radius: float) -> Node2D:
+	var marble: Marble = Marble.new()
+	marble.radius = radius
+	marble.colour = colour
+	marble.finish = SETS.get(id, SETS["classic"])[1]
+	return marble
+
 static func preview(_id: String) -> void:
 	pass
