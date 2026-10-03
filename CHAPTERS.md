@@ -1,9 +1,17 @@
 # Plumb to 500 levels: chapters
 
-The plan for Plumb's 500 levels. Chapters 1 to 15 are built (updates 1.1 and 1.2); the rest are designed.
-How the chapters are generated, and why every level needs its rule, is in `MATH.md` sections 8 and 9. As
-built, a switch holds its hatch open for a whole tilt if something rests on it as the tilt starts, and a
-portal whose twin is taken is shut.
+The plan for Plumb's 500 levels, all 25 chapters built. How the chapters are generated, and why every level
+needs its rule, is in `MATH.md` sections 8 to 10. As built, a switch holds its hatch open for a whole tilt if
+something rests on it as the tilt starts, a portal whose twin is taken is shut, and conveyors, ice holes and
+glass act once the board has stopped.
+
+**Revised while building (2026-10-03).** Colour mixing and moving holes went back to the reserve: mixing
+needs colours that mix, and the marble sets include planets, gems and candy; moving holes would have made
+every hole a rolling body for one chapter. Ice holes, from the reserve, took chapter 23. The reserve's
+locked direction was planned for 24, but a lock that never moves leaves almost no board solvable at par 16,
+so it became a turning lock: one way is locked, and the lock turns a quarter clockwise after every tilt.
+And from chapter 16, levels are ordered by par first, then bits (`MATH.md` section 10): par never falls,
+bits never fall within one par, and bits may start lower when par steps up.
 
 ## The idea
 
@@ -92,12 +100,12 @@ chapters can follow it in later updates.
 | 20 | 381-400 | Magnets | conveyors |
 | 21 | 401-420 | Numbered marbles | plugs |
 | 22 | 421-440 | Glass posts | stones |
-| 23 | 441-460 | Colour mixing | paint pads, colour gates |
-| 24 | 461-480 | Moving holes | stop pads |
+| 23 | 441-460 | Ice holes | stop pads |
+| 24 | 461-480 | Turning lock | springs |
 | 25 | 481-500 | Every rule so far, mixed | all |
 
-Held in reserve for later updates: locked direction, twin marbles, hole capacity, ice holes, mirror halves,
-turnstiles, gravity cells, sticky floor, fragile marbles.
+Held in reserve for later updates: colour mixing, moving holes, a lock that never turns, twin marbles, hole
+capacity, mirror halves, turnstiles, gravity cells, sticky floor, fragile marbles.
 
 ## What changes beyond the rules
 
@@ -119,4 +127,4 @@ In waves, each one a store update players can feel:
 | 1.1 | 1 to 10 | 200 | stop pads, one-way gates, plugs, colour gates, paint pads, cracked floor |
 | 1.2 | 11 to 15 | 300 | stones, portals, bumpers, switches, keys |
 | 1.3 | 16 to 20 | 400 | blinking walls, conveyors, springs, wrap edges, magnets |
-| 1.4 | 21 to 25 | 500 | numbered marbles, glass posts, colour mixing, moving holes, every rule mixed |
+| 1.4 | 21 to 25 | 500 | numbered marbles, glass posts, ice holes, a turning lock, every rule mixed |

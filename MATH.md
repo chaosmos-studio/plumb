@@ -383,7 +383,78 @@ their 53 bits of mantissa.
 
 ---
 
-## 10. The title seesaw: one dimension of physics
+## 10. Chapters 16 to 25: when the board stops, and what comes after
+
+Chapters 16 to 25 bring blinking walls, conveyors, springs, wrap edges, magnets, numbered marbles, glass
+posts, ice holes and a turning lock, then a chapter that mixes every rule so far. Most of them are about
+time: something happens on every tilt, or once the board has stopped, or only to a marble at rest.
+
+**A tilt now has an end.** Section 1's loop rolls marbles until a pass moves nothing. Three rules act at
+that moment, in order. First, a marble resting on a conveyor that does not already head its way is turned
+to it, and the loop runs again; a turn on its own changes nothing, so a conveyor pointing into a wall is no
+move. Then a marble resting on its own ice hole drops in, and so does a numbered marble waiting on its hole
+whose turn has come. Last, glass that a marble struck shatters into floor. A tilt that only shatters glass,
+or only drops a marble, still counts as a move (`TiltMove.settled`), since the board is different after it.
+
+**The beat.** A blinking wall is up when its value equals the board's beat, and the beat flips after every
+tilt that changed something, so a tilt into a wall does not count. A wall never rises under a marble: one
+resting on it as the tilt starts keeps it down for that tilt, which is read at the start like a switch
+(section 9). The beat is state, so the solver's key carries it, but only on boards with a blinking wall:
+everywhere else it would split every position in two for nothing and double the search.
+
+**Springs and wrap edges** change where "the next cell" is: a marble leaving a spring goes two cells, over
+whatever is between, and a step off a wrapping edge comes back in at the far side (`TiltBoard.cell_along`).
+A marble on a row that wraps and holds nothing to stop it would roll round forever, so on such a board the
+loop guard starts with each marble's own cell and heading: one that comes all the way round stops where it
+began. The reachability check of section 3 assumes marbles stay on floor between walls, so boards with
+either are left to the solver.
+
+**Numbered marbles** drop only in turn: a marble numbered n rolls over its hole like floor while any lower
+number is still on the board. Numbers are part of a marble, so the key holds (cell, colour, number).
+
+**Revised while building.** The plan put colour mixing at chapter 23 and moving holes at 24. Mixing needs
+colours that mix, and the marble sets are planets, gems and candy as well as paint: there is no telling a
+player what a gem and a planet make. Moving holes would have made every hole a body that rolls, through
+every rule and the drawing, for one chapter. Both went back to the reserve. Ice holes, which ask for a
+precise stop, took chapter 23. Chapter 24 was to be the reserve's locked direction, and the numbers turned
+it into a turning lock. With one way locked for good, every marble moves along one axis in one sense only,
+so a tilt that carries a marble past its hole can never be undone: of 150 random boards none could be
+solved in 16 moves or more, even with marbles placed where their holes stayed in reach. A lock that turns a
+quarter clockwise after every tilt that changes something brings every way back in turn, so a board stays
+solvable, and the puzzle becomes timing: which way is open now, and which next. Its direction is state, so
+the key carries it, as it carries the beat.
+
+**Par first.** By chapter 15 the levels need 16 moves and measure about 27 bits. A random board for chapters
+16 to 20 that needs at least 16 moves and needs its rule comes up two to nine times in a hundred, and its
+bits spread from 21 to 31, mostly below 27. Asking every level to beat the last one's bits as well as its
+par would leave each pool a sliver of the tail of that spread, and the sliver shrinks every phase. So from
+chapter 16 levels ship in `TiltDifficulty.before`'s order: par first, then bits. Par never falls, and within
+one par bits never fall, but when par steps up bits may start lower again: a level that needs one more move
+comes after one that needs fewer, whatever its bits. Every earlier level keeps both rules, which keeps this
+order too, so the tests check one order over all 500. The run picker still aims at the ramp, so it holds par
+as long as its pool has boards at that par harder than the last, and steps up when it runs short.
+
+**Pools on worker processes.** A pool is hundreds to thousands of proposals, each a breadth-first search of
+up to 24,000 positions, one at a time. GDScript threads do not help: one thread proposes about 4 boards a
+second here, and four, eight or twelve together manage about 8, since they spend their time waiting on each
+other. Separate Godot processes share nothing and scale with the cores. So from chapter 12 a phase draws one
+number from the generator's random stream, and batch b of 24 proposals is seeded from that number and b
+alone. Worker processes take batches in turn and write each as a line of JSON; the main process merges them
+strictly in batch order and stops the workers once the pool is full. Where or when a batch ran never shows:
+the same seed writes the same file with one worker or twelve. Floats go through JSON at full precision,
+because the run picker compares bits for equality.
+
+### Things to try
+
+- Put the beat in every board's key and time the search of a chapter 12 level: about twice the positions,
+  and the same par.
+- Turn a conveyor towards a wall and tilt: the tilt is refused, since a turn alone is no move.
+- Set `BY_PAR_FROM` to 25 and generate chapter 16 with `resume=15`: its pools fill with boards measuring
+  less than the last level, which the old order cannot use.
+
+---
+
+## 11. The title seesaw: one dimension of physics
 
 The toy on the title is the one place with real physics, and it needs only one dimension: a position
 along the bar per marble. Each frame, gravity along a bar tilted by `angle` accelerates each marble by
