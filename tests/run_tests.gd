@@ -476,7 +476,7 @@ func _test_level_pack() -> void:
 			tame.append(i + 1)
 		if i == 0:
 			continue
-		# From chapter 16 levels ship par first, so bits may start lower when par steps up.
+		# From chapter 14 levels ship par first, so bits may start lower when par steps up.
 		var by_par: bool = i >= by_par_from
 		if measures[i].before(measures[i - 1]) if by_par else measures[i].easier_than(measures[i - 1]):
 			easier.append(i + 1)

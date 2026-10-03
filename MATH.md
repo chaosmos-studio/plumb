@@ -424,15 +424,21 @@ quarter clockwise after every tilt that changes something brings every way back 
 solvable, and the puzzle becomes timing: which way is open now, and which next. Its direction is state, so
 the key carries it, as it carries the beat.
 
-**Par first.** By chapter 15 the levels need 16 moves and measure about 27 bits. A random board for chapters
-16 to 20 that needs at least 16 moves and needs its rule comes up two to nine times in a hundred, and its
-bits spread from 21 to 31, mostly below 27. Asking every level to beat the last one's bits as well as its
-par would leave each pool a sliver of the tail of that spread, and the sliver shrinks every phase. So from
-chapter 16 levels ship in `TiltDifficulty.before`'s order: par first, then bits. Par never falls, and within
+**Par first.** By chapter 13 the levels need 17 moves and measure about 27 bits, and its second phase took
+two and a half hours to find 51 boards in 15,000 that beat the last level on both. A random board for
+chapters 16 to 20 that needs at least 16 moves and needs its rule comes up two to nine times in a hundred,
+and its bits spread from 21 to 31, mostly below 27. Asking every level to beat the last one's bits as well as
+its par leaves each pool a sliver of the tail of that spread, and the sliver shrinks every phase. So from
+chapter 14 levels ship in `TiltDifficulty.before`'s order: par first, then bits. Par never falls, and within
 one par bits never fall, but when par steps up bits may start lower again: a level that needs one more move
 comes after one that needs fewer, whatever its bits. Every earlier level keeps both rules, which keeps this
 order too, so the tests check one order over all 500. The run picker still aims at the ramp, so it holds par
 as long as its pool has boards at that par harder than the last, and steps up when it runs short.
+
+**Screening before measuring.** From chapter 14 a proposal is first solved by the plain search of section
+2, which only finds par. Most proposals fall outside the phase's par window, and they no longer pay for the
+measure of section 5, which carries every position's chance as it goes. The two searches count positions a
+little differently, so the chapters made before keep the one way they were made.
 
 **Pools on worker processes.** A pool is hundreds to thousands of proposals, each a breadth-first search of
 up to 24,000 positions, one at a time. GDScript threads do not help: one thread proposes about 4 boards a
@@ -449,8 +455,8 @@ because the run picker compares bits for equality.
 - Put the beat in every board's key and time the search of a chapter 12 level: about twice the positions,
   and the same par.
 - Turn a conveyor towards a wall and tilt: the tilt is refused, since a turn alone is no move.
-- Set `BY_PAR_FROM` to 25 and generate chapter 16 with `resume=15`: its pools fill with boards measuring
-  less than the last level, which the old order cannot use.
+- Set `BY_PAR_FROM` to 25 and generate chapter 14 with `resume=13`: its pools fill with boards measuring
+  less than the last level, which the old order cannot use, and the phase runs out of attempts.
 
 ---
 
