@@ -60,78 +60,78 @@ const CHAPTERS: Array = [
 		[10, 7, 7, 3, 5, 0.14, 1, 10, 14, {"crack": 3}],
 		[10, 7, 8, 3, 5, 0.15, 2, 10, 14, {"crack": 4, "stop": 1}],
 	]},
-	{"name": "Stones", "rule": "stone", "line": "Stones roll like marbles, never drop in, and fill a pit", "search": 20000,
+	{"name": "Stones", "rule": "stone", "line": "Stones roll like marbles, never drop in, and fill a pit", "search": 30000,
 		"phases": [
-		[10, 7, 8, 3, 5, 0.14, 2, 14, 17, {"stone": 2}],
-		[10, 8, 8, 3, 6, 0.15, 2, 15, 17, {"stone": 2, "crack": 2}],
+		[10, 7, 8, 3, 5, 0.14, 2, 14, 24, {"stone": 2}],
+		[10, 8, 8, 3, 6, 0.15, 2, 14, 24, {"stone": 2, "crack": 2}],
 	]},
-	{"name": "Portals", "rule": "portal", "line": "A marble that rolls into a portal comes out of its twin", "search": 20000,
+	{"name": "Portals", "rule": "portal", "line": "A marble that rolls into a portal comes out of its twin", "search": 30000,
 		"phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 15, 17, {"portal": 1}],
-		[10, 8, 8, 3, 6, 0.15, 1, 15, 18, {"portal": 2, "gate": 1}],
+		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"portal": 1}],
+		[10, 8, 8, 3, 6, 0.15, 1, 14, 24, {"portal": 2, "gate": 1}],
 	]},
-	{"name": "Bumpers", "rule": "bumper", "line": "A bumper turns a rolling marble a quarter", "search": 20000, "phases": [
-		[10, 8, 8, 3, 5, 0.14, 1, 15, 18, {"bumper": 3}],
-		[10, 8, 8, 3, 6, 0.15, 1, 15, 18, {"bumper": 3, "portal": 1}],
+	{"name": "Bumpers", "rule": "bumper", "line": "A bumper turns a rolling marble a quarter", "search": 30000, "phases": [
+		[10, 8, 8, 3, 5, 0.14, 1, 14, 24, {"bumper": 3}],
+		[10, 8, 8, 3, 6, 0.15, 1, 14, 24, {"bumper": 3, "portal": 1}],
 	]},
-	{"name": "Switches", "rule": "switch", "line": "A door is open while something rests on its switch", "search": 20000,
+	{"name": "Switches", "rule": "switch", "line": "A door is open while something rests on its switch", "search": 30000,
 		"phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 17, 19, {"switch": 1, "stone": 1}],
-		[10, 8, 8, 3, 6, 0.15, 1, 17, 19, {"switch": 2, "stone": 1}],
+		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"switch": 1, "stone": 1}],
+		[10, 8, 8, 3, 6, 0.15, 1, 14, 24, {"switch": 2, "stone": 1}],
 	]},
-	{"name": "Keys and locks", "rule": "key", "line": "Rolling over a key opens every lock of its colour", "search": 20000,
+	{"name": "Keys and locks", "rule": "key", "line": "Rolling over a key opens every lock of its colour", "search": 30000,
 		"phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 17, 20, {"key": 1, "door": 1}],
-		[10, 8, 8, 3, 6, 0.15, 1, 17, 20, {"key": 2, "door": 1}],
+		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"key": 1, "door": 1}],
+		[10, 8, 8, 3, 6, 0.15, 1, 14, 24, {"key": 2, "door": 1}],
 	]},
 	{"name": "Blinking walls", "rule": "blink", "line": "Blinking walls switch after every tilt that moves",
 		"search": 30000, "phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"blink": 4}],
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"blink": 4, "switch": 1}],
+		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"blink": 4}],
+		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"blink": 4, "switch": 1}],
 	]},
 	{"name": "Conveyors", "rule": "conveyor", "line": "Once the board stops, a conveyor carries its marble on",
 		"search": 30000, "phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"conveyor": 3}],
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"conveyor": 3, "bumper": 2}],
+		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"conveyor": 3}],
+		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"conveyor": 3, "bumper": 2}],
 	]},
 	{"name": "Springs", "rule": "spring", "line": "A spring jumps a marble over the next square",
 		"search": 30000, "phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"spring": 3}],
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"spring": 3, "crack": 3}],
+		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"spring": 3}],
+		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"spring": 3, "crack": 3}],
 	]},
 	{"name": "Wrap edges", "rule": "wrap", "line": "Off one edge and back in at the other",
 		"search": 30000, "phases": [
-		[10, 8, 8, 3, 5, 0.17, 1, 16, 24, {"wrap": 1}],
-		[10, 8, 8, 3, 5, 0.17, 1, 16, 24, {"wrap": 1, "portal": 1}],
+		[10, 8, 8, 3, 5, 0.17, 1, 14, 24, {"wrap": 1}],
+		[10, 8, 8, 3, 5, 0.17, 1, 14, 24, {"wrap": 1, "portal": 1}],
 	]},
 	{"name": "Magnets", "rule": "magnet", "line": "A marble stops as soon as it rolls beside a magnet",
 		"search": 30000, "phases": [
-		[10, 8, 8, 3, 5, 0.14, 1, 16, 24, {"magnet": 2}],
-		[10, 8, 8, 3, 5, 0.14, 1, 16, 24, {"magnet": 2, "conveyor": 2}],
+		[10, 8, 8, 3, 5, 0.14, 1, 14, 24, {"magnet": 2}],
+		[10, 8, 8, 3, 5, 0.14, 1, 14, 24, {"magnet": 2, "conveyor": 2}],
 	]},
 	{"name": "Numbered marbles", "rule": "number", "line": "Numbered marbles drop in order, 1 first",
 		"search": 40000, "phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"number": 3}],
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"number": 3, "plug": true}],
+		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"number": 3}],
+		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"number": 3, "plug": true}],
 	]},
 	{"name": "Glass posts", "rule": "glass", "line": "Glass stops a marble once, then shatters",
 		"search": 40000, "phases": [
-		[10, 8, 8, 3, 5, 0.14, 1, 16, 24, {"glass": 3}],
-		[10, 8, 8, 3, 5, 0.14, 1, 16, 24, {"glass": 3, "stone": 1}],
+		[10, 8, 8, 3, 5, 0.14, 1, 14, 24, {"glass": 3}],
+		[10, 8, 8, 3, 5, 0.14, 1, 14, 24, {"glass": 3, "stone": 1}],
 	]},
 	{"name": "Ice holes", "rule": "ice", "line": "An icy hole only takes a marble that stops on it",
 		"search": 40000, "phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"ice": 2}],
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"ice": 3, "stop": 2}],
+		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"ice": 2}],
+		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"ice": 3, "stop": 2}],
 	]},
 	{"name": "Turning lock", "rule": "locked", "line": "One way is locked, and the lock turns after every tilt",
 		"search": 40000, "phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"locked": 1}],
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"locked": 1, "spring": 2}],
+		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"locked": 1}],
+		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"locked": 1, "spring": 2}],
 	]},
 	{"name": "Everything", "rule": "mix", "line": "Every rule so far, mixed", "search": 40000, "phases": [
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"mix": 2}],
-		[10, 8, 8, 3, 5, 0.15, 1, 16, 24, {"mix": 3}],
+		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"mix": 2}],
+		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"mix": 3}],
 	]},
 ]
 ## What a mixed chapter (rule "mix") draws its rules from, one entry per rule, each with the marks that
@@ -175,11 +175,11 @@ const PARALLEL_FROM: int = 11
 const BATCH: int = 24
 ## Chapters from this one on ship in TiltDifficulty.before's order, par first, rather than with par and
 ## bits each never falling (MATH.md section 10). Every level before them keeps both, which also keeps this.
-const BY_PAR_FROM: int = 13
+const BY_PAR_FROM: int = 10
 ## From this chapter on a phase pools only boards at the last level's par or one more, so its pool crowds
 ## the low end of what it may ship and par climbs slowly, and it pools POOL_LATE boards per level it ships
 ## rather than POOL, packing them closer in bits (MATH.md section 10).
-const CLOSE_FROM: int = 15
+const CLOSE_FROM: int = 10
 const POOL_LATE: int = 8
 
 class Candidate:
