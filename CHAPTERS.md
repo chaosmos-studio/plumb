@@ -10,7 +10,7 @@ needs colours that mix, and the marble sets include planets, gems and candy; mov
 every hole a rolling body for one chapter. Ice holes, from the reserve, took chapter 23. The reserve's
 locked direction was planned for 24, but a lock that never moves leaves almost no board solvable at par 16,
 so it became a turning lock: one way is locked, and the lock turns a quarter clockwise after every tilt.
-And from chapter 14, levels are ordered by par first, then bits (`MATH.md` section 10): par never falls,
+And from chapter 11, levels are ordered by par first, then bits (`MATH.md` section 10): par never falls,
 bits never fall within one par, and bits may start lower when par steps up.
 
 ## The idea

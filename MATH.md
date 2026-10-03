@@ -424,28 +424,29 @@ quarter clockwise after every tilt that changes something brings every way back 
 solvable, and the puzzle becomes timing: which way is open now, and which next. Its direction is state, so
 the key carries it, as it carries the beat.
 
-**Par first.** By chapter 13 the levels need 17 moves and measure about 27 bits, and its second phase took
-two and a half hours to find 51 boards in 15,000 that beat the last level on both. A random board for
-chapters 16 to 20 that needs at least 16 moves and needs its rule comes up two to nine times in a hundred,
-and its bits spread from 21 to 31, mostly below 27. Asking every level to beat the last one's bits as well as
-its par leaves each pool a sliver of the tail of that spread, and the sliver shrinks every phase. So from
-chapter 14 levels ship in `TiltDifficulty.before`'s order: par first, then bits. Par never falls, and within
-one par bits never fall, but when par steps up bits may start lower again: a level that needs one more move
-comes after one that needs fewer, whatever its bits. Every earlier level keeps both rules, which keeps this
-order too, so the tests check one order over all 500. The run picker still aims at the ramp, so it holds par
-as long as its pool has boards at that par harder than the last, and steps up when it runs short.
+**Par first.** The first build of chapters 11 to 15 kept section 6's rule that par and bits each never
+fall, and it climbed from par 14 at level 200 to par 19 by level 300. Chapter 13's second phase took two and
+a half hours to find 51 boards in 15,000 that beat the last level on both, and with 200 levels still to make
+every one would have had to need 19 moves or more. A random board for chapters 16 to 20 that needs at least
+16 moves and needs its rule comes up two to nine times in a hundred, and its bits spread from 21 to 31.
+Asking every level to beat the last one's bits as well as its par leaves each pool a sliver of the tail of
+that spread, and the sliver shrinks every phase. So from chapter 11 levels ship in `TiltDifficulty.before`'s
+order: par first, then bits. Par never falls, and within one par bits never fall, but when par steps up bits
+may start lower again: a level that needs one more move comes after one that needs fewer, whatever its bits.
+Every earlier level keeps both rules, which keeps this order too, so the tests check one order over all
+500. The run picker still aims at the ramp, so it holds par as long as its pool has boards at that par harder
+than the last, and steps up when it runs short.
 
 **Keeping the climb slow.** Par first still climbs, and how fast depends on the pool. Within one par the
 run picker takes the lowest bits above the last level's, so a phase climbs by about the spread of bits among
-its boards at that par divided by how many there are; when that par runs out it steps up. In chapters 14
-and 15 par held for about 30 levels, and in chapter 16's first try, with par allowed up to 21, most of the
-pool came in at 20 and 21: par would have stepped up every chapter and reached the high twenties by level
-500, past what the search can reach. So from chapter 16 a phase pools only boards that need the last
-level's par or one move more (`CLOSE_FROM`), and pools eight per level it ships rather than six. Its boards
-crowd the low end, par holds longer, and each search stops one move past the last par instead of searching
-to the phase's limit.
+its boards at that par divided by how many there are; when that par runs out it steps up. With par allowed
+up to 21, most of a pool came in at 20 and 21, so par would have stepped up nearly every chapter. So from
+chapter 11 a phase pools only boards that need the last level's par or one move more (`CLOSE_FROM`), and
+pools eight per level it ships rather than six. Its boards crowd the low end, par holds for about fifty
+levels, and each search stops one move past the last par instead of searching to the phase's limit. Chapters
+11 to 15 had not shipped, so they were made again this way, from level 200 on.
 
-**Screening before measuring.** From chapter 14 a proposal is first solved by the plain search of section
+**Screening before measuring.** From chapter 11 a proposal is first solved by the plain search of section
 2, which only finds par. Most proposals fall outside the phase's par window, and they no longer pay for the
 measure of section 5, which carries every position's chance as it goes. The two searches count positions a
 little differently, so the chapters made before keep the one way they were made.
@@ -465,7 +466,8 @@ because the run picker compares bits for equality.
 - Put the beat in every board's key and time the search of a chapter 12 level: about twice the positions,
   and the same par.
 - Turn a conveyor towards a wall and tilt: the tilt is refused, since a turn alone is no move.
-- Set `BY_PAR_FROM` to 25 and generate chapter 14 with `resume=13`: its pools fill with boards measuring
+- Set `BY_PAR_FROM` and `CLOSE_FROM` to 25 and generate with `resume=10`: par reaches 19 by level 300, and
+  chapter 14's pools fill with boards measuring
   less than the last level, which the old order cannot use, and the phase runs out of attempts.
 
 ---
