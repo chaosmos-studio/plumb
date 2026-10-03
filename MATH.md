@@ -435,6 +435,16 @@ comes after one that needs fewer, whatever its bits. Every earlier level keeps b
 order too, so the tests check one order over all 500. The run picker still aims at the ramp, so it holds par
 as long as its pool has boards at that par harder than the last, and steps up when it runs short.
 
+**Keeping the climb slow.** Par first still climbs, and how fast depends on the pool. Within one par the
+run picker takes the lowest bits above the last level's, so a phase climbs by about the spread of bits among
+its boards at that par divided by how many there are; when that par runs out it steps up. In chapters 14
+and 15 par held for about 30 levels, and in chapter 16's first try, with par allowed up to 21, most of the
+pool came in at 20 and 21: par would have stepped up every chapter and reached the high twenties by level
+500, past what the search can reach. So from chapter 16 a phase pools only boards that need the last
+level's par or one move more (`CLOSE_FROM`), and pools eight per level it ships rather than six. Its boards
+crowd the low end, par holds longer, and each search stops one move past the last par instead of searching
+to the phase's limit.
+
 **Screening before measuring.** From chapter 14 a proposal is first solved by the plain search of section
 2, which only finds par. Most proposals fall outside the phase's par window, and they no longer pay for the
 measure of section 5, which carries every position's chance as it goes. The two searches count positions a
