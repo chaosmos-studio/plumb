@@ -36,7 +36,9 @@ class Moment extends RefCounted:
 ## above the sheet; without one, the heading is as given and the quiet actions are Replay and Levels.
 static func won(host: Node, heading: String, earned: int, detail: PackedStringArray, next_text: String,
 		on_next: Callable, on_replay: Callable, on_levels: Callable, moment: Moment = null) -> Sheet:
-	var sheet: Sheet = Sheet.open(host, false)
+	# The first time, the snapshot is caught before the sheet, which rises as the print flies above it.
+	var caught: bool = moment != null and moment.card == null and Snapshot.can_take()
+	var sheet: Sheet = Sheet.open(host, false, caught)
 	var c: VBoxContainer = sheet.content
 	if moment != null:
 		moment.stars = earned
@@ -68,9 +70,15 @@ static func won(host: Node, heading: String, earned: int, detail: PackedStringAr
 		Snapshot.take(host, sheet, moment, earned, title)
 	else:
 		c.add_child(_quiet_row(on_replay, on_levels))
+	_awards(host, sheet, icons, earned)
+	return sheet
+
+## The stars land one by one once the sheet starts to rise.
+static func _awards(host: Node, sheet: Sheet, icons: Array[StarIcon], earned: int) -> void:
+	if sheet.held:
+		await sheet.rising
 	for k: int in range(earned):
 		_award(host, icons[k], 0.4 + k * STAR_GAP, earned == 3 and k == 2)
-	return sheet
 
 ## Opens the failure sheet. It leads with Undo when `on_undo` is given, or else with `more_text` when
 ## `on_more` is given (Revive's one more heart or tap), with retry then a quiet choice beside Levels.

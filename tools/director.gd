@@ -212,9 +212,10 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			game3.call("_tilt", path[0])
 			await _wait(host, 0.09)
 		"won":
+			# won:N:K stops K tenths of a second after the last tilt, to catch the snapshot on its way.
 			var game4: Node = await _game(host, n)
 			await _solve(game4, 999)
-			await _wait(host, 1.9)
+			await _wait(host, 0.1 * k if parts.size() > 2 else 1.9)
 		"board":
 			# The board alone, for the website: optionally after a run of tilts given as letters (L R U D).
 			var game6: Node = await _game(host, n)

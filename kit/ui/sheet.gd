@@ -7,8 +7,11 @@ extends Control
 ## aside while any sheet is open.
 
 signal closed
+signal rising
 
 const RISE_TIME: float = 0.34
+## The longest a held sheet waits for `rise()` before it rises anyway, so a sheet is never lost.
+const HOLD_MAX: float = 2.0
 const FALL_TIME: float = 0.22
 const SETTLE_TIME: float = 0.2
 const RADIUS: int = 52
@@ -26,6 +29,9 @@ static var _open: Array[Sheet] = []
 
 var content: VBoxContainer
 var dismissable: bool = true
+## Kept below the screen until `rise()`, for a sheet that something else comes before.
+var held: bool = false
+var _risen: bool = false
 var _touch_from: float = -1.0
 var _dragging: bool = false
 var _flick: bool = false
@@ -40,8 +46,9 @@ var _motion: Tween
 var _closing: bool = false
 
 ## Opens a sheet over `host`, and over the layer `host` is drawn on if that is higher, as for the ending.
-## With `dismissable`, tapping the dimmed area closes it.
-static func open(host: Node, can_dismiss: bool = true) -> Sheet:
+## With `dismissable`, tapping the dimmed area closes it. With `hold`, it waits below the screen for
+## `rise()`.
+static func open(host: Node, can_dismiss: bool = true, hold: bool = false) -> Sheet:
 	var canvas: CanvasLayer = CanvasLayer.new()
 	canvas.layer = LAYER
 	var above: Node = host
@@ -52,6 +59,7 @@ static func open(host: Node, can_dismiss: bool = true) -> Sheet:
 	host.add_child(canvas)
 	var sheet: Sheet = Sheet.new()
 	sheet.dismissable = can_dismiss
+	sheet.held = hold
 	canvas.add_child(sheet)
 	return sheet
 
@@ -107,6 +115,17 @@ func _exit_tree() -> void:
 func _ready() -> void:
 	# Below the screen whatever the panel's height turns out to be, until the first step measures it.
 	_slide.position.y = get_viewport_rect().size.y
+	if held:
+		get_tree().create_timer(HOLD_MAX).timeout.connect(rise)
+		return
+	rise()
+
+## Brings the sheet up and the screen behind it down: at once for most sheets, on cue for a held one.
+func rise() -> void:
+	if _risen or _closing:
+		return
+	_risen = true
+	rising.emit()
 	_motion = create_tween().set_parallel(true)
 	_motion.tween_method(_set_drop, 1.0, 0.0, RISE_TIME).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 	_motion.tween_property(_scrim, "color:a", SCRIM_ALPHA, RISE_TIME)
