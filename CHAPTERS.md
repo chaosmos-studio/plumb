@@ -13,6 +13,11 @@ so it became a turning lock: one way is locked, and the lock turns a quarter clo
 And from chapter 11, levels are ordered by par first, then bits (`MATH.md` section 10): par never falls,
 bits never fall within one par, and bits may start lower when par steps up.
 
+**The opening (2026-10-04).** Levels 1 to 5 are picked for what they show as well as how hard they are
+(`MATH.md` section 12): a long roll home, two marbles dropping on one tilt, a bank off a wall, a tempting tilt
+that costs par, and two marbles dropping together on the last tilt. They stay under level 6 in every measure,
+and no level after them changed.
+
 ## The idea
 
 500 levels as 25 chapters of 20, and room for more chapters after them. Each chapter brings one new rule.

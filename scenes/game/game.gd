@@ -245,13 +245,15 @@ func _refresh() -> void:
 	_undo.disabled = history.is_empty()
 	_caption.text = "" if Coach.due(level) or finished else _tutorial()
 
-## A line of guidance on the levels that introduce something, and nothing after.
+## A line of guidance on the levels that introduce something, and nothing after. The opening's slots
+## (TiltShowcase.SLOTS) place them: the second level is the first to share a hole, the third turns a corner off
+## a wall, and the fourth tempts with a tilt that costs par.
 func _tutorial() -> String:
 	if level == 0:
 		return "Swipe to tilt the board"
-	if level == 1:
-		return "Every marble rolls until it hits something"
 	if level == 2:
+		return "Every marble rolls until it hits something"
+	if level == 3:
 		return "Par is the fewest moves possible"
 	if _opens_chapter() > 0:
 		return Pack.chapter_line(_opens_chapter())

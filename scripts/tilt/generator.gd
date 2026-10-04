@@ -6,7 +6,9 @@ extends RefCounted
 ## solve inside the phase's par window, sit near its stretch of the difficulty ramp, need the chapter's
 ## rule, and are not a replay of any level already made go into a pool. From the pool the generator picks
 ## the run of levels that follows the ramp most closely without ever getting easier, in par or in
-## difficulty, chapter starts included. Nothing is hand-placed.
+## difficulty, chapter starts included. Once the first chapter is made, its opening levels are swapped for a
+## showcase (TiltShowcase), boards picked for how they look and play under the level that follows them.
+## Nothing is hand-placed.
 
 ## Each chapter is one page of the Levels screen and brings one rule. `rule` names the tile its levels must
 ## need (TiltBoard.TILE_NAMES, or "plug", "stone", "ice", "number", "wrap", "locked"; "" for the opening
@@ -262,6 +264,21 @@ func resume(made: Array, state: int) -> void:
 		levels.append(level)
 		_made.append(Candidate.new(board, m, TiltNovelty.views(board, m.path), _made.size()))
 	rng.state = state
+
+## Swaps the opening, the first levels as TiltShowcase.SLOTS lists them, for the showcase's, once the levels
+## after it are made. The showcase draws on a random stream of its own, so every level after the opening
+## comes out the same either way. False if it found no opening.
+func open() -> bool:
+	var count: int = TiltShowcase.SLOTS.size()
+	var picks: Array[Candidate] = TiltShowcase.new(rng.seed).make(_made.slice(count))
+	if picks.is_empty():
+		return false
+	for k: int in range(count):
+		var level: Dictionary = picks[k].board.to_dict()
+		level["par"] = picks[k].measure.par
+		levels[k] = level
+		_made[k] = picks[k]
+	return true
 
 ## The measured difficulty of every level made so far, in order.
 func made() -> Array[TiltDifficulty]:
