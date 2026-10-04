@@ -11,7 +11,8 @@ extends RefCounted
 ## (the marble sets sheet), colours (the colour themes sheet), themed:ID:K (level K in colour theme ID)
 ## and tiles[::K] (every mark from chapter 16 on, after K tilts). levels:K shows page K of the grid,
 ## unlock:N the sheet a locked level N opens on Google Play, replay:N:K level N's solve watched back K
-## tenths of a second in, and card:N the share card for level N.
+## tenths of a second in, card:N the share card for level N, snapshot:N that card caught over the win
+## sheet, and reel:N:K level N's reel K tenths of a second in (kit/tools/reel.tscn records one whole).
 ##
 ## The ads and the Supporter pack, as the Google Play build shows them unless the variant says web:
 ## levelsad (the grid with a stand-in banner of the real size), supporter[:web|:owned] (the support
@@ -124,6 +125,21 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			await _solve(watched, 999)
 			await _wait(host, 1.9)
 			watched.call("_watch")
+			await _wait(host, 0.1 * k)
+		"snapshot":
+			# Level N solved and its card caught over the win sheet, with Share, Save and Reel.
+			var caught: Node = await _game(host, n)
+			await _solve(caught, 999)
+			await _wait(host, 1.9)
+			var won: Result.Moment = caught.get("_won")
+			await Snapshot.take(caught, caught.get("_sheet"), won, int(caught.get("_earned")), won.words[0])
+			await _wait(host, 1.0)
+		"reel":
+			# Level N solved and watched as a reel, `k` tenths of a second of game time in.
+			var reeled: Node = await _game(host, n)
+			await _solve(reeled, 999)
+			await _wait(host, 1.9)
+			reeled.call("_watch", true)
 			await _wait(host, 0.1 * k)
 		"card":
 			# The share card for level N once solved, as the share sheet would get it.
