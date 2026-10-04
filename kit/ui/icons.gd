@@ -6,8 +6,8 @@ extends RefCounted
 ## each end of a stroke, which is all a line icon needs to look finished.
 
 const NAMES: Array[StringName] = [&"back", &"close", &"next", &"undo", &"restart", &"hint", &"settings",
-	&"sound", &"sound_off", &"music", &"music_off", &"haptics", &"theme", &"play", &"levels", &"lock", &"check",
-	&"heart", &"shop"]
+	&"sound", &"sound_off", &"music", &"music_off", &"haptics", &"haptics_off", &"theme", &"play", &"levels",
+	&"lock", &"check", &"heart", &"shop", &"share", &"watch", &"key", &"palette", &"help", &"info", &"looks", &"people"]
 
 static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour: Color, w: float = -1.0) -> void:
 	if w < 0.0:
@@ -73,12 +73,14 @@ static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour:
 			_stroke(ci, [Vector2(stem_x, c.y - 0.27 * s), c + Vector2(0.2, -0.14) * s, c + Vector2(0.2, -0.04) * s], colour, w)
 			if icon == &"music_off":
 				_stroke(ci, [c + Vector2(-0.28, -0.28) * s, c + Vector2(0.28, 0.28) * s], colour, w)
-		&"haptics":
+		&"haptics", &"haptics_off":
 			var box: Rect2 = Rect2(c - Vector2(0.12, 0.22) * s, Vector2(0.24, 0.44) * s)
 			_round_rect(ci, box, 0.05 * s, colour, w)
 			for side2: float in [-1.0, 1.0]:
 				_stroke(ci, [c + Vector2(side2 * 0.22, -0.1) * s, c + Vector2(side2 * 0.22, 0.1) * s], colour, w)
 				_stroke(ci, [c + Vector2(side2 * 0.31, -0.05) * s, c + Vector2(side2 * 0.31, 0.05) * s], colour, w)
+			if icon == &"haptics_off":
+				_stroke(ci, [c + Vector2(-0.3, -0.3) * s, c + Vector2(0.3, 0.3) * s], colour, w)
 		&"theme":
 			var r3: float = 0.25 * s
 			ci.draw_arc(c, r3, 0.0, TAU, 40, colour, w, true)
@@ -120,6 +122,56 @@ static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour:
 			_stroke(ci, [c + Vector2(-0.2, -0.1) * s, c + Vector2(0.2, -0.1) * s, c + Vector2(0.24, 0.26) * s,
 				c + Vector2(-0.24, 0.26) * s, c + Vector2(-0.2, -0.1) * s], colour, w)
 			ci.draw_arc(c + Vector2(0, -0.1) * s, 0.11 * s, PI, TAU, 16, colour, w, true)
+		&"share":
+			# Three nodes joined: the sign every phone uses for sending something on.
+			var hub: Vector2 = c + Vector2(-0.16, 0.0) * s
+			var top: Vector2 = c + Vector2(0.16, -0.19) * s
+			var low: Vector2 = c + Vector2(0.16, 0.19) * s
+			_stroke(ci, [top, hub, low], colour, w)
+			for node: Vector2 in [hub, top, low]:
+				ci.draw_circle(node, 0.085 * s, colour, true, -1.0, true)
+		&"watch":
+			# Fast forward: two arrowheads running right.
+			for k: int in range(2):
+				var x: float = -0.25 + 0.24 * k
+				_fill(ci, PackedVector2Array([c + Vector2(x, -0.2) * s, c + Vector2(x + 0.24, 0.0) * s,
+					c + Vector2(x, 0.2) * s]), colour)
+		&"key":
+			var bow: Vector2 = c + Vector2(-0.15, 0.0) * s
+			ci.draw_arc(bow, 0.12 * s, 0.0, TAU, 28, colour, w, true)
+			_stroke(ci, [bow + Vector2(0.12, 0.0) * s, c + Vector2(0.3, 0.0) * s], colour, w)
+			_stroke(ci, [c + Vector2(0.2, 0.0) * s, c + Vector2(0.2, 0.11) * s], colour, w)
+			_stroke(ci, [c + Vector2(0.29, 0.0) * s, c + Vector2(0.29, 0.08) * s], colour, w)
+		&"palette":
+			# A painter's palette: a round board with a thumb notch and three dabs of paint.
+			var rim: Array[Vector2] = []
+			for k: int in range(29):
+				var a4: float = deg_to_rad(35.0 + 300.0 * k / 28.0)
+				rim.append(c + Vector2(cos(a4), sin(a4)) * 0.27 * s)
+			rim.append(c + Vector2(0.1, 0.06) * s)
+			rim.append(rim[0])
+			_stroke(ci, rim, colour, w)
+			for dab: Vector2 in [Vector2(-0.12, -0.1), Vector2(0.04, -0.15), Vector2(-0.14, 0.08)]:
+				ci.draw_circle(c + dab * s, 0.045 * s, colour, true, -1.0, true)
+		&"help":
+			ci.draw_arc(c + Vector2(0, -0.1) * s, 0.13 * s, PI * 1.05, PI * 2.35, 20, colour, w, true)
+			var hook: Vector2 = c + Vector2(cos(PI * 2.35), sin(PI * 2.35)) * 0.13 * s + Vector2(0, -0.1) * s
+			_stroke(ci, [hook, c + Vector2(0.0, 0.06) * s, c + Vector2(0.0, 0.1) * s], colour, w)
+			ci.draw_circle(c + Vector2(0, 0.24) * s, w * 0.75, colour, true, -1.0, true)
+		&"info":
+			ci.draw_arc(c, 0.28 * s, 0.0, TAU, 40, colour, w, true)
+			ci.draw_circle(c + Vector2(0, -0.13) * s, w * 0.75, colour, true, -1.0, true)
+			_stroke(ci, [c + Vector2(0, -0.02) * s, c + Vector2(0, 0.15) * s], colour, w)
+		&"looks":
+			# A marble: a ball with a highlight, for a game's set of looks.
+			ci.draw_arc(c, 0.25 * s, 0.0, TAU, 40, colour, w, true)
+			ci.draw_arc(c, 0.14 * s, deg_to_rad(195.0), deg_to_rad(265.0), 12, colour, w, true)
+		&"people":
+			# Two people side by side, for the credits.
+			for side3: float in [-1.0, 1.0]:
+				var head: Vector2 = c + Vector2(side3 * 0.13, -0.12) * s
+				ci.draw_arc(head, 0.08 * s, 0.0, TAU, 20, colour, w, true)
+				ci.draw_arc(head + Vector2(0, 0.3) * s, 0.15 * s, PI * 1.08, PI * 1.92, 16, colour, w, true)
 
 ## A polyline with round caps and joins: a dot at every vertex covers the notches a thick line leaves.
 static func _stroke(ci: CanvasItem, points: Array[Vector2], colour: Color, w: float) -> void:

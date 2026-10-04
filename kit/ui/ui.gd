@@ -161,6 +161,18 @@ static func icon_button(icon: StringName, label_text: String = "") -> IconButton
 	b.tooltip_text = label_text
 	return b
 
+## A round icon button named underneath, for a row of quiet actions.
+static func action(icon: StringName, text: String, run: Callable, side: float = 88.0) -> VBoxContainer:
+	var column: VBoxContainer = VBoxContainer.new()
+	column.add_theme_constant_override("separation", 6)
+	var button: IconButton = icon_button(icon, text)
+	button.custom_minimum_size = Vector2(side, side)
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	button.pressed.connect(run)
+	column.add_child(button)
+	column.add_child(caption(text, 18))
+	return column
+
 ## A small sink on press and a spring back, plus a haptic tick. What makes a flat button feel physical.
 static func press_feedback(control: Control) -> void:
 	control.resized.connect(func() -> void: control.pivot_offset = control.size * 0.5)
@@ -208,6 +220,15 @@ static func safe_margins(viewport: Viewport) -> Dictionary:
 
 ## The game's icon with the rounded corners a phone gives it, so it sits well on either theme.
 static func app_icon(px: float) -> TextureRect:
+	var rect: TextureRect = TextureRect.new()
+	rect.texture = icon_texture()
+	rect.custom_minimum_size = Vector2(px, px)
+	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return rect
+
+static func icon_texture() -> Texture2D:
 	if _icon == null:
 		var img: Image = (load("res://assets/branding/icon.png") as Texture2D).get_image()
 		img.decompress()
@@ -226,13 +247,7 @@ static func app_icon(px: float) -> TextureRect:
 				var c: Color = img.get_pixel(x, y)
 				img.set_pixel(x, y, Color(c, c.a * inside))
 		_icon = ImageTexture.create_from_image(img)
-	var rect: TextureRect = TextureRect.new()
-	rect.texture = _icon
-	rect.custom_minimum_size = Vector2(px, px)
-	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return rect
+	return _icon
 
 static func spacer(height: float) -> Control:
 	var c: Control = Control.new()
