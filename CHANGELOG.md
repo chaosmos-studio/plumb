@@ -18,10 +18,11 @@ To ship: add a new section at the top, push, then Actions > Release Android > Ru
 
 ## 1.1.0 - 2026-10-04
 
-- Twenty-five chapters, each with a new rule: gates, paint, stones, portals, bumpers, keys, blinking walls, springs, magnets, glass and more.
-- Every level needs its chapter's rule, and no level is ever easier than the one before.
-- A shop: every level at once, four marble sets, twelve colour themes, a Complete pack and a tip jar.
-- The shop is a tap away on the title screen, and each marble set shows its real marbles.
+- Twenty-five chapters, each with its own rule, colour and pattern: gates, portals, springs, magnets, glass and more.
+- Difficulty only ever climbs, from a brand new opening five.
+- Stuck? Solve 14 of a chapter's 20 and the next one opens, or open any level with a key or a short video.
+- Every win says something new, replays your solve at speed and makes a card to share.
+- A shop with every level, marble sets and twelve colour themes, and a calmer Settings.
 
 ## 1.0.1 - 2026-10-02
 
