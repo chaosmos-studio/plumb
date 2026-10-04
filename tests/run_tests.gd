@@ -1133,7 +1133,12 @@ func _test_win_sheet() -> void:
 	_check("and ends on a card with a code to scan", _texts(reel).has("SCAN TO PLAY")
 		and _texts(reel).has("Get %s on Google Play" % Brand.NAME))
 	await create_timer(1.2).timeout
-	var tap: InputEventScreenTouch = InputEventScreenTouch.new()
+	var touch: InputEventScreenTouch = InputEventScreenTouch.new()
+	touch.pressed = true
+	reel.call("_on_input", touch)
+	_check("a touch passed up from a button under it leaves the card", not bool(reel.get("skipping")))
+	var tap: InputEventMouseButton = InputEventMouseButton.new()
+	tap.button_index = MOUSE_BUTTON_LEFT
 	tap.pressed = true
 	reel.call("_on_input", tap)
 	await process_frame

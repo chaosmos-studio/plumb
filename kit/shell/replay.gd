@@ -22,6 +22,8 @@ const REEL_SPEED: float = 1.5
 const LAYER: int = 50
 const TITLE_HOLD: float = 1.4
 const END_HOLD: float = 8.0
+## How long the end card waits when it offers Save video, long enough to find the button.
+const END_OFFER: float = 14.0
 ## How long the end card stays in a saved film.
 const END_FILM: float = 3.5
 ## How far the board is thrown on a beat, in pixels, and how long the kick takes to die away.
@@ -130,7 +132,7 @@ func closing() -> bool:
 	_root.add_child(end)
 	create_tween().tween_property(end, "modulate:a", 1.0, 0.3)
 	end.play()
-	await _hold(END_FILM if filming else END_HOLD)
+	await _hold(END_FILM if filming else END_OFFER if offer.is_valid() else END_HOLD)
 	if not is_inside_tree():
 		return false
 	if filming:
@@ -170,10 +172,10 @@ func _hold(seconds: float) -> void:
 		await get_tree().process_frame
 		waited += get_process_delta_time() / maxf(_pace, 0.001)
 
+## Only the mouse press a touch is turned into: a button stops that one, but lets the touch itself pass up
+## to here, which would close the end card before its Save video had the release it acts on.
 func _on_input(event: InputEvent) -> void:
-	var pressed: bool = (event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed) \
-		or (event is InputEventMouseButton and (event as InputEventMouseButton).pressed)
-	if not pressed or _film != null:
+	if not (event is InputEventMouseButton and (event as InputEventMouseButton).pressed) or _film != null:
 		return
 	skipping = true
 	_closed = true
