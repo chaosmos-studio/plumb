@@ -4,7 +4,8 @@ extends RefCounted
 ## The end-of-level sheets. A win names the moment (Cheers: a heading for the stars and a line about this
 ## solve, never the same twice running), shows the stars arriving one by one with a spark for a perfect
 ## solve, the next step as the primary action, and a row of quiet ones: watch the solve again at speed,
-## share a card of it, play it again, or go back to the levels. A failure leads with trying again.
+## catch a card of it to share, save or watch as a reel, play it again, or go back to the levels. A
+## failure leads with trying again.
 
 const STAR_SIZE: float = 92.0
 const STAR_GAP: float = 0.2
@@ -18,9 +19,12 @@ class Moment extends RefCounted:
 	var summary: String = ""
 	## The level's best stars before this win: 0 the first time it is solved.
 	var before: int = 0
+	## The stars this win earned, set by the win sheet.
+	var stars: int = 0
 	## No undo, restart or extra on the way.
 	var clean: bool = false
-	## Replays the solve at speed and then shows the sheet again; invalid where the game has no replay.
+	## Replays the solve and then shows the sheet again, `watch.call(reel)`: a quick look, or as a reel with
+	## a title and an end card. Invalid where the game has no replay.
 	var watch: Callable = Callable()
 	## The heading and line Cheers chose, kept so the sheet says the same after a replay.
 	var words: PackedStringArray = PackedStringArray()
@@ -32,6 +36,8 @@ static func won(host: Node, heading: String, earned: int, detail: PackedStringAr
 		on_next: Callable, on_replay: Callable, on_levels: Callable, moment: Moment = null) -> Sheet:
 	var sheet: Sheet = Sheet.open(host, false)
 	var c: VBoxContainer = sheet.content
+	if moment != null:
+		moment.stars = earned
 	if moment != null and moment.words.is_empty():
 		moment.words = Cheers.pick(moment, earned)
 	var title: String = heading if heading != "" or moment == null else moment.words[0]
@@ -56,7 +62,7 @@ static func won(host: Node, heading: String, earned: int, detail: PackedStringAr
 	next.pressed.connect(on_next)
 	c.add_child(next)
 	if moment != null:
-		c.add_child(_actions(host, moment, earned, title, on_replay, on_levels))
+		c.add_child(_actions(host, sheet, moment, earned, title, on_replay, on_levels))
 	else:
 		c.add_child(_quiet_row(on_replay, on_levels))
 	for k: int in range(earned):
@@ -94,15 +100,16 @@ static func failed(host: Node, heading: String, line: String, retry_text: String
 	c.add_child(row)
 	return sheet
 
-## Watch (where the game can replay), Share, Again and Levels: round buttons, each named underneath.
-static func _actions(host: Node, moment: Moment, earned: int, title: String, on_replay: Callable,
+## Watch (where the game can replay), Share, Again and Levels: round buttons, each named underneath. Share
+## catches the card like a screenshot above the sheet, with its own Share, Save and Reel (Snapshot).
+static func _actions(host: Node, sheet: Sheet, moment: Moment, earned: int, title: String, on_replay: Callable,
 		on_levels: Callable) -> HBoxContainer:
 	var row: HBoxContainer = HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 30)
 	if moment.watch.is_valid():
-		row.add_child(UI.action(&"watch", "Watch", moment.watch))
-	row.add_child(UI.action(&"share", "Share", func() -> void: ShareCard.share(host, moment, earned, title)))
+		row.add_child(UI.action(&"watch", "Watch", func() -> void: moment.watch.call(false)))
+	row.add_child(UI.action(&"share", "Share", func() -> void: Snapshot.take(host, sheet, moment, earned, title)))
 	row.add_child(UI.action(&"restart", "Again", on_replay))
 	row.add_child(UI.action(&"levels", "Levels", on_levels))
 	return row

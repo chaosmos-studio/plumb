@@ -7,7 +7,8 @@ extends RefCounted
 
 const NAMES: Array[StringName] = [&"back", &"close", &"next", &"undo", &"restart", &"hint", &"settings",
 	&"sound", &"sound_off", &"music", &"music_off", &"haptics", &"haptics_off", &"theme", &"play", &"levels",
-	&"lock", &"check", &"heart", &"shop", &"share", &"watch", &"key", &"palette", &"help", &"info", &"looks", &"people"]
+	&"lock", &"check", &"heart", &"shop", &"share", &"watch", &"key", &"palette", &"help", &"info", &"looks", &"people",
+	&"save", &"reel"]
 
 static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour: Color, w: float = -1.0) -> void:
 	if w < 0.0:
@@ -166,6 +167,17 @@ static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour:
 			# A marble: a ball with a highlight, for a game's set of looks.
 			ci.draw_arc(c, 0.25 * s, 0.0, TAU, 40, colour, w, true)
 			ci.draw_arc(c, 0.14 * s, deg_to_rad(195.0), deg_to_rad(265.0), 12, colour, w, true)
+		&"save":
+			# Down into a tray: keep a copy.
+			_stroke(ci, [c + Vector2(0, -0.27) * s, c + Vector2(0, 0.07) * s], colour, w)
+			_stroke(ci, [c + Vector2(-0.12, -0.05) * s, c + Vector2(0, 0.07) * s, c + Vector2(0.12, -0.05) * s], colour, w)
+			_stroke(ci, [c + Vector2(-0.25, 0.08) * s, c + Vector2(-0.25, 0.25) * s, c + Vector2(0.25, 0.25) * s,
+				c + Vector2(0.25, 0.08) * s], colour, w)
+		&"reel":
+			# A phone-shaped frame with a play mark: the solve as a short film.
+			_round_rect(ci, Rect2(c - Vector2(0.17, 0.28) * s, Vector2(0.34, 0.56) * s), 0.07 * s, colour, w)
+			_fill(ci, PackedVector2Array([c + Vector2(-0.06, -0.1) * s, c + Vector2(0.1, 0.0) * s,
+				c + Vector2(-0.06, 0.1) * s]), colour)
 		&"people":
 			# Two people side by side, for the credits.
 			for side3: float in [-1.0, 1.0]:

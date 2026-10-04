@@ -2,14 +2,14 @@ class_name ShareCard
 extends Control
 
 ## A card of a solved level to send to a friend: the level as it was set, the stars, the words on the win,
-## the moves against par, and where to get the game. It is drawn offscreen at a portrait size that suits
-## chats and stories, then handed to the phone's share sheet on Android (through the FileProvider every
-## Godot app has), to the browser's share sheet or a download on the web, and saved to the user folder
-## anywhere else.
+## the score, and where to get the game. It is drawn offscreen at a portrait size that suits chats and
+## stories (`render`). `send` hands it to the phone's share sheet on Android (through the FileProvider every
+## Godot app has), to the browser's share sheet or a download on the web, and saves it to the user folder
+## anywhere else. `save` keeps it in the phone's Pictures, a download on the web.
 ##
 ## The kit expects from the game: `GameShare.stage(holder, level, centre, room)`, which puts the level's
 ## board, as it starts, in `holder` (a Node2D already in the card), centred on `centre` and fitted to
-## `room`; and `GameShare.LINK`, the game's web address.
+## `room`; `GameShare.LINK`, the game's web address; and `GameShare.STORE`, its Google Play listing.
 
 const SIZE: Vector2i = Vector2i(1080, 1350)
 const MARGIN: float = 72.0
@@ -19,29 +19,47 @@ var moment: Result.Moment
 var earned: int = 0
 var heading: String = ""
 
-## Makes the card for `moment` and shares it. Says so when it cannot.
-static func share(host: Node, moment_won: Result.Moment, stars: int, title: String) -> void:
-	var image: Image = await render(host, moment_won, stars, title)
-	if image == null or image.is_empty():
-		Toast.say(host, "Could not make the card here")
-		return
-	var file_name: String = "%s-level-%d.png" % [Brand.NAME.to_lower(), moment_won.level + 1]
+## Sends a card made by `render` to the share sheet, with a line that dares the friend to match it.
+static func send(host: Node, image: Image, moment_won: Result.Moment) -> void:
 	var said: String = moment_won.summary.left(1).to_lower() + moment_won.summary.substr(1)
 	var text: String = "%s, level %d: %s. Can you match it? %s" % [Brand.NAME, moment_won.level + 1, said, GameShare.LINK]
 	if OS.has_feature("web"):
-		_web(image.save_png_to_buffer(), file_name, text)
+		_web(image.save_png_to_buffer(), _file_name(moment_won), text)
 		return
-	var folder: String = "user://share"
-	DirAccess.make_dir_recursive_absolute(folder)
-	var path: String = "%s/%s" % [folder, file_name]
-	if image.save_png(path) != OK:
+	var path: String = _write(image, moment_won)
+	if path == "":
 		Toast.say(host, "Could not save the card")
-		return
-	if OS.has_feature("android"):
+	elif OS.has_feature("android"):
 		if not _android(ProjectSettings.globalize_path(path), text):
 			Toast.say(host, "Sharing is not available here")
+	else:
+		Toast.say(host, "Card saved to %s" % ProjectSettings.globalize_path(path))
+
+## Keeps a card made by `render`: in the phone's Pictures on Android 10 and later, through the share sheet
+## on older phones, which have no way to keep it without asking for storage, and as a download on the web.
+static func save(host: Node, image: Image, moment_won: Result.Moment) -> void:
+	var png: PackedByteArray = image.save_png_to_buffer()
+	if OS.has_feature("web"):
+		JavaScriptBridge.download_buffer(png, _file_name(moment_won), "image/png")
 		return
-	Toast.say(host, "Card saved to %s" % ProjectSettings.globalize_path(path))
+	if OS.has_feature("android"):
+		if _android_keep(png, _file_name(moment_won)):
+			Toast.say(host, "Saved to Pictures")
+		else:
+			send(host, image, moment_won)
+		return
+	var path: String = _write(image, moment_won)
+	Toast.say(host, "Card saved to %s" % ProjectSettings.globalize_path(path) if path != "" else "Could not save the card")
+
+static func _file_name(moment_won: Result.Moment) -> String:
+	return "%s-level-%d.png" % [Brand.NAME.to_lower(), moment_won.level + 1]
+
+## The card as a PNG in the user folder, its path, or "" when it cannot be written.
+static func _write(image: Image, moment_won: Result.Moment) -> String:
+	var folder: String = "user://share"
+	DirAccess.make_dir_recursive_absolute(folder)
+	var path: String = "%s/%s" % [folder, _file_name(moment_won)]
+	return path if image.save_png(path) == OK else ""
 
 ## Draws the card offscreen and reads it back, or null where nothing is drawn (a headless run).
 static func render(host: Node, moment_won: Result.Moment, stars: int, title: String) -> Image:
@@ -142,6 +160,31 @@ static func _android(path: String, text: String) -> bool:
 	activity.call("runOnUiThread", runtime.call("createRunnableFromGodotCallable", func() -> void:
 		activity.call("startActivity", chooser)))
 	return true
+
+## The PNG in the phone's Pictures, in a folder named for the game, through the MediaStore, which needs no
+## permission from Android 10 on. False on older phones or when anything refuses.
+static func _android_keep(png: PackedByteArray, file_name: String) -> bool:
+	if not Engine.has_singleton("AndroidRuntime"):
+		return false
+	var build: Object = JavaClassWrapper.wrap("android.os.Build$VERSION")
+	if build == null or int(build.get("SDK_INT")) < 29:
+		return false
+	var activity: Object = Engine.get_singleton("AndroidRuntime").call("getActivity")
+	var values: Object = JavaClassWrapper.wrap("android.content.ContentValues").call("ContentValues")
+	values.call("put", "_display_name", file_name)
+	values.call("put", "mime_type", "image/png")
+	values.call("put", "relative_path", "Pictures/" + Brand.NAME)
+	var media: Object = JavaClassWrapper.wrap("android.provider.MediaStore$Images$Media")
+	var resolver: Object = activity.call("getContentResolver")
+	var uri: Object = resolver.call("insert", media.get("EXTERNAL_CONTENT_URI"), values)
+	if uri == null or JavaClassWrapper.get_exception() != null:
+		return false
+	var stream: Object = resolver.call("openOutputStream", uri)
+	if stream == null or JavaClassWrapper.get_exception() != null:
+		return false
+	stream.call("write", png)
+	stream.call("close")
+	return JavaClassWrapper.get_exception() == null
 
 ## The browser's share sheet where it can send files, otherwise a download.
 static func _web(png: PackedByteArray, file_name: String, text: String) -> void:
