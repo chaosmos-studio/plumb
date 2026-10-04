@@ -582,3 +582,69 @@ other byte left as it was; a full run makes it once chapter 1 is done, and the t
 - Add "busy" to slot 4's traits: its pool comes back empty.
 - Set `FUNNEL` to 0.5: level 1 gets the roll along the middle row, and the run pays for it with 5x5 boards
   for the rest, levels 3 and 5 over a point lower and plainly untidy.
+
+---
+
+## 13. A colour for every chapter: a stride round the hue circle
+
+Each chapter's page of the level grid wears its own colour (the kit's `ChapterStyle`). Twenty-five
+chapters need twenty-five colours that all differ, and the next chapter's should sit far from the last,
+so a page turn reads as arriving somewhere new. Two easy answers fail:
+
+- Step by 1/25 of a turn: every hue is different, but neighbours are nearly the same colour.
+- Step by the golden angle, 0.618 of a turn, the usual way to scatter points round a circle: neighbours
+  are far apart, but some distant chapters land close. Eight steps make 4.944 turns, so chapter 9 sits
+  within 20 degrees of chapter 1. That is no accident: 8 is a Fibonacci number, and Fibonacci multiples
+  of the golden ratio fall close to whole numbers.
+
+The kit spreads n hues evenly instead, k/n of a turn for k = 0 to n - 1, starting at the game's accent,
+and visits them with a stride s: chapter c takes hue (c·s mod n)/n. When gcd(s, n) = 1, the map
+c -> c·s mod n is a bijection on {0, ..., n - 1}: s generates the additive group ℤₙ, so the walk visits
+every hue exactly once before it comes back. Every chapter gets its own hue, at least 1/n of a turn from
+any other, the widest spread n hues allow. The stride is the coprime s nearest 0.3·n, so consecutive
+chapters sit about a third of a turn apart. For n = 25 that is s = 7, and the gap between chapters d
+apart in play is 7d mod 25 steps of 14.4 degrees, read the short way round:
+
+| d | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| steps | 7 | 11 | 4 | 3 | 10 | 8 | 1 |
+
+So any two chapters within six of each other are at least 43 degrees apart, and the closest colours,
+14.4 degrees apart, come seven chapters apart, with different motifs. Some pair must be that close: 25
+hues on a circle leave no wider gap.
+
+Hue alone does not make a colour readable on every background. The kit holds lightness and chroma in
+OKHSL, whose lightness is perceptual: 0.46 to 0.52 on light themes, 0.70 to 0.78 on dark ones. Equal
+OKHSL lightness means close to equal contrast whatever the hue, which is why one band passes 3:1, the
+contrast WCAG asks of graphics, on every theme in light and dark. The tests check every chapter on every
+theme, that the next hue is at least a quarter turn away, and that no two chapters share one.
+
+### Things to try
+
+- `ChapterStyle.STRIDE` to 0.5: for n = 25 the stride becomes 12 or 13, nearly opposite colours each page,
+  which flickers.
+- `ChapterStyle.STRIDE` to 0.04: the stride becomes 1, and turning a page only nudges the colour.
+
+---
+
+## 14. The chapter gate: seven in ten
+
+Levels open one after another: a level opens once the one before it is solved. On its own that rule turns
+one stubborn level into a wall, and a wall is where players leave. So a chapter's first level also opens
+once 70% of the chapter before it is solved (the kit's `Unlocks.GATE`): ⌈0.7 × 20⌉ = 14 of 20.
+
+Other puzzle games give two reference points. Cut the Rope opens its second box at 30 of the first box's
+75 stars, 40%. Baba Is You's later expansion asks for 5 of its 7 worlds, 71%. Stars are not what opens
+levels here, solves are, and each chapter teaches one rule that later chapters mix, so the gate sits at
+the high end: a chapter is mostly played before the next rule arrives. Within a chapter difficulty climbs,
+so the last six levels are its hardest, and those are exactly the ones a player may leave for later.
+
+The gate never makes the game easier. Difficulty never falls across a chapter boundary (section 8), so the
+next chapter's first level is at least as hard as the last chapter's last. Stepping ahead trades a stuck
+level for a fresh rule, not for an easier board. A key or a short video opens any one level as well, for
+a player who wants a particular one now.
+
+### Things to try
+
+- `Unlocks.GATE` to 1.0: the old rule, every chapter shut until the one before it is finished.
+- `Unlocks.GATE` to 0.4: the Cut the Rope share, eight levels into a chapter and the next one opens.
