@@ -90,8 +90,9 @@ static func choose(id: String, tree: SceneTree, reopen: Callable = Callable()) -
 	Appearance.apply(Save.theme)
 	await Appearance.rebuild(tree, reopen)
 
-## A card for each theme, two to a row: its light and dark variants side by side and its name, ringed
-## when it is the one in use, with a lock on any the pack has not opened. A locked card offers the pack.
+## A card for each theme, two to a row: its light and dark variants side by side, each with the theme's
+## own emblem in its accent, and its name, ringed when it is the one in use, with a lock on any the pack
+## has not opened. A locked card offers the pack.
 static func open(host: Node) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
@@ -155,7 +156,8 @@ class _Card extends BaseButton:
 		if not open:
 			Icons.draw(self, &"lock", rect.position + Vector2(rect.size.x - 26.0, 26.0), 24.0, Brand.MUTED)
 
-	## One variant as a tiny screen: its background, a surface card with two lines of ink, an accent dot.
+	## One variant as a tiny screen: its background, the theme's emblem in its accent, and a surface card
+	## with a line of ink.
 	func _tile(r: Rect2, dark: bool, fade: float) -> void:
 		var s: Array[Color] = Themes.seed_of(id, dark)
 		if s.is_empty():
@@ -168,11 +170,97 @@ class _Card extends BaseButton:
 		back.set_corner_radius_all(12)
 		back.anti_aliasing = true
 		draw_style_box(back, r)
+		_emblem(r.position + Vector2(r.size.x * 0.5, 24.0), 30.0, Color(s[3], fade), Color(s[0], fade))
 		var card: StyleBoxFlat = StyleBoxFlat.new()
 		card.bg_color = Color(s[1], fade)
-		card.set_corner_radius_all(7)
+		card.set_corner_radius_all(6)
 		card.anti_aliasing = true
-		draw_style_box(card, Rect2(r.position + Vector2(7, 8), Vector2(r.size.x - 14, 28)))
-		draw_line(r.position + Vector2(13, 17), r.position + Vector2(r.size.x - 13, 17), Color(s[2], fade), 3.0, true)
-		draw_line(r.position + Vector2(13, 26), r.position + Vector2(r.size.x - 22, 26), Color(s[2], 0.5 * fade), 3.0, true)
-		draw_circle(r.position + Vector2(r.size.x * 0.5, r.size.y - 13), 7.0, Color(s[3], fade), true, -1.0, true)
+		draw_style_box(card, Rect2(r.position + Vector2(6, 44), Vector2(r.size.x - 12, 12)))
+		draw_line(r.position + Vector2(11, 50), r.position + Vector2(r.size.x - 15, 50), Color(s[2], 0.7 * fade), 2.0, true)
+
+	## The theme's sign, `s` across around `c`, in `ink` on `ground`: the game's own icon for its own look.
+	func _emblem(c: Vector2, s: float, ink: Color, ground: Color) -> void:
+		var h: float = s * 0.5
+		match id:
+			Themes.OWN:
+				draw_texture_rect(UI.icon_texture(), Rect2(c - Vector2(h, h) * 0.9, Vector2(s, s) * 0.9), false, Color(1, 1, 1, ink.a))
+			"sepia":
+				# A page with its corner turned.
+				var page: PackedVector2Array = PackedVector2Array([c + Vector2(-h * 0.6, -h * 0.8), c + Vector2(h * 0.25, -h * 0.8),
+					c + Vector2(h * 0.6, -h * 0.45), c + Vector2(h * 0.6, h * 0.8), c + Vector2(-h * 0.6, h * 0.8), c + Vector2(-h * 0.6, -h * 0.8)])
+				draw_polyline(page, ink, 2.0, true)
+				for k: int in range(3):
+					draw_line(c + Vector2(-h * 0.35, -h * 0.25 + k * h * 0.35), c + Vector2(h * 0.35, -h * 0.25 + k * h * 0.35), ink, 1.6, true)
+			"solarized":
+				draw_circle(c, h * 0.42, ink, true, -1.0, true)
+				for k: int in range(8):
+					var a: float = k * TAU / 8.0
+					draw_line(c + Vector2(cos(a), sin(a)) * h * 0.62, c + Vector2(cos(a), sin(a)) * h * 0.9, ink, 2.0, true)
+			"gruvbox":
+				# A retro sun going down behind its stripes.
+				var sun: PackedVector2Array = PackedVector2Array()
+				for k: int in range(17):
+					var a2: float = PI + PI * k / 16.0
+					sun.append(c + Vector2(0.0, h * 0.35) + Vector2(cos(a2), sin(a2)) * h * 0.85)
+				draw_colored_polygon(sun, ink)
+				for k: int in range(2):
+					draw_rect(Rect2(c + Vector2(-h, h * (0.02 - k * 0.3)), Vector2(s, h * 0.1)), ground)
+			"nord":
+				for k: int in range(3):
+					var d: Vector2 = Vector2.from_angle(PI * 0.5 + k * PI / 3.0) * h * 0.85
+					draw_line(c - d, c + d, ink, 2.0, true)
+					for end: Vector2 in [d, -d]:
+						var tip: Vector2 = c + end * 0.62
+						draw_line(tip, tip + end.rotated(0.7) * 0.3, ink, 1.6, true)
+						draw_line(tip, tip + end.rotated(-0.7) * 0.3, ink, 1.6, true)
+			"dracula":
+				draw_circle(c, h * 0.72, ink, true, -1.0, true)
+				draw_circle(c + Vector2(h * 0.38, -h * 0.26), h * 0.62, ground, true, -1.0, true)
+			"tokyo":
+				var heights: Array[float] = [0.9, 1.4, 0.7, 1.15]
+				for k: int in range(4):
+					var w: float = s * 0.2
+					var tall: float = h * heights[k] * 0.75
+					draw_rect(Rect2(c + Vector2(-h * 0.95 + k * (w + 2.0), h * 0.8 - tall), Vector2(w, tall)), ink)
+				draw_circle(c + Vector2(h * 0.6, -h * 0.65), h * 0.18, ink, true, -1.0, true)
+			"catppuccin":
+				draw_arc(c + Vector2(0.0, h * 0.15), h * 0.6, 0.0, TAU, 24, ink, 2.0, true)
+				for side: float in [-1.0, 1.0]:
+					draw_colored_polygon(PackedVector2Array([c + Vector2(side * h * 0.55, -h * 0.15),
+						c + Vector2(side * h * 0.62, -h * 0.85), c + Vector2(side * h * 0.12, -h * 0.42)]), ink)
+					draw_circle(c + Vector2(side * h * 0.24, h * 0.1), h * 0.09, ink, true, -1.0, true)
+			"one":
+				for k: int in range(3):
+					var ring: PackedVector2Array = PackedVector2Array()
+					for j: int in range(33):
+						var a3: float = TAU * j / 32.0
+						ring.append(c + Vector2(cos(a3) * h * 0.9, sin(a3) * h * 0.32).rotated(k * PI / 3.0))
+					draw_polyline(ring, ink, 1.6, true)
+				draw_circle(c, h * 0.16, ink, true, -1.0, true)
+			"ocean":
+				for k: int in range(2):
+					var wave: PackedVector2Array = PackedVector2Array()
+					for j: int in range(21):
+						var x: float = -h + s * j / 20.0
+						wave.append(c + Vector2(x, -h * 0.2 + k * h * 0.55 + sin(x / h * PI * 1.5) * h * 0.18))
+					draw_polyline(wave, ink, 2.2, true)
+			"forest":
+				for k: int in range(3):
+					var top: float = -h * 0.95 + k * h * 0.42
+					draw_colored_polygon(PackedVector2Array([c + Vector2(0.0, top), c + Vector2(h * (0.38 + k * 0.17), top + h * 0.62),
+						c + Vector2(-h * (0.38 + k * 0.17), top + h * 0.62)]), ink)
+				draw_rect(Rect2(c + Vector2(-h * 0.1, h * 0.5), Vector2(h * 0.2, h * 0.35)), ink)
+			"rose":
+				var bud: PackedVector2Array = PackedVector2Array()
+				for j: int in range(41):
+					var t: float = j / 40.0
+					var a4: float = t * TAU * 2.2
+					bud.append(c + Vector2(0.0, -h * 0.15) + Vector2(cos(a4), sin(a4)) * h * (0.08 + 0.55 * t))
+				draw_polyline(bud, ink, 1.8, true)
+				draw_line(c + Vector2(0.0, h * 0.45), c + Vector2(0.0, h * 0.95), ink, 2.0, true)
+			"grape":
+				var spots: Array[Vector2] = [Vector2(-0.5, -0.35), Vector2(0.0, -0.35), Vector2(0.5, -0.35), Vector2(-0.25, 0.12),
+					Vector2(0.25, 0.12), Vector2(0.0, 0.58)]
+				for spot: Vector2 in spots:
+					draw_circle(c + spot * h, h * 0.24, ink, true, -1.0, true)
+				draw_line(c + Vector2(0.0, -h * 0.6), c + Vector2(h * 0.25, -h * 0.95), ink, 1.8, true)
