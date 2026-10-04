@@ -127,13 +127,10 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			watched.call("_watch")
 			await _wait(host, 0.1 * k)
 		"snapshot":
-			# Level N solved and its card caught over the win sheet, with Share, Save and Reel.
+			# Level N solved, its card caught over the win sheet with Share, Save and Reel, once it has landed.
 			var caught: Node = await _game(host, n)
 			await _solve(caught, 999)
-			await _wait(host, 1.9)
-			var won: Result.Moment = caught.get("_won")
-			await Snapshot.take(caught, caught.get("_sheet"), won, int(caught.get("_earned")), won.words[0])
-			await _wait(host, 1.0)
+			await _wait(host, 2.8)
 		"reel":
 			# Level N solved and watched as a reel, `k` tenths of a second of game time in.
 			var reeled: Node = await _game(host, n)

@@ -1105,8 +1105,8 @@ func _test_win_sheet() -> void:
 	var texts: PackedStringArray = PackedStringArray()
 	for l: Node in host.find_children("*", "Label", true, false):
 		texts.append((l as Label).text)
-	_check("a win offers Watch, Share, Again and Levels", texts.has("WATCH") and texts.has("SHARE") and texts.has("AGAIN")
-		and texts.has("LEVELS"))
+	_check("a win offers Watch, Again and Levels, sharing being the snapshot's", texts.has("WATCH")
+		and texts.has("AGAIN") and texts.has("LEVELS") and not texts.has("SHARE"))
 	_check("and names the moment", (moment.get("words") as PackedStringArray).size() == 2
 		and texts.has((moment.get("words") as PackedStringArray)[0]))
 	var controls: CanvasLayer = CanvasLayer.new()

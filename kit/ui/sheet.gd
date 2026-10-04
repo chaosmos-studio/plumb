@@ -175,9 +175,9 @@ func _grabs(at: Vector2) -> bool:
 				return false
 	return true
 
-## Where the panel's top edge is on screen, for anything that sits above the sheet.
+## Where the panel's top edge is on screen once it has risen, for anything that sits above the sheet.
 func top() -> float:
-	return _panel.get_global_rect().position.y
+	return _panel.get_global_rect().position.y - _slide.position.y
 
 ## Back up into place after a drag that did not go far enough.
 func _settle() -> void:
