@@ -136,7 +136,7 @@ func _on_scrim_input(event: InputEvent) -> void:
 		close()
 
 ## The drag is read before the GUI, so it works wherever on the panel the finger lands, buttons and labels
-## included, except inside a list that scrolls, where a drag scrolls the list.
+## included, except inside a list that scrolls, where a drag scrolls the list, and on a slider.
 func _input(event: InputEvent) -> void:
 	if not dismissable or _closing or _open.back() != self:
 		return
@@ -169,10 +169,15 @@ func _input(event: InputEvent) -> void:
 func _grabs(at: Vector2) -> bool:
 	if not _panel.get_global_rect().has_point(at):
 		return false
-	for scroll: Node in _panel.find_children("*", "ScrollContainer", true, false):
-		if (scroll as Control).get_global_rect().has_point(at):
-			return false
+	for kind: String in ["ScrollContainer", "Range"]:
+		for keep: Node in _panel.find_children("*", kind, true, false):
+			if (keep as Control).get_global_rect().has_point(at):
+				return false
 	return true
+
+## Where the panel's top edge is on screen, for anything that sits above the sheet.
+func top() -> float:
+	return _panel.get_global_rect().position.y
 
 ## Back up into place after a drag that did not go far enough.
 func _settle() -> void:

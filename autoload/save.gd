@@ -10,8 +10,12 @@ var path: String = PATH
 
 ## Best stars per level, 0 for not yet solved.
 var stars: PackedByteArray = PackedByteArray()
+## Whether the sounds and the music are on: set from their volumes, 0 being off.
 var sound_on: bool = true
 var music_on: bool = true
+## How loud the sounds and the music are, 0 to 1, as the Settings sliders set them.
+var sound_volume: float = 1.0
+var music_volume: float = 1.0
 var haptics_on: bool = true
 ## An Appearance.Choice.
 var theme: int = Appearance.native()
@@ -77,14 +81,33 @@ func reset() -> void:
 	EventBus.settings_changed.emit()
 
 func set_sound(on: bool) -> void:
-	sound_on = on
+	set_sound_volume(1.0 if on else 0.0)
+
+func set_music(on: bool) -> void:
+	set_music_volume(1.0 if on else 0.0)
+
+## A volume taken while a slider moves, heard at once and saved by the setter when it comes to rest.
+func hear_sound_volume(volume: float) -> void:
+	sound_volume = clampf(volume, 0.0, 1.0)
+	sound_on = sound_volume > 0.0
+
+func hear_music_volume(volume: float) -> void:
+	music_volume = clampf(volume, 0.0, 1.0)
+	music_on = music_volume > 0.0
+
+func set_sound_volume(volume: float) -> void:
+	hear_sound_volume(volume)
 	store()
 	EventBus.settings_changed.emit()
 
-func set_music(on: bool) -> void:
-	music_on = on
+func set_music_volume(volume: float) -> void:
+	hear_music_volume(volume)
 	store()
 	EventBus.settings_changed.emit()
+
+## A volume as decibels, on a square law: the middle of a slider sounds about half as loud as the end.
+static func volume_db(volume: float) -> float:
+	return linear_to_db(volume * volume) if volume > 0.0 else -80.0
 
 func set_haptics(on: bool) -> void:
 	haptics_on = on
@@ -152,6 +175,9 @@ func restore() -> void:
 		stars = saved
 	sound_on = bool(file.get_value("settings", "sound_on", true))
 	music_on = bool(file.get_value("settings", "music_on", true))
+	# A save from before the sliders has only the switches: on is full volume.
+	hear_sound_volume(float(file.get_value("settings", "sound_volume", 1.0 if sound_on else 0.0)))
+	hear_music_volume(float(file.get_value("settings", "music_volume", 1.0 if music_on else 0.0)))
 	haptics_on = bool(file.get_value("settings", "haptics_on", true))
 	theme = clampi(int(file.get_value("settings", "theme", Appearance.native())), 0, Appearance.Choice.size() - 1)
 	tutorial_seen = bool(file.get_value("progress", "tutorial_seen", false))
@@ -174,6 +200,8 @@ func store() -> void:
 	file.set_value("progress", "stars", stars)
 	file.set_value("settings", "sound_on", sound_on)
 	file.set_value("settings", "music_on", music_on)
+	file.set_value("settings", "sound_volume", sound_volume)
+	file.set_value("settings", "music_volume", music_volume)
 	file.set_value("settings", "haptics_on", haptics_on)
 	file.set_value("settings", "theme", theme)
 	file.set_value("progress", "tutorial_seen", tutorial_seen)

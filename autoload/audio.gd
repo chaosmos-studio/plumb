@@ -17,6 +17,7 @@ var _sinks: Array[AudioStream] = []
 var _voices: Array[AudioStreamPlayer] = []
 var _next: int = 0
 var _music: AudioStreamPlayer
+var _fade: Tween
 
 func _ready() -> void:
 	for key: StringName in CLIPS:
@@ -50,10 +51,27 @@ func _apply_music() -> void:
 	if want and not _music.playing:
 		_music.volume_db = -40.0
 		_music.play()
-	var t: Tween = create_tween()
-	t.tween_property(_music, "volume_db", MUSIC_DB if want else -40.0, MUSIC_FADE)
+	if _fade != null:
+		_fade.kill()
+	_fade = create_tween()
+	_fade.tween_property(_music, "volume_db", _music_db() if want else -40.0, MUSIC_FADE)
 	if not want:
-		t.tween_callback(_music.stop)
+		_fade.tween_callback(_music.stop)
+
+## The volumes as a slider moves: the music follows at once, and the next sound plays at the new level.
+func hear() -> void:
+	if _music.stream == null:
+		return
+	if _fade != null:
+		_fade.kill()
+	if Save.music_on and not _music.playing:
+		_music.play()
+	elif not Save.music_on:
+		_music.stop()
+	_music.volume_db = _music_db()
+
+func _music_db() -> float:
+	return MUSIC_DB + Save.volume_db(Save.music_volume)
 
 ## Round-robins the voices, so a sink during a clack does not cut the clack off.
 func play(key: StringName, volume_db: float = 0.0, pitch: float = 1.0) -> void:
@@ -72,7 +90,7 @@ func _play(stream: AudioStream, volume_db: float, pitch: float) -> void:
 	var voice: AudioStreamPlayer = _voices[_next]
 	_next = (_next + 1) % _voices.size()
 	voice.stream = stream
-	voice.volume_db = volume_db
+	voice.volume_db = volume_db + Save.volume_db(Save.sound_volume)
 	voice.pitch_scale = pitch
 	voice.play()
 

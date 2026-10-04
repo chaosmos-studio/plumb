@@ -1,28 +1,31 @@
 class_name Settings
 extends RefCounted
 
-## The settings sheet, reachable from every screen, in four calm groups: sound, music and vibration as
-## three tiles that light up when on; the theme; the colours and the game's looks as two cards that show
-## what is picked; and a row of round buttons for the guide, the shop, About and Credits. The consent
-## choices, where the law asks for them, a guarded reset and the version line sit quietly at the foot.
+## The settings sheet, reachable from every screen, in calm groups: how loud the sounds and the music are,
+## each a slider whose icon mutes it at a tap, and vibration; the theme; the colours and the game's looks
+## as two cards that show what is picked; and a row of round buttons for the guide, the shop, About and
+## Credits. The consent choices, where the law asks for them, a guarded reset and the version line sit
+## quietly at the foot.
 
 const RESET_ARM_TIME: float = 3.0
-const TOGGLE_SIZE: Vector2 = Vector2(184, 128)
 const CARD_SIZE: Vector2 = Vector2(296, 112)
 const FOOT_HEIGHT: float = 76.0
 const FOOT_FONT: int = 28
+## The least time between the ticks the sound slider plays, so a drag sounds like a few taps, not a buzz.
+const TICK_GAP: int = 140
 
 static func open(host: Node) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
 	c.add_child(UI.title("Settings", 56))
-	var toggles: HBoxContainer = _row_of(16)
-	toggles.add_child(_Toggle.new(&"sound", &"sound_off", "Sound", Save.sound_on, func(on: bool) -> void: Save.set_sound(on)))
+	c.add_child(_volume(&"sound", &"sound_off", "Sound", Save.sound_volume, Save.hear_sound_volume, Save.set_sound_volume,
+		true))
 	if Brand.HAS_MUSIC:
-		toggles.add_child(_Toggle.new(&"music", &"music_off", "Music", Save.music_on, func(on: bool) -> void: Save.set_music(on)))
-	toggles.add_child(_Toggle.new(&"haptics", &"haptics_off", "Vibration", Save.haptics_on,
-		func(on: bool) -> void: Save.set_haptics(on)))
-	c.add_child(toggles)
+		c.add_child(_volume(&"music", &"music_off", "Music", Save.music_volume, Save.hear_music_volume,
+			Save.set_music_volume, false))
+	var buzz: Switch = Switch.new(Save.haptics_on)
+	buzz.toggled.connect(func(on: bool) -> void: Save.set_haptics(on))
+	c.add_child(_row(&"haptics", "Vibration", buzz))
 	var looks: Segmented = Segmented.new(Appearance.NAMES, Save.theme)
 	looks.chosen.connect(func(choice: int) -> void:
 		Appearance.choose(choice, host.get_tree(), func(scene: Node) -> void: Settings.open(scene)))
@@ -72,6 +75,44 @@ static func _row_of(gap: int) -> HBoxContainer:
 	var row: HBoxContainer = HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", gap)
+	return row
+
+## A volume: its icon, which mutes it at a tap and brings it back at the next, its name, and its slider.
+## `hear` takes each step of a drag and `keep` the place it rests at; the sound slider ticks as it moves.
+static func _volume(icon: StringName, muted_icon: StringName, text: String, start: float, hear: Callable, keep: Callable,
+		ticks: bool) -> Control:
+	var row: HBoxContainer = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 24)
+	var mute: _Mute = _Mute.new(icon, muted_icon, start <= 0.0)
+	row.add_child(mute)
+	var l: Label = UI.label(text, 34)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(l)
+	var slider: VolumeSlider = VolumeSlider.new(start)
+	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(slider)
+	# The level to come back to after a mute, and the time of the last tick.
+	var back: Array[float] = [start if start > 0.0 else 1.0]
+	var ticked: Array[int] = [0]
+	slider.value_changed.connect(func(v: float) -> void:
+		hear.call(v)
+		Audio.hear()
+		mute.muted = v <= 0.0
+		if ticks and v > 0.0 and Time.get_ticks_msec() - ticked[0] >= TICK_GAP:
+			ticked[0] = Time.get_ticks_msec()
+			Audio.play(&"tap", -4.0))
+	slider.released.connect(func(v: float) -> void:
+		if v > 0.0:
+			back[0] = v
+		keep.call(v))
+	mute.pressed.connect(func() -> void:
+		if slider.value > 0.0:
+			back[0] = slider.value
+			slider.value = 0.0
+		else:
+			slider.value = back[0]
+		keep.call(slider.value))
 	return row
 
 static func _row(icon: StringName, text: String, control: Control) -> Control:
@@ -146,50 +187,27 @@ static func _quiet(text: String) -> Button:
 	b.add_theme_font_size_override("font_size", FOOT_FONT)
 	return b
 
-## A switch as a tile: its icon over its name, lit in the accent while on, its off icon when off.
-class _Toggle extends Button:
-	var on: bool = true
-	var _on_icon: StringName
-	var _off_icon: StringName
-	var _glyph: _Glyph
-	var _label: Label
+## A volume's icon as a button: the sound or the music sign, and its crossed-out sign while muted.
+class _Mute extends BaseButton:
+	var muted: bool = false:
+		set(value):
+			muted = value
+			queue_redraw()
+	var _icon: StringName
+	var _muted_icon: StringName
 
-	func _init(on_icon: StringName, off_icon: StringName, text_shown: String, start_on: bool, apply: Callable) -> void:
-		on = start_on
-		_on_icon = on_icon
-		_off_icon = off_icon
-		custom_minimum_size = Settings.TOGGLE_SIZE
+	func _init(icon: StringName, muted_icon: StringName, start_muted: bool) -> void:
+		_icon = icon
+		_muted_icon = muted_icon
+		muted = start_muted
+		custom_minimum_size = Vector2(56, 56)
+		size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		focus_mode = Control.FOCUS_NONE
-		var column: VBoxContainer = VBoxContainer.new()
-		column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		column.alignment = BoxContainer.ALIGNMENT_CENTER
-		column.add_theme_constant_override("separation", 2)
-		column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(column)
-		_glyph = _Glyph.new()
-		_glyph.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		column.add_child(_glyph)
-		_label = UI.label(text_shown, 26)
-		column.add_child(_label)
+		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		UI.press_feedback(self)
-		pressed.connect(func() -> void:
-			Audio.play(&"tap", -8.0)
-			on = not on
-			apply.call(on)
-			_dress())
-		_dress()
 
-	func _dress() -> void:
-		var fill: Color = Color(Brand.ACCENT, 0.16) if on else Brand.SURFACE
-		for state: String in ["normal", "hover", "pressed"]:
-			var box: StyleBoxFlat = Settings._card_box(fill if state != "pressed" else fill.darkened(0.05))
-			box.border_color = Color(Brand.ACCENT, 0.5) if on else Brand.LINE
-			box.shadow_size = 0 if on else 10
-			add_theme_stylebox_override(state, box)
-		_glyph.icon = _on_icon if on else _off_icon
-		_glyph.colour = Brand.ACCENT if on else Brand.MUTED
-		_glyph.queue_redraw()
-		_label.add_theme_color_override("font_color", Brand.INK if on else Brand.MUTED)
+	func _draw() -> void:
+		Icons.draw(self, _muted_icon if muted else _icon, size * 0.5, 50.0, Brand.MUTED if muted else Brand.ACCENT)
 
 class _Glyph extends Control:
 	var icon: StringName = &"sound"
