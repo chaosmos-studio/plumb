@@ -23,6 +23,9 @@ var supporter: bool = false
 var owned: PackedStringArray = PackedStringArray()
 ## How many tips it has given. They open nothing; About says thank you.
 var tips: int = 0
+## Level keys not yet used, and the levels opened one by one, with a key or a video (Unlocks).
+var keys: int = 0
+var opened: PackedInt32Array = PackedInt32Array()
 ## The look in use (GameLooks), or "" for the game's own.
 var look: String = ""
 ## The colour theme in use (Themes), or "" for the game's own.
@@ -41,9 +44,8 @@ func _ready() -> void:
 func best(level: int) -> int:
 	return stars[level] if level < stars.size() else 0
 
-## Level 0 is always open; any other opens once the one before it has been solved, or with Every level.
 func unlocked(level: int) -> bool:
-	return level == 0 or best(level - 1) > 0 or Shop.levels_open()
+	return Unlocks.is_open(level)
 
 ## Keeps the best result. Returns true if this was an improvement.
 func record(level: int, earned: int) -> bool:
@@ -68,7 +70,7 @@ func total_stars() -> int:
 		n += s
 	return n
 
-## Forgets every star. Settings, purchases, tips and today's hints are kept.
+## Forgets every star. Settings, purchases, keys, the levels they opened, tips and today's hints are kept.
 func reset() -> void:
 	stars = PackedByteArray()
 	store()
@@ -116,6 +118,18 @@ func add_tip() -> void:
 	tips += 1
 	store()
 
+func add_keys(n: int) -> void:
+	keys = maxi(keys + n, 0)
+	store()
+	EventBus.settings_changed.emit()
+
+func open_level(level: int) -> void:
+	if opened.has(level):
+		return
+	opened.append(level)
+	store()
+	EventBus.settings_changed.emit()
+
 func set_look(id: String) -> void:
 	look = id
 	store()
@@ -148,6 +162,10 @@ func restore() -> void:
 	if bought is PackedStringArray:
 		owned = bought
 	tips = maxi(int(file.get_value("monetize", "tips", 0)), 0)
+	keys = maxi(int(file.get_value("monetize", "keys", 0)), 0)
+	var opened_saved: Variant = file.get_value("progress", "opened", PackedInt32Array())
+	if opened_saved is PackedInt32Array:
+		opened = opened_saved
 	look = str(file.get_value("settings", "look", ""))
 	palette = str(file.get_value("settings", "palette", ""))
 
@@ -164,6 +182,8 @@ func store() -> void:
 	file.set_value("monetize", "hints_used", hints_used)
 	file.set_value("monetize", "owned", owned)
 	file.set_value("monetize", "tips", tips)
+	file.set_value("monetize", "keys", keys)
+	file.set_value("progress", "opened", opened)
 	file.set_value("settings", "look", look)
 	file.set_value("settings", "palette", palette)
 	file.save(path)

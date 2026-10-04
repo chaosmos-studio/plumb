@@ -4,18 +4,22 @@ extends RefCounted
 ## Everything the Google Play build sells, in one place. Five one-time products: the Supporter pack (no
 ## ads, every hint free), Every level (play any level without solving the one before), the Looks pack
 ## (every look in Looks), the Themes pack (every colour theme in Themes) and the Complete pack (all four,
-## for less than apart). And a tip jar: tips that can be bought again and again and open nothing, a way to
-## say thanks. Play sells only fixed prices, so the jar holds a row of them, from small to generous.
+## for less than apart). Level keys, each opening any one locked level for good (Unlocks), sold one or five
+## at a time and bought again whenever. And a tip jar: tips that can be bought again and again and open
+## nothing, a way to say thanks. Play sells only fixed prices, so the jar holds a row of them, from small to
+## generous.
 ##
 ## Play's Payments policy allows no other way to pay inside an app and no pointing to one, so every other
 ## build sells nothing: it has no ads, opens every look, and asks for support through GitHub Sponsors
-## (Supporter.open). Nothing sold is needed to play: every level opens by solving the one before.
+## (Supporter.open). Nothing sold is needed to play: every level opens by playing.
 ##
-## The kit expects from the game: in `GameMonetize`, SUPPORTER_ID, LEVELS_ID, LOOKS_ID, THEMES_ID, COMPLETE_ID and
-## TIP_IDS, each a one-time product in Play Console (the tips sold as consumable); in `Save`, `supporter`,
-## `owned` and `tips`, with `set_supporter`, `set_owned` and `add_tip`; and in `GameLooks`, the pack's
-## name and line.
+## The kit expects from the game: in `GameMonetize`, SUPPORTER_ID, LEVELS_ID, LOOKS_ID, THEMES_ID, COMPLETE_ID,
+## KEY_IDS with KEY_COUNTS, and TIP_IDS, each a one-time product in Play Console (keys and tips consumed
+## after each purchase); in `Save`, `supporter`, `owned`, `keys` and `tips`, with `set_supporter`,
+## `set_owned`, `add_keys` and `add_tip`; and in `GameLooks`, the pack's name and line.
 
+## The shop's row that leads to the level keys, which are several products.
+const KEYS: String = "keys"
 const THEMES_PACK: String = "Themes pack"
 const THEMES_LINE: String = "Sepia, Nord, Dracula and nine more"
 const THEMES_ROW: String = "Twelve colour themes"
@@ -39,10 +43,21 @@ static func one_time_ids() -> PackedStringArray:
 		GameMonetize.LOOKS_ID, GameMonetize.THEMES_ID])
 
 static func all_ids() -> PackedStringArray:
-	return one_time_ids() + GameMonetize.TIP_IDS
+	return one_time_ids() + GameMonetize.KEY_IDS + GameMonetize.TIP_IDS
 
 static func is_tip(id: String) -> bool:
 	return GameMonetize.TIP_IDS.has(id)
+
+static func is_key(id: String) -> bool:
+	return GameMonetize.KEY_IDS.has(id)
+
+## Products used up on purchase, so they can be bought again: keys and tips.
+static func is_consumable(id: String) -> bool:
+	return is_key(id) or is_tip(id)
+
+static func keys_in(id: String) -> int:
+	var at: int = GameMonetize.KEY_IDS.find(id)
+	return GameMonetize.KEY_COUNTS[at] if at >= 0 else 0
 
 static func owns(id: String) -> bool:
 	return Save.supporter if id == GameMonetize.SUPPORTER_ID else Save.owned.has(id)
@@ -119,6 +134,11 @@ static func tipped() -> void:
 	Save.add_tip()
 	Supporter.say("Thank you for the tip. It goes into the next game")
 
+## Keys went through and were used up, so the same pack can be bought again.
+static func keyed(id: String) -> void:
+	Save.add_keys(keys_in(id))
+	Unlocks.delivered(keys_in(id))
+
 ## What a product is called and what it holds, for the shop and the offer sheets.
 static func title(id: String) -> String:
 	if id == GameMonetize.COMPLETE_ID:
@@ -131,6 +151,8 @@ static func title(id: String) -> String:
 		return GameLooks.PACK
 	if id == GameMonetize.THEMES_ID:
 		return THEMES_PACK
+	if is_key(id):
+		return "1 level key" if keys_in(id) == 1 else "%d level keys" % keys_in(id)
 	return "Tip"
 
 static func line(id: String) -> String:
@@ -169,7 +191,7 @@ static func open(host: Node) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
 	c.add_child(UI.title("Shop", 56))
-	c.add_child(_line("Every level of %s opens by solving the one before. These help me make the next game." % Brand.NAME))
+	c.add_child(_line("Every level of %s opens by playing. These help me make the next game." % Brand.NAME))
 	var list: VBoxContainer = VBoxContainer.new()
 	list.add_theme_constant_override("separation", 12)
 	for id: String in one_time_ids():
@@ -178,6 +200,10 @@ static func open(host: Node) -> Sheet:
 		list.add_child(_item(id, func() -> void:
 			sheet.close()
 			offer(host, id)))
+	if not levels_open():
+		list.add_child(_item(KEYS, func() -> void:
+			sheet.close()
+			keys(host)))
 	list.add_child(_item("", func() -> void:
 		sheet.close()
 		tips(host)))
@@ -185,7 +211,7 @@ static func open(host: Node) -> Sheet:
 	var again: Button = UI.button("Restore purchases", UI.Style.GHOST)
 	again.pressed.connect(restore)
 	c.add_child(again)
-	_live(sheet, func() -> void:
+	live(sheet, func() -> void:
 		sheet.close()
 		open(host))
 	return sheet
@@ -220,9 +246,25 @@ static func offer(host: Node, id: String) -> Sheet:
 		sheet.close()
 		open(host))
 	c.add_child(more)
-	_live(sheet, func() -> void:
+	live(sheet, func() -> void:
 		sheet.close()
 		offer(host, id))
+	return sheet
+
+## Level keys: what one does, how many the player holds, and each pack with its price.
+static func keys(host: Node) -> Sheet:
+	var sheet: Sheet = Sheet.open(host)
+	var c: VBoxContainer = sheet.content
+	c.add_child(UI.title("Level keys", 56))
+	var held: String = "You have none yet." if Save.keys == 0 else "You have %d." % Save.keys
+	c.add_child(_line("A key opens any one locked level for good. Tap a locked level to use one. " + held))
+	for id: String in GameMonetize.KEY_IDS:
+		var pack: Button = UI.button("%s  %s" % [title(id), price(id)] if price(id) != "" else title(id), UI.Style.SECONDARY)
+		pack.pressed.connect(func() -> void: Unlocks.buy_key(id, -1))
+		c.add_child(pack)
+	live(sheet, func() -> void:
+		sheet.close()
+		keys(host))
 	return sheet
 
 ## The tip jar: a row of tips from small to generous, each one able to be given again.
@@ -243,7 +285,7 @@ static func tips(host: Node) -> Sheet:
 	c.add_child(UI.centred(grid))
 	if Save.tips > 0:
 		c.add_child(_line("Thank you for %s." % ("your tip" if Save.tips == 1 else "your %d tips" % Save.tips)))
-	_live(sheet, func() -> void:
+	live(sheet, func() -> void:
 		sheet.close()
 		tips(host))
 	return sheet
@@ -254,8 +296,9 @@ static func _buy_text(id: String) -> String:
 	return "Get it for %s" % price(id) if price(id) != "" else "Get %s" % title(id)
 
 ## A row of the shop: the product's name and line, and its price, a tick once it is had, or for the tip
-## jar ("" as `id`) a way in.
+## jar ("" as `id`) and the keys (KEYS) a way in.
 static func _item(id: String, pick: Callable) -> Button:
+	var product: bool = id != "" and id != KEYS
 	var item: Button = Button.new()
 	item.flat = true
 	item.focus_mode = Control.FOCUS_NONE
@@ -271,25 +314,27 @@ static func _item(id: String, pick: Callable) -> Button:
 	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	words.alignment = BoxContainer.ALIGNMENT_CENTER
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var heading: Label = UI.label(title(id) if id != "" else "Tip jar", 32)
+	var heading: Label = UI.label(title(id) if product else ("Level keys" if id == KEYS else "Tip jar"), 32)
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	words.add_child(heading)
-	var said: Label = UI.label(line(id) if id != "" else "Say thanks, as often as you like", 24, Brand.MUTED)
+	var keys_line: String = "Open any one level now" + (". You have %d" % Save.keys if Save.keys > 0 else "")
+	var said: Label = UI.label(line(id) if product else (keys_line if id == KEYS else "Say thanks, as often as you like"),
+		24, Brand.MUTED)
 	said.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(said)
 	row.add_child(words)
-	if id != "" and has(id):
+	if product and has(id):
 		row.add_child(_Tick.new())
 	else:
-		var tag: Label = UI.label(price(id) if id != "" and price(id) != "" else "", 30, Brand.ACCENT)
+		var tag: Label = UI.label(price(id) if product and price(id) != "" else "", 30, Brand.ACCENT)
 		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(tag)
 		row.add_child(_Chevron.new())
 	return item
 
 ## Rebuilds an open sheet when the store answers: a price arrived, or something was bought.
-static func _live(sheet: Sheet, rebuild: Callable) -> void:
+static func live(sheet: Sheet, rebuild: Callable) -> void:
 	if not is_instance_valid(_store):
 		return
 	var once: Callable = func() -> void:

@@ -21,3 +21,6 @@ const COMPLETE_ID: String = "complete"
 ## The tip jar, smallest first: one-time products too, but consumed after each purchase so they can be
 ## bought again. Named for their intended US prices: 0.99, 1.99, 4.99, 9.99, 19.99 and 49.99.
 const TIP_IDS: PackedStringArray = ["tip_1", "tip_2", "tip_5", "tip_10", "tip_20", "tip_50"]
+## Level keys, consumed the same way: one key, and five for less. Each opens any one locked level for good.
+const KEY_IDS: PackedStringArray = ["level_key", "level_keys_5"]
+const KEY_COUNTS: PackedInt32Array = [1, 5]

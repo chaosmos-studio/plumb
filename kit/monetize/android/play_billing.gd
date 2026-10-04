@@ -2,8 +2,8 @@ extends StoreBackend
 
 ## Google Play billing through the Godot Foundation's plugin, loaded by Shop on Android only: every
 ## product's price for the shop, each one-time product acknowledged as Play requires (it refunds one left
-## unacknowledged for three days), each tip consumed so it can be given again, and what the account owns
-## asked again at each launch.
+## unacknowledged for three days), each key pack and tip consumed so it can be bought again, and what the
+## account owns asked again at each launch.
 
 const PURCHASED: int = 1
 const PENDING: int = 2
@@ -12,7 +12,8 @@ var _client: BillingClient
 ## Products Play has listed, by id.
 var _listed: Dictionary = {}
 var _loud_restore: bool = false
-## Tips sent to be consumed and not yet answered, by purchase token, so each is thanked once.
+## Keys and tips sent to be consumed and not yet answered: their product ids by purchase token, so each
+## is counted once.
 var _consuming: Dictionary = {}
 
 func _ready() -> void:
@@ -78,7 +79,7 @@ func _on_purchase_updated(response: Dictionary) -> void:
 		BillingClient.BillingResponseCode.OK:
 			var states: Dictionary = _take(response.get("purchases", []))
 			for id: String in states:
-				if int(states[id]) == PURCHASED and not Shop.is_tip(id):
+				if int(states[id]) == PURCHASED and not Shop.is_consumable(id):
 					Shop.grant(id, true)
 					Supporter.say(_thanks(id))
 				elif int(states[id]) == PENDING:
@@ -92,7 +93,8 @@ func _on_purchase_updated(response: Dictionary) -> void:
 			Supporter.say("The purchase did not go through")
 
 ## What Play says the account owns, at launch or from Restore. A clean answer without a product takes it
-## away again, which is how a refund reaches the game. A tip still waiting to be consumed is consumed now.
+## away again, which is how a refund reaches the game. Keys or a tip still waiting to be consumed are
+## consumed now.
 func _on_purchases(response: Dictionary) -> void:
 	var loud: bool = _loud_restore
 	_loud_restore = false
@@ -111,7 +113,7 @@ func _on_purchases(response: Dictionary) -> void:
 		Supporter.say("Purchases restored. Thank you" if found > 0 else "This Google account has no purchases here yet")
 
 ## Each product's state among `purchases`: one-time products acknowledged if Play is still waiting for
-## that, tips sent to be consumed. A product left out is not owned.
+## that, keys and tips sent to be consumed. A product left out is not owned.
 func _take(purchases: Variant) -> Dictionary:
 	var states: Dictionary = {}
 	if not purchases is Array:
@@ -126,9 +128,9 @@ func _take(purchases: Variant) -> Dictionary:
 				continue
 			if state == PURCHASED:
 				states[id] = PURCHASED
-				if Shop.is_tip(id):
+				if Shop.is_consumable(id):
 					if not _consuming.has(token):
-						_consuming[token] = true
+						_consuming[token] = id
 						_client.consume_purchase(token)
 				elif not bool(purchase.get("is_acknowledged", false)):
 					_client.acknowledge_purchase(token)
@@ -136,13 +138,18 @@ func _take(purchases: Variant) -> Dictionary:
 				states[id] = PENDING
 	return states
 
-## A tip used up, so it can be given again: that is when it counts.
+## Keys or a tip used up, so they can be bought again: that is when they count.
 func _on_consumed(response: Dictionary) -> void:
 	var token: String = String(response.get("purchase_token", ""))
+	var id: String = String(_consuming.get(token, ""))
 	_consuming.erase(token)
-	if int(response.get("response_code", -1)) == BillingClient.BillingResponseCode.OK:
+	if int(response.get("response_code", -1)) != BillingClient.BillingResponseCode.OK:
+		return
+	if Shop.is_key(id):
+		Shop.keyed(id)
+	else:
 		Shop.tipped()
-		changed.emit()
+	changed.emit()
 
 func _thanks(id: String) -> String:
 	if id == GameMonetize.LEVELS_ID:
