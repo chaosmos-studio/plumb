@@ -165,7 +165,8 @@ The single marble gets three levels and no more: one tilt, then two where the ma
 against something first. One marble is solved the moment it is seen, so a run of them teaches nothing
 new. An earlier schedule spent eight levels on it and reached a second colour only at level 17, long
 enough for a player to decide the game was dull. Now two marbles arrive at level 4 and two colours at 9,
-and the levels that freed go one each to the eight phases from three marbles on.
+and the levels that freed go one each to the eight phases from three marbles on. Since the opening of
+section 12, the single marble has one level and the second arrives at level 2.
 
 The ramp gives every level a target par and a target in bits, along one curve:
 
@@ -301,7 +302,7 @@ The shipped 200, measured (bits from the generator's own measure, rounded):
 
 | Chapter | Levels | Boards | Marbles | Par | Bits | Ramp at the chapter's end |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 Roll home | 1-20 | 4x4 to 5x6 | 1-2 | 1-4 | 1.6-6.2 | 6.0 |
+| 1 Roll home | 1-20 | 4x5 to 5x6 | 1-2 | 1-4 | 1.0-6.2 | 6.0 |
 | 2 Three colours | 21-40 | 5x6, 6x6 | 3 | 4-6 | 6.2-8.6 | 8.1 |
 | 3 Pits | 41-60 | 6x6 | 3-4 | 6-7 | 8.6-10.5 | 9.8 |
 | 4 Four colours | 61-80 | 6x7, 7x7 | 4-5 | 7-8 | 10.9-13.1 | 11.2 |
@@ -484,3 +485,100 @@ speed.
 
 - `Seesaw.ROCK` is the tilt amplitude in radians. At 0.3 the marbles slam from end to end; at 0.04
   they barely drift.
+
+---
+
+## 12. The opening: five levels picked to be remembered
+
+The ramp of section 6 knows one thing about a level: how hard it is. At its foot that is not enough.
+Every board there is easy, and the first five levels decide whether a new player stays (a game wants nine
+players in ten through them), so what matters is what each one shows: motion worth watching, a board that
+looks made on purpose, and one small idea. `TiltShowcase` picks levels 1 to 5 for that once the rest of
+chapter 1 is made. It draws on a random stream of its own, seeded from the level seed, so the 495 levels
+after it come out the same whatever it picks.
+
+**Slots and traits.** Each slot fixes its marbles and par and names traits that every route clearing the
+board in par must show, not just the solver's, since a player may find another:
+
+| Level | Marbles | Par | Traits | What the player sees |
+| --- | --- | --- | --- | --- |
+| 1 | 1 | 1 | long | one tilt, and a roll of at least three cells into the hole |
+| 2 | 2 | 1 | together, busy | both marbles roll as a train and drop on the same tilt |
+| 3 | 2 | 2 | apart, bank, busy | one drops, the other stops against a wall and turns the corner home |
+| 4 | 2 | 2 | trap | the tilt that drops a marble at once strands the other, so par needs the other order |
+| 5 | 2 | 2 | together, busy | both roll into line, then drop together on the last tilt |
+
+"Busy" means every marble on the board rolls on every tilt. Two ideas did not survive the arithmetic:
+
+- One marble stopping against the other, so it becomes the stopper, cannot happen at par 2 with one
+  hole. After the first tilt the two touch along that tilt's axis, so they share a row (or column), and
+  they shared it from the start, since a tilt never moves a marble across its row. The last tilt must
+  drop both into the one hole. A tilt across that row moves them down two different columns, and only one
+  passes the hole. A tilt back along the row can only find the hole where the same tilt from the start
+  would have found it too, and the board would have been par 1. So level 4's idea is the order of the
+  tilts instead.
+- A trap level where every marble also rolls on every tilt: 20,000 proposals gave none. The marble that
+  waits is the point of the trap.
+
+**Symmetry has to be built in.** A random board is almost never symmetric. On a 5x5 board at 15% walls,
+each of the ten pairs of cells a left to right mirror swaps matches with chance 0.15² + 0.85² ≈ 0.75, so
+all ten match about one time in nineteen, and then the hole still has to land on the middle column. So a
+proposal picks a symmetry group (none, a mirror, a half turn, both mirrors, and on square boards the
+diagonals or the quarter turns), splits the cells into the group's orbits and makes whole orbits wall. The
+hole goes on a cell the group leaves in place, and so does each marble half the time (`POSED`).
+
+**The score.** Each part runs from 0 to 1:
+
+    score = 3 symmetry + 1 pose + 2 cover + 1 reach + 1.5 roll - 6 × (wall share outside 8% to 16%)
+
+- *symmetry*: the largest share of cells, walls and holes, that one mirror or turn leaves alone, times how
+  strongly that symmetry reads (`SALIENCE`): a mirror left to right or top to bottom 1, a half or quarter
+  turn 0.8, a diagonal mirror 0.6. On the first contact sheets, boards symmetric only about a diagonal
+  looked as random as boards with no symmetry at all.
+- *pose*: the same, with the cells the marbles start on counted too.
+- *cover*: the share of floor the par routes roll over or rest on, the room the solution uses.
+- *reach*: the share of floor any play from the start touches. Floor nothing can ever reach is wasted.
+- *roll*: cells rolled on the par routes against the most they could be, every marble crossing the board
+  on every tilt.
+- *walls*: free inside the band. Without the lower edge the last levels came out with a single wall or
+  none, which looked unfinished; past the upper edge a small board looks cluttered.
+
+**The run.** The opening must keep every promise the test suite makes about the whole set, so a slot's
+pool only takes boards that measure no harder than level 6 (par 2, 3.6 bits) and replay no level after
+the opening (section 4). Then one board per slot, each no easier than the one before (section 5's order),
+with no less room and no fewer marbles, and none a replay of another. The pick is a beam search: the 500
+best partial openings by their total, each grown by every board of the next slot that may follow it. In the
+total, slot k counts 0.8^k (`FUNNEL`): every player sees level 1 and fewer see each level after it, so a
+better first board is worth a slightly worse fifth. A level as hard as the one before costs 0.1, only a
+tie-break.
+
+Two of the suite's rules shape the result more than the score does. No level may take away room, so a 5x5
+first level would force five 5x5 levels, and the search finds no five of them that climb, fit under level
+6 and repeat neither each other nor levels 6 to 8. And the cleanest boards resemble each other: the best
+first level, a marble rolling the length of the middle row, comes within 5 cells of the level 2 that
+shipped and 4 of level 3 once turned or mirrored, under section 4's 6 of 20, so it may not ship beside
+them. The run starts on a plainer board, a roll down one edge past a bar of two walls, because every
+opening built around the best first level costs more in the levels after it.
+
+Measured, with the old opening beside it:
+
+| Level | Old board | Old par, bits | Old score | New board | New par, bits | New score |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 4x4, 3 walls | 1, 1.6 | 4.9 | 4x5, 2 walls | 1, 1.0 | 6.4 |
+| 2 | 4x4, 5 walls | 1, 1.6 | 3.0 | 5x4, 2 walls | 1, 1.6 | 6.7 |
+| 3 | 4x4, 5 walls | 2, 2.6 | 4.1 | 4x5, 2 walls | 2, 2.6 | 6.6 |
+| 4 | 5x5, 5 walls | 2, 3.0 | 4.3 | 4x5, 4 walls | 2, 3.2 | 6.1 |
+| 5 | 5x5, 3 walls | 2, 3.2 | 5.5 | 4x5, 2 walls | 2, 3.6 | 6.6 |
+
+Level 6 is 5x5 with 8 walls, par 2 and 3.6 bits, so level 5 meets it exactly. `tools/generate_levels.gd`
+with `opening` makes the opening again in the level file already written and replaces only its text, every
+other byte left as it was; a full run makes it once chapter 1 is done, and the two agree.
+
+### Things to try
+
+- Put `Vector2i(4, 4)` back in `SHAPES`: the run starts on a 4x4 board, which has no middle row or column
+  for the hole to sit on, and its symmetry falls to 0.88.
+- Set `LEAST` to 0: levels 4 and 5 come out with one wall each.
+- Add "busy" to slot 4's traits: its pool comes back empty.
+- Set `FUNNEL` to 0.5: level 1 gets the roll along the middle row, and the run pays for it with 5x5 boards
+  for the rest, levels 3 and 5 over a point lower and plainly untidy.

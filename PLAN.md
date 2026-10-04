@@ -53,8 +53,9 @@ same rules. No timers, no lives, no energy. No hand-made levels.
 ## 3. Difficulty
 
 Levels come in chapters of 20, one page of the Levels screen each (`CHAPTERS.md`). The first four teach
-the game itself: one marble on 4x4 for levels 1 to 3 (one tilt, then a stop and a two-tilt route), a
-second marble sharing its hole, a second and third colour, pits, and four colours on 7x7 by level 80.
+the game itself: an opening of five levels picked to be remembered (`MATH.md` section 12), a long roll home,
+two marbles dropping on one tilt, a bank off a wall, a tempting tilt that costs par and two marbles dropping
+together on the last tilt, then a second and third colour, pits, and four colours on 7x7 by level 80.
 Each chapter after that brings one tile, taught by a card and a caption on its first level, and every
 one of its levels needs that tile: the same board without it solves in a different par, or not at all.
 Phases inside each chapter (`scripts/tilt/generator.gd`) fix the board size, colours, marbles, wall
@@ -65,7 +66,7 @@ Difficulty is measured, not guessed. The score is the bits of luck a player tilt
 clear the board in par (`scripts/tilt/difficulty.gd`, `MATH.md` section 5). Each phase pools candidates
 and keeps the run that follows a ramp in both par and bits, pinned to the 500 levels planned, so that
 neither ever falls from one level to the next, chapter starts included, and no more than five levels in a
-row share a score. The 200 levels of 1.1 run from par 1 and 1.6 bits to par 14 and 22.8 bits (`MATH.md`
+row share a score. The 200 levels of 1.1 run from par 1 and 1.0 bits to par 14 and 22.8 bits (`MATH.md`
 section 8).
 
 No level repeats another. Compared over the eight rotations and mirrors with colour ignored, two boards
@@ -145,7 +146,7 @@ to the Play listing once it is live.
 autoload/    event_bus, save (progress, settings, the Supporter pack, today's hints), pack (the level set),
              audio, screens (fades)
 scripts/tilt board.gd (rules), tilt_move.gd, solver.gd (BFS), difficulty.gd (bits of luck),
-             novelty.gd (replays), generator.gd (phases and the ramp)
+             novelty.gd (replays), generator.gd (phases and the ramp), showcase.gd (the opening)
 scripts/kit  palette, ui (code-built theme), stars (scoring), star_icon
 scenes/game  game.gd (play screen), board_view.gd, marble, ripple, hint_arrow
 scenes/shell title.gd, seesaw.gd, levels.gd
