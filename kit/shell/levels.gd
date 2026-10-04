@@ -206,7 +206,7 @@ func _show(page: int, from: int, again: bool = false) -> void:
 		_chapter_name.text = Pack.chapter_name(_page)
 	for i: int in range(_page_first(_page), _page_end(_page)):
 		var open: bool = Save.unlocked(i)
-		var tile: LevelTile = LevelTile.new(i, Save.best(i), open, open and Save.best(i) == 0, tint)
+		var tile: LevelTile = LevelTile.new(i, Save.best(i), open, Save.best(i) == 0 and Unlocks.reached(i), tint)
 		tile.pressed.connect(func() -> void:
 			if _swiped:
 				return

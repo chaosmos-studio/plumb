@@ -17,7 +17,11 @@ const GATE: float = 0.7
 static var _buying: int = -1
 
 static func is_open(level: int) -> bool:
-	if level <= 0 or Shop.levels_open() or Save.best(level - 1) > 0 or Save.opened.has(level):
+	return Shop.levels_open() or reached(level)
+
+## Open by play, a key or a video, Every level aside: the levels the grid rings as next to play.
+static func reached(level: int) -> bool:
+	if level <= 0 or Save.best(level - 1) > 0 or Save.opened.has(level):
 		return true
 	var chapter: int = Pack.chapter_of(level)
 	return chapter > 0 and Pack.chapter_first(chapter) == level and solved_in(chapter - 1) >= gate(chapter - 1)

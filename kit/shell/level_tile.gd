@@ -1,7 +1,7 @@
 class_name LevelTile
 extends BaseButton
 
-## One level in the grid: its number and the stars it has earned, in its chapter's colour. A level open
+## One level in the grid: its number and the stars it has earned, in its chapter's colour. A level reached
 ## and not yet solved is ringed in that colour, finished ones sit on a surface edged with it, and locked
 ## ones are only an outline and a lock, which still take a tap: it says how the level opens (Unlocks).
 
