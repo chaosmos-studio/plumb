@@ -1,8 +1,9 @@
 extends SceneTree
 
 # Headless tests for the pure logic in scripts/ (no framework dependency). Same shape as Faceplant's.
-# Run: godot --headless --path . -s res://tests/run_tests.gd
-# CI greps the last line for "0 failed", so keep that wording.
+# Run: godot --headless --path . -s res://tests/run_tests.gd [-- quick]
+# CI greps the last line for "0 failed", so keep that wording. `quick` skips re-solving the whole level
+# pack, the one slow check, for iterating on everything else; CI always runs it.
 
 const InputMapGen: GDScript = preload("res://tools/make_input_map.gd")
 ## Google's official test app, which the AdMob plugin also falls back to when the setting is unset.
@@ -32,10 +33,12 @@ func _initialize() -> void:
 	_test_novelty()
 	_test_serialisation()
 	_test_stars()
-	_test_level_pack()
+	if not OS.get_cmdline_user_args().has("quick"):
+		_test_level_pack()
 	_test_appearance()
 	_test_contrast()
 	_test_themes()
+	_test_chapter_colours()
 	_test_saved_settings()
 	_test_guide_and_ending()
 	_test_banner_pacing()
@@ -54,6 +57,9 @@ func _initialize() -> void:
 	_test_shop()
 	# The root takes new children only once _initialize has handed control back to the engine.
 	await process_frame
+	_test_unlocks()
+	_test_cheers()
+	_test_win_sheet()
 	_test_sheets_fit_a_phone()
 	_test_play_screen_banner()
 	await _test_sheet_rises_before_layout()
@@ -574,6 +580,38 @@ func _test_themes() -> void:
 			_check("the %s theme reads in %s: %s" % [id, "dark" if dark else "light", ", ".join(short)], short.is_empty())
 	Brand.use(Brand.NATIVE_DARK)
 
+## Every chapter's colour reads on the background and on a card, in every theme, light and dark, and the
+## next chapter's is always a clearly different hue.
+func _test_chapter_colours() -> void:
+	var themes: GDScript = load("res://kit/ui/themes.gd")
+	var appearance: GDScript = load("res://kit/ui/appearance.gd")
+	var style: GDScript = load("res://kit/ui/chapter_style.gd")
+	var was: bool = appearance.get("dark")
+	var chapters: int = TiltGenerator.chapter_list().size()
+	var short: PackedStringArray = PackedStringArray()
+	var close: PackedStringArray = PackedStringArray()
+	for id: String in themes.call("ids"):
+		for dark: bool in [false, true]:
+			var t: Dictionary = themes.call("colours", id, dark)
+			if t.is_empty():
+				Brand.use(dark)
+			else:
+				Brand.use_theme(t, dark)
+			appearance.set("dark", dark)
+			for chapter: int in range(chapters):
+				var tint: Color = style.call("tint", chapter)
+				var worst: float = minf(_contrast(tint, Brand.BG), _contrast(tint, Brand.SURFACE))
+				if worst < 3.0:
+					short.append("%s %s %d: %.1f" % [id, "dark" if dark else "light", chapter + 1, worst])
+				var next: Color = style.call("tint", chapter + 1)
+				var apart: float = absf(tint.ok_hsl_h - next.ok_hsl_h)
+				if minf(apart, 1.0 - apart) < 0.3:
+					close.append("%s %d" % [id, chapter + 1])
+	_check("every chapter's colour reads on the background and on a card (short: %s)" % ", ".join(short), short.is_empty())
+	_check("the next chapter's colour is always a different hue (close: %s)" % ", ".join(close), close.is_empty())
+	appearance.set("dark", was)
+	Brand.use(Brand.NATIVE_DARK)
+
 static func _contrast(a: Color, b: Color) -> float:
 	var la: float = a.srgb_to_linear().get_luminance()
 	var lb: float = b.srgb_to_linear().get_luminance()
@@ -804,15 +842,16 @@ func _test_settings_variants() -> void:
 	var save: Node = root.get_node("Save")
 	var old_supporter: bool = save.get("supporter")
 	save.set("supporter", false)
-	var plain: PackedStringArray = _buttons(settings)
-	_check("settings offers the looks and a way to support the game", plain.has(GameLooks.TITLE) and plain.has("Support"))
+	var plain: PackedStringArray = _labels(settings, "open")
+	_check("settings offers the colours, the looks and a way to support the game", plain.has("Colours")
+		and plain.has(GameLooks.TITLE) and plain.has("SUPPORT"))
 	_check("and no privacy choices where no consent message asks for them", not plain.has("Privacy choices"))
 	var consent: _ConsentAds = _ConsentAds.new()
 	ads.call("use", consent)
-	_check("privacy choices appear when the consent message requires them", _buttons(settings).has("Privacy choices"))
+	_check("privacy choices appear when the consent message requires them", _labels(settings, "open").has("Privacy choices"))
 	save.set("supporter", true)
-	var supporter: PackedStringArray = _buttons(settings)
-	_check("a Supporter still finds a way to support the game", supporter.has("Support"))
+	var supporter: PackedStringArray = _labels(settings, "open")
+	_check("a Supporter still finds a way to support the game", supporter.has("SUPPORT"))
 	_check("but no privacy choices, since no ads load for them", not supporter.has("Privacy choices"))
 	ads.call("use", null)
 	save.set("supporter", old_supporter)
@@ -975,9 +1014,6 @@ func _test_shop() -> void:
 	supporter.set("on_play", false)
 	_check("off Google Play every look is open and nothing is sold", shop.call("looks_open") and looks.call("is_open", "gems")
 		and _labels(shop, "open").has("Sponsor on GitHub"))
-	var tile: BaseButton = load("res://kit/shell/level_tile.gd").new(150, 0, false, false, true)
-	_check("on Google Play a locked tile still takes a tap, to offer Every level", not tile.disabled)
-	tile.free()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_shop.cfg"))
 	supporter.set("on_play", old[0])
 	save.set("supporter", old[1])
@@ -985,6 +1021,119 @@ func _test_shop() -> void:
 	save.set("tips", old[3])
 	save.set("look", old[4])
 	save.set("path", old[5])
+
+## The words on a win: news before praise, and never the same line twice running.
+func _test_cheers() -> void:
+	var cheers: GDScript = load("res://kit/shell/cheers.gd")
+	var result: GDScript = load("res://kit/shell/result.gd")
+	var save: Node = root.get_node("Save")
+	var old: Array = [save.get("stars"), save.get("path")]
+	save.set("path", "user://test_cheers.cfg")
+	save.set("stars", PackedByteArray([3, 3, 3, 3]))
+	var moment: Object = (result.get_script_constant_map()["Moment"] as GDScript).new()
+	moment.set("level", 3)
+	moment.set("summary", "5 moves, par 5")
+	moment.set("clean", true)
+	var first: PackedStringArray = cheers.call("pick", moment, 3)
+	_check("a perfect first try is news", first[1] == "First try, and perfect."
+		and ((cheers.get_script_constant_map()["HEADINGS"] as Array)[2] as Array).has(first[0]))
+	moment.set("before", 1)
+	_check("more stars than before is news", (cheers.call("pick", moment, 3) as PackedStringArray)[1] == "Up from 1 star.")
+	moment.set("before", 2)
+	var said: String = ""
+	var repeats: int = 0
+	for k: int in range(12):
+		var line: String = (cheers.call("pick", moment, 2) as PackedStringArray)[1]
+		repeats += 1 if line == said else 0
+		said = line
+	_check("a run of wins never says the same line twice running", repeats == 0)
+	save.set("stars", old[0])
+	save.set("path", old[1])
+
+## The win sheet's quiet actions, and the replay putting the clock and the controls back.
+func _test_win_sheet() -> void:
+	var result: GDScript = load("res://kit/shell/result.gd")
+	var replay_script: GDScript = load("res://kit/shell/replay.gd")
+	var host: Node = Node.new()
+	root.add_child(host)
+	var moment: Object = (result.get_script_constant_map()["Moment"] as GDScript).new()
+	moment.set("level", 3)
+	moment.set("summary", "4 moves, par 4")
+	moment.set("before", 3)
+	moment.set("watch", func() -> void: pass)
+	var none: Callable = func() -> void: pass
+	result.call("won", host, "", 3, PackedStringArray(["4 moves, par 4"]), "Next level", none, none, none, moment)
+	var texts: PackedStringArray = PackedStringArray()
+	for l: Node in host.find_children("*", "Label", true, false):
+		texts.append((l as Label).text)
+	_check("a win offers Watch, Share, Again and Levels", texts.has("WATCH") and texts.has("SHARE") and texts.has("AGAIN")
+		and texts.has("LEVELS"))
+	_check("and names the moment", (moment.get("words") as PackedStringArray).size() == 2
+		and texts.has((moment.get("words") as PackedStringArray)[0]))
+	var controls: CanvasLayer = CanvasLayer.new()
+	controls.layer = 1
+	var backdrop: CanvasLayer = CanvasLayer.new()
+	backdrop.layer = -1
+	host.add_child(controls)
+	host.add_child(backdrop)
+	var replay: CanvasLayer = replay_script.call("begin", host)
+	_check("a replay runs the clock fast and puts the controls away, not the backdrop",
+		Engine.time_scale > 1.0 and not controls.visible and backdrop.visible)
+	replay.call("finish")
+	_check("and puts both back when it ends", is_equal_approx(Engine.time_scale, 1.0) and controls.visible)
+	host.free()
+
+## Chapters open on the gate, and a single level opens with a key that Play delivered.
+func _test_unlocks() -> void:
+	var unlocks: GDScript = load("res://kit/monetize/unlocks.gd")
+	var shop: GDScript = load("res://kit/monetize/shop.gd")
+	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
+	var save: Node = root.get_node("Save")
+	var pack: Node = root.get_node("Pack")
+	var old: Array = [save.get("stars"), save.get("keys"), save.get("opened"), save.get("owned"), save.get("path"),
+		supporter.get("on_play")]
+	save.set("path", "user://test_unlocks.cfg")
+	save.set("owned", PackedStringArray())
+	save.set("opened", PackedInt32Array())
+	save.set("keys", 0)
+	var second: int = int(pack.call("chapter_first", 1))
+	var gate: int = int(unlocks.call("gate", 0))
+	var stars: PackedByteArray = PackedByteArray()
+	stars.resize(gate - 1)
+	stars.fill(2)
+	save.set("stars", stars)
+	_check("a chapter opens at seven in ten of the one before", gate == ceili(0.7 * TiltGenerator.chapter_size(0)))
+	_check("one short of the gate, the next chapter is shut and says what opens it",
+		not save.call("unlocked", second) and String(unlocks.call("how", second)).contains("1 more level in chapter 1"))
+	save.call("record", gate - 1, 1)
+	_check("at the gate the next chapter's first level opens, and the win says so",
+		save.call("unlocked", second) and int(unlocks.call("gate_opened_by", gate - 1)) == 1)
+	_check("but not the level after it", not save.call("unlocked", second + 1))
+	_check("a level two ahead of play is shut", not save.call("unlocked", gate + 1))
+	_check("with no key there is none to use", not unlocks.call("use_key", gate + 1))
+	shop.call("keyed", GameMonetize.KEY_IDS[1])
+	_check("a pack of keys Play delivered is counted", int(save.get("keys")) == GameMonetize.KEY_COUNTS[1])
+	_check("a key opens any one level, for good", unlocks.call("use_key", gate + 1) and save.call("unlocked", gate + 1)
+		and int(save.get("keys")) == GameMonetize.KEY_COUNTS[1] - 1)
+	save.call("restore")
+	_check("keys and the levels they opened are saved", int(save.get("keys")) == GameMonetize.KEY_COUNTS[1] - 1
+		and (save.get("opened") as PackedInt32Array).has(gate + 1))
+	_check("keys and tips are used up on purchase, packs are not", shop.call("is_consumable", GameMonetize.KEY_IDS[0])
+		and shop.call("is_consumable", GameMonetize.TIP_IDS[0]) and not shop.call("is_consumable", GameMonetize.LEVELS_ID))
+	supporter.set("on_play", true)
+	_check("the shop leads to the level keys", _labels(shop, "open").has("Level keys"))
+	var keys: PackedStringArray = _labels(shop, "keys")
+	_check("the keys sheet sells one key and five", keys.has("1 level key") and keys.has("%d level keys" % GameMonetize.KEY_COUNTS[1]))
+	var offer: PackedStringArray = _labels(unlocks, "offer", [second + 3])
+	_check("a locked level on Google Play offers a key and Every level", offer.has("Use a key (%d left)" % (GameMonetize.KEY_COUNTS[1] - 1))
+		and offer.has("Open every level"))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_unlocks.cfg"))
+	save.set("stars", old[0])
+	save.set("keys", old[1])
+	save.set("opened", old[2])
+	save.set("owned", old[3])
+	save.set("path", old[4])
+	supporter.set("on_play", old[5])
 
 func _test_play_screen_banner() -> void:
 	var hud: GDScript = load("res://kit/shell/hud.gd")
