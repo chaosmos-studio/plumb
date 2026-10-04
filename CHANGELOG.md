@@ -16,12 +16,12 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
-## 1.1.0 - 2026-10-02
+## 1.1.0 - 2026-10-04
 
-- Levels now come in chapters, each with its own page on the Levels screen and a card that opens it.
-- Six new chapters, each with a new tile to master: stop pads, one-way gates, plugs, colour gates, paint and cracked floor.
-- Every level in a chapter needs its new tile, and no level is ever easier than the one before.
-- The opening chapters are rebuilt to climb more evenly.
+- Twenty-five chapters, each with a new rule: gates, paint, stones, portals, bumpers, keys, blinking walls, springs, magnets, glass and more.
+- Every level needs its chapter's rule, and no level is ever easier than the one before.
+- A shop: every level at once, four marble sets, twelve colour themes, a Complete pack and a tip jar.
+- The shop is a tap away on the title screen, and each marble set shows its real marbles.
 
 ## 1.0.1 - 2026-10-02
 
