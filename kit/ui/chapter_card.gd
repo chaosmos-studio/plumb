@@ -2,8 +2,9 @@ class_name ChapterCard
 extends CanvasLayer
 
 ## The card that opens a chapter's first level: the chapter's number, its name, and the line that teaches
-## its rule (Pack.chapter_name and chapter_line). It shows over the top of the board for a moment and fades,
-## and never holds up play: the first touch sends it away early and still reaches the game.
+## its rule (Pack.chapter_name and chapter_line), edged in the chapter's colour (ChapterStyle). It shows
+## over the top of the board for a moment and fades, and never holds up play: the first touch sends it
+## away early and still reaches the game.
 
 const LAYER: int = 45
 const FADE: float = 0.3
@@ -35,8 +36,11 @@ func _ready() -> void:
 	add_child(root)
 	_card = PanelContainer.new()
 	_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tint: Color = ChapterStyle.tint(chapter)
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = Brand.SURFACE
+	style.border_color = tint
+	style.border_width_top = 8
 	style.set_corner_radius_all(40)
 	style.shadow_color = Color(0, 0, 0, 0.18)
 	style.shadow_size = 26
@@ -51,7 +55,7 @@ func _ready() -> void:
 	column.add_theme_constant_override("separation", 6)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.add_child(column)
-	column.add_child(UI.caption("Chapter %d" % (chapter + 1), 20))
+	column.add_child(UI.caption("Chapter %d" % (chapter + 1), 20, tint))
 	column.add_child(UI.title(Pack.chapter_name(chapter), 50))
 	var line: Label = UI.label(Pack.chapter_line(chapter), 28, Brand.MUTED)
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

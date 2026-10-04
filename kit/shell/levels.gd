@@ -1,10 +1,11 @@
 extends Node2D
 
-## The level grid, shared by every game in the kit: a page per chapter, named above the grid, for a game
-## whose level file has chapters, otherwise twenty tiles to a page. Swipe or tap the chevrons to turn
-## pages, and the page holding the next level to play opens first. On Android, once a few levels
-## are solved, a banner sits at the foot of this screen, as it does under the play screen, and the pager
-## lifts clear of it.
+## The level grid, shared by every game in the kit: a page per chapter, named above the grid with how far
+## along it is, for a game whose level file has chapters, otherwise twenty tiles to a page. Each page wears
+## its chapter's colour and pattern (ChapterStyle). Swipe or tap the chevrons to turn pages, and the page
+## holding the next level to play opens first. A locked tile says how it opens, and on Google Play offers
+## to open it now (Unlocks). On Android, once a few levels are solved, a banner sits at the foot of this
+## screen, as it does under the play screen, and the pager lifts clear of it.
 
 const PER_PAGE: int = 20
 const COLUMNS: int = 4
@@ -18,6 +19,7 @@ const GRID_GAP: float = 20.0
 const LIFT_TIME: float = 0.28
 
 var _page: int = 0
+var _backdrop: ChapterStyle.Backdrop
 var _grid: GridContainer
 var _dots: _PageDots
 var _prev: IconButton
@@ -36,6 +38,8 @@ var _settled: bool = false
 
 func _ready() -> void:
 	var ui: Control = UI.root(self)
+	_backdrop = ChapterStyle.Backdrop.new()
+	ui.add_child(_backdrop)
 	var safe: Dictionary = UI.safe_margins(get_viewport())
 	var top: HBoxContainer = HBoxContainer.new()
 	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
@@ -105,8 +109,8 @@ func _ready() -> void:
 	_place(_floor)
 	_show(_page_of(Save.frontier(Pack.count())), 0)
 	Ads.show_banner(self, _lift)
-	# Every level, bought from a locked tile, opens the grid where it stands.
-	EventBus.settings_changed.connect(func() -> void: _show(_page, 0))
+	# A level opened from a locked tile, or Every level, opens the grid where it stands.
+	EventBus.settings_changed.connect(func() -> void: _show(_page, 0, true))
 	_settled = true
 
 func _exit_tree() -> void:
@@ -185,30 +189,34 @@ func _input(event: InputEvent) -> void:
 		_swiped = true
 		_show(_page + (1 if moved.x < 0.0 else -1), 1 if moved.x < 0.0 else -1)
 
-## Shows a page; `from` slides the grid in from the right (1), the left (-1) or not at all (0).
-func _show(page: int, from: int) -> void:
+## Shows a page; `from` slides the grid in from the right (1), the left (-1) or not at all (0). `again`
+## rebuilds the page in place.
+func _show(page: int, from: int, again: bool = false) -> void:
 	var target: int = clampi(page, 0, _pages() - 1)
-	if target == _page and _grid.get_child_count() > 0:
+	if target == _page and _grid.get_child_count() > 0 and not again:
 		return
 	_page = target
 	for child: Node in _grid.get_children():
 		child.queue_free()
-	var frontier: int = Save.frontier(Pack.count())
+	var tint: Color = ChapterStyle.tint(_page)
+	_backdrop.chapter = _page
 	if _chapter_name != null:
-		_chapter_number.text = "Chapter %d" % (_page + 1)
+		_chapter_number.text = _standing(_page).to_upper()
+		_chapter_number.add_theme_color_override("font_color", tint)
 		_chapter_name.text = Pack.chapter_name(_page)
 	for i: int in range(_page_first(_page), _page_end(_page)):
 		var open: bool = Save.unlocked(i)
-		var tile: LevelTile = LevelTile.new(i, Save.best(i), open, i == frontier and Save.best(i) == 0, Supporter.on_play)
+		var tile: LevelTile = LevelTile.new(i, Save.best(i), open, open and Save.best(i) == 0, tint)
 		tile.pressed.connect(func() -> void:
 			if _swiped:
 				return
 			if not open:
-				Shop.offer(self, GameMonetize.LEVELS_ID)
+				Unlocks.offer(self, i)
 				return
 			Pack.current = i
 			_leave(Brand.GAME_SCENE))
 		_grid.add_child(tile)
+	_dots.tint = tint
 	_dots.current = _page
 	_prev.disabled = _page == 0
 	_next.disabled = _page >= _pages() - 1
@@ -219,26 +227,52 @@ func _show(page: int, from: int) -> void:
 		t.tween_property(_grid, "modulate:a", 1.0, 0.2)
 		t.tween_property(_grid, "position:x", _grid.position.x - 60.0 * from, 0.26).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
-## Dots under the grid, one per page, the current one filled.
+## The line over a chapter's name: its number, then how many of its levels are solved, or while its first
+## level is still shut, what opens it.
+func _standing(chapter: int) -> String:
+	var number: String = "Chapter %d" % (chapter + 1)
+	var first: int = _page_first(chapter)
+	if not Save.unlocked(first) and chapter > 0:
+		if not Save.unlocked(_page_first(chapter - 1)):
+			return "%s   opens after chapter %d" % [number, chapter]
+		var more: int = Unlocks.gate(chapter - 1) - Unlocks.solved_in(chapter - 1)
+		return "%s   %d more in chapter %d opens it" % [number, more, chapter]
+	var solved: int = 0
+	for i: int in range(first, _page_end(chapter)):
+		solved += 1 if Save.best(i) > 0 else 0
+	return "%s   %d of %d solved" % [number, solved, _page_end(chapter) - first]
+
+## Dots under the grid, one per page, the current one filled in its chapter's colour. With more pages than
+## fit, a window of them slides along with the current page, and a smaller dot at either end says there are
+## more beyond.
 class _PageDots extends Control:
+	const SHOWN: int = 9
+	const GAP: float = 26.0
+
 	var count: int = 1:
 		set(value):
 			count = value
-			custom_minimum_size = Vector2(maxf(40.0, count * 26.0), 40.0)
+			custom_minimum_size = Vector2(maxf(40.0, mini(count, SHOWN) * GAP), 40.0)
 			queue_redraw()
 	var current: int = 0:
 		set(value):
 			current = value
 			queue_redraw()
+	var tint: Color = Color.WHITE
 
 	func _init() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	func _draw() -> void:
-		var start: float = (size.x - (count - 1) * 26.0) * 0.5
-		for k: int in range(count):
-			var at: Vector2 = Vector2(start + k * 26.0, size.y * 0.5)
-			if k == current:
-				draw_circle(at, 7.0, Brand.INK, true, -1.0, true)
+		var shown: int = mini(count, SHOWN)
+		@warning_ignore("integer_division")
+		var first: int = clampi(current - shown / 2, 0, count - shown)
+		var left: float = (size.x - (shown - 1) * GAP) * 0.5
+		for k: int in range(shown):
+			var page: int = first + k
+			var at: Vector2 = Vector2(left + k * GAP, size.y * 0.5)
+			var more: bool = (k == 0 and first > 0) or (k == shown - 1 and first + shown < count)
+			if page == current:
+				draw_circle(at, 7.0, tint, true, -1.0, true)
 			else:
-				draw_circle(at, 5.0, Color(Brand.MUTED, 0.45), true, -1.0, true)
+				draw_circle(at, 3.0 if more else 5.0, Color(Brand.MUTED, 0.45), true, -1.0, true)

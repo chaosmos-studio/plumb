@@ -1,8 +1,9 @@
 class_name LevelTile
 extends BaseButton
 
-## One level in the grid: its number and the stars it has earned. The next level to play is ringed in
-## the accent colour, finished ones sit on a surface, and locked ones are only an outline and a lock.
+## One level in the grid: its number and the stars it has earned, in its chapter's colour. A level open
+## and not yet solved is ringed in that colour, finished ones sit on a surface edged with it, and locked
+## ones are only an outline and a lock, which still take a tap: it says how the level opens (Unlocks).
 
 const SIZE: float = 132.0
 
@@ -10,17 +11,17 @@ var level: int = 0
 var stars: int = 0
 var locked: bool = false
 var is_next: bool = false
+var tint: Color = Color.WHITE
 
-## A locked tile still takes a tap when `offers` is set, on Google Play, where it offers Every level.
-func _init(index: int, earned: int, open: bool, next: bool, offers: bool = false) -> void:
+func _init(index: int, earned: int, open: bool, next: bool, colour: Color) -> void:
 	level = index
 	stars = earned
 	locked = not open
 	is_next = next
-	disabled = locked and not offers
+	tint = colour
 	custom_minimum_size = Vector2(SIZE, SIZE)
 	focus_mode = Control.FOCUS_NONE
-	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if open else Control.CURSOR_ARROW
+	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	UI.press_feedback(self)
 	pressed.connect(func() -> void: Audio.play(&"tap", -8.0))
 
@@ -31,27 +32,27 @@ func _draw() -> void:
 	box.anti_aliasing = true
 	if locked:
 		box.bg_color = Color(0, 0, 0, 0)
-		box.border_color = Brand.LINE
+		box.border_color = Color(tint, 0.3)
 		box.set_border_width_all(2)
 		draw_style_box(box, rect)
-		Icons.draw(self, &"lock", rect.get_center(), 54.0, Color(Brand.MUTED, 0.6))
+		Icons.draw(self, &"lock", rect.get_center(), 54.0, Color(tint, 0.55))
 		return
 	box.bg_color = Brand.SURFACE
 	box.shadow_color = Brand.SHADOW
 	box.shadow_size = 10
 	box.shadow_offset = Vector2(0, 4)
 	if is_next:
-		box.border_color = Brand.ACCENT
+		box.border_color = tint
 		box.set_border_width_all(4)
 	else:
-		box.border_color = Brand.LINE
+		box.border_color = Color(tint, 0.4)
 		box.set_border_width_all(2)
 	draw_style_box(box, rect)
 	var font: Font = UI.display_font()
 	var text: String = str(level + 1)
 	var font_size: int = 50
 	var ts: Vector2 = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
-	var ink: Color = Brand.ACCENT if is_next else Brand.INK
+	var ink: Color = tint if is_next else Brand.INK
 	var baseline: float = rect.position.y + rect.size.y * 0.5 + font_size * 0.32 - (8.0 if stars > 0 else 0.0)
 	draw_string(font, Vector2(rect.get_center().x - ts.x * 0.5, baseline), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, ink)
 	if stars > 0:
