@@ -64,6 +64,7 @@ func _initialize() -> void:
 	await _test_win_sheet()
 	_test_qr()
 	_test_volumes()
+	_test_reel_video()
 	_test_sheets_fit_a_phone()
 	_test_play_screen_banner()
 	await _test_sheet_rises_before_layout()
@@ -1181,6 +1182,19 @@ func _test_qr() -> void:
 	for k: int in range(10):
 		rem = (rem << 1) ^ ((rem >> 9) * 0x537)
 	_check("the format says level H, and its check bits agree", data >> 3 == 2 and rem == (format & 0x3FF))
+
+## A saved reel: frames handed over under half the film's rate, so the recorder's time lapse plays them at
+## true speed, at a size its encoder takes, and nothing on hand off Android.
+func _test_reel_video() -> void:
+	var video: GDScript = load("res://kit/shell/reel_video.gd")
+	var fps: int = video.get_script_constant_map()["FPS"]
+	var fast: float = video.call("rate_for", 5.0)
+	var slow: float = video.call("rate_for", 400.0)
+	_check("frames go over under half the film's rate, however quick the phone", fast < fps * 0.5 and fast >= slow)
+	_check("and never so few that the film stutters", slow >= 4.0)
+	var size: Vector2i = video.call("size_for", Vector2i(1080, 2400))
+	_check("a 20:9 phone films at 720 by 1600, both multiples of 16", size == Vector2i(720, 1600))
+	_check("a film can only be made on Android", not video.call("available"))
 
 ## The volume sliders: a square law, 0 as off, saved, and an older save's switches read as volumes.
 func _test_volumes() -> void:

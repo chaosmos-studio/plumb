@@ -385,25 +385,28 @@ func _watch(reel: bool = false) -> void:
 	var solved: TiltBoard = board
 	var replay: Replay = Replay.begin(self, _won if reel else null, route.size())
 	_replay = replay
-	board = start.copy()
-	_view.sync(board)
-	await replay.opening()
-	for dir: int in route:
-		if replay.skipping or not is_inside_tree():
-			break
-		var next: TiltBoard = board.copy()
-		var move: TiltMove = next.tilt(dir)
-		board = next
-		await _view.play(move)
-		replay.beat()
-		await get_tree().create_timer(0.1).timeout
-	if not is_inside_tree():
-		return
-	board = solved
-	_view.sync(board, false)
-	await replay.closing()
-	if not is_inside_tree():
-		return
+	# Once more when the reel is to be saved as a video: that pass is filmed.
+	var again: bool = true
+	while again:
+		board = start.copy()
+		_view.sync(board)
+		await replay.opening()
+		for dir: int in route:
+			if replay.skipping or not is_inside_tree():
+				break
+			var next: TiltBoard = board.copy()
+			var move: TiltMove = next.tilt(dir)
+			board = next
+			await _view.play(move)
+			replay.beat()
+			await get_tree().create_timer(0.1).timeout
+		if not is_inside_tree():
+			return
+		board = solved
+		_view.sync(board, false)
+		again = await replay.closing()
+		if not is_inside_tree():
+			return
 	replay.finish()
 	_show_result()
 

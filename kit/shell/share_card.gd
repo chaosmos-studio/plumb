@@ -26,7 +26,8 @@ static func send(host: Node, image: Image, moment_won: Result.Moment) -> void:
 	if OS.has_feature("web"):
 		_web(image.save_png_to_buffer(), _file_name(moment_won), text)
 		return
-	var path: String = _write(image, moment_won)
+	# One file, written over at each share, so sharing never piles cards up on the phone.
+	var path: String = _write(image, "card.png")
 	if path == "":
 		Toast.say(host, "Could not save the card")
 	elif OS.has_feature("android"):
@@ -43,22 +44,22 @@ static func save(host: Node, image: Image, moment_won: Result.Moment) -> void:
 		JavaScriptBridge.download_buffer(png, _file_name(moment_won), "image/png")
 		return
 	if OS.has_feature("android"):
-		if _android_keep(png, _file_name(moment_won)):
+		if Gallery.keep(png, _file_name(moment_won), "image/png"):
 			Toast.say(host, "Saved to Pictures")
 		else:
 			send(host, image, moment_won)
 		return
-	var path: String = _write(image, moment_won)
+	var path: String = _write(image, _file_name(moment_won))
 	Toast.say(host, "Card saved to %s" % ProjectSettings.globalize_path(path) if path != "" else "Could not save the card")
 
 static func _file_name(moment_won: Result.Moment) -> String:
 	return "%s-level-%d.png" % [Brand.NAME.to_lower(), moment_won.level + 1]
 
-## The card as a PNG in the user folder, its path, or "" when it cannot be written.
-static func _write(image: Image, moment_won: Result.Moment) -> String:
+## The card as a PNG named `file_name` in the user folder, its path, or "" when it cannot be written.
+static func _write(image: Image, file_name: String) -> String:
 	var folder: String = "user://share"
 	DirAccess.make_dir_recursive_absolute(folder)
-	var path: String = "%s/%s" % [folder, _file_name(moment_won)]
+	var path: String = "%s/%s" % [folder, file_name]
 	return path if image.save_png(path) == OK else ""
 
 ## Draws the card offscreen and reads it back, or null where nothing is drawn (a headless run).
@@ -160,31 +161,6 @@ static func _android(path: String, text: String) -> bool:
 	activity.call("runOnUiThread", runtime.call("createRunnableFromGodotCallable", func() -> void:
 		activity.call("startActivity", chooser)))
 	return true
-
-## The PNG in the phone's Pictures, in a folder named for the game, through the MediaStore, which needs no
-## permission from Android 10 on. False on older phones or when anything refuses.
-static func _android_keep(png: PackedByteArray, file_name: String) -> bool:
-	if not Engine.has_singleton("AndroidRuntime"):
-		return false
-	var build: Object = JavaClassWrapper.wrap("android.os.Build$VERSION")
-	if build == null or int(build.get("SDK_INT")) < 29:
-		return false
-	var activity: Object = Engine.get_singleton("AndroidRuntime").call("getActivity")
-	var values: Object = JavaClassWrapper.wrap("android.content.ContentValues").call("ContentValues")
-	values.call("put", "_display_name", file_name)
-	values.call("put", "mime_type", "image/png")
-	values.call("put", "relative_path", "Pictures/" + Brand.NAME)
-	var media: Object = JavaClassWrapper.wrap("android.provider.MediaStore$Images$Media")
-	var resolver: Object = activity.call("getContentResolver")
-	var uri: Object = resolver.call("insert", media.get("EXTERNAL_CONTENT_URI"), values)
-	if uri == null or JavaClassWrapper.get_exception() != null:
-		return false
-	var stream: Object = resolver.call("openOutputStream", uri)
-	if stream == null or JavaClassWrapper.get_exception() != null:
-		return false
-	stream.call("write", png)
-	stream.call("close")
-	return JavaClassWrapper.get_exception() == null
 
 ## The browser's share sheet where it can send files, otherwise a download.
 static func _web(png: PackedByteArray, file_name: String, text: String) -> void:
