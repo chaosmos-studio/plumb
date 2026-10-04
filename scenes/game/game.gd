@@ -16,6 +16,8 @@ var par: int = 0
 var start: TiltBoard
 var board: TiltBoard
 var history: Array[TiltBoard] = []
+## The tilt that led from each board in `history` to the next, for the replay.
+var route: PackedInt32Array = PackedInt32Array()
 var finished: bool = false
 
 var _view: BoardView
@@ -40,6 +42,12 @@ var _hint_board: TiltBoard
 var _hint_route: PackedInt32Array = PackedInt32Array()
 ## The board the last hint was given for, so asking again on it costs nothing.
 var _hinted: TiltBoard
+## Set by an undo or a restart, so a win after one is not a first try.
+var _retried: bool = false
+var _won: Result.Moment
+var _earned: int = 0
+var _ending: bool = false
+var _replay: Replay
 
 func _ready() -> void:
 	level = Pack.current
@@ -52,6 +60,7 @@ func _ready() -> void:
 		var kept_level: int = state.get("level", -1)
 		if kept_level == level:
 			history.assign(state["history"])
+			route = state["route"]
 			board = state["board"]
 	_view = BoardView.new()
 	add_child(_view)
@@ -75,7 +84,7 @@ func _opens_chapter() -> int:
 
 ## What a rebuild for a new theme carries over: the level as far as it has been played.
 func keep() -> Dictionary:
-	return {} if finished else {"level": level, "history": history.duplicate(), "board": board}
+	return {} if finished else {"level": level, "history": history.duplicate(), "route": route.duplicate(), "board": board}
 
 func _fit() -> Vector2:
 	var size: Vector2 = get_viewport_rect().size
@@ -90,7 +99,7 @@ func _layout() -> void:
 # --- Input --------------------------------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
-	if (is_instance_valid(_coach) and _coach.blocks_input) or is_instance_valid(_prompt):
+	if (is_instance_valid(_coach) and _coach.blocks_input) or is_instance_valid(_prompt) or is_instance_valid(_replay):
 		return
 	if is_instance_valid(_sheet):
 		if event.is_action_pressed("retry"):
@@ -144,6 +153,7 @@ func _tilt(dir: int) -> void:
 		_view.refuse(dir)
 		return
 	history.append(board)
+	route.append(dir)
 	board = next
 	_refresh()
 	await _view.play(move)
@@ -164,6 +174,8 @@ func _on_undo() -> void:
 	if history.is_empty() or _view.busy:
 		return
 	board = history.pop_back()
+	route.resize(history.size())
+	_retried = true
 	finished = false
 	_close_sheet()
 	_view.sync(board)
@@ -175,6 +187,8 @@ func _on_restart() -> void:
 	if _view.busy:
 		return
 	history.clear()
+	route.clear()
+	_retried = true
 	board = start.copy()
 	finished = false
 	_close_sheet()
@@ -333,19 +347,58 @@ func _show_won() -> void:
 	if is_instance_valid(_coach):
 		_coach.finish()
 	var moves: int = history.size()
-	var earned: int = Stars.earned(moves, par)
-	var ending: bool = Finale.due(level)
-	Save.record(level, earned)
-	EventBus.level_won.emit(level, moves, earned)
+	_earned = Stars.earned(moves, par)
+	_ending = Finale.due(level)
+	_won = Result.Moment.new()
+	_won.level = level
+	_won.summary = _score()
+	_won.before = Save.best(level)
+	_won.clean = not _retried
+	_won.watch = _watch
+	Save.record(level, _earned)
+	EventBus.level_won.emit(level, moves, _earned)
 	await get_tree().create_timer(0.3).timeout
 	Audio.play(&"win", -3.0)
+	_show_result()
+
+func _score() -> String:
+	var moves: int = history.size()
+	return "%d %s, par %d" % [moves, "move" if moves == 1 else "moves", par]
+
+func _show_result() -> void:
 	var last: bool = level + 1 >= Pack.count()
-	var detail: PackedStringArray = PackedStringArray(["%d %s, par %d" % [moves, "move" if moves == 1 else "moves", par]])
-	if earned < 3:
+	var detail: PackedStringArray = PackedStringArray([_score()])
+	if _earned < 3:
 		detail.append("Solve it in %d for three stars" % par)
-	var next_text: String = "Continue" if ending else ("Back to levels" if last else "Next level")
-	_sheet = Result.won(self, "Every level solved" if last else "Solved", earned, detail, next_text,
-		_on_finale if ending else _on_next, _on_restart, _to_levels)
+	var next_text: String = "Continue" if _ending else ("Back to levels" if last else "Next level")
+	_sheet = Result.won(self, "Every level solved" if last else "", _earned, detail, next_text,
+		_on_finale if _ending else _on_next, _on_restart, _to_levels, _won)
+
+## The solve again from the start, at speed, then the result once more. A tap skips to the end.
+func _watch() -> void:
+	if _view.busy or not finished:
+		return
+	_close_sheet()
+	var solved: TiltBoard = board
+	var replay: Replay = Replay.begin(self)
+	_replay = replay
+	board = start.copy()
+	_view.sync(board)
+	await get_tree().create_timer(0.45).timeout
+	for dir: int in route:
+		if replay.skipping or not is_inside_tree():
+			break
+		var next: TiltBoard = board.copy()
+		var move: TiltMove = next.tilt(dir)
+		board = next
+		await _view.play(move)
+		await get_tree().create_timer(0.1).timeout
+	if not is_inside_tree():
+		return
+	board = solved
+	_view.sync(board, false)
+	replay.finish()
+	_show_result()
 
 func _show_lost() -> void:
 	await get_tree().create_timer(0.35).timeout

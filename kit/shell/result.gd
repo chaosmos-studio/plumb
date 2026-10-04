@@ -1,18 +1,41 @@
 class_name Result
 extends RefCounted
 
-## The end-of-level sheets. A win shows the stars arriving one by one, a line or two of detail, the next
-## step as the primary action, and replay and levels as quiet ones. A failure leads with trying again.
+## The end-of-level sheets. A win names the moment (Cheers: a heading for the stars and a line about this
+## solve, never the same twice running), shows the stars arriving one by one with a spark for a perfect
+## solve, the next step as the primary action, and a row of quiet ones: watch the solve again at speed,
+## share a card of it, play it again, or go back to the levels. A failure leads with trying again.
 
 const STAR_SIZE: float = 92.0
 const STAR_GAP: float = 0.2
 
-## Opens the win sheet. `detail` lines are shown muted under the stars.
+## What the game knows about a win, for the words, the replay and the share card.
+class Moment extends RefCounted:
+	var level: int = 0
+	## The game's word for one move, for the lines that count them.
+	var unit: String = "move"
+	## The score in a few words, as the share card and its message give it: "4 moves, par 4".
+	var summary: String = ""
+	## The level's best stars before this win: 0 the first time it is solved.
+	var before: int = 0
+	## No undo, restart or extra on the way.
+	var clean: bool = false
+	## Replays the solve at speed and then shows the sheet again; invalid where the game has no replay.
+	var watch: Callable = Callable()
+	## The heading and line Cheers chose, kept so the sheet says the same after a replay.
+	var words: PackedStringArray = PackedStringArray()
+
+## Opens the win sheet. `detail` lines are shown muted under the stars. With a `moment`, an empty
+## `heading` is chosen by Cheers and the quiet actions are Watch, Share, Again and Levels; without one, the
+## heading is as given and the quiet actions are Replay and Levels.
 static func won(host: Node, heading: String, earned: int, detail: PackedStringArray, next_text: String,
-		on_next: Callable, on_replay: Callable, on_levels: Callable) -> Sheet:
+		on_next: Callable, on_replay: Callable, on_levels: Callable, moment: Moment = null) -> Sheet:
 	var sheet: Sheet = Sheet.open(host, false)
 	var c: VBoxContainer = sheet.content
-	c.add_child(UI.title(heading, 68))
+	if moment != null and moment.words.is_empty():
+		moment.words = Cheers.pick(moment, earned)
+	var title: String = heading if heading != "" or moment == null else moment.words[0]
+	c.add_child(UI.title(title, 68))
 	var row: HBoxContainer = HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 20)
@@ -22,15 +45,22 @@ static func won(host: Node, heading: String, earned: int, detail: PackedStringAr
 		var star: StarIcon = StarIcon.new(STAR_SIZE, false)
 		row.add_child(star)
 		icons.append(star)
+	if moment != null:
+		var said: Label = UI.label(moment.words[1], 32)
+		said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		c.add_child(said)
 	for line: String in detail:
-		c.add_child(UI.label(line, 30, Brand.MUTED))
-	c.add_child(UI.spacer(6))
+		c.add_child(UI.label(line, 28, Brand.MUTED))
+	c.add_child(UI.spacer(4))
 	var next: Button = UI.button(next_text, UI.Style.PRIMARY)
 	next.pressed.connect(on_next)
 	c.add_child(next)
-	c.add_child(_quiet_row(on_replay, on_levels))
+	if moment != null:
+		c.add_child(_actions(host, moment, earned, title, on_replay, on_levels))
+	else:
+		c.add_child(_quiet_row(on_replay, on_levels))
 	for k: int in range(earned):
-		_award(host, icons[k], 0.4 + k * STAR_GAP)
+		_award(host, icons[k], 0.4 + k * STAR_GAP, earned == 3 and k == 2)
 	return sheet
 
 ## Opens the failure sheet. It leads with Undo when `on_undo` is given, or else with `more_text` when
@@ -64,6 +94,19 @@ static func failed(host: Node, heading: String, line: String, retry_text: String
 	c.add_child(row)
 	return sheet
 
+## Watch (where the game can replay), Share, Again and Levels: round buttons, each named underneath.
+static func _actions(host: Node, moment: Moment, earned: int, title: String, on_replay: Callable,
+		on_levels: Callable) -> HBoxContainer:
+	var row: HBoxContainer = HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 30)
+	if moment.watch.is_valid():
+		row.add_child(UI.action(&"watch", "Watch", moment.watch))
+	row.add_child(UI.action(&"share", "Share", func() -> void: ShareCard.share(host, moment, earned, title)))
+	row.add_child(UI.action(&"restart", "Again", on_replay))
+	row.add_child(UI.action(&"levels", "Levels", on_levels))
+	return row
+
 static func _quiet_row(on_replay: Callable, on_levels: Callable) -> HBoxContainer:
 	var row: HBoxContainer = HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -76,7 +119,8 @@ static func _quiet_row(on_replay: Callable, on_levels: Callable) -> HBoxContaine
 	row.add_child(levels)
 	return row
 
-static func _award(host: Node, star: StarIcon, delay: float) -> void:
+## A star lands: it fills, springs up from small, rings, and for the third of a perfect solve, throws sparks.
+static func _award(host: Node, star: StarIcon, delay: float, burst: bool) -> void:
 	await host.get_tree().create_timer(delay).timeout
 	if not is_instance_valid(star):
 		return
@@ -85,3 +129,30 @@ static func _award(host: Node, star: StarIcon, delay: float) -> void:
 	star.create_tween().tween_property(star, "scale", Vector2.ONE, 0.34).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	Audio.play(&"star", -6.0, 1.0 + 0.08 * star.get_index())
 	Audio.buzz(10)
+	if burst:
+		var sparks: _Sparks = _Sparks.new()
+		sparks.position = star.size * 0.5
+		star.add_child(sparks)
+
+## A ring of sparks thrown out from a star and fading as they fly.
+class _Sparks extends Node2D:
+	const COUNT: int = 12
+	const REACH: float = 120.0
+	const LIFE: float = 0.6
+
+	var _t: float = 0.0
+
+	func _process(delta: float) -> void:
+		_t += delta / LIFE
+		if _t >= 1.0:
+			queue_free()
+			return
+		queue_redraw()
+
+	func _draw() -> void:
+		var out: float = 1.0 - pow(1.0 - _t, 3.0)
+		for k: int in range(COUNT):
+			var a: float = TAU * k / COUNT + 0.3
+			var at: Vector2 = Vector2(cos(a), sin(a)) * (30.0 + REACH * out)
+			var colour: Color = Brand.GOLD if k % 2 == 0 else Brand.ACCENT
+			draw_circle(at, 7.0 * (1.0 - _t), Color(colour, 1.0 - _t), true, -1.0, true)

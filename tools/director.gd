@@ -9,7 +9,9 @@ extends RefCounted
 ## (the note after the last level). Levels are 1-based here, as a player counts them. Any action takes a
 ## "dark/" prefix to stage it in the dark theme; without one it is in the game's own look. Also looks[:owned]
 ## (the marble sets sheet), colours (the colour themes sheet), themed:ID:K (level K in colour theme ID)
-## and tiles[::K] (every mark from chapter 16 on, after K tilts).
+## and tiles[::K] (every mark from chapter 16 on, after K tilts). levels:K shows page K of the grid,
+## unlock:N the sheet a locked level N opens on Google Play, replay:N:K level N's solve watched back K
+## tenths of a second in, and card:N the share card for level N.
 ##
 ## The ads and the Supporter pack, as the Google Play build shows them unless the variant says web:
 ## levelsad (the grid with a stand-in banner of the real size), supporter[:web|:owned] (the support
@@ -96,8 +98,50 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 				await view.play(move)
 			await _wait(host, 0.6)
 		"levels":
-			host.add_child(load(Brand.LEVELS_SCENE).instantiate())
+			# The grid opens where play is; levels:K turns to page K.
+			var grid: Node = load(Brand.LEVELS_SCENE).instantiate()
+			host.add_child(grid)
+			if parts.size() > 1:
+				await _wait(host, 0.1)
+				grid.call("_show", n, 0)
 			await _wait(host, 0.5)
+		"unlock":
+			# Level N's locked tile tapped on Google Play, with a video, keys for sale and Every level.
+			Supporter.on_play = true
+			Ads.use(_PreviewAds.new())
+			Shop.prices[GameMonetize.KEY_IDS[0]] = "$0.49"
+			Shop.prices[GameMonetize.LEVELS_ID] = "$1.99"
+			var shut: Node = load(Brand.LEVELS_SCENE).instantiate()
+			host.add_child(shut)
+			await _wait(host, 0.1)
+			shut.call("_show", Pack.chapter_of(n), 0)
+			await _wait(host, 0.3)
+			Unlocks.offer(shut, n)
+			await _wait(host, 0.6)
+		"replay":
+			# Level N solved, then watched back, `k` tenths of a second in.
+			var watched: Node = await _game(host, n)
+			await _solve(watched, 999)
+			await _wait(host, 1.9)
+			watched.call("_watch")
+			await _wait(host, 0.1 * k)
+		"card":
+			# The share card for level N once solved, as the share sheet would get it.
+			var shared: Node = await _game(host, n)
+			await _solve(shared, 999)
+			await _wait(host, 1.9)
+			var moment: Result.Moment = shared.get("_won")
+			var image: Image = await ShareCard.render(host, moment, int(shared.get("_earned")), moment.words[0])
+			var layer: CanvasLayer = CanvasLayer.new()
+			layer.layer = 100
+			host.add_child(layer)
+			var shown: TextureRect = TextureRect.new()
+			shown.texture = ImageTexture.create_from_image(image)
+			shown.set_anchors_preset(Control.PRESET_FULL_RECT)
+			shown.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			shown.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			layer.add_child(shown)
+			await _wait(host, 0.2)
 		"levelsad":
 			Ads.preview = true
 			host.add_child(load(Brand.LEVELS_SCENE).instantiate())
