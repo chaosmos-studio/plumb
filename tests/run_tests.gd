@@ -5,6 +5,7 @@ extends SceneTree
 # CI greps the last line for "0 failed", so keep that wording.
 
 const InputMapGen: GDScript = preload("res://tools/make_input_map.gd")
+const LevelTool: GDScript = preload("res://tools/generate_levels.gd")
 ## Google's official test app, which the AdMob plugin also falls back to when the setting is unset.
 const ADMOB_SETTINGS: GDScript = preload("res://addons/admob/internal/services/project_settings_service.gd")
 const APP_ID_SETTING: String = "admob/general/android/app_id"
@@ -33,6 +34,7 @@ func _initialize() -> void:
 	_test_serialisation()
 	_test_stars()
 	_test_level_pack()
+	_test_opening()
 	_test_appearance()
 	_test_contrast()
 	_test_themes()
@@ -499,6 +501,34 @@ func _test_level_pack() -> void:
 	_check("within a chapter no level takes away room, a colour, a marble or a pit (at: %s)" % str(less),
 		less.is_empty())
 	_check("every pit level has a pit in play (not: %s)" % str(tame), tame.is_empty())
+
+# The opening is picked for what its levels show (TiltShowcase), so a rule change that quietly undoes a trait
+# fails here, and so does a splice that would touch anything in the level file but the opening.
+func _test_opening() -> void:
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://levels/levels.json"))
+	if typeof(data) != TYPE_DICTIONARY:
+		return
+	var levels: Array = (data as Dictionary)["levels"]
+	for k: int in range(TiltShowcase.SLOTS.size()):
+		var slot: Dictionary = TiltShowcase.SLOTS[k]
+		_check("opening level %d shows %s" % [k + 1, ", ".join(PackedStringArray(slot["traits"]))],
+			TiltShowcase.holds(TiltBoard.from_dict(levels[k]), slot))
+	var long: Dictionary = {"marbles": 1, "par": 1, "traits": ["long"]}
+	_check("a roll of three cells home is long, of two is not", TiltShowcase.holds(_board(["0..."], [[3, 0, 0]]), long)
+		and not TiltShowcase.holds(_board(["0.."], [[2, 0, 0]]), long))
+	var together: Dictionary = {"marbles": 2, "par": 1, "traits": ["together", "busy"]}
+	_check("two marbles in a line drop together", TiltShowcase.holds(_board(["0.."], [[1, 0, 0], [2, 0, 0]]), together))
+	_check("a mirrored board is symmetric, a lopsided one less so",
+		TiltShowcase.symmetry(_board(["#.#", "...", ".0."], []), false) == 1.0
+		and TiltShowcase.symmetry(_board(["#..", "...", ".0."], []), false) < 1.0)
+	var file: Dictionary = {"levels": [{"marbles": [[1, 0, 0]], "par": 1, "rows": ["#.0"]},
+		{"marbles": [[2.0, 1.0, 0.0]], "par": 2.0, "rows": ["0..", "..."], "tiles": [[0, 1, "stop", 0]]}],
+		"rng_states": ["7"], "seed": 2026}
+	var fresh: Dictionary = {"marbles": [[0, 0, 0], [1, 0, 0]], "par": 1, "rows": ["..0", "#.#"]}
+	var after: Dictionary = file.duplicate(true)
+	(after["levels"] as Array)[0] = fresh
+	_check("a new opening is spliced into the level file and nothing else changes",
+		LevelTool.splice(JSON.stringify(file, "\t"), [fresh]) == JSON.stringify(after, "\t"))
 
 ## Whether a chapter list read back from JSON, where every number is a float, matches the generator's.
 static func _same_chapters(read: Array, made: Array) -> bool:
