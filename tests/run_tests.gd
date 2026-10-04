@@ -486,10 +486,11 @@ func _test_level_pack() -> void:
 		if run > TiltGenerator.RUN:
 			flat.append(i + 1)
 		# A new chapter's tiles carry some of the load, so its first board may hold less than the last
-		# chapter's, as long as it measures no easier.
+		# chapter's, as long as it measures no easier. Stones are a rule's mark, not marbles, so in the mixed
+		# chapter a board without the stone rule holds no less.
 		var a: TiltBoard = boards[i - 1]
 		var b: TiltBoard = boards[i]
-		if not opens.has(i) and (b.cells.size() < a.cells.size() or b.marble_cell.size() < a.marble_cell.size()
+		if not opens.has(i) and (b.cells.size() < a.cells.size() or b.marbles_left() < a.marbles_left()
 				or _colours(b) < _colours(a) or _pits(b) < _pits(a)):
 			less.append(i + 1)
 	_check("no level is easier than the one before (at: %s)" % str(easier), easier.is_empty())
@@ -510,10 +511,12 @@ static func _same_chapters(read: Array, made: Array) -> bool:
 			return false
 	return true
 
+## The marble colours on a board, a stone's grey not among them.
 static func _colours(b: TiltBoard) -> int:
 	var seen: Dictionary = {}
 	for c: int in b.marble_colour:
-		seen[c] = true
+		if c != TiltBoard.STONE:
+			seen[c] = true
 	return seen.size()
 
 static func _pits(b: TiltBoard) -> int:
