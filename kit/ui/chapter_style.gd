@@ -134,7 +134,7 @@ static func _ring(p: Vector2, r: float, sides: int, turn: float) -> PackedVector
 	return out
 
 ## The chapter's ground for a whole screen: a wash of its colour from the top, and its pattern, faint.
-class Backdrop extends Control:
+class Ground extends Control:
 	const WASH: float = 0.14
 	const PATTERN: float = 0.07
 

@@ -19,7 +19,7 @@ const GRID_GAP: float = 20.0
 const LIFT_TIME: float = 0.28
 
 var _page: int = 0
-var _backdrop: ChapterStyle.Backdrop
+var _ground: ChapterStyle.Ground
 var _grid: GridContainer
 var _dots: _PageDots
 var _prev: IconButton
@@ -38,8 +38,8 @@ var _settled: bool = false
 
 func _ready() -> void:
 	var ui: Control = UI.root(self)
-	_backdrop = ChapterStyle.Backdrop.new()
-	ui.add_child(_backdrop)
+	_ground = ChapterStyle.Ground.new()
+	ui.add_child(_ground)
 	var safe: Dictionary = UI.safe_margins(get_viewport())
 	var top: HBoxContainer = HBoxContainer.new()
 	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
@@ -199,7 +199,7 @@ func _show(page: int, from: int, again: bool = false) -> void:
 	for child: Node in _grid.get_children():
 		child.queue_free()
 	var tint: Color = ChapterStyle.tint(_page)
-	_backdrop.chapter = _page
+	_ground.chapter = _page
 	if _chapter_name != null:
 		_chapter_number.text = _standing(_page).to_upper()
 		_chapter_number.add_theme_color_override("font_color", tint)
