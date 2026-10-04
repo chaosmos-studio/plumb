@@ -21,8 +21,8 @@ To ship: add a new section at the top, push, then Actions > Release Android > Ru
 - Twenty-five chapters, each with its own rule, colour and pattern: gates, portals, springs, magnets, glass and more.
 - Difficulty only ever climbs, from a brand new opening five.
 - Stuck? Solve 14 of a chapter's 20 and the next one opens, or open any level with a key or a short video.
-- Every win says something new, replays your solve at speed and makes a card to share.
-- A shop with every level, marble sets and twelve colour themes, and a calmer Settings.
+- Every win says something new, and makes a card to share, save or watch as a reel.
+- A shop with every level, marble sets and twelve colour themes, and volume sliders in a calmer Settings.
 
 ## 1.0.1 - 2026-10-02
 

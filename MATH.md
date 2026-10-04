@@ -648,3 +648,43 @@ a player who wants a particular one now.
 
 - `Unlocks.GATE` to 1.0: the old rule, every chapter shut until the one before it is finished.
 - `Unlocks.GATE` to 0.4: the Cut the Rope share, eight levels into a chapter and the next one opens.
+
+---
+
+## 15. A QR code made by hand, and a slider that sounds even
+
+**The code.** A reel ends on a code that a phone can scan to reach the game's store listing. The kit
+makes it itself (`Qr`), so no image file is exported and any link works. A QR code is a square of
+modules that carries bytes, and it is built in four steps.
+
+1. **Data.** A 4-bit mode (0100, bytes), the length in 8 bits (16 from version 10 up), the bytes, a
+   terminator, zeros to a whole byte, then the pad bytes 0xEC and 0x11 in turn until the version is full.
+   The version is the smallest that holds the text. The 70 bytes of a Play listing link need version 8 at
+   level H, 49 modules a side.
+2. **Error correction.** The codewords are split into blocks, and each block gets Reed-Solomon check
+   bytes. Read the block as a polynomial over GF(2⁸), the field of 256 elements whose arithmetic is taken
+   modulo x⁸ + x⁴ + x³ + x² + 1, and append the remainder of dividing it by
+   g(x) = ∏ᵢ₌₀ⁿ⁻¹ (x − αⁱ) with α = 2. A remainder of n bytes lets a reader find and fix n/2 bad
+   bytes. Level H spends enough that about 30% of the code can be lost, which is the room the app icon
+   takes in the middle.
+3. **Placement.** Three finder eyes in the corners, the timing rows, the alignment patterns, and the format
+   and version bits come first. The codeword bits then snake up and down two columns at a time from the
+   right, around everything already placed.
+4. **Masking.** Each of eight masks flips the data modules on a pattern, such as (x + y) mod 2 = 0. The
+   mask with the lowest penalty wins. Long runs of one colour cost, as do 2 by 2 blocks, shapes that look
+   like a finder eye, and a dark share far from half, so a scanner never takes data for the frame.
+
+The kit's codes match OpenCV's encoder module for module, mask included, and they decode.
+
+**The slider.** Loudness is heard on a log scale: 10 dB down sounds about half as loud. A slider mapped
+straight to amplitude changes little over its top half and then everything in its last stretch. So
+`Save.volume_db` squares the slider's place v before it becomes decibels: 20 log₁₀(v²) = 40 log₁₀ v. The
+middle of the slider is -12 dB, about half as loud, a quarter of the way is -24 dB, and the end falls away
+to silence.
+
+### Things to try
+
+- Make `Save.volume_db` return `linear_to_db(volume)`: the middle of the slider is only -6 dB, and the
+  slider seems to do nothing until near the end.
+- Give `Qr.rows` a link twice as long: it moves up to version 12, 65 modules a side, and its modules
+  shrink on the end card.
