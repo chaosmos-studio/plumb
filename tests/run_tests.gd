@@ -61,7 +61,9 @@ func _initialize() -> void:
 	_test_chapter_colours()
 	_test_unlocks()
 	_test_cheers()
-	_test_win_sheet()
+	await _test_win_sheet()
+	_test_qr()
+	_test_volumes()
 	_test_sheets_fit_a_phone()
 	_test_play_screen_banner()
 	await _test_sheet_rises_before_layout()
@@ -1097,7 +1099,7 @@ func _test_win_sheet() -> void:
 	moment.set("level", 3)
 	moment.set("summary", "4 moves, par 4")
 	moment.set("before", 3)
-	moment.set("watch", func() -> void: pass)
+	moment.set("watch", func(_reel: bool) -> void: pass)
 	var none: Callable = func() -> void: pass
 	result.call("won", host, "", 3, PackedStringArray(["4 moves, par 4"]), "Next level", none, none, none, moment)
 	var texts: PackedStringArray = PackedStringArray()
@@ -1114,11 +1116,103 @@ func _test_win_sheet() -> void:
 	host.add_child(controls)
 	host.add_child(backdrop)
 	var replay: CanvasLayer = replay_script.call("begin", host)
-	_check("a replay runs the clock fast and puts the controls away, not the backdrop",
-		Engine.time_scale > 1.0 and not controls.visible and backdrop.visible)
+	_check("a replay puts the controls away, not the backdrop", not controls.visible and backdrop.visible)
+	await replay.call("opening")
+	_check("and runs the clock fast once it opens", Engine.time_scale > 1.0)
 	replay.call("finish")
+	await process_frame
 	_check("and puts both back when it ends", is_equal_approx(Engine.time_scale, 1.0) and controls.visible)
+	var reel: CanvasLayer = replay_script.call("begin", host, moment, 2)
+	var framed: PackedStringArray = _texts(reel)
+	_check("a reel frames the moves with the game's name, the level and the score", framed.has(Brand.NAME)
+		and framed.has("LEVEL 4") and framed.has("4 moves, par 4"))
+	reel.call("beat")
+	reel.call("closing")
+	await process_frame
+	_check("and ends on a card with a code to scan", _texts(reel).has("SCAN TO PLAY")
+		and _texts(reel).has("Get %s on Google Play" % Brand.NAME))
+	await create_timer(1.2).timeout
+	var tap: InputEventScreenTouch = InputEventScreenTouch.new()
+	tap.pressed = true
+	reel.call("_on_input", tap)
+	await process_frame
+	reel.call("finish")
+	await process_frame
+	_check("which a tap closes, leaving the board where it was",
+		host.get_viewport().canvas_transform == Transform2D.IDENTITY and is_equal_approx(Engine.time_scale, 1.0))
 	host.free()
+
+func _texts(node: Node) -> PackedStringArray:
+	var out: PackedStringArray = PackedStringArray()
+	for l: Node in node.find_children("*", "Label", true, false):
+		out.append((l as Label).text)
+	return out
+
+## The codes the reel ends on: the right size for the text, and the patterns and format a reader looks for.
+func _test_qr() -> void:
+	var qr: GDScript = load("res://kit/ui/qr.gd")
+	var small: PackedStringArray = qr.call("rows", "hi")
+	_check("a short text fits the smallest code", small.size() == 21 and small[0].length() == 21)
+	# Loaded, not named: GameShare uses the autoloads, which an import run has not made yet.
+	var store: String = load("res://share.gd").get_script_constant_map()["STORE"]
+	var rows: PackedStringArray = qr.call("rows", store)
+	var n: int = rows.size()
+	_check("the store link fits version 8 at level H, 49 modules a side", n == 49)
+	var eyes: bool = true
+	for corner: Vector2i in [Vector2i(0, 0), Vector2i(n - 7, 0), Vector2i(0, n - 7)]:
+		for y: int in range(7):
+			for x: int in range(7):
+				var ring: int = maxi(absi(x - 3), absi(y - 3))
+				eyes = eyes and (rows[corner.y + y][corner.x + x] == "1") == (ring != 2)
+	_check("each corner has a finder eye", eyes)
+	var timing: bool = true
+	for x: int in range(8, n - 8):
+		timing = timing and (rows[6][x] == "1") == (x % 2 == 0)
+	_check("the timing row alternates", timing)
+	var format: int = 0
+	var spots: Array[Vector2i] = [Vector2i(8, 0), Vector2i(8, 1), Vector2i(8, 2), Vector2i(8, 3), Vector2i(8, 4),
+		Vector2i(8, 5), Vector2i(8, 7), Vector2i(8, 8), Vector2i(7, 8), Vector2i(5, 8), Vector2i(4, 8), Vector2i(3, 8),
+		Vector2i(2, 8), Vector2i(1, 8), Vector2i(0, 8)]
+	for i: int in range(15):
+		format |= (1 if rows[spots[i].y][spots[i].x] == "1" else 0) << i
+	format ^= 0x5412
+	var data: int = format >> 10
+	var rem: int = data
+	for k: int in range(10):
+		rem = (rem << 1) ^ ((rem >> 9) * 0x537)
+	_check("the format says level H, and its check bits agree", data >> 3 == 2 and rem == (format & 0x3FF))
+
+## The volume sliders: a square law, 0 as off, saved, and an older save's switches read as volumes.
+func _test_volumes() -> void:
+	var save: Node = root.get_node("Save")
+	var old: Array = [save.get("sound_volume"), save.get("music_volume"), save.get("path")]
+	save.set("path", "user://test_volumes.cfg")
+	_check("a slider's end is full volume and its middle about half as loud",
+		is_zero_approx(float(save.call("volume_db", 1.0))) and absf(float(save.call("volume_db", 0.5)) + 12.04) < 0.1
+		and float(save.call("volume_db", 0.0)) <= -60.0)
+	save.call("set_sound_volume", 0.4)
+	save.call("set_music_volume", 0.0)
+	_check("a volume of 0 is off, and any other is on", bool(save.get("sound_on")) and not bool(save.get("music_on")))
+	save.call("restore")
+	_check("volumes are saved", is_equal_approx(float(save.get("sound_volume")), 0.4)
+		and is_zero_approx(float(save.get("music_volume"))))
+	var older: ConfigFile = ConfigFile.new()
+	older.set_value("settings", "sound_on", false)
+	older.set_value("settings", "music_on", true)
+	older.save("user://test_volumes.cfg")
+	save.call("restore")
+	_check("a save from before the sliders keeps its switches as volumes", is_zero_approx(float(save.get("sound_volume")))
+		and is_equal_approx(float(save.get("music_volume")), 1.0) and not bool(save.get("sound_on")))
+	var host: Node = Node.new()
+	load("res://kit/shell/settings.gd").call("open", host)
+	var sliders: int = host.find_children("*", "Range", true, false).size()
+	_check("settings has a slider for the sound, and one for the music where there is music",
+		sliders == (2 if Brand.HAS_MUSIC else 1))
+	host.free()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_volumes.cfg"))
+	save.call("hear_sound_volume", old[0])
+	save.call("hear_music_volume", old[1])
+	save.set("path", old[2])
 
 ## Chapters open on the gate, and a single level opens with a key that Play delivered.
 func _test_unlocks() -> void:
