@@ -52,7 +52,7 @@ func begin(view: Vector2i, frames_a_second: float) -> bool:
 	size = size_for(view)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))
 	_recorder = JavaClassWrapper.wrap("android.media.MediaRecorder").call("MediaRecorder")
-	if _recorder == null or JavaClassWrapper.get_exception() != null:
+	if _recorder == null or Gallery.failed("make a MediaRecorder"):
 		return false
 	_recorder.call("setVideoSource", SURFACE)
 	_recorder.call("setOutputFormat", MPEG_4)
@@ -63,18 +63,26 @@ func begin(view: Vector2i, frames_a_second: float) -> bool:
 	_recorder.call("setVideoEncodingBitRate", BITRATE)
 	_recorder.call("setCaptureRate", rate)
 	_recorder.call("prepare")
-	if JavaClassWrapper.get_exception() != null:
+	if Gallery.failed("prepare the recorder at %s and %.0f frames a second" % [size, rate]):
 		_recorder.call("release")
+		_recorder = null
 		return false
 	_surface = _recorder.call("getSurface")
 	_recorder.call("start")
-	var configs: Object = JavaClassWrapper.wrap("android.graphics.Bitmap$Config")
-	_bitmap = JavaClassWrapper.wrap("android.graphics.Bitmap").call("createBitmap", size.x, size.y, configs.get("ARGB_8888"))
-	_buffers = JavaClassWrapper.wrap("java.nio.ByteBuffer")
-	_started = _surface != null and _bitmap != null and JavaClassWrapper.get_exception() == null
-	if not _started:
+	if _surface == null or Gallery.failed("start the recorder"):
 		cancel()
-	return _started
+		return false
+	# The wrapper only reads static fields that hold numbers or text, so the bitmap's config comes from
+	# valueOf rather than Bitmap.Config.ARGB_8888.
+	var argb: Object = JavaClassWrapper.wrap("android.graphics.Bitmap$Config").call("valueOf", "ARGB_8888")
+	_bitmap = JavaClassWrapper.wrap("android.graphics.Bitmap").call("createBitmap", size.x, size.y, argb)
+	_buffers = JavaClassWrapper.wrap("java.nio.ByteBuffer")
+	_started = true
+	if _bitmap == null or Gallery.failed("make the frame's bitmap"):
+		cancel()
+		return false
+	print("%s: filming the reel at %s, %.0f frames a second" % [Brand.NAME, size, rate])
+	return true
 
 ## One frame: the game's picture, brought to the film's size and drawn onto the recorder's surface.
 func add(frame: Image) -> void:
@@ -86,11 +94,12 @@ func add(frame: Image) -> void:
 		frame.resize(size.x, size.y, Image.INTERPOLATE_BILINEAR)
 	_bitmap.call("copyPixelsFromBuffer", _buffers.call("wrap", frame.get_data()))
 	var canvas: Object = _surface.call("lockHardwareCanvas")
-	if canvas == null or JavaClassWrapper.get_exception() != null:
+	if canvas == null or Gallery.failed("draw frame %d" % frames):
 		return
 	canvas.call("drawBitmap", _bitmap, 0.0, 0.0, null)
 	_surface.call("unlockCanvasAndPost", canvas)
-	frames += 1
+	if not Gallery.failed("hand over frame %d" % frames):
+		frames += 1
 
 ## Ends the film. True when the file was written.
 func finish() -> bool:
@@ -98,7 +107,7 @@ func finish() -> bool:
 		return false
 	_started = false
 	_recorder.call("stop")
-	var ok: bool = JavaClassWrapper.get_exception() == null
+	var ok: bool = not Gallery.failed("stop the recorder after %d frames" % frames)
 	_close()
 	return ok and frames > 0 and FileAccess.file_exists(PATH)
 

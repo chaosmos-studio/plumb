@@ -20,18 +20,30 @@ static func keep(bytes: PackedByteArray, file_name: String, mime: String) -> boo
 	values.call("put", "_display_name", file_name)
 	values.call("put", "mime_type", mime)
 	values.call("put", "relative_path", ("Movies/" if film else "Pictures/") + Brand.NAME)
+	# The wrapper only reads static fields that hold numbers or text, so the collection's Uri comes from
+	# getContentUri rather than EXTERNAL_CONTENT_URI.
 	var media: Object = JavaClassWrapper.wrap("android.provider.MediaStore$Video$Media" if film
 		else "android.provider.MediaStore$Images$Media")
+	var collection: Object = media.call("getContentUri", "external")
 	var resolver: Object = activity.call("getContentResolver")
-	var uri: Object = resolver.call("insert", media.get("EXTERNAL_CONTENT_URI"), values)
-	if uri == null or JavaClassWrapper.get_exception() != null:
+	var uri: Object = resolver.call("insert", collection, values)
+	if uri == null or failed("insert into the MediaStore"):
 		return false
 	var stream: Object = resolver.call("openOutputStream", uri)
-	if stream == null or JavaClassWrapper.get_exception() != null:
+	if stream == null or failed("open the MediaStore entry"):
 		return false
 	stream.call("write", bytes)
 	stream.call("close")
-	return JavaClassWrapper.get_exception() == null
+	return not failed("write the MediaStore entry")
+
+## Whether the last call into Java threw, said in the log with `doing`, which is where a failure on a
+## phone shows up.
+static func failed(doing: String) -> bool:
+	var thrown: Object = JavaClassWrapper.get_exception()
+	if thrown == null:
+		return false
+	print("%s: could not %s: %s" % [Brand.NAME, doing, String(thrown.call("toString"))])
+	return true
 
 ## A short native note at the foot of the screen, outside anything the game draws.
 static func say(text: String) -> void:

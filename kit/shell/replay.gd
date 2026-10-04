@@ -195,6 +195,7 @@ func _start_film() -> bool:
 		probe.resize(fitted.x, fitted.y, Image.INTERPOLATE_BILINEAR)
 		probe.get_data()
 		cost = maxf(cost, (Time.get_ticks_usec() - started) / 1000.0)
+	print("%s: a frame of %s takes %.0f ms to hand over" % [Brand.NAME, view, cost])
 	var film: ReelVideo = ReelVideo.new()
 	if not film.begin(view, ReelVideo.rate_for(cost)):
 		Gallery.say("This phone cannot make a video here")
@@ -220,6 +221,7 @@ func _end_film() -> void:
 	var film: ReelVideo = _film
 	_stop_film()
 	var file_name: String = "%s-level-%d.mp4" % [Brand.NAME.to_lower(), moment.level + 1]
+	print("%s: the reel is %d frames" % [Brand.NAME, film.frames])
 	if film.finish() and film.keep(file_name):
 		Gallery.say("Saved to Movies")
 	else:
