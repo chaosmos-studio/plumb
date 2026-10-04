@@ -1,13 +1,13 @@
 class_name QrCard
 extends Control
 
-## A QR code that looks like part of the film: a white card, rounded modules that pop in from the
+## A QR code that looks like part of a film or a reel: a white card, rounded modules that pop in from the
 ## centre outward, the three finder eyes drawn as rounded squares, the app icon in the middle, then a
 ## sheen across the card and corner brackets that breathe, as if a camera were framing it. Once it has
 ## settled nothing moves inside the code, so a phone held up to the screen reads it.
 ##
 ## `rows` is the module matrix without its quiet zone, one string of 0 and 1 per row, from an encoder at
-## error correction level H: the icon covers well under the 30 percent that level can lose. The finder
+## error correction level H (Qr.rows): the icon covers well under the 30 percent that level can lose. The finder
 ## eyes are rounded by under a module: at a full module OpenCV's detector stops finding them, and phone
 ## readers are built on the same finder search.
 
