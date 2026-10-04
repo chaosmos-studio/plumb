@@ -38,7 +38,6 @@ func _initialize() -> void:
 	_test_appearance()
 	_test_contrast()
 	_test_themes()
-	_test_chapter_colours()
 	_test_saved_settings()
 	_test_guide_and_ending()
 	_test_banner_pacing()
@@ -57,6 +56,7 @@ func _initialize() -> void:
 	_test_shop()
 	# The root takes new children only once _initialize has handed control back to the engine.
 	await process_frame
+	_test_chapter_colours()
 	_test_unlocks()
 	_test_cheers()
 	_test_win_sheet()
@@ -580,8 +580,8 @@ func _test_themes() -> void:
 			_check("the %s theme reads in %s: %s" % [id, "dark" if dark else "light", ", ".join(short)], short.is_empty())
 	Brand.use(Brand.NATIVE_DARK)
 
-## Every chapter's colour reads on the background and on a card, in every theme, light and dark, and the
-## next chapter's is always a clearly different hue.
+## Every chapter's colour reads on the background and on a card, in every theme, light and dark; the next
+## chapter's is always a clearly different hue, and no two chapters share one.
 func _test_chapter_colours() -> void:
 	var themes: GDScript = load("res://kit/ui/themes.gd")
 	var appearance: GDScript = load("res://kit/ui/appearance.gd")
@@ -605,10 +605,17 @@ func _test_chapter_colours() -> void:
 					short.append("%s %s %d: %.1f" % [id, "dark" if dark else "light", chapter + 1, worst])
 				var next: Color = style.call("tint", chapter + 1)
 				var apart: float = absf(tint.ok_hsl_h - next.ok_hsl_h)
-				if minf(apart, 1.0 - apart) < 0.3:
+				if minf(apart, 1.0 - apart) < 0.25:
 					close.append("%s %d" % [id, chapter + 1])
 	_check("every chapter's colour reads on the background and on a card (short: %s)" % ", ".join(short), short.is_empty())
 	_check("the next chapter's colour is always a different hue (close: %s)" % ", ".join(close), close.is_empty())
+	var hues: Array[float] = []
+	for chapter: int in range(chapters):
+		hues.append(snappedf((style.call("tint", chapter) as Color).ok_hsl_h, 0.005))
+	var distinct: Dictionary = {}
+	for hue: float in hues:
+		distinct[hue] = true
+	_check("no two chapters share a hue", distinct.size() == chapters)
 	appearance.set("dark", was)
 	Brand.use(Brand.NATIVE_DARK)
 

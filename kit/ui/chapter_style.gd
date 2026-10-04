@@ -2,14 +2,16 @@ class_name ChapterStyle
 extends RefCounted
 
 ## Each chapter's own colour and pattern, so turning a page of the level grid feels like arriving somewhere
-## new, and the card that opens a chapter in play wears the same. The colour starts at the game's accent
-## and steps round the hue circle by the golden angle, chapter by chapter, at a lightness and chroma held in
-## a band that reads on the theme's background and on its cards. The pattern is one of a dozen motifs,
-## turned and spaced for the chapter, drawn faint behind the grid. A game without chapters gets the same
-## per page.
+## new, and the card that opens a chapter in play wears the same. The hues are spread evenly round the
+## circle, one per chapter, starting at the game's accent, and visited by a stride of about a third of a
+## turn that shares no factor with the number of chapters: every chapter gets a hue of its own and the
+## next one is always far off. Lightness and chroma are held in a band that reads on the theme's
+## background and on its cards. The pattern is one of a dozen motifs, turned and spaced for the chapter,
+## drawn faint behind the grid. A game without chapters gets the same per page of the grid.
 
-## The golden angle as a share of the circle: steps by it never land near an earlier one for long.
-const GOLDEN: float = 0.6180339887
+## The share of a turn the stride between chapters comes closest to.
+const STRIDE: float = 0.3
+const PER_PAGE: int = 20
 const STROKE: float = 3.0
 
 enum Motif { DOTS, RINGS, WAVES, STRIPES, CROSSES, TRIANGLES, HEXES, ZIGZAG, SPARKS, SCALES, DIAMONDS, PETALS }
@@ -17,10 +19,31 @@ enum Motif { DOTS, RINGS, WAVES, STRIPES, CROSSES, TRIANGLES, HEXES, ZIGZAG, SPA
 ## The chapter's colour in the theme in use.
 static func tint(chapter: int) -> Color:
 	var accent: Color = Brand.ACCENT
-	var hue: float = fposmod(accent.ok_hsl_h + chapter * GOLDEN, 1.0)
+	var n: int = count()
+	var hue: float = fposmod(accent.ok_hsl_h + float(posmod(chapter * stride(n), n)) / n, 1.0)
 	var chroma: float = clampf(accent.ok_hsl_s, 0.62, 0.9)
 	var light: float = clampf(accent.ok_hsl_l, 0.7, 0.78) if Appearance.dark else clampf(accent.ok_hsl_l, 0.46, 0.52)
 	return Color.from_ok_hsl(hue, chroma, light)
+
+## The chapters, or for a game without them the pages of the level grid.
+static func count() -> int:
+	return Pack.chapters.size() if not Pack.chapters.is_empty() else maxi(1, ceili(Pack.count() / float(PER_PAGE)))
+
+## The step round `n` evenly spread hues: the one nearest STRIDE of a turn that shares no factor with `n`,
+## so stepping by it visits every hue once before coming back.
+static func stride(n: int) -> int:
+	var best: int = 1
+	for k: int in range(1, n):
+		if _coprime(k, n) and absf(float(k) / n - STRIDE) < absf(float(best) / n - STRIDE):
+			best = k
+	return best
+
+static func _coprime(a: int, b: int) -> bool:
+	while b != 0:
+		var r: int = a % b
+		a = b
+		b = r
+	return a == 1
 
 static func motif(chapter: int) -> Motif:
 	return (chapter % Motif.size()) as Motif
