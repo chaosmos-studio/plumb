@@ -116,7 +116,7 @@ static func transform(board: TiltBoard, s: int) -> TiltBoard:
 	var h: int = board.width if swap else board.height
 	var out: TiltBoard = TiltBoard.create(w, h)
 	for i: int in range(board.cells.size()):
-		var j: int = out.index(_map(board.coords(i), s, w, h))
+		var j: int = out.index(map_cell(board.coords(i), s, w, h))
 		out.cells[j] = board.cells[i]
 		out.holes[j] = board.holes[i]
 		out.plugs[j] = board.plugs[i]
@@ -131,7 +131,7 @@ static func transform(board: TiltBoard, s: int) -> TiltBoard:
 				out.tile_value[j] = 1 - board.tile_value[i] if flips else board.tile_value[i]
 	for m: int in range(board.marble_cell.size()):
 		if board.marble_cell[m] != TiltBoard.GONE:
-			out.add_marble(_map(board.coords(board.marble_cell[m]), s, w, h), board.marble_colour[m],
+			out.add_marble(map_cell(board.coords(board.marble_cell[m]), s, w, h), board.marble_colour[m],
 				board.marble_number[m])
 	out.wrap = board.wrap
 	if s & 4 and board.wrap in [TiltBoard.WRAP_X, TiltBoard.WRAP_Y]:
@@ -150,7 +150,8 @@ static func transform_dir(dir: int, s: int) -> int:
 		d.y = -d.y
 	return TiltBoard.DIRS.find(d)
 
-static func _map(at: Vector2i, s: int, w: int, h: int) -> Vector2i:
+## Where cell `at` lands under symmetry `s` on the turned board, which is `w` by `h`.
+static func map_cell(at: Vector2i, s: int, w: int, h: int) -> Vector2i:
 	var p: Vector2i = Vector2i(at.y, at.x) if s & 4 else at
 	if s & 1:
 		p.x = w - 1 - p.x
