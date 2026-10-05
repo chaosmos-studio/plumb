@@ -32,16 +32,20 @@ static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour:
 			_stroke(ci, pts, colour, w)
 			_stroke(ci, [c + Vector2(-0.12, -0.24) * s, c + Vector2(-0.24, -0.12) * s, c + Vector2(-0.12, 0.0) * s], colour, w)
 		&"restart":
-			# Turn back: a ring run anticlockwise from the left round to the upper left, where its head is a
-			# corner standing outside the ring, clear of it.
-			var u: float = 0.23 * s / 9.0
+			# A ring run anticlockwise from just left of the top round to the upper right. The head sits on a
+			# short straight past the ring's end, so its wings stay clear of the curve.
+			var r2: float = 0.23 * s
+			var end: float = deg_to_rad(-30.0)
 			var arc: Array[Vector2] = []
-			for k: int in range(33):
-				var a2: float = PI - deg_to_rad(317.0) * k / 32.0
-				arc.append(c + Vector2(cos(a2), sin(a2)) * 9.0 * u)
-			arc.append(c + Vector2(-9.0, -4.0) * u)
+			for k: int in range(29):
+				var a2: float = deg_to_rad(-105.0) - deg_to_rad(285.0) * k / 28.0
+				arc.append(c + Vector2(cos(a2), sin(a2)) * r2)
+			var ahead: Vector2 = Vector2(sin(end), -cos(end))
+			var out: Vector2 = Vector2(cos(end), sin(end))
+			var apex: Vector2 = c + out * r2 + ahead * 0.1 * s
+			arc.append(apex)
 			_stroke(ci, arc, colour, w)
-			_stroke(ci, [c + Vector2(-9.0, -9.5) * u, c + Vector2(-9.0, -4.0) * u, c + Vector2(-3.5, -4.0) * u], colour, w)
+			_stroke(ci, [apex + (-ahead + out) * 0.12 * s, apex, apex + (-ahead - out) * 0.12 * s], colour, w)
 		&"hint":
 			var bulb: Vector2 = c + Vector2(0, -0.07) * s
 			var rb: float = 0.2 * s
