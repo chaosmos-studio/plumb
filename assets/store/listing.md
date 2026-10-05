@@ -19,7 +19,7 @@ Swipe to tilt the board and every marble rolls at once, until a wall, the edge o
 One gesture moves everything, which is what makes four directions surprisingly deep: every move is a small chain of consequences to read before you make it.
 
 - Every level checked by a solver and scored against the fewest moves possible, each a little harder than the last
-- Three stars for matching par, with a hint that shows where every marble would land
+- Three stars for the fewest moves, with a hint that shows where every marble would land
 - Undo and restart any time. No timers, no lives, no energy
 - A quiet, tactile look and an ambient soundtrack, with sound, music and vibration you can switch off
 - Plays offline

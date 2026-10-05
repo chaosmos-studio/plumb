@@ -9,9 +9,9 @@ const LINK: String = "https://shravangoswami.com/plumb/"
 const STORE: String = "https://play.google.com/store/apps/details?id=com.shravangoswami.plumb"
 const CHEERS: Array = [
 	["Every marble home. Fewer tilts next time?", "Home, the long way round.", "A shorter way is out there."],
-	["Every marble home.", "Nearly the shortest roll.", "A tilt or two over, and home.", "Just a little over par."],
+	["Every marble home.", "Nearly the shortest roll.", "A tilt or two over, and home.", "Just a little over the goal."],
 	["Rolled to perfection.", "Gravity did exactly as it was told.", "Every marble home, no detours.",
-		"Par, exactly.", "Exactly par. Lovely."],
+		"Right on the goal.", "The goal, exactly. Lovely."],
 ]
 
 static func stage(holder: Node2D, level: int, centre: Vector2, room: Vector2) -> void:
