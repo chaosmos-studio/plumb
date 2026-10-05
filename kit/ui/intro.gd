@@ -8,8 +8,9 @@ extends CanvasLayer
 ##
 ## The kit expects from the game: tools/make_icons.py writing the icon's parts to assets/branding/intro/,
 ## each full frame and drawn where it sits in the icon (ground.png and whatever else), and res://intro.gd
-## with `static func play(stage: Control) -> float`, which lays the parts on `stage` with `part`, finds
-## where they sit with `centre`, sets them moving and answers how long that takes. Without them the whole
+## with `static func play(stage: Control, host: Node) -> float`, which lays the parts on `stage` with
+## `part`, finds where they sit with `centre`, sets them moving and answers how long that takes. `host` is
+## the screen that started the intro, for an intro that hands something on to it. Without them the whole
 ## icon simply settles in.
 
 const LAYER: int = 90
@@ -27,6 +28,7 @@ const SOLID: float = 0.78
 static var enabled: bool = true
 static var _played: bool = false
 static var _centres: Dictionary = {}
+static var _textures: Dictionary = {}
 
 static func play(host: Node) -> void:
 	if _played or not enabled:
@@ -34,10 +36,18 @@ static func play(host: Node) -> void:
 	_played = true
 	host.add_child(Intro.new())
 
-## Part `name` of the icon over the whole of `stage`, behind whatever is added after it.
+## Part `name` of the icon over the whole of `stage`, behind whatever is added after it. Its texture carries
+## mipmaps, since the parts are drawn at the icon's full size and shown at a fraction of it, where curved
+## edges would otherwise shimmer as they move.
 static func part(stage: Control, name: String) -> TextureRect:
 	var rect: TextureRect = TextureRect.new()
-	rect.texture = load(PARTS + name + ".png")
+	if not _textures.has(name):
+		var img: Image = (load(PARTS + name + ".png") as Texture2D).get_image()
+		img.decompress()
+		img.generate_mipmaps()
+		_textures[name] = ImageTexture.create_from_image(img)
+	rect.texture = _textures[name]
+	rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	rect.stretch_mode = TextureRect.STRETCH_SCALE
 	rect.size = stage.size
@@ -73,16 +83,21 @@ func _ready() -> void:
 	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(veil)
 	var side: float = view.x * START_SHARE
+	# Anchored to the middle rather than placed, since a phone may hand over its final size a frame late.
 	var stage: Control = Control.new()
-	stage.size = Vector2(side, side)
-	stage.position = (view - stage.size) * 0.5
-	stage.pivot_offset = stage.size * 0.5
+	stage.set_anchors_preset(Control.PRESET_CENTER)
+	stage.offset_left = -side * 0.5
+	stage.offset_top = -side * 0.5
+	stage.offset_right = side * 0.5
+	stage.offset_bottom = side * 0.5
+	stage.pivot_offset = Vector2(side, side) * 0.5
 	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(stage)
+	stage.size = Vector2(side, side)
 	var busy: float = 0.0
 	if has_parts():
 		part(stage, "ground")
-		busy = float((load(GAME) as GDScript).call("play", stage))
+		busy = float((load(GAME) as GDScript).call("play", stage, get_parent()))
 	else:
 		var icon: TextureRect = UI.app_icon(side)
 		icon.size = stage.size
