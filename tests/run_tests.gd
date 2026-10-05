@@ -425,6 +425,11 @@ func _test_stars() -> void:
 	_check("a little over par is two", Stars.earned(7, 5) == 2)
 	_check("well over par is one", Stars.earned(12, 5) == 1)
 	_check("the two-star leeway grows with par", Stars.leeway(12) > Stars.leeway(4))
+	_check("the play screen's meter holds three stars while the goal can still be met",
+		Stars.possible(0, 5, false) == 3 and Stars.possible(4, 5, false) == 3)
+	_check("and drops one at the goal unsolved, since a win needs another move",
+		Stars.possible(5, 5, false) == 2 and Stars.possible(5, 5, true) == 3)
+	_check("and another past the two-star leeway", Stars.possible(5 + Stars.leeway(5), 5, false) == 1)
 
 # Every shipped level is re-solved against the current rules. If a rule change alters a par or makes a
 # level unsolvable, this fails before a build can ship it. The same measures the generator uses then
@@ -1073,7 +1078,7 @@ func _test_cheers() -> void:
 	save.set("stars", PackedByteArray([3, 3, 3, 3]))
 	var moment: Object = (result.get_script_constant_map()["Moment"] as GDScript).new()
 	moment.set("level", 3)
-	moment.set("summary", "5 moves, par 5")
+	moment.set("summary", "5 moves, goal 5")
 	moment.set("clean", true)
 	var first: PackedStringArray = cheers.call("pick", moment, 3)
 	_check("a perfect first try is news", first[1] == "First try, and perfect."
@@ -1099,11 +1104,11 @@ func _test_win_sheet() -> void:
 	root.add_child(host)
 	var moment: Object = (result.get_script_constant_map()["Moment"] as GDScript).new()
 	moment.set("level", 3)
-	moment.set("summary", "4 moves, par 4")
+	moment.set("summary", "4 moves, goal 4")
 	moment.set("before", 3)
 	moment.set("watch", func(_reel: bool) -> void: pass)
 	var none: Callable = func() -> void: pass
-	result.call("won", host, "", 3, PackedStringArray(["4 moves, par 4"]), "Next level", none, none, none, moment)
+	result.call("won", host, "", 3, PackedStringArray(["4 moves, goal 4"]), "Next level", none, none, none, moment)
 	var texts: PackedStringArray = PackedStringArray()
 	for l: Node in host.find_children("*", "Label", true, false):
 		texts.append((l as Label).text)
@@ -1127,7 +1132,7 @@ func _test_win_sheet() -> void:
 	var reel: CanvasLayer = replay_script.call("begin", host, moment, 2)
 	var framed: PackedStringArray = _texts(reel)
 	_check("a reel frames the moves with the game's name, the level and the score", framed.has(Brand.NAME)
-		and framed.has("LEVEL 4") and framed.has("4 moves, par 4"))
+		and framed.has("LEVEL 4") and framed.has("4 moves, goal 4"))
 	reel.call("beat")
 	reel.call("closing")
 	await process_frame

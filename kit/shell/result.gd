@@ -15,7 +15,7 @@ class Moment extends RefCounted:
 	var level: int = 0
 	## The game's word for one move, for the lines that count them.
 	var unit: String = "move"
-	## The score in a few words, as the share card and its message give it: "4 moves, par 4".
+	## The score in a few words, as the share card and its message give it: "4 moves, goal 4".
 	var summary: String = ""
 	## The level's best stars before this win: 0 the first time it is solved.
 	var before: int = 0

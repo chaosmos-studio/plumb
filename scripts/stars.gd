@@ -12,5 +12,10 @@ static func earned(moves: int, par: int) -> int:
 		return 2
 	return 1
 
+## The most a level part played can still earn, for the play screen's meter. A board not yet won needs
+## at least one move more, so the third star goes out as soon as the goal can no longer be met.
+static func possible(moves: int, par: int, won: bool) -> int:
+	return earned(moves if won else moves + 1, par)
+
 static func leeway(par: int) -> int:
 	return maxi(2, int(ceil(par * 0.5)))

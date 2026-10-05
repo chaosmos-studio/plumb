@@ -28,6 +28,7 @@ var _swiped: bool = false
 
 var _ui: Control
 var _moves: Stat
+var _meter: StarMeter
 var _caption: Label
 var _undo: IconButton
 var _restart: IconButton
@@ -242,6 +243,7 @@ func _dress_hint() -> void:
 
 func _refresh() -> void:
 	_moves.set_value(str(history.size()))
+	_meter.set_stars(Stars.possible(history.size(), par, board.is_won()))
 	_undo.disabled = history.is_empty()
 	_caption.text = "" if Coach.due(level) or finished else _tutorial()
 
@@ -254,7 +256,7 @@ func _tutorial() -> String:
 	if level == 2:
 		return "Every marble rolls until it hits something"
 	if level == 3:
-		return "Par is the fewest moves possible"
+		return "Three stars take the fewest moves possible"
 	if _opens_chapter() > 0:
 		return Pack.chapter_line(_opens_chapter())
 	if _first_sharing_a_hole():
@@ -365,7 +367,7 @@ func _show_won() -> void:
 
 func _score() -> String:
 	var moves: int = history.size()
-	return "%d %s, par %d" % [moves, "move" if moves == 1 else "moves", par]
+	return "%d %s, goal %d" % [moves, "move" if moves == 1 else "moves", par]
 
 func _show_result() -> void:
 	var last: bool = level + 1 >= Pack.count()
@@ -462,7 +464,8 @@ func _build_ui() -> void:
 	_ui.add_child(stats)
 	_moves = Stat.new("Moves", "0")
 	stats.add_child(_moves)
-	stats.add_child(Stat.new("Par", str(par)))
+	_meter = StarMeter.new()
+	stats.add_child(Stat.titled("Stars", _meter))
 
 	_caption = Hud.caption_line(_ui)
 	_undo = UI.icon_button(&"undo", "Undo")
