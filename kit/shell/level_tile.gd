@@ -3,7 +3,8 @@ extends BaseButton
 
 ## One level in the grid: its number and the stars it has earned, in its chapter's colour. A level reached
 ## and not yet solved is ringed in that colour, finished ones sit on a surface edged with it, and locked
-## ones are only an outline and a lock, which still take a tap: it says how the level opens (Unlocks).
+## ones are a faint tile with a faint number. A lock would say no, and every level can be opened now: a tap
+## says how this one opens, and offers the ways to open it at once (Unlocks).
 
 const SIZE: float = 132.0
 
@@ -31,11 +32,11 @@ func _draw() -> void:
 	box.set_corner_radius_all(34)
 	box.anti_aliasing = true
 	if locked:
-		box.bg_color = Color(0, 0, 0, 0)
+		box.bg_color = Color(Brand.SURFACE, 0.45)
 		box.border_color = Color(tint, 0.3)
 		box.set_border_width_all(2)
 		draw_style_box(box, rect)
-		Icons.draw(self, &"lock", rect.get_center(), 54.0, Color(tint, 0.55))
+		_number(rect, Color(tint, 0.45), false)
 		return
 	box.bg_color = Brand.SURFACE
 	box.shadow_color = Brand.SHADOW
@@ -48,17 +49,20 @@ func _draw() -> void:
 		box.border_color = Color(tint, 0.4)
 		box.set_border_width_all(2)
 	draw_style_box(box, rect)
-	var font: Font = UI.display_font()
-	var text: String = str(level + 1)
-	var font_size: int = 50
-	var ts: Vector2 = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
-	var ink: Color = tint if is_next else Brand.INK
-	var baseline: float = rect.position.y + rect.size.y * 0.5 + font_size * 0.32 - (8.0 if stars > 0 else 0.0)
-	draw_string(font, Vector2(rect.get_center().x - ts.x * 0.5, baseline), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, ink)
+	_number(rect, tint if is_next else Brand.INK, stars > 0)
 	if stars > 0:
 		for k: int in range(3):
 			var at: Vector2 = Vector2(rect.get_center().x + (k - 1) * 22.0, rect.end.y - 26.0)
 			_star(at, 9.0, Brand.GOLD if k < stars else Color(Brand.MUTED, 0.35))
+
+## The level's number in the middle of `rect`, raised to leave room for stars under it.
+func _number(rect: Rect2, ink: Color, raised: bool) -> void:
+	var font: Font = UI.display_font()
+	var text: String = str(level + 1)
+	var font_size: int = 50
+	var ts: Vector2 = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+	var baseline: float = rect.position.y + rect.size.y * 0.5 + font_size * 0.32 - (8.0 if raised else 0.0)
+	draw_string(font, Vector2(rect.get_center().x - ts.x * 0.5, baseline), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, ink)
 
 func _star(c: Vector2, r: float, colour: Color) -> void:
 	var points: PackedVector2Array = PackedVector2Array()

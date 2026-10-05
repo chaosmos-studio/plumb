@@ -32,18 +32,16 @@ static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour:
 			_stroke(ci, pts, colour, w)
 			_stroke(ci, [c + Vector2(-0.12, -0.24) * s, c + Vector2(-0.24, -0.12) * s, c + Vector2(-0.12, 0.0) * s], colour, w)
 		&"restart":
-			var r2: float = 0.24 * s
-			var start: float = deg_to_rad(-55.0)
-			var sweep: float = deg_to_rad(290.0)
+			# Turn back: a ring run anticlockwise from the left round to the upper left, where its head is a
+			# corner standing outside the ring, clear of it.
+			var u: float = 0.23 * s / 9.0
 			var arc: Array[Vector2] = []
-			for k: int in range(25):
-				var a2: float = start + sweep * k / 24.0
-				arc.append(c + Vector2(cos(a2), sin(a2)) * r2)
+			for k: int in range(33):
+				var a2: float = PI - deg_to_rad(317.0) * k / 32.0
+				arc.append(c + Vector2(cos(a2), sin(a2)) * 9.0 * u)
+			arc.append(c + Vector2(-9.0, -4.0) * u)
 			_stroke(ci, arc, colour, w)
-			var tip: Vector2 = arc[0]
-			var tangent: Vector2 = Vector2(sin(start), -cos(start))
-			var side: Vector2 = tangent.orthogonal()
-			_stroke(ci, [tip + (-tangent * 0.13 + side * 0.13) * s, tip, tip + (-tangent * 0.13 - side * 0.13) * s], colour, w)
+			_stroke(ci, [c + Vector2(-9.0, -9.5) * u, c + Vector2(-9.0, -4.0) * u, c + Vector2(-3.5, -4.0) * u], colour, w)
 		&"hint":
 			var bulb: Vector2 = c + Vector2(0, -0.07) * s
 			var rb: float = 0.2 * s
