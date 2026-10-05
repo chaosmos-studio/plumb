@@ -187,11 +187,13 @@ func _ask_film() -> void:
 ## Starts the film: how long a frame takes to hand over sets the pace, then the recorder starts, the
 ## sound goes off and every drawn frame is sent on. False, with a note, when the phone cannot.
 func _start_film() -> bool:
-	var view: Vector2i = get_viewport().get_texture().get_size()
+	# The frame's size comes from a frame: the texture's own size is scaled by the stretch on 4.7.
+	var view: Vector2i = Vector2i.ZERO
 	var cost: float = 0.0
 	for k: int in range(2):
 		var started: int = Time.get_ticks_usec()
 		var probe: Image = get_viewport().get_texture().get_image()
+		view = probe.get_size()
 		probe.convert(Image.FORMAT_RGBA8)
 		var fitted: Vector2i = ReelVideo.size_for(view)
 		probe.resize(fitted.x, fitted.y, Image.INTERPOLATE_BILINEAR)
