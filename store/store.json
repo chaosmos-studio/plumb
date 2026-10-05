@@ -11,21 +11,22 @@
 		{"raw": "phone_play", "caption": "Tilt the board.", "sub": "Every marble rolls at once, until something stops it."},
 		{"raw": "phone_rolling", "caption": "One swipe moves everything.", "sub": "Plan where they will all end up."},
 		{"raw": "phone_hint", "caption": "Stuck? Take a hint.", "sub": "See exactly where each marble would land."},
-		{"raw": "phone_won", "caption": "Find the perfect route.", "sub": "The fewest moves earns three stars."},
-		{"raw": "phone_levels", "caption": "Every level, solvable.", "sub": "Each one checked by a solver."},
+		{"raw": "phone_won", "caption": "Share the perfect solve.", "sub": "Every win makes a card to share, save or replay."},
+		{"raw": "phone_levels", "caption": "Every chapter, its own rule.", "sub": "Gates, portals, springs, glass and more."},
+		{"raw": "phone_themed", "caption": "Make it yours.", "sub": "Colour themes and marble sets, light or dark."},
 		{"raw": "phone_title", "caption": "Calm, clean, clever.", "sub": "No timers. No lives. Just marbles."}
 	],
 	"tablet": [
 		{"raw": "tablet_play", "caption": "Tilt the board.", "sub": "Every marble rolls at once."},
 		{"raw": "tablet_hint", "caption": "Stuck? Take a hint.", "sub": "See where each marble would land."},
-		{"raw": "tablet_won", "caption": "Find the perfect route.", "sub": "The fewest moves earns three stars."},
+		{"raw": "tablet_won", "caption": "Share the perfect solve.", "sub": "A card to share, save or replay."},
 		{"raw": "tablet_title", "caption": "Calm, clean, clever.", "sub": "No timers. No lives. Just marbles."}
 	],
 	"listing": {
 		"title": "Plumb: Marble Tilt Puzzle",
 		"short": "Tilt the board and roll every marble into the hole of its own colour.",
-		"full": "Plumb is a calm logic puzzle about gravity.\n\nSwipe to tilt the board and every marble rolls at once, until a wall, the edge or another marble stops it. A marble drops into a hole of its own colour the moment it rolls over one. Square pits swallow any marble, so plan the route before you tip.\n\nOne gesture moves everything, which is what makes four directions surprisingly deep: every move is a small chain of consequences to read before you make it.\n\n- Every level checked by a solver and scored against the fewest moves possible, each a little harder than the last\n- Three stars for the fewest moves, with a hint that shows where every marble would land\n- Undo and restart any time. No timers, no lives, no energy\n- A quiet, tactile look and an ambient soundtrack, with sound, music and vibration you can switch off\n- Plays offline",
-		"release_notes": "First release: levels that get steadily harder, hints that preview the next tilt, and a calm ambient soundtrack.",
+		"full": "Plumb is a calm logic puzzle about gravity.\n\nSwipe to tilt the board and every marble rolls at once, until a wall, the edge or another marble stops it. A marble drops into a hole of its own colour the moment it rolls over one. Square pits swallow any marble, so plan the route before you tip.\n\nOne gesture moves everything, which is what makes four directions surprisingly deep: every move is a small chain of consequences to read before you make it.\n\n- Every level checked by a solver and scored against the fewest moves possible, each a little harder than the last\n- Three stars for the fewest moves, with a hint that shows where every marble would land\n- Chapters that each add a new rule: gates, portals, springs, magnets, glass and more\n- Every win makes a card to share or save, and any solve plays back as a reel you can keep as a video\n- Colour themes and marble sets, each in light and dark\n- Undo and restart any time. No timers, no lives, no energy\n- A quiet, tactile look and an ambient soundtrack, with sound, music and vibration you can switch off\n- Plays offline",
+		"release_notes": "Chapters with a new rule each, a card to share every win, reels you can save as a video, colour themes and a new icon.",
 		"category": "Game > Puzzle. Suggested tags: Puzzle, Logic, Brain games, Casual, Offline."
 	}
 }

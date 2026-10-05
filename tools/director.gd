@@ -99,7 +99,9 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 				await view.play(move)
 			await _wait(host, 0.6)
 		"levels":
-			# The grid opens where play is; levels:K turns to page K.
+			# The grid opens where play is; levels:K turns to page K, and levels:K:S has the first S solved.
+			if parts.size() > 2:
+				_seed_progress(k)
 			var grid: Node = load(Brand.LEVELS_SCENE).instantiate()
 			host.add_child(grid)
 			if parts.size() > 1:
@@ -387,9 +389,9 @@ func _solve(game: Node, count: int) -> void:
 		await game.get_tree().create_timer(0.05).timeout
 
 ## Some progress, so the title and level grid look like a game someone is playing.
-func _seed_progress() -> void:
+func _seed_progress(solved: int = 14) -> void:
 	var stars: PackedByteArray = PackedByteArray()
-	for i: int in range(14):
+	for i: int in range(solved):
 		stars.append(3 if i % 5 != 3 else 2)
 	Save.stars = stars
 

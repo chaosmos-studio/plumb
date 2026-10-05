@@ -30,7 +30,7 @@
 				1080,
 				1920
 			],
-			"action": "won:16"
+			"action": "snapshot:16"
 		},
 		{
 			"name": "phone_levels",
@@ -38,7 +38,15 @@
 				1080,
 				1920
 			],
-			"action": "levels"
+			"action": "levels:8:150"
+		},
+		{
+			"name": "phone_themed",
+			"size": [
+				1080,
+				1920
+			],
+			"action": "dark/themed:dracula:60"
 		},
 		{
 			"name": "phone_title",
@@ -70,7 +78,7 @@
 				1200,
 				1920
 			],
-			"action": "won:14"
+			"action": "snapshot:14"
 		},
 		{
 			"name": "tablet_title",
