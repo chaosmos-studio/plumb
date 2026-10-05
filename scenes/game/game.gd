@@ -371,7 +371,7 @@ func _show_result() -> void:
 	var last: bool = level + 1 >= Pack.count()
 	var detail: PackedStringArray = PackedStringArray([_score()])
 	if _earned < 3:
-		detail.append("Solve it in %d for three stars" % par)
+		detail.append("Solve it in %d %s for three stars" % [par, "move" if par == 1 else "moves"])
 	var next_text: String = "Continue" if _ending else ("Back to levels" if last else "Next level")
 	_sheet = Result.won(self, "Every level solved" if last else "", _earned, detail, next_text,
 		_on_finale if _ending else _on_next, _on_restart, _to_levels, _won)
