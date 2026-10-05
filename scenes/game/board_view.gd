@@ -703,7 +703,7 @@ func _draw_hint() -> void:
 			for k: int in range(1 if s == 0 else 0, n):
 				var t: float = float(k) / float(n)
 				# Dots travel along the trail, so the direction reads even in a still frame.
-				var phase: float = fmod(float(s) * 0.25 + t * 0.25 - _hint_t * 0.8, 1.0)
+				var phase: float = fposmod(float(s) * 0.25 + t * 0.25 - _hint_t * 0.8, 1.0)
 				var alpha: float = 0.35 + 0.6 * (1.0 - absf(phase * 2.0 - 1.0))
 				draw_circle(from.lerp(to, t), cell * 0.058, Color(colour, alpha), true, -1.0, true)
 		match path[1]:
