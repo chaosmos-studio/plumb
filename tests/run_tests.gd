@@ -67,6 +67,7 @@ func _initialize() -> void:
 	_test_volumes()
 	_test_reel_video()
 	_test_sheets_fit_a_phone()
+	_test_maker_link()
 	_test_play_screen_banner()
 	await _test_sheet_rises_before_layout()
 	await _test_sheet_drags_closed()
@@ -915,6 +916,34 @@ func _test_about_variants() -> void:
 	_check("About on the web links to the website and Privacy", web.has("Website") and web.has("Privacy") and not web.has("Help"))
 	supporter.set("on_play", old)
 
+## The maker's name in About and Credits opens his homepage, except on Google Play, where it opens the studio
+## page: the homepage has a sponsor link, and Play does not let an app lead to one.
+func _test_maker_link() -> void:
+	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
+	var about: GDScript = load("res://kit/shell/about.gd")
+	var credits: GDScript = load("res://kit/shell/credits.gd")
+	var old: bool = supporter.get("on_play")
+	var studio: String = "https://shravangoswami.com/projects/studio/"
+	supporter.set("on_play", true)
+	_check("on Google Play the maker's name opens the studio page, which has no sponsor links",
+		_name_link(about) == studio and _name_link(credits) == studio)
+	supporter.set("on_play", false)
+	_check("elsewhere it opens his homepage", _name_link(about) == "https://shravangoswami.com/"
+		and _name_link(credits) == "https://shravangoswami.com/")
+	supporter.set("on_play", old)
+
+## The page the maker's name opens on `opener`'s sheet, or "" when it opens none.
+func _name_link(opener: GDScript) -> String:
+	var host: Control = Control.new()
+	root.add_child(host)
+	opener.call("open", host)
+	var uri: String = ""
+	for b: Node in host.find_children("*", "LinkButton", true, false):
+		if (b as LinkButton).text == "Shravan Goswami":
+			uri = (b as LinkButton).uri
+	host.free()
+	return uri
+
 func _test_finale_variants() -> void:
 	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
 	var finale: GDScript = load("res://kit/shell/finale.gd")
@@ -1408,6 +1437,35 @@ func _test_sheets_fit_a_phone() -> void:
 			var width: float = (sheet.get("_panel") as Control).get_combined_minimum_size().x
 			_check("the %s sheet fits a phone's width (%.0f of %.0f)" % [kind, width, design_width], width <= design_width)
 			host.free()
+	# Every sheet that shows a price, with a price as long as Play is likely to give in any currency: a
+	# dollar price fits anything, a rupee or peso one is what pushed the tip jar off the screen.
+	var shop: GDScript = load("res://kit/monetize/shop.gd")
+	var unlocks: GDScript = load("res://kit/monetize/unlocks.gd")
+	var prices: Dictionary = (shop.get("prices") as Dictionary).duplicate()
+	var long: Dictionary = {}
+	for id: String in shop.call("all_ids"):
+		long[id] = "COP 199.900,00"
+	shop.set("prices", long)
+	supporter.set("on_play", true)
+	var priced: Array = [["shop", "open", []], ["level keys", "keys", []], ["tip jar", "tips", []]]
+	for id: String in shop.call("one_time_ids"):
+		priced.append(["%s offer" % id, "offer", [id]])
+	for entry: Array in priced:
+		var host: Control = Control.new()
+		root.add_child(host)
+		var sheet: Control = shop.callv(String(entry[1]), [host] + (entry[2] as Array))
+		var width: float = (sheet.get("_panel") as Control).get_combined_minimum_size().x
+		_check("the %s sheet fits a phone's width at any price (%.0f of %.0f)" % [entry[0], width, design_width],
+			width <= design_width)
+		host.free()
+	var shut: Control = Control.new()
+	root.add_child(shut)
+	var locked: Control = unlocks.call("offer", shut, 2)
+	var locked_width: float = (locked.get("_panel") as Control).get_combined_minimum_size().x
+	_check("a locked level's sheet fits a phone's width at any price (%.0f of %.0f)" % [locked_width, design_width],
+		locked_width <= design_width)
+	shut.free()
+	shop.set("prices", prices)
 	supporter.set("on_play", old)
 
 func _test_sheet_rises_before_layout() -> void:
