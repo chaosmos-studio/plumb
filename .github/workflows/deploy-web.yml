@@ -49,18 +49,7 @@ jobs:
           "$GODOT_BIN" --headless --import
           ls .godot/imported/Outfit-Medium.ttf-*.fontdata .godot/imported/Outfit-Light.ttf-*.fontdata
 
-      # The tests re-solve every shipped level, and the smoke robot plays some through the real screens.
-      # A level the rules can no longer solve never reaches the published build.
-      - name: Run tests
-        run: |
-          set -e
-          out="$("$GODOT_BIN" --headless -s res://tests/run_tests.gd 2>&1)"
-          echo "$out"
-          echo "$out" | grep -q " 0 failed"
-          smoke="$(timeout 300 "$GODOT_BIN" --headless res://tools/smoke.tscn 2>&1)"
-          echo "$smoke"
-          echo "$smoke" | grep -q "SMOKE_OK"
-
+      # The tests run on their own (tests.yml), so the web build goes out without waiting on them.
       - name: Export Web build
         run: |
           set -e

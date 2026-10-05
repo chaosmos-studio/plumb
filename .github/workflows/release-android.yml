@@ -193,16 +193,8 @@ jobs:
             ls -l "$(sed -n 's/^dest_files=\["res:\/\/\(.*\)"\]$/\1/p' "$meta")"
           done
 
-      - name: Run tests
-        run: |
-          set -e
-          out="$("$GODOT_BIN" --headless -s res://tests/run_tests.gd 2>&1)"
-          echo "$out"
-          echo "$out" | grep -q " 0 failed"
-          smoke="$(timeout 300 "$GODOT_BIN" --headless res://tools/smoke.tscn 2>&1)"
-          echo "$smoke"
-          echo "$smoke" | grep -q "SMOKE_OK"
-
+      # The tests run on their own (tests.yml) for every push, so a build does not wait on them. Check that
+      # the commit being released has a green Tests run.
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
