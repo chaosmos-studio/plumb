@@ -142,7 +142,8 @@ func _dismiss() -> void:
 	t.tween_property(_print, "scale", Vector2(0.85, 0.85), 0.18)
 	t.chain().tween_callback(queue_free)
 
-## The card as a print: a white border, a soft shadow, and the card inside.
+## The card as a print: a border in the theme's surface colour with a hairline edge, so it sits in a dark
+## theme as well as a light one, a soft shadow, and the card inside.
 class _Print extends Control:
 	var _texture: Texture2D
 
@@ -152,7 +153,9 @@ class _Print extends Control:
 
 	func _draw() -> void:
 		var paper: StyleBoxFlat = StyleBoxFlat.new()
-		paper.bg_color = Color.WHITE
+		paper.bg_color = Brand.SURFACE
+		paper.border_color = Brand.LINE
+		paper.set_border_width_all(2)
 		paper.set_corner_radius_all(18)
 		paper.shadow_color = Color(0, 0, 0, 0.3)
 		paper.shadow_size = 26
