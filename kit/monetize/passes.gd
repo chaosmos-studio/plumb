@@ -55,7 +55,7 @@ static func lend(id: String, on_lent: Callable = Callable()) -> void:
 		var t: int = now()
 		Save.set_pass(id, t, t + HOURS * 3600)
 		_settle()
-		Supporter.say("%s is yours for %d hours" % [Shop.title(id), HOURS])
+		Supporter.say("Trying %s for %d hours" % [_called(id), HOURS])
 		if on_lent.is_valid():
 			on_lent.call()
 	Ads.rewarded(lent, _no_video)
@@ -76,6 +76,10 @@ static func say_left(id: String) -> String:
 	if hours == 0:
 		return "%d min" % minutes
 	return "%d h %d min" % [hours, minutes % 60] if minutes % 60 > 0 else "%d h" % hours
+
+## A pack's name inside a sentence: "the Themes pack", but "Every level".
+static func _called(id: String) -> String:
+	return Shop.title(id) if id == GameMonetize.LEVELS_ID else "the " + Shop.title(id)
 
 static func _no_video() -> void:
 	Supporter.say("No video right now. Try again in a moment")
@@ -111,7 +115,7 @@ static func _now_running() -> PackedStringArray:
 static func _ended(id: String) -> void:
 	if Shop.has(id):
 		return
-	Supporter.say("Your %s pass has ended" % Shop.title(id))
+	Supporter.say("Your try of %s has ended" % _called(id))
 	EventBus.settings_changed.emit()
 	var in_use: bool = (id == GameMonetize.LOOKS_ID and Save.look != "" and Save.look != Looks.free_id()) \
 		or (id == GameMonetize.THEMES_ID and Save.palette != "" and Save.palette != Themes.OWN)

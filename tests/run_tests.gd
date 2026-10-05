@@ -1316,7 +1316,8 @@ func _test_passes() -> void:
 		and passes.call("offers", GameMonetize.LEVELS_ID) and not passes.call("offers", GameMonetize.SUPPORTER_ID)
 		and not passes.call("offers", GameMonetize.COMPLETE_ID))
 	_check("a pack's sheet offers it beside the price",
-		_labels(shop, "offer", [GameMonetize.THEMES_ID]).has("Watch a video to use it for %d hours" % hours))
+		_labels(shop, "offer", [GameMonetize.THEMES_ID]).has("Try it for %d hours with a video" % hours))
+	_check("and says a purchase is for good", _labels(shop, "offer", [GameMonetize.THEMES_ID]).has(shop.get("KEEP_ROW")))
 	passes.call("lend", GameMonetize.THEMES_ID)
 	await process_frame
 	await process_frame

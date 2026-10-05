@@ -24,6 +24,7 @@ const KEYS: String = "keys"
 const THEMES_PACK: String = "Themes pack"
 const THEMES_LINE: String = "Sepia, Nord, Dracula and nine more"
 const THEMES_ROW: String = "Twelve colour themes"
+const KEEP_ROW: String = "Yours to keep after one purchase"
 
 ## Prices in the player's currency as Play gives them, by product id; empty until Play has answered.
 static var prices: Dictionary = {}
@@ -163,7 +164,7 @@ static func title(id: String) -> String:
 
 static func line(id: String) -> String:
 	if id == GameMonetize.COMPLETE_ID:
-		return "All four below, for less"
+		return "All below, for less"
 	if id == GameMonetize.SUPPORTER_ID:
 		return "No ads, and every hint free"
 	if id == GameMonetize.LEVELS_ID:
@@ -174,17 +175,19 @@ static func line(id: String) -> String:
 		return THEMES_LINE
 	return ""
 
+## Each pack a video can lend, and the Complete pack, says that buying it is for good, so a player who has
+## seen the six hour try does not read the price as six hours too.
 static func rows(id: String) -> PackedStringArray:
 	if id == GameMonetize.COMPLETE_ID:
-		return PackedStringArray(["No ads, every hint free", "Every level open", GameLooks.PACK_ROW, THEMES_ROW])
+		return PackedStringArray(["No ads, every hint free", "Every level open", GameLooks.PACK_ROW, THEMES_ROW, KEEP_ROW])
 	if id == GameMonetize.SUPPORTER_ID:
 		return Supporter.SHEET_ROWS
 	if id == GameMonetize.LEVELS_ID:
-		return PackedStringArray(["Every level open now", "Stars still earned by solving"])
+		return PackedStringArray(["Every level open now", "Stars still earned by solving", KEEP_ROW])
 	if id == GameMonetize.LOOKS_ID:
-		return PackedStringArray([GameLooks.PACK_ROW, "Pick one any time in Settings"])
+		return PackedStringArray([GameLooks.PACK_ROW, "Pick one any time in Settings", KEEP_ROW])
 	if id == GameMonetize.THEMES_ID:
-		return PackedStringArray([THEMES_ROW, "Each in light and dark, picked in Settings"])
+		return PackedStringArray([THEMES_ROW, "Each in light and dark, picked in Settings", KEEP_ROW])
 	return PackedStringArray()
 
 # --- Sheets -------------------------------------------------------------------------------------------
@@ -223,7 +226,7 @@ static func open(host: Node) -> Sheet:
 	return sheet
 
 ## One product: what it holds, its price, and Restore, with a way on to the whole shop. Owned, it says so.
-## A pack a video can lend also offers the video, and while it is lent, says for how much longer.
+## A pack a video can lend also offers the video as a try, and while it is lent, says for how much longer.
 static func offer(host: Node, id: String) -> Sheet:
 	if not Supporter.on_play:
 		return Supporter.open(host)
@@ -236,7 +239,7 @@ static func offer(host: Node, id: String) -> Sheet:
 	elif id == GameMonetize.SUPPORTER_ID:
 		c.add_child(_line("One purchase that helps me\nmake the next game."))
 	elif Passes.active(id):
-		c.add_child(_line("Yours for %s more, from a video. Get it to keep it." % Passes.say_left(id)))
+		c.add_child(_line("You are trying it, %s left. Get it to keep it for good." % Passes.say_left(id)))
 	var list: VBoxContainer = VBoxContainer.new()
 	list.add_theme_constant_override("separation", 14)
 	for text: String in rows(id):
@@ -248,7 +251,7 @@ static func offer(host: Node, id: String) -> Sheet:
 		buy_button.pressed.connect(func() -> void: buy(id))
 		c.add_child(buy_button)
 		if Passes.offers(id):
-			var lend: Button = UI.button("Watch a video to use it for %d hours" % Passes.HOURS, UI.Style.SECONDARY)
+			var lend: Button = UI.button("Try it for %d hours with a video" % Passes.HOURS, UI.Style.SECONDARY)
 			lend.pressed.connect(func() -> void:
 				sheet.close()
 				Passes.lend(id, func() -> void: _show_lent(host, id)))
@@ -352,7 +355,7 @@ static func _item(id: String, pick: Callable) -> Button:
 	var keys_line: String = "Open any one level now" + (". You have %d" % Save.keys if Save.keys > 0 else "")
 	var product_line: String = line(id)
 	if product and not has(id) and Passes.active(id):
-		product_line = "On for %s more, from a video" % Passes.say_left(id)
+		product_line = "Trying it, %s left" % Passes.say_left(id)
 	var said: Label = UI.label(product_line if product else (keys_line if id == KEYS else "Say thanks, as often as you like"),
 		24, Brand.MUTED)
 	said.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
