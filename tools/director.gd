@@ -155,6 +155,26 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			shown.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			layer.add_child(shown)
 			await _wait(host, 0.2)
+		"offer", "shop", "keys":
+			# On Google Play with a video to be had: the sheet for product `variant`, the whole shop, or the
+			# level keys. `k` minutes left on a pass for `variant` shows it lent.
+			Supporter.on_play = true
+			Ads.use(_PreviewAds.new())
+			for id: String in Shop.one_time_ids() + GameMonetize.KEY_IDS:
+				Shop.prices[id] = "$1.99"
+			Save.passes = {}
+			if k > 0:
+				Save.passes[variant] = [Passes.now() - 60, Passes.now() + k * 60]
+			var front: Node = load(Brand.TITLE_SCENE).instantiate()
+			host.add_child(front)
+			await _wait(host, 0.3)
+			if verb == "offer":
+				Shop.offer(front, variant)
+			elif verb == "shop":
+				Shop.open(front)
+			else:
+				Shop.keys(front)
+			await _wait(host, 0.6)
 		"levelsad":
 			Ads.preview = true
 			host.add_child(load(Brand.LEVELS_SCENE).instantiate())

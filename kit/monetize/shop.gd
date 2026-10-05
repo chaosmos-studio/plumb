@@ -11,7 +11,8 @@ extends RefCounted
 ##
 ## Play's Payments policy allows no other way to pay inside an app and no pointing to one, so every other
 ## build sells nothing: it has no ads, opens every look, and asks for support through GitHub Sponsors
-## (Supporter.open). Nothing sold is needed to play: every level opens by playing.
+## (Supporter.open). Nothing sold is needed to play: every level opens by playing. And a short video lends
+## Every level, the Looks pack or the Themes pack for a few hours, or gives a level key (Passes).
 ##
 ## The kit expects from the game: in `GameMonetize`, SUPPORTER_ID, LEVELS_ID, LOOKS_ID, THEMES_ID, COMPLETE_ID,
 ## KEY_IDS with KEY_COUNTS, and TIP_IDS, each a one-time product in Play Console (keys and tips consumed
@@ -31,6 +32,7 @@ static var _store: StoreBackend
 
 ## Connects to Play and asks what this account owns, on Android only.
 static func start() -> void:
+	Passes.start()
 	if is_instance_valid(_store) or not OS.has_feature("android") or not Engine.has_singleton("GodotGooglePlayBilling"):
 		return
 	var billing: GDScript = load("res://kit/monetize/android/play_billing.gd")
@@ -74,16 +76,20 @@ static func has(id: String) -> bool:
 static func ads_off() -> bool:
 	return has(GameMonetize.SUPPORTER_ID)
 
+## Whether `id` is had or lent for now by a video.
+static func on(id: String) -> bool:
+	return has(id) or Passes.active(id)
+
 static func levels_open() -> bool:
-	return has(GameMonetize.LEVELS_ID)
+	return on(GameMonetize.LEVELS_ID)
 
-## Every look, everywhere but Google Play, where the pack opens them.
+## Every look, everywhere but Google Play, where the pack or a pass opens them.
 static func looks_open() -> bool:
-	return not Supporter.on_play or has(GameMonetize.LOOKS_ID)
+	return not Supporter.on_play or on(GameMonetize.LOOKS_ID)
 
-## Every colour theme, everywhere but Google Play, where the Themes pack opens them.
+## Every colour theme, everywhere but Google Play, where the Themes pack or a pass opens them.
 static func themes_open() -> bool:
-	return not Supporter.on_play or has(GameMonetize.THEMES_ID)
+	return not Supporter.on_play or on(GameMonetize.THEMES_ID)
 
 static func has_everything() -> bool:
 	for id: String in parts():
@@ -217,6 +223,7 @@ static func open(host: Node) -> Sheet:
 	return sheet
 
 ## One product: what it holds, its price, and Restore, with a way on to the whole shop. Owned, it says so.
+## A pack a video can lend also offers the video, and while it is lent, says for how much longer.
 static func offer(host: Node, id: String) -> Sheet:
 	if not Supporter.on_play:
 		return Supporter.open(host)
@@ -228,6 +235,8 @@ static func offer(host: Node, id: String) -> Sheet:
 		c.add_child(_line("Thank you. It is on for this Google account."))
 	elif id == GameMonetize.SUPPORTER_ID:
 		c.add_child(_line("One purchase that helps me\nmake the next game."))
+	elif Passes.active(id):
+		c.add_child(_line("Yours for %s more, from a video. Get it to keep it." % Passes.say_left(id)))
 	var list: VBoxContainer = VBoxContainer.new()
 	list.add_theme_constant_override("separation", 14)
 	for text: String in rows(id):
@@ -238,6 +247,12 @@ static func offer(host: Node, id: String) -> Sheet:
 		var buy_button: Button = UI.button(_buy_text(id), UI.Style.PRIMARY)
 		buy_button.pressed.connect(func() -> void: buy(id))
 		c.add_child(buy_button)
+		if Passes.offers(id):
+			var lend: Button = UI.button("Watch a video to use it for %d hours" % Passes.HOURS, UI.Style.SECONDARY)
+			lend.pressed.connect(func() -> void:
+				sheet.close()
+				Passes.lend(id, func() -> void: _show_lent(host, id)))
+			c.add_child(lend)
 		var again: Button = UI.button("Restore purchase", UI.Style.GHOST)
 		again.pressed.connect(restore)
 		c.add_child(again)
@@ -262,6 +277,14 @@ static func keys(host: Node) -> Sheet:
 		var pack: Button = UI.button("%s  %s" % [title(id), price(id)] if price(id) != "" else title(id), UI.Style.SECONDARY)
 		pack.pressed.connect(func() -> void: Unlocks.buy_key(id, -1))
 		c.add_child(pack)
+	if Ads.rewards():
+		var video: Button = UI.button("Watch a video for a key", UI.Style.GHOST)
+		video.pressed.connect(func() -> void:
+			sheet.close()
+			Passes.give_key(func() -> void:
+				if is_instance_valid(host) and host.is_inside_tree():
+					keys(host)))
+		c.add_child(video)
 	live(sheet, func() -> void:
 		sheet.close()
 		keys(host))
@@ -289,6 +312,15 @@ static func tips(host: Node) -> Sheet:
 		sheet.close()
 		tips(host))
 	return sheet
+
+## Right after a pass: the looks or the themes to pick from. The level grid redraws by itself.
+static func _show_lent(host: Node, id: String) -> void:
+	if not is_instance_valid(host) or not host.is_inside_tree():
+		return
+	if id == GameMonetize.LOOKS_ID:
+		Looks.open(host)
+	elif id == GameMonetize.THEMES_ID:
+		Themes.open(host)
 
 static func _buy_text(id: String) -> String:
 	if id == GameMonetize.SUPPORTER_ID:
@@ -318,7 +350,10 @@ static func _item(id: String, pick: Callable) -> Button:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	words.add_child(heading)
 	var keys_line: String = "Open any one level now" + (". You have %d" % Save.keys if Save.keys > 0 else "")
-	var said: Label = UI.label(line(id) if product else (keys_line if id == KEYS else "Say thanks, as often as you like"),
+	var product_line: String = line(id)
+	if product and not has(id) and Passes.active(id):
+		product_line = "On for %s more, from a video" % Passes.say_left(id)
+	var said: Label = UI.label(product_line if product else (keys_line if id == KEYS else "Say thanks, as often as you like"),
 		24, Brand.MUTED)
 	said.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

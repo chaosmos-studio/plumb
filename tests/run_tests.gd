@@ -60,6 +60,7 @@ func _initialize() -> void:
 	await process_frame
 	_test_chapter_colours()
 	_test_unlocks()
+	await _test_passes()
 	_test_cheers()
 	await _test_win_sheet()
 	_test_qr()
@@ -1291,6 +1292,70 @@ func _test_unlocks() -> void:
 	save.set("path", old[4])
 	supporter.set("on_play", old[5])
 
+## Packs a video lends for a while: which ones, what they open, for how long, and a key for a video.
+func _test_passes() -> void:
+	var passes: GDScript = load("res://kit/monetize/passes.gd")
+	var shop: GDScript = load("res://kit/monetize/shop.gd")
+	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
+	var ads: GDScript = load("res://kit/monetize/ads.gd")
+	var themes: GDScript = load("res://kit/ui/themes.gd")
+	var save: Node = root.get_node("Save")
+	var old: Array = [save.get("passes"), save.get("owned"), save.get("keys"), save.get("palette"), save.get("stars"),
+		save.get("opened"), save.get("path"), supporter.get("on_play")]
+	save.set("path", "user://test_passes.cfg")
+	save.set("owned", PackedStringArray())
+	save.set("passes", {})
+	save.set("stars", PackedByteArray())
+	save.set("opened", PackedInt32Array())
+	save.set("palette", "nord")
+	supporter.set("on_play", true)
+	ads.call("use", _VideoAds.new())
+	var hours: int = passes.get("HOURS")
+	_check("a video lends the looks, the themes and every level, never the Supporter or the Complete pack",
+		passes.call("offers", GameMonetize.LOOKS_ID) and passes.call("offers", GameMonetize.THEMES_ID)
+		and passes.call("offers", GameMonetize.LEVELS_ID) and not passes.call("offers", GameMonetize.SUPPORTER_ID)
+		and not passes.call("offers", GameMonetize.COMPLETE_ID))
+	_check("a pack's sheet offers it beside the price",
+		_labels(shop, "offer", [GameMonetize.THEMES_ID]).has("Watch a video to use it for %d hours" % hours))
+	passes.call("lend", GameMonetize.THEMES_ID)
+	await process_frame
+	await process_frame
+	_check("a video watched through opens the Themes pack, lent, not owned", shop.call("themes_open")
+		and themes.call("current") == "nord" and not shop.call("has", GameMonetize.THEMES_ID)
+		and not passes.call("offers", GameMonetize.THEMES_ID))
+	_check("for its hours", String(passes.call("say_left", GameMonetize.THEMES_ID)) == "%d h" % hours)
+	save.call("restore")
+	_check("a pass is saved", passes.call("active", GameMonetize.THEMES_ID))
+	passes.set("skew", hours * 3600 + 1)
+	_check("it runs out after its hours, and the theme in use goes back to the game's own",
+		not shop.call("themes_open") and themes.call("current") == "own")
+	passes.set("skew", -60)
+	_check("a clock turned back past its start ends it too", not passes.call("active", GameMonetize.THEMES_ID))
+	passes.set("skew", 0)
+	var last: int = int(root.get_node("Pack").call("count")) - 1
+	_check("the last level is shut", not save.call("unlocked", last))
+	passes.call("lend", GameMonetize.LEVELS_ID)
+	await process_frame
+	await process_frame
+	_check("a pass for Every level opens every level", save.call("unlocked", last))
+	var keys: int = save.get("keys")
+	_check("the keys sheet offers a key for a video", _labels(shop, "keys").has("Watch a video for a key"))
+	passes.call("give_key")
+	await process_frame
+	await process_frame
+	_check("which gives one", int(save.get("keys")) == keys + 1)
+	ads.call("use", null)
+	passes.set("_running", PackedStringArray())
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_passes.cfg"))
+	save.set("passes", old[0])
+	save.set("owned", old[1])
+	save.set("keys", old[2])
+	save.set("palette", old[3])
+	save.set("stars", old[4])
+	save.set("opened", old[5])
+	save.set("path", old[6])
+	supporter.set("on_play", old[7])
+
 func _test_play_screen_banner() -> void:
 	var hud: GDScript = load("res://kit/shell/hud.gd")
 	var ads: GDScript = load("res://kit/monetize/ads.gd")
@@ -1421,3 +1486,11 @@ func _touch_drag(target: Node, from: Vector2, to: Vector2) -> void:
 class _ConsentAds extends AdBackend:
 	func privacy_required() -> bool:
 		return true
+
+## An ad network with a video always ready, and always watched through.
+class _VideoAds extends AdBackend:
+	func ready_to_show(_kind: StringName) -> bool:
+		return true
+
+	func present(kind: StringName) -> void:
+		finished.emit.call_deferred(kind, true, true)

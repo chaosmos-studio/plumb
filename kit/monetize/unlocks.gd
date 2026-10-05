@@ -4,7 +4,8 @@ extends RefCounted
 ## Which levels are open, and the ways to open one early. A level opens once the one before it is solved.
 ## A chapter's first level also opens once GATE of the chapter before it are solved, so one stubborn level
 ## never walls off the rest of the game. On Google Play any locked level also opens for good with a level
-## key, or after a short video, and Every level opens them all. Nothing here is needed to play.
+## key, or after a short video, and Every level opens them all, bought or lent for a while by a video
+## (Passes). Nothing here is needed to play.
 ##
 ## The kit expects from the game: in `Save`, `opened` (the levels opened one by one) and `keys`, with
 ## `open_level(level)` and `add_keys(n)`; in `GameMonetize`, KEY_IDS and KEY_COUNTS, the consumable

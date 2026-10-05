@@ -22,7 +22,7 @@ To ship: add a new section at the top, push, then Actions > Release Android > Ru
 - Difficulty only ever climbs, from a brand new opening five.
 - Stuck? Solve 14 of a chapter's 20 and the next one opens, or open any level with a key or a short video.
 - Every win says something new, and makes a card to share, save or watch as a reel.
-- A shop with every level, marble sets and twelve colour themes, and volume sliders in a calmer Settings.
+- A shop with every level, marble sets and colour themes, each free for 6 hours with a video, and volume sliders.
 
 ## 1.0.1 - 2026-10-02
 

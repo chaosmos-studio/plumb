@@ -30,6 +30,8 @@ var tips: int = 0
 ## Level keys not yet used, and the levels opened one by one, with a key or a video (Unlocks).
 var keys: int = 0
 var opened: PackedInt32Array = PackedInt32Array()
+## Packs lent by a video, by product id: [start, end] in Unix seconds (Passes).
+var passes: Dictionary = {}
 ## The look in use (GameLooks), or "" for the game's own.
 var look: String = ""
 ## The colour theme in use (Themes), or "" for the game's own.
@@ -153,6 +155,11 @@ func open_level(level: int) -> void:
 	store()
 	EventBus.settings_changed.emit()
 
+func set_pass(id: String, start: int, end: int) -> void:
+	passes[id] = [start, end]
+	store()
+	EventBus.settings_changed.emit()
+
 func set_look(id: String) -> void:
 	look = id
 	store()
@@ -192,6 +199,9 @@ func restore() -> void:
 	var opened_saved: Variant = file.get_value("progress", "opened", PackedInt32Array())
 	if opened_saved is PackedInt32Array:
 		opened = opened_saved
+	var lent: Variant = file.get_value("monetize", "passes", {})
+	if lent is Dictionary:
+		passes = lent
 	look = str(file.get_value("settings", "look", ""))
 	palette = str(file.get_value("settings", "palette", ""))
 
@@ -212,6 +222,7 @@ func store() -> void:
 	file.set_value("monetize", "tips", tips)
 	file.set_value("monetize", "keys", keys)
 	file.set_value("progress", "opened", opened)
+	file.set_value("monetize", "passes", passes)
 	file.set_value("settings", "look", look)
 	file.set_value("settings", "palette", palette)
 	file.save(path)
