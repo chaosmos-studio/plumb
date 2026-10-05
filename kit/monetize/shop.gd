@@ -187,7 +187,7 @@ static func rows(id: String) -> PackedStringArray:
 	if id == GameMonetize.LOOKS_ID:
 		return PackedStringArray([GameLooks.PACK_ROW, "Pick one any time in Settings", KEEP_ROW])
 	if id == GameMonetize.THEMES_ID:
-		return PackedStringArray([THEMES_ROW, "Each in light and dark, picked in Settings", KEEP_ROW])
+		return PackedStringArray([THEMES_ROW, "Light and dark, picked in Settings", KEEP_ROW])
 	return PackedStringArray()
 
 # --- Sheets -------------------------------------------------------------------------------------------
@@ -300,15 +300,21 @@ static func tips(host: Node) -> Sheet:
 	c.add_child(UI.title("Tip jar", 56))
 	c.add_child(_line("Say thanks, as often as you like. A tip opens nothing new: it all goes into making the next game."))
 	var grid: GridContainer = GridContainer.new()
-	grid.columns = 3
 	grid.add_theme_constant_override("h_separation", 14)
 	grid.add_theme_constant_override("v_separation", 14)
 	for id: String in GameMonetize.TIP_IDS:
 		var tip: Button = UI.button(price(id) if price(id) != "" else "Tip", UI.Style.SECONDARY)
-		tip.custom_minimum_size.x = 196.0
+		tip.custom_minimum_size.x = 260.0
+		tip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		tip.pressed.connect(func() -> void: buy(id))
 		grid.add_child(tip)
 	c.add_child(UI.centred(grid))
+	# Two to a row where two fit, else one: a price such as "Rp 799.000,00" is too wide for two on a phone,
+	# and three of "₹4,800.00" pushed the sheet off the side of the screen.
+	var widest: float = 0.0
+	for tip: Node in grid.get_children():
+		widest = maxf(widest, (tip as Control).get_combined_minimum_size().x)
+	grid.columns = 2 if widest * 2.0 + 14.0 <= Sheet.room() else 1
 	if Save.tips > 0:
 		c.add_child(_line("Thank you for %s." % ("your tip" if Save.tips == 1 else "your %d tips" % Save.tips)))
 	live(sheet, func() -> void:

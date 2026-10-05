@@ -15,6 +15,8 @@ const HOLD_MAX: float = 2.0
 const FALL_TIME: float = 0.22
 const SETTLE_TIME: float = 0.2
 const RADIUS: int = 52
+## The margin on each side of the content.
+const SIDE: int = 56
 const SCRIM_ALPHA: float = 0.42
 const LAYER: int = 60
 ## A drag down past this share of the panel's height closes the sheet on release, as does a flick faster
@@ -85,8 +87,8 @@ func _init() -> void:
 	style.corner_radius_top_right = RADIUS
 	style.shadow_color = Color(0, 0, 0, 0.16)
 	style.shadow_size = 30
-	style.content_margin_left = 56
-	style.content_margin_right = 56
+	style.content_margin_left = SIDE
+	style.content_margin_right = SIDE
 	style.content_margin_top = 30
 	style.content_margin_bottom = 64
 	style.anti_aliasing = true
@@ -197,6 +199,11 @@ func _grabs(at: Vector2) -> bool:
 ## Where the panel's top edge is on screen once it has risen, for anything that sits above the sheet.
 func top() -> float:
 	return _panel.get_global_rect().position.y - _slide.position.y
+
+## How wide a sheet's content may be before it pushes the sheet past the sides of the narrowest screen
+## the game runs on: the design width, which every portrait phone is at least, since the stretch keeps it.
+static func room() -> float:
+	return float(ProjectSettings.get_setting("display/window/size/viewport_width")) - SIDE * 2.0
 
 ## Back up into place after a drag that did not go far enough.
 func _settle() -> void:
