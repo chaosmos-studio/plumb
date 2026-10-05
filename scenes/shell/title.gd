@@ -52,6 +52,7 @@ func _ready() -> void:
 	Supporter.add_title_button(self, ui, gear)
 
 	var tally: HBoxContainer = HBoxContainer.new()
+	tally.name = "Tally"
 	tally.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	tally.offset_bottom = -64.0 - float(safe["bottom"])
 	tally.offset_top = tally.offset_bottom - 48.0

@@ -8,8 +8,8 @@ extends RefCounted
 ## boardhint:N:K, which also hide the HUD, guide:K (level 1's guide at step K, counting from 0) and ending
 ## (the note after the last level). Levels are 1-based here, as a player counts them. Any action takes a
 ## "dark/" prefix to stage it in the dark theme; without one it is in the game's own look. Also looks[:owned]
-## (the marble sets sheet), colours (the colour themes sheet), themed:ID:K (level K in colour theme ID)
-## and tiles[::K] (every mark from chapter 16 on, after K tilts). levels:K shows page K of the grid,
+## (the marble sets sheet), colours (the colour themes sheet), themed:ID:K[:SET] (level K in colour theme
+## ID, with marble set SET), sets (one marble of every set, named) and tiles[::K] (every mark from chapter 16 on, after K tilts). levels:K shows page K of the grid,
 ## unlock:N the sheet a locked level N opens on Google Play, replay:N:K level N's solve watched back K
 ## tenths of a second in, card:N the share card for level N, snapshot:N that card caught over the win
 ## sheet, and reel:N:K level N's reel K tenths of a second in (kit/tools/reel.tscn records one whole).
@@ -46,6 +46,9 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 	# Saved as well as applied, so a staged Settings sheet shows the theme the shot is in.
 	Save.theme = Appearance.Choice.DARK if dark else Appearance.native()
 	Save.palette = ""
+	# A marble set for themed:ID:K:SET, the first for everything else.
+	Save.look = action.get_slice(":", 3) if action.begins_with("themed:") else ""
+	GameLooks.use(Looks.current())
 	Appearance.apply(Save.theme)
 	Ads.preview = false
 	Ads.use(null)
@@ -60,7 +63,9 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 	_seed_progress()
 	match verb:
 		"title":
-			host.add_child(load(Brand.TITLE_SCENE).instantiate())
+			var cover: Node = load(Brand.TITLE_SCENE).instantiate()
+			host.add_child(cover)
+			_hide_tally(cover)
 			await _wait(host, 1.2)
 		"looks":
 			# Every marble set unlocked when the variant says so, as the Looks pack shows them.
@@ -71,6 +76,27 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			await _wait(host, 0.3)
 			Looks.open(home)
 			await _wait(host, 0.7)
+		"sets":
+			# One marble from every set, side by side and named, large enough to see each finish.
+			var shelf: ColorRect = ColorRect.new()
+			shelf.color = Brand.BG
+			shelf.set_anchors_preset(Control.PRESET_FULL_RECT)
+			host.add_child(shelf)
+			var room: Vector2 = host.get_viewport().get_visible_rect().size
+			var ids: PackedStringArray = Looks.ids()
+			var step: float = room.x / ids.size()
+			var radius: float = minf(step * 0.28, room.y * 0.27)
+			for i: int in range(ids.size()):
+				var colours: Array = GameLooks.swatch(ids[i])
+				var marble: Node2D = GameLooks.sample(ids[i], colours[i % colours.size()], radius)
+				marble.position = Vector2(step * (i + 0.5), room.y * 0.4)
+				shelf.add_child(marble)
+				var named: Label = UI.label(Looks.name_of(ids[i]), int(radius * 0.5), Brand.MUTED)
+				named.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				named.position = Vector2(step * i, room.y * 0.4 + radius * 1.25)
+				named.size = Vector2(step, radius)
+				shelf.add_child(named)
+			await _wait(host, 0.3)
 		"colours":
 			Supporter.on_play = true
 			var front: Node = load(Brand.TITLE_SCENE).instantiate()
@@ -79,7 +105,7 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			Themes.open(front)
 			await _wait(host, 0.7)
 		"themed":
-			# Level K in colour theme `variant`, as the Themes pack shows it.
+			# Level K in colour theme `variant`, as the Themes pack shows it (the set was chosen above).
 			Save.palette = variant
 			Appearance.apply(Save.theme)
 			await _game(host, k - 1)
@@ -357,6 +383,13 @@ func _losing_line(start: TiltBoard, depth: int) -> PackedInt32Array:
 		frontier = next_frontier
 		paths = next_paths
 	return PackedInt32Array()
+
+## The title's star tally counts out of every star there is, which would give away how many levels there
+## are: shots never say that, since it goes stale as levels are added.
+func _hide_tally(title: Node) -> void:
+	var tally: CanvasItem = title.find_child("Tally", true, false)
+	if tally != null:
+		tally.visible = false
 
 func _hide_hud(game: Node) -> void:
 	for child: Node in game.get_children():
