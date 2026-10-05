@@ -16,7 +16,7 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
-## 1.1.0 - 2026-10-04
+## 1.1.0 - 2026-10-05
 
 - Twenty-five chapters, each with its own rule, colour and pattern: gates, portals, springs, magnets, glass and more.
 - Difficulty only ever climbs, from a brand new opening five.
