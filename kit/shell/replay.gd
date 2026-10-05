@@ -172,10 +172,10 @@ func _hold(seconds: float) -> void:
 		await get_tree().process_frame
 		waited += get_process_delta_time() / maxf(_pace, 0.001)
 
-## Only the mouse press a touch is turned into: a button stops that one, but lets the touch itself pass up
-## to here, which would close the end card before its Save video had the release it acts on.
 func _on_input(event: InputEvent) -> void:
-	if not (event is InputEventMouseButton and (event as InputEventMouseButton).pressed) or _film != null:
+	var pressed: bool = (event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed) \
+		or (event is InputEventMouseButton and (event as InputEventMouseButton).pressed)
+	if not pressed or _film != null:
 		return
 	skipping = true
 	_closed = true

@@ -1132,13 +1132,19 @@ func _test_win_sheet() -> void:
 	await process_frame
 	_check("and ends on a card with a code to scan", _texts(reel).has("SCAN TO PLAY")
 		and _texts(reel).has("Get %s on Google Play" % Brand.NAME))
+	var asked: Array[bool] = [false]
+	var card_script: GDScript = replay_script.get_script_constant_map()["_Card"]
+	var offered: Control = card_script.new(moment, true, func() -> void: asked[0] = true)
+	(reel.get("_root") as Control).add_child(offered)
+	await process_frame
+	await process_frame
+	var save: Button = offered.find_children("*", "Button", true, false)[0]
+	_screen_tap(save.get_global_rect().get_center())
+	_check("a tap on the end card's Save video asks for the film rather than closing the reel",
+		asked[0] and not bool(reel.get("skipping")))
+	offered.free()
 	await create_timer(1.2).timeout
-	var touch: InputEventScreenTouch = InputEventScreenTouch.new()
-	touch.pressed = true
-	reel.call("_on_input", touch)
-	_check("a touch passed up from a button under it leaves the card", not bool(reel.get("skipping")))
-	var tap: InputEventMouseButton = InputEventMouseButton.new()
-	tap.button_index = MOUSE_BUTTON_LEFT
+	var tap: InputEventScreenTouch = InputEventScreenTouch.new()
 	tap.pressed = true
 	reel.call("_on_input", tap)
 	await process_frame
@@ -1380,6 +1386,22 @@ func _test_levels_swipe() -> void:
 	_check("a sideways swipe on the grid turns the page", int(levels.get("_page")) == first + step)
 	levels.queue_free()
 	await process_frame
+
+## A tap at `at` on the canvas, sent through the window the way a phone hands one over: the mouse button
+## made from the touch, then the touch itself, pressed and lifted.
+func _screen_tap(at: Vector2) -> void:
+	var on_screen: Vector2 = root.get_final_transform() * at
+	for down: bool in [true, false]:
+		var mouse: InputEventMouseButton = InputEventMouseButton.new()
+		mouse.button_index = MOUSE_BUTTON_LEFT
+		mouse.pressed = down
+		mouse.position = on_screen
+		mouse.global_position = on_screen
+		root.push_input(mouse)
+		var touch: InputEventScreenTouch = InputEventScreenTouch.new()
+		touch.pressed = down
+		touch.position = on_screen
+		root.push_input(touch)
 
 ## A finger pressed at `from`, moved to `to` in a few steps and lifted, handed to `target`'s _input.
 func _touch_drag(target: Node, from: Vector2, to: Vector2) -> void:
