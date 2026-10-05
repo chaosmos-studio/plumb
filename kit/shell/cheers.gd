@@ -26,6 +26,14 @@ const MEMORY: int = 6
 
 static var _recent: PackedStringArray = PackedStringArray()
 static var _perfect_run: int = 0
+## Its own generator, so what a win says depends on nothing else that rolls dice, and a capture can make
+## it say the same thing every time.
+static var _dice: RandomNumberGenerator = _rolled()
+
+static func _rolled() -> RandomNumberGenerator:
+	var dice: RandomNumberGenerator = RandomNumberGenerator.new()
+	dice.randomize()
+	return dice
 
 ## A heading and a line for a win of `earned` stars, as described by `moment`.
 static func pick(moment: Result.Moment, earned: int) -> PackedStringArray:
@@ -78,10 +86,17 @@ static func _chapter_standing(chapter: int) -> Vector2i:
 	return out
 
 ## A random entry of `pool` not said lately, or any entry when all were.
+## Forgets what was said and starts the dice over, for a capture that stages one win after another and
+## wants each to come out the same, as it would on its own.
+static func forget() -> void:
+	_recent = PackedStringArray()
+	_perfect_run = 0
+	_dice.seed = 1
+
 static func _fresh(pool: Array) -> String:
 	var unsaid: Array = pool.filter(func(line: Variant) -> bool: return not _recent.has(String(line)))
 	var from: Array = unsaid if not unsaid.is_empty() else pool
-	var chosen: String = String(from[randi() % from.size()])
+	var chosen: String = String(from[_dice.randi() % from.size()])
 	_remember(chosen)
 	return chosen
 

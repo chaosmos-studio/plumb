@@ -54,6 +54,10 @@ func _ready() -> void:
 		sub.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 		sub.transparent_bg = false
 		add_child(sub)
+		# Every shot starts from the same random state, so a capture run again gives the same pictures, and
+		# two shots of one win (its sheet and its share card) say the same words.
+		seed(1)
+		Cheers.forget()
 		await director.call("stage", String(shot["action"]), sub)
 		for i: int in range(SETTLE_FRAMES):
 			await get_tree().process_frame
