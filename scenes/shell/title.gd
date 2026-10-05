@@ -50,7 +50,6 @@ func _ready() -> void:
 	gear.pressed.connect(func() -> void: Settings.open(self))
 	ui.add_child(gear)
 	Supporter.add_title_button(self, ui, gear)
-	Intro.play(self)
 
 	var tally: HBoxContainer = HBoxContainer.new()
 	tally.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
@@ -67,7 +66,17 @@ func _ready() -> void:
 	add_child(_seesaw)
 	_stage.resized.connect(_place)
 	_place()
+	# Last, so the seesaw is there for the intro to drop its marbles onto.
+	Intro.play(self)
 
 ## Centred in the space the column left for it, wherever the layout put that on this screen shape.
 func _place() -> void:
 	_seesaw.position = _stage.get_global_rect().get_center() + Vector2(0, 16)
+
+## The seesaw's marbles of these colours, kept off the bar until the intro drops them in (intro.gd).
+func hold_marbles(colours: Array[int]) -> void:
+	_seesaw.hold(colours)
+
+## Those marbles falling onto the bar from `from`, points on the screen, one for each colour.
+func drop_marbles(colours: Array[int], from: Array[Vector2]) -> void:
+	_seesaw.drop(colours, from)
