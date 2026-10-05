@@ -10,7 +10,7 @@ extends RefCounted
 const HEADINGS: Array = [
 	["Solved", "Got there", "Done", "Cracked it", "There it is", "Sorted"],
 	["Nice one", "Well played", "Smooth", "Sharp", "Good going", "Tidy"],
-	["Flawless", "Perfect", "Spotless", "Brilliant", "Masterful", "Textbook", "Immaculate", "Pure class"],
+	["Flawless", "Perfect", "Spotless", "Brilliant", "Masterful", "Immaculate", "Pure class"],
 ]
 ## Lines for the stars, for any game; %s is the game's word for a move, in the plural.
 const LINES: Array = [
