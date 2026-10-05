@@ -16,6 +16,10 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
+## 1.1.2 - 2026-10-05
+
+- A new icon, and an opening where its marbles roll home and pour out onto the seesaw.
+
 ## 1.1.1 - 2026-10-05
 
 - The tip jar fits every screen, whatever the currency.
