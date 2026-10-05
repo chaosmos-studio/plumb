@@ -4,8 +4,8 @@ extends RefCounted
 ## The about sheet: the game, its version, the people who made it, and its links. The web build links to
 ## the website and the privacy policy. The Google Play build links only to the privacy policy and the
 ## support page, the two pages of the site with no sponsor links, since Play does not let an app lead to
-## a way to pay outside its billing. Reads the game's GameCredits (res://credits.gd): WEBSITE, PRIVACY and
-## SUPPORT.
+## a way to pay outside its billing. A name opens that person's site the way Credits says. Reads the game's
+## GameCredits (res://credits.gd): TEAM, WEBSITE, PRIVACY and SUPPORT.
 
 static func open(host: Node) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
@@ -17,8 +17,7 @@ static func open(host: Node) -> Sheet:
 	c.add_child(UI.spacer(8))
 	c.add_child(UI.caption("Made by", 20))
 	for person: Dictionary in GameCredits.TEAM:
-		var name_label: Label = UI.label(String(person["name"]), 34)
-		c.add_child(name_label)
+		c.add_child(Credits.name_of(person, 34, HORIZONTAL_ALIGNMENT_CENTER))
 		var role: Label = UI.label(String(person["role"]), 24, Brand.MUTED)
 		c.add_child(role)
 	if Supporter.active():

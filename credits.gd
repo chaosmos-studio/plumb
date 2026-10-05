@@ -21,7 +21,8 @@ const SUPPORT_LINE_WEB: String = "If Plumb gave you a few calm minutes, you can 
 const THANKS_LINE: String = "You are a Supporter. Thank you for helping me make the next game."
 
 const TEAM: Array[Dictionary] = [
-	{"name": "Shravan Goswami", "role": "Game designer and developer"},
+	{"name": "Shravan Goswami", "role": "Game designer and developer", "site": "https://shravangoswami.com/",
+		"site_on_play": "https://shravangoswami.com/projects/studio/"},
 	{"name": "Claude Opus 5.5", "role": "AI co-developer, by Anthropic"},
 ]
 
