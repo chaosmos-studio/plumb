@@ -16,7 +16,8 @@ const BOARD_H = 700;
 type Assets = {
   fonts: { name: string; data: Buffer; weight: 300 | 500; style: "normal" }[];
   icon: string;
-  board: { src: string; width: number; height: number };
+  // Null on a site that has not made its board yet: the card is then the name and title alone.
+  board: { src: string; width: number; height: number } | null;
 };
 
 let assets: Promise<Assets> | null = null;
@@ -32,7 +33,7 @@ function load() {
       readFile(join(dir, "outfit-latin-300-normal.woff")),
       readFile(join(dir, "outfit-latin-500-normal.woff")),
       readFile(join(process.cwd(), "src", "assets", "icon.png")),
-      readFile(join(process.cwd(), "src", "assets", "og_board.png")),
+      readFile(join(process.cwd(), "src", "assets", "og_board.png")).catch(() => null),
     ]);
     return {
       fonts: [
@@ -40,7 +41,7 @@ function load() {
         { name: "Outfit", data: medium, weight: 500 as const, style: "normal" as const },
       ],
       icon: png(icon).src,
-      board: png(board),
+      board: board ? png(board) : null,
     };
   })();
   return assets;
@@ -53,7 +54,7 @@ const el = (type: string, style: Record<string, unknown>, children?: unknown, ex
 
 export async function render(title: string, description: string, kicker: string) {
   const { fonts, icon, board } = await load();
-  const boardW = Math.round((board.width * BOARD_H) / board.height);
+  const boardW = board ? Math.round((board.width * BOARD_H) / board.height) : 0;
   // Cut at a word, without a stray full stop or comma before the ellipsis.
   const blurb = description.length > 110
     ? `${description.slice(0, 107).replace(/\s+\S*$/, "").replace(/[.,;:]+$/, "")}...`
@@ -65,20 +66,24 @@ export async function render(title: string, description: string, kicker: string)
       el("div", { position: "absolute", left: -160, top: -180, width: 520, height: 520, borderRadius: 999, background: COLOURS.orbs[0], opacity: 0.16 }),
       el("div", { position: "absolute", left: 300, bottom: -260, width: 520, height: 520, borderRadius: 999, background: COLOURS.orbs[1], opacity: 0.14 }),
       el("div", { position: "absolute", right: 120, top: -120, width: 380, height: 380, borderRadius: 999, background: COLOURS.orbs[2], opacity: 0.2 }),
-      el("img", { position: "absolute", right: -90, top: (H - BOARD_H) / 2 + 10, width: boardW, height: BOARD_H }, undefined, {
-        src: board.src,
-        width: boardW,
-        height: BOARD_H,
-      }),
-      // A soft fade from the ground over the board's near edge, so a long title stays readable.
-      el("div", {
-        position: "absolute",
-        left: 0,
-        top: 0,
-        width: 760,
-        height: H,
-        backgroundImage: `linear-gradient(90deg, ${COLOURS.bg} 0%, ${COLOURS.bg} 72%, ${COLOURS.bg}00 100%)`,
-      }),
+      ...(board
+        ? [
+            el("img", { position: "absolute", right: -90, top: (H - BOARD_H) / 2 + 10, width: boardW, height: BOARD_H }, undefined, {
+              src: board.src,
+              width: boardW,
+              height: BOARD_H,
+            }),
+            // A soft fade from the ground over the board's near edge, so a long title stays readable.
+            el("div", {
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: 760,
+              height: H,
+              backgroundImage: `linear-gradient(90deg, ${COLOURS.bg} 0%, ${COLOURS.bg} 72%, ${COLOURS.bg}00 100%)`,
+            }),
+          ]
+        : []),
       el("div", { position: "absolute", left: 0, top: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "58px 64px", width: 700, height: H }, [
         el("div", { display: "flex", alignItems: "center", gap: 22 }, [
           el("img", { width: 92, height: 92, borderRadius: 24 }, undefined, { src: icon }),
