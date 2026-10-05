@@ -83,6 +83,7 @@
 
     {"out": "src/content/blog/made-by-a-human-and-an-ai/images/cover.webp", "kind": "cover", "shot": "b100", "seed": 9},
     {"out": "src/content/blog/made-by-a-human-and-an-ai/images/plumb-from-first-to-last.webp", "kind": "strip", "shots": ["b1", "b35", "b100"], "labels": ["Where it starts", "The first pit", "Late game"]},
-    {"out": "src/content/blog/made-by-a-human-and-an-ai/images/plumb-on-a-phone.webp", "kind": "phone", "shot": "p_play", "flatten": true, "width": 900}
+    {"out": "src/content/blog/made-by-a-human-and-an-ai/images/plumb-on-a-phone.webp", "kind": "phone", "shot": "p_play", "flatten": true, "width": 900},
+    {"out": "src/assets/og_board.png", "kind": "og", "shot": "b100", "tilt": -7, "width": 760}
   ]
 }

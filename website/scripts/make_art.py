@@ -21,6 +21,7 @@ remade after any change to the game. The captures are then composed into one of 
            game tool writes (art.json "datasets" names the script), optionally banded by another field
   orbit    an elliptical orbit around a sun, drawn rather than captured, with its nearest and farthest
            points (the apsides) marked and labelled
+  og       a cover's board alone, tilted with its shadow on a clear layer, as a PNG for the social cards
 
 Pictures are written as WebP (lossy, quality 90) into the paths art.json gives, usually a post's
 images/ folder. Astro then makes the responsive sizes. Captures are cached in art/build/raw and only
@@ -177,6 +178,20 @@ class Art:
         if item.get("badge"):
             self.badge(img, item["badge"], (int(W * 0.07), int(H * 0.1)), size=int(H * 0.06))
         return img
+
+    def og(self, item):
+        """The board for the site's social cards (src/utils/og.ts): a cover's board, tilted with its shadow, on a
+        clear layer, which the card sets on the game's colours beside each page's title. Saved as a PNG."""
+        if self.spec.get("cover_shape", "card") == "circle":
+            art = disc(self.board(item["shot"]), item.get("height", 900))
+        else:
+            art = card(self.board(item["shot"]), item.get("height", 900), self.p, radius=0.05)
+            art = art.rotate(item.get("tilt", -6), resample=Image.BICUBIC, expand=True)
+        pad = 90
+        out = Image.new("RGBA", (art.width + pad * 2, art.height + pad * 2), (0, 0, 0, 0))
+        drop(out, art, (pad, pad), 40)
+        out.alpha_composite(art, (pad, pad))
+        return out
 
     def backdrop(self, size, rng):
         W, H = size
@@ -511,19 +526,22 @@ def main():
     art.capture(sorted(needed), args.force)
     art.datasets = {n: art.dataset(n, args.force) for n in sorted({i["dataset"] for i in items if "dataset" in i})}
     kinds = {"phone": art.phone, "cover": art.cover, "board": art.board_card, "strip": art.strip, "compare": art.compare,
-             "turns": art.turns, "tree": art.tree, "chart": art.chart, "orbit": art.orbit}
+             "turns": art.turns, "tree": art.tree, "chart": art.chart, "orbit": art.orbit, "og": art.og}
     for i in items:
         img = kinds[i["kind"]](i)
         out = os.path.join(SITE, i["out"])
         os.makedirs(os.path.dirname(out), exist_ok=True)
-        if img.mode == "RGBA" and (i["kind"] != "phone" or i.get("flatten")):
+        if img.mode == "RGBA" and (i["kind"] not in ("phone", "og") or i.get("flatten")):
             flat = Image.new("RGB", img.size, art.p["surface"])
             flat.paste(img, (0, 0), img)
             img = flat
         width = i.get("width")
         if width and img.width > width:
             img = img.resize((width, int(img.height * width / img.width)), Image.LANCZOS)
-        img.save(out, "WEBP", quality=90, method=6)
+        if out.endswith(".png"):
+            img.save(out, "PNG", optimize=True)
+        else:
+            img.save(out, "WEBP", quality=90, method=6)
         print("wrote %s (%dx%d)" % (i["out"], img.width, img.height))
 
 
