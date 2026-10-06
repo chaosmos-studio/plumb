@@ -12,9 +12,9 @@
 	"feature": {"raw": "hero", "tilt": -5},
 	"phone": [
 		{"raw": "phone_play", "caption": "*Tilt* the board.", "sub": "Every marble rolls at once, until something stops it.",
-			"swipe": [0.8, 0.5, 0.32, 0.5]},
+			"swipe": [0.8, 0.39, 0.32, 0.39]},
 		{"name": "swipe", "layout": "pair", "raws": ["pair_a", "pair_b"], "caption": "One swipe moves *everything*.",
-			"sub": "Plan where they will all end up.", "swipe": [0.5, 0.2, 0.5, 0.7]},
+			"sub": "Plan where they will all end up.", "swipe": [0.2, 0.27, 0.75, 0.27]},
 		{"raw": "phone_hint", "caption": "Stuck? Take a *hint*.", "sub": "See exactly where each marble would land.",
 			"zoom": {"at": [0.74, 0.6], "span": 0.42, "to": [0.27, 0.8], "size": 0.42}},
 		{"raw": "phone_won", "layout": "pop", "pop": "share", "caption": "Share the *perfect* solve.",
@@ -29,7 +29,7 @@
 	],
 	"tablet": [
 		{"raw": "tablet_play", "caption": "*Tilt* the board.", "sub": "Every marble rolls at once, until something stops it.",
-			"swipe": [0.8, 0.5, 0.32, 0.5]},
+			"swipe": [0.8, 0.39, 0.32, 0.39]},
 		{"raw": "tablet_hint", "caption": "Stuck? Take a *hint*.", "sub": "See exactly where each marble would land.",
 			"zoom": {"at": [0.71, 0.6], "span": 0.38, "to": [0.52, 0.7], "size": 0.26}},
 		{"raw": "tablet_won", "layout": "pop", "pop": "share", "caption": "Share the *perfect* solve.",
