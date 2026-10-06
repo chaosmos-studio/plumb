@@ -5,7 +5,7 @@ pubDate: 2026-09-30
 authors: [shravan, claude]
 tags: [Behind the scenes, Design]
 cover: ./images/cover.webp
-coverAlt: "A crowded late-game Plumb board with eight marbles and several pits, tilted on a soft background"
+coverAlt: "A later Plumb board with five marbles, three one-way gates and a pit, tilted on a soft background"
 ---
 
 Nobody designed Plumb's levels by hand. A program makes them, another program proves each one can be solved, and a set of rules decides which ones ship and in what order. This post walks through how that works, and what we changed after players noticed some levels felt the same.
@@ -19,6 +19,8 @@ The generator starts from a recipe for a stage of the game: a board size, a numb
 Every candidate goes to the **solver**. It explores every sequence of tilts breadth first, so the first solution it reaches is a shortest one. If there is no solution, or the shortest one is too short or too long for this stage, the board is thrown away. If it passes, its shortest solution length becomes its **par**.
 
 The tests re-solve every shipped level on every build, so a change to the rules can never quietly break a level.
+
+Every tile on a board has to earn its place too. Once par is known, the generator takes each gate, pad, spring or other tile off in turn, and leaves it off if par stays the same. A tile the best solution never needs would only puzzle a player looking for its point. The board is then measured again as it will ship.
 
 ## Step 3: make sure it is new
 
@@ -44,6 +46,6 @@ New ideas arrive gently. The second marble appears at level 4, the second colour
 
 ## Why do it this way?
 
-Because it makes promises we can test. Every level is solvable. Par is the true minimum. No two levels are the same puzzle. And the game never takes a step backwards in difficulty. A person checking a hundred boards by eye would miss some of these; a test does not.
+Because it makes promises we can test. Every level is solvable. Par is the true minimum. Every tile on a board matters. No two levels are the same puzzle. And the game never takes a step backwards in difficulty. A person checking a hundred boards by eye would miss some of these; a test does not.
 
 If you like the maths side of this, read [why four directions go so deep](../why-four-directions-go-deep/).
