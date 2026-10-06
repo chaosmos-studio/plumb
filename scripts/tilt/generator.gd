@@ -144,6 +144,10 @@ const MIX: Array[Dictionary] = [{"stop": 2}, {"gate": 2}, {"door": 1}, {"paint":
 ## A phase's count of stones, and the tile names that place two tiles each.
 const STONE_NAME: String = "stone"
 const PAIRED: Array[String] = ["portal", "switch", "key"]
+## The rule tiles that stand on one cell alone, which `prune` takes off a board where they change nothing.
+const SINGLE: Array[int] = [TiltBoard.Tile.STOP, TiltBoard.Tile.GATE, TiltBoard.Tile.DOOR, TiltBoard.Tile.PAINT,
+	TiltBoard.Tile.CRACK, TiltBoard.Tile.BUMPER, TiltBoard.Tile.BLINK, TiltBoard.Tile.CONVEYOR, TiltBoard.Tile.SPRING,
+	TiltBoard.Tile.MAGNET, TiltBoard.Tile.GLASS]
 ## The ramp runs over RAMP_LEVELS, the whole game as planned (CHAPTERS.md), not just the chapters made so
 ## far, so the levels made now stay the same when later chapters are added after them. Level 1 aims at
 ## FIRST_PAR and FIRST_BITS (see TiltDifficulty), level RAMP_LEVELS at LAST_PAR and LAST_BITS, and both
@@ -166,14 +170,18 @@ const BAND: float = 1.0
 const POOL: int = 6
 ## Positions the solver may explore for one candidate. One that needs more is too tangled for its phase.
 const SEARCH_LIMIT: int = 12000
-## Proposals tried per level a phase ships before its pool closes, full or not.
+## Proposals tried per level a phase ships before its pool closes, full or not. From TILED_FROM on,
+## chapters place rule tiles and `prune` turns down far more proposals (a board whose tiles do nothing
+## measures easier without them), so they try ATTEMPTS_TILED.
 const ATTEMPTS: int = 1500
+const ATTEMPTS_TILED: int = 4500
+const TILED_FROM: int = 4
 ## Chapters from this one on build their pools in batches of BATCH proposals, which a Farm may work out
 ## anywhere, in any order. Each batch has its own seed, made from one number the phase draws from the
 ## generator's RNG and the batch's index, and the batches are merged in index order, so the levels depend
-## only on the seed, never on where or when a batch ran. The chapters before keep the one-at-a-time way
-## they were made, so a full run still writes the levels already shipped.
-const PARALLEL_FROM: int = 10
+## only on the seed, never on where or when a batch ran. The chapters before, which have no tiles to
+## prune, keep the one-at-a-time way they were made, so a full run still writes the levels already shipped.
+const PARALLEL_FROM: int = 4
 const BATCH: int = 24
 ## Chapters from this one on ship in TiltDifficulty.before's order, par first, rather than with par and
 ## bits each never falling (MATH.md section 10). Every level before them keeps both, which also keeps this.
@@ -329,7 +337,8 @@ func add_phase(chapter: int, p: int) -> bool:
 
 ## A proposal measured against everything a phase asks that does not depend on the pool: solved within
 ## the search, par and bits in the window, no easier than the last level, its pits a real risk where the
-## phase has pits, and needing the chapter's rule. Null if it fails any of them.
+## phase has pits, and needing the chapter's rule. Its tiles that change nothing come off first (prune),
+## so it is judged as it would ship. Null if it fails any of them.
 static func _try(board: TiltBoard, phase: Array, rule: String, limit: int, lo: float, hi: float,
 		last: TiltDifficulty, by_par: bool = false, cap: int = -1) -> Candidate:
 	if board == null or not _open(board):
@@ -341,15 +350,49 @@ static func _try(board: TiltBoard, phase: Array, rule: String, limit: int, lo: f
 	if by_par and TiltSolver.new().solve(board, limit, deepest).size() < int(phase[7]):
 		return null
 	var m: TiltDifficulty = TiltDifficulty.of(board, deepest, limit)
-	if m.par < int(phase[7]) or m.bits < lo or m.bits > hi:
+	if not _fits(m, phase, lo, hi, last, by_par):
 		return null
-	if last != null and (m.before(last) if by_par else (m.par < last.par or m.easier_than(last))):
-		return null
-	if int(phase[6]) > 0 and m.risk <= 0.0:
-		return null
+	# A tile that never changes the best way through still blocks wrong ones, so taking it off can make the
+	# board easier: it is measured again without it, and has to fit the window as it is.
+	var kept: TiltBoard = prune(board, m.par, limit)
+	if kept.tiles != board.tiles:
+		board = kept
+		m = TiltDifficulty.of(board, deepest, limit)
+		if not _fits(m, phase, lo, hi, last, by_par):
+			return null
 	if rule != "" and not needs(board, rule, m.par, limit):
 		return null
 	return Candidate.new(board, m, TiltNovelty.views(board, m.path), 0)
+
+static func _fits(m: TiltDifficulty, phase: Array, lo: float, hi: float, last: TiltDifficulty, by_par: bool) -> bool:
+	if m.par < int(phase[7]) or m.bits < lo or m.bits > hi:
+		return false
+	if last != null and (m.before(last) if by_par else (m.par < last.par or m.easier_than(last))):
+		return false
+	return int(phase[6]) <= 0 or m.risk > 0.0
+
+## `board` without the tiles that change nothing: each single-cell rule tile is taken off in turn and
+## stays off if the board still needs exactly `par` moves. Taking one off can make another matter (two
+## gates that each do the job alone) or stop mattering, so it goes round until nothing more comes off. A
+## search that gives up proves nothing, so that tile stays.
+static func prune(board: TiltBoard, par: int, limit: int = SEARCH_LIMIT) -> TiltBoard:
+	var out: TiltBoard = board.copy()
+	var changed: bool = true
+	while changed:
+		changed = false
+		for i: int in range(out.tiles.size()):
+			if not SINGLE.has(out.tiles[i]):
+				continue
+			var trial: TiltBoard = _without_tile(out, i)
+			if TiltSolver.new().solve(trial, limit, par).size() == par:
+				out = trial
+				changed = true
+	return out
+
+static func _without_tile(board: TiltBoard, i: int) -> TiltBoard:
+	var out: TiltBoard = board.copy()
+	out.tiles[i] = TiltBoard.Tile.NONE
+	return out
 
 ## Adds a measured candidate to the pool unless it repeats a level made or pooled already.
 func _keep(c: Candidate, pool: Array[Candidate]) -> void:
@@ -363,7 +406,7 @@ func _keep(c: Candidate, pool: Array[Candidate]) -> void:
 func _fill(pool: Array[Candidate], chapter: int, p: int, lo: float, hi: float, last: TiltDifficulty, cap: int,
 		size: int) -> void:
 	var count: int = CHAPTERS[chapter]["phases"][p][0]
-	var batches: int = ceili(float(count * ATTEMPTS) / BATCH)
+	var batches: int = ceili(float(count * (ATTEMPTS_TILED if chapter >= TILED_FROM else ATTEMPTS)) / BATCH)
 	var job: Dictionary = {"chapter": chapter, "phase": p, "seed": rng.randi(), "batches": batches,
 		"lo": lo, "hi": hi, "cap": cap,
 		"last": {} if last == null else {"par": last.par, "bits": last.bits, "states": last.states}}

@@ -367,6 +367,18 @@ func _test_chapter_tiles() -> void:
 	# Here the pad sits off the marble's path, so the plain board solves just as fast.
 	var idle: TiltBoard = _tiled(["...0", "...."], [[0, 0, 0]], [[1, 1, "stop", 0]])
 	_check("and does not when the tile changes nothing", not TiltGenerator.needs(idle, "stop", 1))
+	# The gate makes the marble go round; the pad sits where it never rolls, so only the pad comes off.
+	var cluttered: TiltBoard = _tiled(["0..", "...", "..."], [[2, 0, 0]],
+		[[1, 0, "gate", TiltBoard.RIGHT], [1, 1, "stop", 0]])
+	var pruned: TiltBoard = TiltGenerator.prune(cluttered, 3)
+	_check("pruning takes off a tile that changes nothing and keeps one that matters",
+		pruned.tiles[pruned.index(Vector2i(1, 1))] == TiltBoard.Tile.NONE
+		and pruned.tiles[pruned.index(Vector2i(1, 0))] == TiltBoard.Tile.GATE)
+	# Two gates that each turn the marble back alone: one comes off, and the other then matters.
+	var twice: TiltBoard = _tiled(["0...", "....", "...."], [[3, 0, 0]],
+		[[1, 0, "gate", TiltBoard.RIGHT], [2, 0, "gate", TiltBoard.RIGHT]])
+	var once: TiltBoard = TiltGenerator.prune(twice, 3)
+	_check("and of two gates that do the same job keeps one", once.tiles.count(TiltBoard.Tile.GATE) == 1)
 
 func _test_solver() -> void:
 	var solver: TiltSolver = TiltSolver.new()

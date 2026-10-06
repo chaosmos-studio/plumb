@@ -266,6 +266,21 @@ none of length par, settles it. Breadth-first order makes that bound free (stop 
 and it keeps the second search no bigger than the first. A search that hits its state limit first proves
 nothing either way, so that candidate is turned down rather than counted as needing its rule.
 
+**Every tile, not just the rule.** Needing the rule as a whole still lets single tiles do nothing: two
+gates where one does the job, or a pad no route ever touches. A player noticed gates with no point, and
+a scan of the first full set found 217 of the 420 levels from chapter 5 on carrying such a tile. So
+`TiltGenerator.prune` takes each single-cell tile off in turn and leaves it off while par stays the same,
+going round until nothing more comes off, since taking one off can make another matter. It never takes
+the last tile of a needed rule, because without it par would change.
+
+It has to happen inside the search, not after it. A tile that never changes the best route still blocks
+wrong ones, so taking it off lowers bits (one level of the old set fell from 15.1 to 11.6), and a shipped
+level would then measure easier than the one before it. A pass over the finished set could clean only 126
+of the 217 without breaking section 6's order. Pruned in `_try`, a candidate is measured as it will ship,
+and the run is built from clean boards. That costs yield: chapter 10 found 4 boards in 15,000 proposals.
+So from chapter 5 every chapter tries `ATTEMPTS_TILED`, three times as many proposals per level, on the
+worker processes of section 10. Chapters 1 to 4 place no tiles and come out byte for byte as before.
+
 **The window moves with the levels.** Section 6's pool takes candidates within a bit of the ramp, but
 par and bits may never fall, so once the levels run ahead of the ramp (by level 120 they sit at 14.3 bits
 against a target of 13.65) the window's upper edge comes down to meet the last level and the pool
