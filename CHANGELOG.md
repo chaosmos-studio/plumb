@@ -16,6 +16,12 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
+## 1.1.3 - 2026-10-06
+
+- Levels from 81 on are new, and every gate, pad, spring and other tile on them now matters to the solution.
+- A hint's trails stay lit for as long as the hint shows.
+- The card on the win screen fits dark mode, with no white border.
+
 ## 1.1.2 - 2026-10-05
 
 - A new icon, and an opening where its marbles roll home and pour out onto the seesaw.
