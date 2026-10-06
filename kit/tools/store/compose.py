@@ -651,9 +651,13 @@ def layout_fan(shot, style, stage, size, index):
     face = style.face("ui", min(size) * 0.03)
     strip_h = (y1 - y0) * 0.17 if strip else (face.size * 5.2 if chips else 0)
     room_h = (y1 - y0) - strip_h - face.size * 3.4
-    width = min((x1 - x0) * 0.47, room_h * 0.9 * frames[1].width / frames[1].height)
-    spread = (x1 - x0) * 0.3
     angle = shot.get("angle", 9)
+    # A tilted side card stands taller than it is, by its width times the sine, and sits a little lower,
+    # so the cards are sized for the side ones to end inside the room left above the labels.
+    tall = frames[1].height / frames[1].width
+    lean = math.radians(angle)
+    width = min((x1 - x0) * 0.47, room_h * 0.88 / (tall * math.cos(lean) + math.sin(lean)))
+    spread = (x1 - x0) * 0.3
     top = y0 + room_h * 0.03
     placed = []
     for i, f in enumerate(frames):
@@ -674,7 +678,7 @@ def layout_fan(shot, style, stage, size, index):
             place(canvas, tag, lx + (layer.width - tag.width) / 2, label_y)
         if strip:
             # The strip on a plate of its own background, rounded, so it reads as one more card.
-            sw = min((x1 - x0) * 0.94, strip_h * 0.9 * strip.width / strip.height)
+            sw = min((x1 - x0) * 0.94 - 40, (strip_h * 0.9 - 24) * strip.width / strip.height)
             s = strip.resize((int(sw), int(sw * strip.height / strip.width)), Image.LANCZOS)
             plate = Image.new("RGB", (s.width + 40, s.height + 24), strip.getpixel((0, 0)))
             plate.paste(s, (20, 12))
