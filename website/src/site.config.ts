@@ -36,7 +36,7 @@ export const site = {
   // on. "auto": the hostname is proxied through Cloudflare, whose automatic setup adds the beacon to every
   // page on it, /play/ included, so the site adds no script. "token": Head adds the beacon with `token`, the
   // site token for a hostname Cloudflare does not proxy. "off": nothing is counted.
-  analytics: { cloudflare: "auto", token: "" } as Analytics,
+  analytics: { cloudflare: "off", token: "" } as Analytics,
   giscus: {
     repo: "shravanngoswamii/comments",
     repoId: "R_kgDOQ90dlg",
@@ -251,7 +251,7 @@ export const about = {
 // The Privacy page's game-specific facts. Check them against the game's save.gd and export_presets.cfg
 // before every release, and move `updated` whenever what the page says changes.
 export const privacy = {
-  updated: "2026-09-30",
+  updated: "2026-10-07",
   description: "Plumb's privacy policy: what the game keeps on your device, the AdMob ads and your consent choices in the Android app, the Supporter pack, and the web version.",
   stores: [
     "the stars you have earned on each level, which is also how levels unlock;",
