@@ -3,7 +3,8 @@ extends Control
 
 ## What a player sees after solving the last level for the first time: a quiet screen with a note from
 ## the person who made the game, signed, and a way to support the next one: the Supporter pack in the
-## Google Play build, GitHub Sponsors on the web, and a thank-you for a Supporter. The words are the
+## Google Play build, GitHub Sponsors on the web, and a thank-you for a Supporter. Under it, a rating
+## (RatePrompt) and the studio's other games (MoreGames). The words are the
 ## game's (GameCredits.NOTE, SIGNED, SUPPORT_LINE_PLAY, SUPPORT_LINE_WEB and THANKS_LINE), so each game can
 ## speak for itself.
 
@@ -102,6 +103,8 @@ func _build(on_done: Callable) -> void:
 			else:
 				OS.shell_open(GameCredits.SPONSOR))
 		column.add_child(UI.centred(give))
+	column.add_child(UI.spacer(4))
+	column.add_child(UI.centred(_extras()))
 	var back: Button = UI.button("Back to levels", UI.Style.GHOST if offer != "" else UI.Style.PRIMARY)
 	back.custom_minimum_size.x = 460.0
 	back.pressed.connect(func() -> void:
@@ -113,6 +116,24 @@ func _build(on_done: Callable) -> void:
 	column.add_child(UI.centred(back))
 	column.add_child(UI.spacer(EDGE))
 	create_tween().tween_property(self, "modulate:a", 1.0, 0.6)
+
+## Side by side, to keep the column short: a rating, for a player who could still be asked, and the
+## studio's other games.
+func _extras() -> HBoxContainer:
+	var row: HBoxContainer = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	if RatePrompt.open_to_asking():
+		var rate: Button = UI.button(RatePrompt.button_text(), UI.Style.SECONDARY)
+		rate.custom_minimum_size.x = 300.0
+		rate.pressed.connect(func() -> void:
+			RatePrompt.rate()
+			rate.disabled = true)
+		row.add_child(rate)
+	var more: Button = UI.button(MoreGames.title(), UI.Style.SECONDARY)
+	more.custom_minimum_size.x = 300.0
+	more.pressed.connect(func() -> void: MoreGames.open(self))
+	row.add_child(more)
+	return row
 
 func _process(delta: float) -> void:
 	_t += delta
