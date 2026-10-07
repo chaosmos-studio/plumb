@@ -10,6 +10,8 @@ extends Control
 const LAYER: int = 65
 const DRIFTERS: int = 18
 const COLUMN_WIDTH: float = 600.0
+## Room above and below the words, so scrolled to either end they still clear the screen's edge.
+const EDGE: float = 48.0
 
 var _drift: Array[Vector4] = []
 var _t: float = 0.0
@@ -58,12 +60,20 @@ func _build(on_done: Callable) -> void:
 	rng.seed = 7
 	for k: int in range(DRIFTERS):
 		_drift.append(Vector4(rng.randf() * view.x, rng.randf() * view.y, rng.randf_range(4.0, 11.0), rng.randf_range(10.0, 26.0)))
+	# Centred on a tall phone, and scrolling on a short one, where the note and buttons outgrow the screen.
+	var scroll: ScrollContainer = ScrollContainer.new()
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	add_child(scroll)
 	var column: VBoxContainer = VBoxContainer.new()
 	_column = column
-	column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	column.custom_minimum_size = view
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	column.add_theme_constant_override("separation", 14)
-	add_child(column)
+	scroll.add_child(column)
+	column.add_child(UI.spacer(EDGE))
 	column.add_child(UI.centred(UI.app_icon(132)))
 	column.add_child(UI.spacer(6))
 	column.add_child(UI.caption("Every level solved", 22))
@@ -101,6 +111,7 @@ func _build(on_done: Callable) -> void:
 		on_done.call()
 		get_parent().queue_free())
 	column.add_child(UI.centred(back))
+	column.add_child(UI.spacer(EDGE))
 	create_tween().tween_property(self, "modulate:a", 1.0, 0.6)
 
 func _process(delta: float) -> void:
@@ -120,11 +131,14 @@ func _draw() -> void:
 		var colour: Color = Brand.ACCENT if k % 3 == 0 else (Brand.GOLD if k % 3 == 1 else Brand.MUTED)
 		draw_circle(at, d.z, Color(colour, 0.24 * clear), true, -1.0, true)
 
-## Where the column's children actually are, since the column itself fills the screen.
+## Where the words and buttons are on screen, as scrolled, since the column itself is at least the
+## screen's size. The bare spacers between them are left out.
 func _content_rect() -> Rect2:
 	var box: Rect2 = Rect2()
 	for child: Node in _column.get_children():
 		var c: Control = child as Control
-		if c != null and c.size.y > 0.0:
-			box = c.get_rect() if box.size == Vector2.ZERO else box.merge(c.get_rect())
-	return Rect2(_column.position + box.position, box.size)
+		if c == null or c.get_class() == "Control" or c.size.y <= 0.0:
+			continue
+		var r: Rect2 = c.get_global_rect()
+		box = r if box.size == Vector2.ZERO else box.merge(r)
+	return Rect2(box.position - global_position, box.size)
