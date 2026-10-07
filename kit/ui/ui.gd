@@ -230,24 +230,54 @@ static func app_icon(px: float) -> TextureRect:
 
 static func icon_texture() -> Texture2D:
 	if _icon == null:
-		var img: Image = (load("res://assets/branding/icon.png") as Texture2D).get_image()
-		img.decompress()
-		img.convert(Image.FORMAT_RGBA8)
-		img.resize(ICON_TEXTURE, ICON_TEXTURE, Image.INTERPOLATE_LANCZOS)
-		var n: float = float(ICON_TEXTURE)
-		var r: float = n * 0.22
-		var corner: int = int(ceil(r)) + 1
-		for y: int in range(ICON_TEXTURE):
-			for x: int in range(ICON_TEXTURE):
-				if (x >= corner and x < ICON_TEXTURE - corner) or (y >= corner and y < ICON_TEXTURE - corner):
-					continue
-				var dx: float = maxf(absf(x + 0.5 - n * 0.5) - (n * 0.5 - r), 0.0)
-				var dy: float = maxf(absf(y + 0.5 - n * 0.5) - (n * 0.5 - r), 0.0)
-				var inside: float = clampf(r - sqrt(dx * dx + dy * dy) + 0.5, 0.0, 1.0)
-				var c: Color = img.get_pixel(x, y)
-				img.set_pixel(x, y, Color(c, c.a * inside))
-		_icon = ImageTexture.create_from_image(img)
+		_icon = rounded(load("res://assets/branding/icon.png") as Texture2D)
 	return _icon
+
+## `texture` at ICON_TEXTURE pixels with the rounded corners a phone gives an app icon.
+static func rounded(texture: Texture2D) -> ImageTexture:
+	var img: Image = texture.get_image()
+	img.decompress()
+	img.convert(Image.FORMAT_RGBA8)
+	img.resize(ICON_TEXTURE, ICON_TEXTURE, Image.INTERPOLATE_LANCZOS)
+	var n: float = float(ICON_TEXTURE)
+	var r: float = n * 0.22
+	var corner: int = int(ceil(r)) + 1
+	for y: int in range(ICON_TEXTURE):
+		for x: int in range(ICON_TEXTURE):
+			if (x >= corner and x < ICON_TEXTURE - corner) or (y >= corner and y < ICON_TEXTURE - corner):
+				continue
+			var dx: float = maxf(absf(x + 0.5 - n * 0.5) - (n * 0.5 - r), 0.0)
+			var dy: float = maxf(absf(y + 0.5 - n * 0.5) - (n * 0.5 - r), 0.0)
+			var inside: float = clampf(r - sqrt(dx * dx + dy * dy) + 0.5, 0.0, 1.0)
+			var c: Color = img.get_pixel(x, y)
+			img.set_pixel(x, y, Color(c, c.a * inside))
+	return ImageTexture.create_from_image(img)
+
+## The raised card that opens something: Settings' pickers and the studio's other games.
+static func card_box(fill: Color) -> StyleBoxFlat:
+	var box: StyleBoxFlat = StyleBoxFlat.new()
+	box.bg_color = fill
+	box.border_color = Brand.LINE
+	box.set_border_width_all(2)
+	box.set_corner_radius_all(30)
+	box.shadow_color = Brand.SHADOW
+	box.shadow_size = 10
+	box.shadow_offset = Vector2(0, 4)
+	box.anti_aliasing = true
+	return box
+
+## A Button styled as a card, for content laid out inside it.
+static func card(min_size: Vector2) -> Button:
+	var b: Button = Button.new()
+	b.theme_type_variation = "SecondaryButton"
+	b.custom_minimum_size = min_size
+	b.focus_mode = Control.FOCUS_NONE
+	b.add_theme_stylebox_override("normal", card_box(Brand.SURFACE))
+	b.add_theme_stylebox_override("hover", card_box(Brand.SURFACE.lightened(0.04)))
+	b.add_theme_stylebox_override("pressed", card_box(Brand.SURFACE.darkened(0.05)))
+	press_feedback(b)
+	b.pressed.connect(func() -> void: Audio.play(&"tap", -8.0))
+	return b
 
 static func spacer(height: float) -> Control:
 	var c: Control = Control.new()

@@ -131,15 +131,7 @@ static func _row(icon: StringName, text: String, control: Control) -> Control:
 
 ## A card that opens a picker: an icon in an accent disc, what it picks, and what is picked now.
 static func _card(icon: StringName, title: String, value: String, pick: Callable) -> Button:
-	var card: Button = Button.new()
-	card.theme_type_variation = "SecondaryButton"
-	card.custom_minimum_size = CARD_SIZE
-	card.focus_mode = Control.FOCUS_NONE
-	card.add_theme_stylebox_override("normal", _card_box(Brand.SURFACE))
-	card.add_theme_stylebox_override("hover", _card_box(Brand.SURFACE.lightened(0.04)))
-	card.add_theme_stylebox_override("pressed", _card_box(Brand.SURFACE.darkened(0.05)))
-	UI.press_feedback(card)
-	card.pressed.connect(func() -> void: Audio.play(&"tap", -8.0))
+	var card: Button = UI.card(CARD_SIZE)
 	card.pressed.connect(pick)
 	var row: HBoxContainer = HBoxContainer.new()
 	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -168,18 +160,6 @@ static func _card(icon: StringName, title: String, value: String, pick: Callable
 	words.add_child(now)
 	row.add_child(words)
 	return card
-
-static func _card_box(fill: Color) -> StyleBoxFlat:
-	var box: StyleBoxFlat = StyleBoxFlat.new()
-	box.bg_color = fill
-	box.border_color = Brand.LINE
-	box.set_border_width_all(2)
-	box.set_corner_radius_all(30)
-	box.shadow_color = Brand.SHADOW
-	box.shadow_size = 10
-	box.shadow_offset = Vector2(0, 4)
-	box.anti_aliasing = true
-	return box
 
 static func _quiet(text: String) -> Button:
 	var b: Button = UI.button(text, UI.Style.GHOST)
