@@ -426,7 +426,7 @@ func _on_finale() -> void:
 	_close_sheet()
 	Finale.open(self, _to_levels)
 
-## The one place an ad between levels may come, and only when the pacing allows one.
+## The one place an ad between levels, or the ask for a rating, may come.
 func _on_next() -> void:
 	if level + 1 >= Pack.count():
 		_to_levels()
@@ -434,7 +434,7 @@ func _on_next() -> void:
 	if _leaving:
 		return
 	_leaving = true
-	Ads.maybe_interstitial(_advance, _guided)
+	RatePrompt.or_ad(self, _advance, _guided)
 
 func _advance() -> void:
 	Pack.current = level + 1

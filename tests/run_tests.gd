@@ -60,6 +60,7 @@ func _initialize() -> void:
 	await process_frame
 	_test_chapter_colours()
 	_test_unlocks()
+	_test_rate_prompt()
 	_test_more_games()
 	await _test_passes()
 	_test_cheers()
@@ -978,6 +979,58 @@ func _test_finale_variants() -> void:
 		GameCredits.SUPPORT_LINE_PLAY.contains("Supporter pack") and not GameCredits.SUPPORT_LINE_WEB.contains("Supporter"))
 	supporter.set("on_play", old[0])
 	save.set("supporter", old[1])
+
+func _test_rate_prompt() -> void:
+	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
+	var prompt: GDScript = load("res://kit/shell/rate_prompt.gd")
+	var save: Node = root.get_node("Save")
+	var old: Array = [supporter.get("on_play"), save.get("path"), save.get("stars"), save.get("rate_asked"), save.get("rated")]
+	save.set("path", "user://test_rating.cfg")
+	supporter.set("on_play", true)
+	save.set("rated", false)
+	save.set("rate_asked", 0)
+	var count: int = root.get_node("Pack").call("count")
+	var solve: Callable = func(n: int) -> void:
+		var stars: PackedByteArray = PackedByteArray()
+		stars.resize(count)
+		for i: int in range(n):
+			stars[i] = 1
+		save.set("stars", stars)
+	solve.call(19)
+	_check("no rating ask before the first milestone", prompt.call("due") == 0)
+	solve.call(20)
+	_check("the first ask comes at the first milestone", prompt.call("due") == 20)
+	var host: Node = Node.new()
+	prompt.call("open", host, 20)
+	var texts: PackedStringArray = PackedStringArray()
+	for b: Node in host.find_children("*", "Button", true, false):
+		texts.append((b as Button).text)
+	host.free()
+	_check("the ask offers Rate and Not now, and no Never",
+		texts == PackedStringArray([prompt.call("button_text"), "Not now"]))
+	_check("once asked, it waits for the next milestone", prompt.call("due") == 0)
+	solve.call(60)
+	_check("Not now asks again at the next milestone", prompt.call("due") == 60)
+	save.set("rate_asked", 0)
+	solve.call(130)
+	_check("a player past several milestones is asked once, at the highest", prompt.call("due") == 120)
+	save.call("set_rating", 120, true)
+	solve.call(200)
+	_check("after Rate it never asks again", prompt.call("due") == 0 and not prompt.call("open_to_asking"))
+	save.set("rated", false)
+	save.set("rate_asked", 7)
+	save.call("restore")
+	_check("where the prompt stands is saved", int(save.get("rate_asked")) == 120 and bool(save.get("rated")))
+	save.set("rated", false)
+	save.set("rate_asked", 0)
+	supporter.set("on_play", false)
+	_check("the web build never asks", prompt.call("due") == 0 and not prompt.call("open_to_asking"))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_rating.cfg"))
+	supporter.set("on_play", old[0])
+	save.set("path", old[1])
+	save.set("stars", old[2])
+	save.set("rate_asked", old[3])
+	save.set("rated", old[4])
 
 func _test_more_games() -> void:
 	var supporter: GDScript = load("res://kit/monetize/supporter.gd")

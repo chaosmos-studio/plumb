@@ -14,8 +14,9 @@ extends RefCounted
 ## - Save._ready calling `Supporter.start()` and then `Ads.start()` once progress is restored.
 ## - `EventBus.level_won(index, count, stars)` on every solve, `Save.best` and `Pack.count` to count the
 ##   levels solved, and `Save.sound_on`, since ads start muted for a player who turned sound off.
-## - The play screen calling `maybe_interstitial` on its Next level path and nowhere else, and routing its
-##   hint through HintGate. The Levels screen and every Sheet already do their part.
+## - The play screen calling `RatePrompt.or_ad` on its Next level path and nowhere else, which comes here
+##   unless a rating is due, and routing its hint through HintGate. The Levels screen and every Sheet
+##   already do their part.
 
 ## The phone the stand-in banner assumes, in dp. Any phone in portrait gets about the same banner.
 const PREVIEW_WIDTH_DP: float = 360.0

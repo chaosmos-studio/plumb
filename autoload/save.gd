@@ -39,6 +39,9 @@ var palette: String = ""
 ## The local date of the last free hint taken, and how many were taken that day.
 var hint_day: String = ""
 var hints_used: int = 0
+## The last milestone the rating prompt asked at (RatePrompt), and whether the player chose to rate.
+var rate_asked: int = 0
+var rated: bool = false
 
 func _ready() -> void:
 	restore()
@@ -76,7 +79,8 @@ func total_stars() -> int:
 		n += s
 	return n
 
-## Forgets every star. Settings, purchases, keys, the levels they opened, tips and today's hints are kept.
+## Forgets every star. Settings, purchases, keys, the levels they opened, tips, today's hints and the rating
+## prompt's place are kept.
 func reset() -> void:
 	stars = PackedByteArray()
 	store()
@@ -173,6 +177,11 @@ func set_hints(day: String, used: int) -> void:
 	hints_used = used
 	store()
 
+func set_rating(asked: int, did_rate: bool) -> void:
+	rate_asked = asked
+	rated = rated or did_rate
+	store()
+
 func restore() -> void:
 	var file: ConfigFile = ConfigFile.new()
 	if file.load(path) != OK:
@@ -204,6 +213,8 @@ func restore() -> void:
 		passes = lent
 	look = str(file.get_value("settings", "look", ""))
 	palette = str(file.get_value("settings", "palette", ""))
+	rate_asked = maxi(int(file.get_value("rating", "asked", 0)), 0)
+	rated = bool(file.get_value("rating", "rated", false))
 
 func store() -> void:
 	var file: ConfigFile = ConfigFile.new()
@@ -225,4 +236,6 @@ func store() -> void:
 	file.set_value("monetize", "passes", passes)
 	file.set_value("settings", "look", look)
 	file.set_value("settings", "palette", palette)
+	file.set_value("rating", "asked", rate_asked)
+	file.set_value("rating", "rated", rated)
 	file.save(path)
