@@ -7,11 +7,10 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
-# Shares the gh-pages queue with the game's web deploy.
 concurrency:
-  group: gh-pages
+  group: studio-site
   cancel-in-progress: false
 
 jobs:
@@ -35,28 +34,23 @@ jobs:
       - name: Build and index
         run: npm run build
         env:
-          SITE: https://shravangoswami.com
+          SITE: https://chaosmos.studio
           BASE_PATH: /plumb/
 
       - name: Check SEO basics on every page
         run: npm run check
 
-      # The site replaces the root of gh-pages, so it carries the game's current web build along.
-      # git ls-tree and git archive read paths from the working directory, so this runs at the repo root.
-      - name: Keep the web build under play/
-        working-directory: .
-        run: |
-          set -e
-          touch website/dist/.nojekyll
-          git fetch --depth 1 origin gh-pages || exit 0
-          if git ls-tree -d --name-only origin/gh-pages play | grep -q play; then
-            git archive origin/gh-pages play | tar -x -C website/dist
-          fi
-          test -d website/dist/play && echo "kept play/" || echo "no play/ on gh-pages yet"
-
-      - name: Deploy to gh-pages
-        uses: peaceiris/actions-gh-pages@v4
+      # The studio site's public repo serves chaosmos.studio. The website owns plumb/, and the web build
+      # under plumb/play/ comes from the other workflow, so this deploy leaves it alone.
+      - name: Deploy to chaosmos.studio/plumb/
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: website/dist
-          keep_files: false
+          repository-name: chaosmos-studio/chaosmos-studio.github.io
+          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
+          branch: main
+          folder: website/dist
+          target-folder: plumb
+          clean-exclude: play
+          force: false
+          attempt-limit: 10
+          commit-message: Update Plumb's website

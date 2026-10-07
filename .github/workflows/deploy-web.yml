@@ -9,11 +9,10 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
-# Both this and the website deploy push to gh-pages, so they queue behind each other instead of racing.
 concurrency:
-  group: gh-pages
+  group: studio-site
   cancel-in-progress: false
 
 jobs:
@@ -66,11 +65,15 @@ jobs:
           cp web/Outfit-Light.ttf web/favicon.ico web/favicon-16.png web/favicon-32.png web/favicon-48.png \
              web/apple-touch-icon-180.png web/icon-192.png web/icon-512.png build/web/
 
-      - name: Deploy to gh-pages
-        uses: peaceiris/actions-gh-pages@v4
+      # The game lives under chaosmos.studio/plumb/play/, in the studio site's public repo.
+      - name: Deploy to chaosmos.studio/plumb/play/
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: build/web
-          # The game lives under /play/; the website owns the root.
-          destination_dir: play
-          keep_files: true
+          repository-name: chaosmos-studio/chaosmos-studio.github.io
+          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
+          branch: main
+          folder: build/web
+          target-folder: plumb/play
+          force: false
+          attempt-limit: 10
+          commit-message: Update Plumb's web build
