@@ -60,6 +60,7 @@ func _initialize() -> void:
 	await process_frame
 	_test_chapter_colours()
 	_test_unlocks()
+	_test_more_games()
 	await _test_passes()
 	_test_cheers()
 	await _test_win_sheet()
@@ -926,6 +927,8 @@ func _test_about_variants() -> void:
 	supporter.set("on_play", false)
 	var web: PackedStringArray = _buttons(about)
 	_check("About on the web links to the website and Privacy", web.has("Website") and web.has("Privacy") and not web.has("Help"))
+	var more: String = load("res://kit/shell/more_games.gd").call("title")
+	_check("About leads to the studio's other games on both", play.has(more) and web.has(more))
 	supporter.set("on_play", old)
 
 ## The maker's name in About and Credits opens his homepage, except on Google Play, where it opens the studio
@@ -975,6 +978,35 @@ func _test_finale_variants() -> void:
 		GameCredits.SUPPORT_LINE_PLAY.contains("Supporter pack") and not GameCredits.SUPPORT_LINE_WEB.contains("Supporter"))
 	supporter.set("on_play", old[0])
 	save.set("supporter", old[1])
+
+func _test_more_games() -> void:
+	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
+	var studio: GDScript = load("res://kit/shell/studio.gd")
+	var name: String = load("res://brand.gd").get_script_constant_map()["NAME"]
+	var games: Array = studio.get_script_constant_map()["GAMES"]
+	var old: bool = supporter.get("on_play")
+	var names: PackedStringArray = PackedStringArray()
+	for game: Dictionary in games:
+		names.append(String(game["name"]))
+		_check("%s's icon ships in the kit" % game["name"], ResourceLoader.exists(String(game["icon"])))
+	_check("the studio's list includes this game", names.has(name))
+	var others: Array = studio.call("others")
+	_check("More games shows every other game and not this one", others.size() == games.size() - 1
+		and others.all(func(game: Dictionary) -> bool: return String(game["name"]) != name))
+	supporter.set("on_play", true)
+	_check("on Google Play a game opens its Play page", String(studio.call("link", others[0])).begins_with("https://play.google.com/"))
+	supporter.set("on_play", false)
+	_check("on the web it opens the game in the browser", String(studio.call("link", others[0])).ends_with("/play/"))
+	var host: Node = Node.new()
+	load("res://kit/shell/more_games.gd").call("open", host)
+	var cards: int = 0
+	var all: bool = false
+	for b: Node in host.find_children("*", "Button", true, false):
+		cards += 1 if (b as Button).text == "" else 0
+		all = all or (b as Button).text == "Every game at chaosmos.studio"
+	host.free()
+	_check("the sheet has a card per other game and a way to every game", cards == others.size() and all)
+	supporter.set("on_play", old)
 
 func _test_support_and_hint_sheets() -> void:
 	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
