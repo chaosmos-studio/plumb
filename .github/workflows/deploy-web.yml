@@ -59,11 +59,11 @@ jobs:
           python3 -c "import sys; sys.exit(open('CHANGELOG.md', 'rb').read() not in open('build/web/index.pck', 'rb').read())"
           grep -q "roll every marble home" build/web/index.html
 
-      - name: Copy the loading page's font and icons
+      - name: Copy the loading page's font, icons and Google Play gate
         run: |
           set -e
           cp web/Outfit-Light.ttf web/favicon.ico web/favicon-16.png web/favicon-32.png web/favicon-48.png \
-             web/apple-touch-icon-180.png web/icon-192.png web/icon-512.png build/web/
+             web/apple-touch-icon-180.png web/icon-192.png web/icon-512.png web/gate.js build/web/
 
       # The game lives under chaosmos.studio/plumb/play/, in the studio site's public repo.
       - name: Deploy to chaosmos.studio/plumb/play/
