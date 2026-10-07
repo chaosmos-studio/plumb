@@ -16,14 +16,14 @@ export const site = {
   description:
     "Plumb is a calm marble puzzle game: tilt the board, every marble rolls at once, and each must drop into the hole of its own colour. Free on Android.",
   keywords: ["marble puzzle", "tilt puzzle", "logic puzzle game", "gravity puzzle", "offline puzzle game", "brain teaser"],
-  url: "https://shravangoswami.com/plumb/",
+  url: "https://chaosmos.studio/plumb/",
   playPath: "play/",
   storeUrl: "https://play.google.com/store/apps/details?id=com.shravangoswami.plumb",
   packageId: "com.shravangoswami.plumb",
   genre: "Puzzle",
   platforms: ["Android", "Web browser"],
   launched: "2026-10-01",
-  email: "studio@shravangoswami.com",
+  email: "hello@chaosmos.studio",
   // GitHub Sponsors, linked from every page except Privacy and Support (see sponsorship below).
   sponsor: "https://github.com/sponsors/shravanngoswamii",
   locale: "en_US",

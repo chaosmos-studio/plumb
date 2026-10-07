@@ -30,7 +30,7 @@ export function game(screenshots: string[] = []) {
     installUrl: site.storeUrl,
     author: team.map(person),
     creator: team.map(person),
-    publisher: { "@type": "Person", name: "Shravan Goswami", url: "https://shravangoswami.com/" },
+    publisher: { "@type": "Organization", name: "Chaosmos", url: "https://chaosmos.studio/" },
     datePublished: site.launched,
     keywords: site.keywords.join(", "),
   };
@@ -95,7 +95,7 @@ export function article(opts: {
     datePublished: opts.published.toISOString(),
     dateModified: (opts.modified ?? opts.published).toISOString(),
     author: opts.authorIds.map(id => person(authors[id])),
-    publisher: { "@type": "Person", name: "Shravan Goswami", url: "https://shravangoswami.com/" },
+    publisher: { "@type": "Organization", name: "Chaosmos", url: "https://chaosmos.studio/" },
     mainEntityOfPage: { "@type": "WebPage", "@id": absolute(opts.path) },
     url: absolute(opts.path),
     keywords: opts.tags.join(", "),

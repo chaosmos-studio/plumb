@@ -4,7 +4,7 @@ import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import { defineConfig } from "astro/config";
 
-const site = process.env.SITE || "https://shravangoswami.com";
+const site = process.env.SITE || "https://chaosmos.studio";
 const base = process.env.BASE_PATH || "/plumb/";
 
 /**
