@@ -71,7 +71,7 @@ jobs:
         with:
           repository-name: chaosmos-studio/chaosmos-studio.github.io
           ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
-          branch: main
+          branch: gh-pages
           folder: build/web
           target-folder: plumb/play
           force: false
