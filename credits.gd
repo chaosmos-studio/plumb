@@ -4,11 +4,11 @@ extends RefCounted
 ## Who made the game and what it is built with, for the kit's About and Credits sheets. Kept in step
 ## with CREDITS.md and the website's credits page.
 
-const WEBSITE: String = "https://shravangoswami.com/plumb/"
-const PRIVACY: String = "https://shravangoswami.com/plumb/privacy/"
+const WEBSITE: String = "https://chaosmos.studio/plumb/"
+const PRIVACY: String = "https://chaosmos.studio/plumb/privacy/"
 ## The site's help page. With the privacy policy, the only pages the Google Play build links to: neither
 ## carries a sponsor link.
-const SUPPORT: String = "https://shravangoswami.com/plumb/support/"
+const SUPPORT: String = "https://chaosmos.studio/plumb/support/"
 ## For the web build only. Google Play's Payments policy forbids pointing players at a way to pay outside
 ## its billing, so the Play build offers the Supporter pack instead.
 const SPONSOR: String = "https://github.com/sponsors/shravanngoswamii"

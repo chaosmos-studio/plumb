@@ -5,7 +5,7 @@ extends RefCounted
 ## for the reel's QR code, a level's board as it starts, and lines in Plumb's own voice for Cheers, by stars
 ## (one, two, three).
 
-const LINK: String = "https://shravangoswami.com/plumb/"
+const LINK: String = "https://chaosmos.studio/plumb/"
 const STORE: String = "https://play.google.com/store/apps/details?id=com.shravangoswami.plumb"
 const CHEERS: Array = [
 	["Every marble home. Fewer tilts next time?", "Home, the long way round.", "A shorter way is out there."],

@@ -7,8 +7,8 @@
 </p>
 
 <p align="center">
-	<a href="https://shravangoswami.com/plumb/">Website</a> |
-	<a href="https://shravangoswami.com/plumb/play/">Play in the browser</a>
+	<a href="https://chaosmos.studio/plumb/">Website</a> |
+	<a href="https://chaosmos.studio/plumb/play/">Play in the browser</a>
 </p>
 
 Swipe and the whole board tilts: every marble rolls until a wall, the edge or another marble stops it, and
