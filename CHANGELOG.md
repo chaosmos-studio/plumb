@@ -16,6 +16,12 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
+## 1.2.0 - 2026-10-09
+
+- About and the ending now show the studio's other games, Carillon and Apsis.
+- At a few milestones, a short note asks for a rating, and Not now is always there.
+- The ending scrolls when it is taller than the screen.
+
 ## 1.1.4 - 2026-10-07
 
 - Plumb's website, help page and privacy policy now live at chaosmos.studio/plumb, and shared cards point there.
