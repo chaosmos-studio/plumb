@@ -3,7 +3,7 @@ name: Deploy Web Build
 on:
   push:
     branches: [main]
-    # The website has its own workflow; a blog post should not rebuild the game. CHANGELOG.md does, since
+    # The website has its own workflow; a page edit should not rebuild the game. CHANGELOG.md does, since
     # the game shows the version it names.
     paths: ["**", "!website/**", "!store/**", "!assets/store/**", "!**.md", "CHANGELOG.md"]
   workflow_dispatch:

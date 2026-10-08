@@ -1,30 +1,18 @@
 ---
 import Icon from "./Icon.astro";
 import { site, sponsorship } from "../site.config";
-interface Props {
-  /** One line and a button, to close a post, instead of the full card. */
-  compact?: boolean;
-}
-const { compact = false } = Astro.props;
 ---
-{compact ? (
-  <div class="sponsor-line" data-pagefind-ignore>
-    <p><Icon name="heart" size={18} /> {sponsorship.line}</p>
-    <a class="btn btn-quiet" href={site.sponsor} rel="noopener">Sponsor on GitHub</a>
-  </div>
-) : (
-  <div class="sponsor-box" data-pagefind-ignore>
-    <aside class="sponsor card">
-      <span class="mark" aria-hidden="true"><Icon name="heart" size={26} /></span>
-      <div class="copy">
-        <p class="eyebrow">Sponsor</p>
-        <h2>{sponsorship.title[0]}<span class="accent">{sponsorship.title[1]}</span></h2>
-        <p class="text">{sponsorship.lede}</p>
-      </div>
-      <a class="btn btn-quiet" href={site.sponsor} rel="noopener"><Icon name="heart" /> Sponsor on GitHub</a>
-    </aside>
-  </div>
-)}
+<div class="sponsor-box" data-pagefind-ignore>
+  <aside class="sponsor card">
+    <span class="mark" aria-hidden="true"><Icon name="heart" size={26} /></span>
+    <div class="copy">
+      <p class="eyebrow">Sponsor</p>
+      <h2>{sponsorship.title[0]}<span class="accent">{sponsorship.title[1]}</span></h2>
+      <p class="text">{sponsorship.lede}</p>
+    </div>
+    <a class="btn btn-quiet" href={site.sponsor} rel="noopener"><Icon name="heart" /> Sponsor on GitHub</a>
+  </aside>
+</div>
 <style>
   /* The card sits in columns of different widths (the home page, About, the narrow Credits column), so it
      lays itself out by its own width rather than the window's. */
@@ -78,31 +66,8 @@ const { compact = false } = Astro.props;
     margin: 0;
     max-width: 38rem;
   }
-  .sponsor :global(svg),
-  .sponsor-line :global(svg) {
+  .sponsor :global(svg) {
     color: var(--accent);
     flex: none;
-  }
-  .sponsor-line {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.8rem 1.2rem;
-    padding-top: 1.1rem;
-    border-top: 1px solid var(--line);
-  }
-  .sponsor-line p {
-    margin: 0;
-    color: var(--muted);
-  }
-  .sponsor-line p :global(svg) {
-    display: inline-block;
-    vertical-align: -0.2em;
-    margin-right: 0.3rem;
-  }
-  .sponsor-line .btn {
-    min-height: 44px;
-    padding: 0 1.1rem;
   }
 </style>

@@ -1,6 +1,6 @@
-// schema.org structured data, so search engines know this is a free Android game with a video, a FAQ,
-// articles and the people behind it. Kept in one place so every page describes the game the same way.
-import { authors, faq as faqItems, site, team, videos, type Person } from "../site.config";
+// schema.org structured data, so search engines know this is a free Android game with a video, a FAQ and
+// the people behind it. Kept in one place so every page describes the game the same way.
+import { faq as faqItems, site, team, videos, type Person } from "../site.config";
 import { absolute } from "./url";
 
 export function person(p: Person) {
@@ -72,35 +72,5 @@ export function faq(items: readonly { q: string; a: string }[] = faqItems) {
     "@context": "https://schema.org",
     "@type": "FAQPage",
     mainEntity: items.map(i => ({ "@type": "Question", name: i.q, acceptedAnswer: { "@type": "Answer", text: i.a } })),
-  };
-}
-
-export function article(opts: {
-  title: string;
-  description: string;
-  path: string;
-  images: string[];
-  published: Date;
-  modified?: Date;
-  authorIds: string[];
-  tags: string[];
-  words: number;
-}) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    headline: opts.title,
-    description: opts.description,
-    image: opts.images,
-    datePublished: opts.published.toISOString(),
-    dateModified: (opts.modified ?? opts.published).toISOString(),
-    author: opts.authorIds.map(id => person(authors[id])),
-    publisher: { "@type": "Organization", name: "Chaosmos", url: "https://chaosmos.studio/" },
-    mainEntityOfPage: { "@type": "WebPage", "@id": absolute(opts.path) },
-    url: absolute(opts.path),
-    keywords: opts.tags.join(", "),
-    wordCount: opts.words,
-    inLanguage: "en",
-    about: { "@type": "VideoGame", name: site.name, url: absolute("") },
   };
 }

@@ -82,7 +82,7 @@ for (const file of htmlFiles) {
   }
 }
 
-for (const f of ["robots.txt", "sitemap-index.xml", "sitemap-images.xml", "rss.xml", "manifest.webmanifest", "pagefind/pagefind.js"]) {
+for (const f of ["robots.txt", "sitemap-index.xml", "sitemap-images.xml", "manifest.webmanifest", "pagefind/pagefind.js"]) {
   if (!existsSync(join(dist, f))) problems.push(`missing ${f}`);
 }
 

@@ -1,9 +1,7 @@
 ---
 import { Image, getImage } from "astro:assets";
-import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
 import FAQ from "../components/FAQ.astro";
-import PostCard from "../components/PostCard.astro";
 import Sponsor from "../components/Sponsor.astro";
 import StoreButtons from "../components/StoreButtons.astro";
 import Video from "../components/Video.astro";
@@ -16,7 +14,6 @@ const heroShot = picture(home.heroShot);
 const heroAlt = shots.find(s => s.image === home.heroShot)?.alt ?? `${site.name} in play`;
 const gallery = shots.map(s => ({ src: picture(s.image), alt: s.alt }));
 const steps = home.how.steps.map(s => ({ ...s, src: picture(s.image) }));
-const posts = (await getCollection("blog")).sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()).slice(0, 3);
 const screenshotUrls = await Promise.all(gallery.map(async s => absoluteFromRoot((await getImage({ src: s.src, width: 540, format: "png" })).src)));
 const schema = [game(screenshotUrls), video("trailer")!, faqSchema(faq.slice(0, 4))];
 ---
@@ -101,10 +98,8 @@ const schema = [game(screenshotUrls), video("trailer")!, faqSchema(faq.slice(0, 
       <p class="eyebrow">From the blog</p>
       <h2>Tips and stories</h2>
     </div>
-    <div class="grid grid-3">
-      {posts.map(p => <PostCard post={p} />)}
-    </div>
-    <p class="more"><a href={href("blog/")}>All posts</a></p>
+    <p class="lede">Guides, tips, and the geometry and astronomy behind {site.name}, on the Chaosmos blog.</p>
+    <p class="more"><a href={href(site.blog)}>Read the {site.name} blog</a></p>
   </section>
 
   <section class="wrap sponsor-section" data-reveal>

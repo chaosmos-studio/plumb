@@ -6,15 +6,10 @@ import { absolute, href } from "../utils/url";
 interface Props {
   title: string;
   description: string;
-  /** The page's path inside the site, like "blog/how-to-play/"; "" is the home page. */
+  /** The page's path inside the site, like "support/"; "" is the home page. */
   path: string;
   image?: string;
   imageAlt?: string;
-  type?: "website" | "article";
-  published?: Date;
-  modified?: Date;
-  authors?: string[];
-  tags?: string[];
   noindex?: boolean;
   schema?: Record<string, unknown>[];
 }
@@ -25,16 +20,11 @@ const {
   path,
   image,
   imageAlt,
-  type = "website",
-  published,
-  modified,
-  authors = [],
-  tags = [],
   noindex = false,
   schema = [],
 } = Astro.props;
 
-// The game's name belongs in every title once; a post whose title already names it needs no suffix.
+// The game's name belongs in every title once; a title that already names it needs no suffix.
 const pageTitle = path === "" ? `${site.name}: ${site.tagline}` : title.includes(site.name) ? title : `${title} | ${site.name}`;
 const canonical = absolute(path);
 const ogImage = image ?? absolute(`og/${path === "" ? "index" : path.replace(/\/$/, "")}.png`);
@@ -74,11 +64,10 @@ const allSchema = [...baseSchema, ...schema];
 <meta name="application-name" content={site.name} />
 <meta name="generator" content={Astro.generator} />
 {site.googleSiteVerification && <meta name="google-site-verification" content={site.googleSiteVerification} />}
-{authors.map(a => <meta name="author" content={a} />)}
 
 <meta property="og:site_name" content={site.name} />
 <meta property="og:locale" content={site.locale} />
-<meta property="og:type" content={type} />
+<meta property="og:type" content="website" />
 <meta property="og:title" content={pageTitle} />
 <meta property="og:description" content={description} />
 <meta property="og:url" content={canonical} />
@@ -86,9 +75,6 @@ const allSchema = [...baseSchema, ...schema];
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content={imageAlt ?? `${site.name}: ${title}`} />
-{type === "article" && published && <meta property="article:published_time" content={published.toISOString()} />}
-{type === "article" && <meta property="article:modified_time" content={(modified ?? published ?? new Date()).toISOString()} />}
-{type === "article" && tags.map(t => <meta property="article:tag" content={t} />)}
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content={pageTitle} />
 <meta name="twitter:description" content={description} />
@@ -98,7 +84,7 @@ const allSchema = [...baseSchema, ...schema];
 <link rel="icon" href={href("favicon.ico")} sizes="48x48" />
 <link rel="apple-touch-icon" href={href("apple-touch-icon.png")} />
 <link rel="manifest" href={href("manifest.webmanifest")} />
-<link rel="alternate" type="application/rss+xml" title={`${site.name} blog`} href={href("rss.xml")} />
+<link rel="alternate" type="application/rss+xml" title="Chaosmos blog" href="/blog/rss.xml" />
 <link rel="sitemap" href={href("sitemap-index.xml")} />
 
 {allSchema.map(s => <script type="application/ld+json" set:html={JSON.stringify(s)} />)}

@@ -1,6 +1,6 @@
-// Everything about this game the website needs. The layouts, SEO and pages read only this file (and the
-// blog content), so another game's site is this file, its palette in styles/theme.css, its motif, and
-// its posts.
+// Everything about this game the website needs. The layouts, SEO and pages read only this file, so another
+// game's site is this file, its palette in styles/theme.css, and its motif. Its blog posts live on the
+// studio site, at `site.blog`.
 
 /** How the site counts visits: see `site.analytics`. */
 export interface Analytics {
@@ -18,6 +18,8 @@ export const site = {
   keywords: ["marble puzzle", "tilt puzzle", "logic puzzle game", "gravity puzzle", "offline puzzle game", "brain teaser"],
   url: "https://chaosmos.studio/plumb/",
   playPath: "play/",
+  // The game's posts, on the studio's blog.
+  blog: "/blog/plumb/",
   storeUrl: "https://play.google.com/store/apps/details?id=com.shravangoswami.plumb",
   packageId: "com.shravangoswami.plumb",
   genre: "Puzzle",
@@ -29,7 +31,7 @@ export const site = {
   locale: "en_US",
   themeStorageKey: "plumb-theme",
   themeColor: { light: "#f4efe7", dark: "#1b1d22" },
-  searchPlaceholder: "Search tips, rules and posts...",
+  searchPlaceholder: "Search rules, help and answers...",
   // Paste the content of Search Console's HTML tag here once the property is added.
   googleSiteVerification: "",
   // Cookieless visit counts from Cloudflare Web Analytics, which the Privacy page describes whenever they are
@@ -46,7 +48,7 @@ export const site = {
 } as const;
 
 export const nav = [
-  { href: "blog/", label: "Blog" },
+  { href: "/blog/plumb/", label: "Blog" },
   { href: "about/", label: "About" },
   { href: "support/", label: "Support" },
 ] as const;
@@ -87,8 +89,6 @@ export const team: readonly Person[] = [
     links: [{ label: "About Claude", href: "https://www.anthropic.com/claude", icon: "globe" }],
   },
 ];
-
-export const authors = Object.fromEntries(team.map(p => [p.id, p])) as Record<string, Person>;
 
 export const features = [
   { title: "One swipe moves everything", body: "Tilt the board and every marble rolls at once, until a wall, the edge or another marble stops it." },
@@ -157,14 +157,13 @@ export const videos = [
   },
 ] as const;
 
-// The Sponsor card on the home page, About, Credits and the end of every post, and the Sponsor links in the
+// The Sponsor card on the home page, About and Credits, and the Sponsor links in the
 // header and footer. Privacy and Support render with none (Base's sponsor flag): they are the pages the
 // Android app and its Play listing link to, and Google Play's Payments policy forbids leading Play users to
 // payment outside Play. In the Android app, the way to support the game is the Supporter pack.
 export const sponsorship = {
   title: ["Help make the ", "next game"],
   lede: "Plumb is free, made by one person and one AI model. If it gave you a few calm minutes, sponsoring Shravan on GitHub helps pay for the time that goes into the next one.",
-  line: "If Plumb gave you a few calm minutes, you can help make the next game.",
 } as const;
 
 export const builtWith = ["Godot Engine", "GDScript", "Astro", "Pagefind", "Giscus"] as const;
@@ -186,7 +185,7 @@ export const home = {
       { image: "plumb-step-tilt", title: "Tilt", body: "Swipe to tilt the board. Every marble rolls at once, until a wall, the edge or another marble stops it." },
       { image: "plumb-step-home", title: "Drop", body: "A marble that rolls over a hole of its own colour drops in. Get them all home in as few moves as you can." },
     ],
-    link: { href: "blog/how-to-play-plumb/", label: "Read the full guide to playing Plumb" },
+    link: { href: "/blog/plumb/learn-plumb-in-one-board/", label: "Read the full guide to playing Plumb" },
   },
   featuresTitle: "Simple rules, surprisingly deep",
   final: { title: "Ready to roll?", lede: "Plumb is free on Google Play and in your browser, with nothing to sign up for." },
@@ -200,13 +199,6 @@ export const shots = [
   { image: "plumb-level-solved", alt: "A solved Plumb level with three gold stars" },
   { image: "plumb-level-select", alt: "Plumb's level grid with stars earned on the first levels" },
 ] as const;
-
-export const blogPage = {
-  title: "Blog: tips, strategy and how Plumb is made",
-  description: "Guides, strategy and behind-the-scenes posts about Plumb, the calm marble puzzle game: how to play, how to get three stars, and how the levels are made.",
-  heading: ["Tips, strategy and ", "how it's made"],
-  lede: "How to play, how to find the perfect route, and what goes into a puzzle game built by a two-person team.",
-} as const;
 
 export const about = {
   title: "About Plumb and the team behind it",

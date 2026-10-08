@@ -238,7 +238,7 @@ a.chip:hover {
   }
 }
 
-/* Post and page prose. */
+/* Page prose. */
 .prose {
   font-size: 1.1rem;
 }
@@ -298,24 +298,6 @@ a.chip:hover {
 
 .prose img {
   border-radius: var(--radius-sm);
-}
-
-.post-figure {
-  margin: 2em 0;
-}
-
-.post-figure img {
-  width: 100%;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  background: var(--surface);
-}
-
-.post-figure figcaption {
-  margin-top: 0.75rem;
-  font-size: 0.92rem;
-  color: var(--muted);
-  text-align: center;
 }
 
 .video-frame {
