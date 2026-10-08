@@ -9,37 +9,37 @@
 	"voice_speed": 0.97,
 	"scenes": {
 		"mechanic": [
-			{"id": "m18", "action": "play:18", "perform": [{"at": 0.5, "verb": "solve", "arg": 3}], "dur": 4.2},
-			{"id": "m22", "action": "play:22", "perform": [{"at": 0.5, "verb": "solve", "arg": 3}], "dur": 4.2},
-			{"id": "m26", "action": "play:26", "perform": [{"at": 0.5, "verb": "solve", "arg": 3}], "dur": 4.2},
-			{"id": "m30", "action": "play:30", "perform": [{"at": 0.5, "verb": "solve", "arg": 3}], "dur": 4.2}
+			{"id": "m33", "action": "play:33", "perform": [{"at": 0.5, "verb": "solve", "arg": 3}], "dur": 4.2},
+			{"id": "m63", "action": "play:63", "perform": [{"at": 0.5, "verb": "solve", "arg": 3}], "dur": 4.2},
+			{"id": "m69-sepia", "action": "themed:sepia:69:planets", "perform": [{"at": 0.5, "verb": "solve", "arg": 3}], "dur": 4.2},
+			{"id": "m77", "action": "play:77", "perform": [{"at": 0.5, "verb": "solve", "arg": 5}], "dur": 4.2}
 		],
 		"hint": [
-			{"id": "h45", "action": "play:45", "perform": [{"at": 0.4, "verb": "hint"}, {"at": 2.2, "verb": "solve", "arg": 1}], "dur": 4.0},
-			{"id": "h55", "action": "play:55", "perform": [{"at": 0.4, "verb": "hint"}, {"at": 2.2, "verb": "solve", "arg": 1}], "dur": 4.0},
-			{"id": "h65", "action": "play:65", "perform": [{"at": 0.4, "verb": "hint"}, {"at": 2.2, "verb": "solve", "arg": 1}], "dur": 4.0}
+			{"id": "h54", "action": "play:54", "perform": [{"at": 0.4, "verb": "hint"}, {"at": 2.2, "verb": "solve", "arg": 1}], "dur": 4.0},
+			{"id": "h66", "action": "play:66", "perform": [{"at": 0.4, "verb": "hint"}, {"at": 2.2, "verb": "solve", "arg": 1}], "dur": 4.0},
+			{"id": "h75", "action": "play:75", "perform": [{"at": 0.4, "verb": "hint"}, {"at": 2.2, "verb": "solve", "arg": 1}], "dur": 4.0}
 		],
 		"win": [
-			{"id": "w10", "action": "play:10", "perform": [{"at": 0.5, "verb": "solve"}], "dur": 5.2},
-			{"id": "w14", "action": "play:14", "perform": [{"at": 0.5, "verb": "solve"}], "dur": 5.2},
-			{"id": "w16", "action": "play:16", "perform": [{"at": 0.5, "verb": "solve"}], "dur": 5.6}
+			{"id": "w12", "action": "play:12", "perform": [{"at": 0.5, "verb": "solve"}], "dur": 5.2},
+			{"id": "w20", "action": "play:20", "perform": [{"at": 0.5, "verb": "solve"}], "dur": 5.6},
+			{"id": "w24-rose", "action": "themed:rose:24:candy", "perform": [{"at": 0.5, "verb": "solve"}], "dur": 5.6}
 		],
 		"fail": [
-			{"id": "f36", "action": "play:36", "perform": [{"at": 0.5, "verb": "fail"}], "dur": 4.0},
-			{"id": "f41", "action": "play:41", "perform": [{"at": 0.5, "verb": "fail"}], "dur": 4.0},
-			{"id": "f44", "action": "play:44", "perform": [{"at": 0.5, "verb": "fail"}], "dur": 4.0}
+			{"id": "f42", "action": "play:42", "perform": [{"at": 0.5, "verb": "fail"}], "dur": 4.0},
+			{"id": "f48", "action": "play:48", "perform": [{"at": 0.5, "verb": "fail"}], "dur": 4.0},
+			{"id": "f60", "action": "play:60", "perform": [{"at": 0.5, "verb": "fail"}], "dur": 4.0}
 		],
 		"dense": [
-			{"id": "d96", "action": "play:96", "perform": [{"at": 0.5, "verb": "solve", "arg": 4}], "dur": 5.0},
-			{"id": "d104", "action": "play:104", "perform": [{"at": 0.5, "verb": "solve", "arg": 4}], "dur": 5.0},
-			{"id": "d112", "action": "play:112", "perform": [{"at": 0.5, "verb": "solve", "arg": 4}], "dur": 5.0},
-			{"id": "d118", "action": "play:118", "perform": [{"at": 0.5, "verb": "solve", "arg": 4}], "dur": 5.0}
+			{"id": "d131", "action": "play:131", "perform": [{"at": 0.5, "verb": "solve", "arg": 4}], "dur": 5.0},
+			{"id": "d143", "action": "play:143", "perform": [{"at": 0.5, "verb": "solve", "arg": 4}], "dur": 5.0},
+			{"id": "d221", "action": "play:221", "perform": [{"at": 0.5, "verb": "solve", "arg": 4}], "dur": 5.0},
+			{"id": "d245", "action": "play:245", "perform": [{"at": 0.5, "verb": "solve", "arg": 4}], "dur": 5.0}
 		],
 		"challenge": [
-			{"id": "c60", "action": "play:60", "dur": 4.6},
-			{"id": "c70", "action": "play:70", "dur": 4.6},
-			{"id": "c80", "action": "play:80", "dur": 4.6},
-			{"id": "c90", "action": "play:90", "dur": 4.6}
+			{"id": "c99", "action": "play:99", "dur": 4.6},
+			{"id": "c119", "action": "play:119", "dur": 4.6},
+			{"id": "c185", "action": "play:185", "dur": 4.6},
+			{"id": "c233", "action": "play:233", "dur": 4.6}
 		],
 		"levels": [{"id": "grid", "action": "levels", "dur": 2.8, "hud": true}],
 		"title": [{"id": "home", "action": "title", "dur": 2.8, "hud": true}]
@@ -50,7 +50,7 @@
 		"hint": ["Stuck? The hint shows *where* they land", "Peek at the next *move*", "See it *before* you tilt"],
 		"win": ["Fewest moves, *three* stars", "Clean. *Every* marble home.", "That's the *perfect* route"],
 		"fail": ["Watch the *pits*", "One wrong tilt... *oops*", "Undo is *one* tap away"],
-		"dense": ["Now it gets *interesting*", "More marbles. Same *one* rule.", "Harder boards, *same* swipe"],
+		"dense": ["Now it gets *interesting*", "More marbles. Same *one* rule.", "Harder boards, *same* swipe", "A new *twist* every chapter"],
 		"challenge": ["Your turn. Which way *first*?", "Can you solve *this* one?", "Four directions. *One* answer.", "Try it. No *peeking*."],
 		"cta": ["Solve it *yourself*", "Your move. *Download* free.", "Finish *this* level"],
 		"scan": ["Scan to play", "Scan to solve it", "Point your camera here"],
@@ -66,9 +66,14 @@
 			"hint": ["Stuck? The hint shows exactly where every marble will land.", "Take a peek at the next move whenever you need one."],
 			"win": ["Find the shortest route, and all three stars are yours.", "Every marble home, in the fewest moves."],
 			"fail": ["Careful, the square pits swallow any marble. But undo is always one tap away.", "Tilt the wrong way and you lose one. So think first."],
-			"dense": ["Then the boards fill up, and the same simple rule gets surprisingly deep.", "More marbles, more walls, and still the same one swipe."],
+			"dense": ["Then the boards fill up, and the same simple rule gets surprisingly deep.", "More marbles, more walls, and still the same one swipe.", "Every chapter brings a new twist, like gates, portals and bumpers."],
 			"challenge": ["Now it's your turn. Which way would you tilt first?", "Here's one for you. Can you solve it?", "Think you've got it? Try this one."],
 			"outro": ["Scan the code and play Plumb, free on Google Play.", "Plumb is free on Google Play. Scan the code and solve it yourself.", "Solve it yourself. Plumb, free on Google Play."]
 		}
+	},
+	"web": {
+		"sub": "Play free in your browser",
+		"cta": ["Solve it *yourself*", "Tilt it *yourself*", "Finish *this* level"],
+		"outro": ["Solve it yourself. Plumb is free, and it plays in your browser.", "Finish it yourself. Play Plumb free, in your browser.", "Plumb is free to play, right in your browser. Your move."]
 	}
 }

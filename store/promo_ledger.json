@@ -137,6 +137,45 @@
       "fingerprint": "f9e62644543c",
       "seed": 699219715,
       "made": "2026-09-30"
+    },
+    {
+      "id": "plumb-demo-002",
+      "format": "demo",
+      "template": "problem_solution",
+      "scenes": [
+        "f42",
+        "h75",
+        "m77",
+        "w24-rose",
+        "d245",
+        "c233"
+      ],
+      "lines": [
+        "One swipe. Where does *every* marble go?",
+        "Every marble moves at once. So where do they all end up?",
+        "One wrong tilt... *oops*",
+        "Tilt the wrong way and you lose one. So think first.",
+        "Stuck? The hint shows *where* they land",
+        "Stuck? The hint shows exactly where every marble will land.",
+        "Every marble rolls until it *stops*",
+        "The trick is planning where they'll all end up.",
+        "That's the *perfect* route",
+        "Every marble home, in the fewest moves.",
+        "A new *twist* every chapter",
+        "Every chapter brings a new twist, like gates, portals and bumpers.",
+        "Your turn. Which way *first*?",
+        "Here's one for you. Can you solve it?",
+        "Tilt it *yourself*",
+        "Finish it yourself. Play Plumb free, in your browser."
+      ],
+      "music_style": "lofi",
+      "voice": "af_bella",
+      "transition": "iris",
+      "caption_style": "accent",
+      "end": "web",
+      "fingerprint": "0a307a87c460",
+      "seed": 161,
+      "made": "2026-10-09"
     }
   ]
 }
