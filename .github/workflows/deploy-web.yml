@@ -3,9 +3,9 @@ name: Deploy Web Build
 on:
   push:
     branches: [main]
-    # The website has its own workflow; a page edit should not rebuild the game. CHANGELOG.md does, since
-    # the game shows the version it names.
-    paths: ["**", "!website/**", "!store/**", "!assets/store/**", "!**.md", "CHANGELOG.md"]
+    # Store art and docs do not rebuild the game. CHANGELOG.md does, since the game shows the version it
+    # names.
+    paths: ["**", "!store/**", "!assets/store/**", "!**.md", "CHANGELOG.md"]
   workflow_dispatch:
 
 permissions:

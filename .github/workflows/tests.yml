@@ -6,7 +6,7 @@ name: Tests
 on:
   push:
     branches: [main]
-    paths: ["**", "!website/**", "!store/**", "!assets/store/**", "!**.md", "CHANGELOG.md"]
+    paths: ["**", "!store/**", "!assets/store/**", "!**.md", "CHANGELOG.md"]
   workflow_dispatch:
 
 concurrency:

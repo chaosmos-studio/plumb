@@ -1,9 +1,0 @@
----
-import Icon from "./Icon.astro";
-import { site } from "../site.config";
-import { href } from "../utils/url";
----
-<div class="btn-row">
-  <a class="btn btn-primary" href={site.storeUrl} rel="noopener"><Icon name="android" /> Get it on Google Play</a>
-  <a class="btn btn-quiet" href={href(site.playPath)}><Icon name="play" /> Play in your browser</a>
-</div>
