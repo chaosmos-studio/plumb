@@ -159,6 +159,25 @@ jobs:
             echo "releasing $title ($package) $TAG with version code $VERSION_CODE, $play"
           fi
 
+      # Presets that build Firebase Analytics need the app's google-services.json from the Firebase console,
+      # committed at the project root. Without it the build would carry Firebase with nothing to report to.
+      - name: Check the Firebase config
+        run: |
+          set -euo pipefail
+          if ! grep -q '^firebase/enable_analytics=true$' export_presets.cfg; then
+            echo "no Firebase in this build"
+            exit 0
+          fi
+          if [ ! -f google-services.json ]; then
+            echo "::error::the Android presets build Firebase Analytics, but google-services.json is missing: download it for $PACKAGE from the Firebase console and commit it at the project root"
+            exit 1
+          fi
+          if ! jq -e --arg p "$PACKAGE" '[.client[].client_info.android_client_info.package_name] | index($p)' google-services.json > /dev/null; then
+            echo "::error::google-services.json has no Android app for $PACKAGE: add one in the Firebase console and download the file again"
+            exit 1
+          fi
+          echo "Firebase project $(jq -r .project_info.project_id google-services.json), app $PACKAGE"
+
       - name: Install Godot and export templates
         run: |
           set -e
@@ -321,6 +340,10 @@ jobs:
           unzip -l "$APK" | grep "levels/levels.json"
           # The game reads its version from the changelog at runtime.
           unzip -l "$APK" | grep "assets/CHANGELOG.md"
+          # Google's services plugin turned google-services.json into the resources Firebase starts from.
+          if grep -q '^firebase/enable_analytics=true$' export_presets.cfg; then
+            "$SDK_TOOLS/aapt2" dump resources "$APK" | grep "string/google_app_id"
+          fi
           # A game with the AdMob plugin ships only the parts it runs: no samples, editor art or mocks.
           if [ -d addons/admob ] && unzip -l "$APK" | grep -E "addons/admob/(gdscript/sample|assets|internal/mock)/"; then
             echo "the APK carries parts of the AdMob plugin its export filter should leave out" >&2
@@ -360,6 +383,16 @@ jobs:
           fi
           if [ -d addons/GodotGooglePlayBilling ]; then
             has_permission com.android.vending.BILLING
+          fi
+          # Firebase starts with collection off and never reads the advertising id or the device id; the kit's
+          # Analytics turns collection on where the consent message allows it.
+          if grep -q '^firebase/enable_analytics=true$' export_presets.cfg; then
+            for key in firebase_analytics_collection_enabled google_analytics_default_allow_ad_storage \
+                google_analytics_adid_collection_enabled google_analytics_ssaid_collection_enabled; do
+              value="$(manifest "/manifest/application/meta-data[@android:name='$key']/@android:value")"
+              echo "$key: ${value:-missing}"
+              test "$value" = false
+            done
           fi
           unzip -l "$AAB" | grep "lib/.*/libgodot_android.so"
           unzip -l "$AAB" | grep "levels/levels.json"
