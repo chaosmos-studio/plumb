@@ -14,9 +14,9 @@ Android build, which come under Google's own terms. Note every modification (res
 | --- | --- | --- | --- |
 | Outfit (`assets/fonts/Outfit-Light.ttf` and `assets/fonts/Outfit-Medium.ttf`, and the light one again as `web/Outfit-Light.ttf` for the loading page) | The Outfit Project Authors | SIL Open Font License 1.1 (`assets/fonts/Outfit-OFL.txt`) | Modified: static weight-300 and weight-500 instances of the variable font with overlapping contours merged, written by `tools/make_font.py` from the unmodified source in `assets/fonts/source/`. The variable font's overlaps showed as faint seams across stems. The licence declares no Reserved Font Name. |
 
-## Ads and purchases (Android build only)
+## Ads, purchases and analytics (Android build only)
 
-The web build ships neither plugin (the Web preset excludes `addons/`).
+The web build ships none of these plugins (the Web preset excludes `addons/`).
 
 | Component | Author | Licence | Notes |
 | --- | --- | --- | --- |
@@ -24,6 +24,9 @@ The web build ships neither plugin (the Web preset excludes `addons/`).
 | GodotGooglePlayBilling 3.1.0 (`addons/GodotGooglePlayBilling/`) | Godot Engine contributors (Godot Foundation, godot-sdk-integrations) | MIT | Unmodified. |
 | Google Mobile Ads SDK (next-gen) 1.4.0, with the User Messaging Platform SDK | Google | Google's terms: the Google Mobile Ads SDK and AdMob terms | Fetched by Gradle at build time, not stored in the repo. |
 | Google Play Billing Library 8.0.0 (`billing-ktx`) | Google | Android Software Development Kit License | Fetched by Gradle at build time, not stored in the repo. |
+| Godotx Firebase 3.1.0 (`addons/godotx_firebase/`, with its Android libraries in `android/firebase_core/` and `android/firebase_analytics/`) | Paulo Coutinho (godot-x) | MIT (`addons/godotx_firebase/LICENSE`) | Unmodified. Only the Core and Analytics modules: no iOS, Crashlytics or Messaging parts. The Android presets leave its editor scripts out. |
+| Google Analytics for Firebase 23.2.0, with Firebase Common 22.1.0 | Google | Google's terms: the Firebase and Google Analytics for Firebase terms | Fetched by Gradle at build time, not stored in the repo. |
+| Google services Gradle plugin 4.4.4 | Google | Apache License 2.0 | Applied to the build by `addons/firebase_build/`, not shipped in the app. |
 
 ## Sound effects and music
 

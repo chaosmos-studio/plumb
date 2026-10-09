@@ -40,9 +40,10 @@ const SECTIONS: Array[Dictionary] = [
 	{"title": "Art and levels", "items": [
 		{"name": "Made in code", "detail": "Drawn and generated for this game, and every level proven solvable by its solver."},
 	]},
-	{"title": "Ads and purchases, on Android", "items": [
+	{"title": "In the Android app", "items": [
 		{"name": "Godot AdMob Plugin", "detail": "By Poing Studios. MIT licence."},
 		{"name": "Godot Google Play Billing", "detail": "By the Godot Engine contributors. MIT licence."},
-		{"name": "Google Mobile Ads SDK, User Messaging Platform and Play Billing Library", "detail": "By Google, under Google's terms."},
+		{"name": "Godotx Firebase", "detail": "By Paulo Coutinho. MIT licence."},
+		{"name": "Google Mobile Ads SDK, User Messaging Platform, Play Billing Library and Google Analytics for Firebase", "detail": "By Google, under Google's terms."},
 	]},
 ]
