@@ -250,12 +250,24 @@ func _caption(c: Dictionary, beat: Dictionary) -> void:
 	_cue("caption", {"text": c["text"]})
 	Audio.play(&"tap", -14.0, 1.2)
 	k.play_in()
+	var stay: bool = bool(c.get("stay", false))
+	# The win sheet's print fills the top of a reel, so the caption steps aside for it.
+	var leave: Callable = func(_level: int, _score: int, _stars: int) -> void: _caption_out(k)
+	if reel and not stay:
+		EventBus.level_won.connect(leave, CONNECT_ONE_SHOT)
 	await get_tree().create_timer(float(c.get("dur", 2.4))).timeout
-	if is_instance_valid(k):
-		if reel and not bool(c.get("stay", false)):
-			create_tween().tween_property(_shade, "modulate:a", 0.0, 0.3)
-		if not bool(c.get("stay", false)):
-			k.play_out()
+	if EventBus.level_won.is_connected(leave):
+		EventBus.level_won.disconnect(leave)
+	if not stay and is_instance_valid(k):
+		_caption_out(k)
+
+func _caption_out(k: Kinetic) -> void:
+	if k.has_meta("leaving"):
+		return
+	k.set_meta("leaving", true)
+	if reel:
+		create_tween().tween_property(_shade, "modulate:a", 0.0, 0.3)
+	k.play_out()
 
 ## `at` and `to` are in the game's 720-wide design space. The Director calls this as it performs, so the
 ## finger and the game move on the same frame.
