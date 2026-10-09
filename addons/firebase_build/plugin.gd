@@ -3,8 +3,9 @@ extends EditorPlugin
 
 ## What the godotx_firebase plugin leaves to be done by hand in each Android build: Google's services Gradle
 ## plugin, which turns google-services.json into the resources Firebase reads at start, applied to the
-## installed build template, and Analytics told to leave screens and device ids alone. It acts only when
-## the project has a google-services.json, so a game without one builds as before.
+## installed build template, Analytics told to leave screens and device ids alone, and its ad attribution
+## permissions removed. It acts only when the project has a google-services.json, so a game without one
+## builds as before.
 
 var _export: _FirebaseBuild
 
@@ -28,6 +29,11 @@ class _FirebaseBuild extends EditorExportPlugin:
 		"google_analytics_automatic_screen_reporting_enabled",
 		"google_analytics_adid_collection_enabled",
 		"google_analytics_ssaid_collection_enabled",
+	]
+	## Analytics' ad attribution through Android's Privacy Sandbox, which nothing here uses.
+	const UNUSED_PERMISSIONS: PackedStringArray = [
+		"android.permission.ACCESS_ADSERVICES_ATTRIBUTION",
+		"android.permission.ACCESS_ADSERVICES_AD_ID",
 	]
 
 	func _get_name() -> String:
@@ -60,4 +66,12 @@ class _FirebaseBuild extends EditorExportPlugin:
 		var contents: String = ""
 		for key: String in OFF:
 			contents += '<meta-data android:name="%s" android:value="false" />\n' % key
+		return contents
+
+	func _get_android_manifest_element_contents(_platform: EditorExportPlatform, _debug: bool) -> String:
+		if not FileAccess.file_exists(CONFIG):
+			return ""
+		var contents: String = ""
+		for permission: String in UNUSED_PERMISSIONS:
+			contents += '<uses-permission android:name="%s" tools:node="remove" />\n' % permission
 		return contents

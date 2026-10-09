@@ -393,6 +393,12 @@ jobs:
               echo "$key: ${value:-missing}"
               test "$value" = false
             done
+            for unused in android.permission.ACCESS_ADSERVICES_ATTRIBUTION android.permission.ACCESS_ADSERVICES_AD_ID; do
+              if [[ " $permissions " == *" $unused "* ]]; then
+                echo "$unused should have been removed by addons/firebase_build" >&2
+                exit 1
+              fi
+            done
           fi
           unzip -l "$AAB" | grep "lib/.*/libgodot_android.so"
           unzip -l "$AAB" | grep "levels/levels.json"
