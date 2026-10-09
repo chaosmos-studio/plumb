@@ -22,6 +22,9 @@ To ship: add a new section at the top, push, then Actions > Release Android > Ru
 - At a few milestones, a short note asks for a rating, and Not now is always there.
 - The ending scrolls when it is taller than the screen.
 - A cleaner Credits page.
+- Tip your phone to tilt the board, once you turn it on in Settings.
+- Share cards carry a code to scan, and the video replay is gone.
+- Your progress comes back with Android's backup after a reinstall.
 
 ## 1.1.4 - 2026-10-07
 
