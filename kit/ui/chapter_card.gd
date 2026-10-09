@@ -1,10 +1,7 @@
 class_name ChapterCard
 extends CanvasLayer
 
-## The card that opens a chapter's first level: the chapter's number, its name, and the line that teaches
-## its rule (Pack.chapter_name and chapter_line), edged in the chapter's colour (ChapterStyle). It shows
-## over the top of the board for a moment and fades, and never holds up play: the first touch sends it
-## away early and still reaches the game.
+## Never holds up play: the first touch sends it away early and still reaches the game.
 
 const LAYER: int = 45
 const FADE: float = 0.3

@@ -1,10 +1,6 @@
 class_name MoreGames
 extends RefCounted
 
-## The studio's other games: a card for each, with its icon, name and one line, opening it where this
-## build can (Studio.link), and a way to every game on the studio's site. Reached from About and from the
-## ending.
-
 const CARD_SIZE: Vector2 = Vector2(0, 156)
 const ICON_SIZE: float = 112.0
 

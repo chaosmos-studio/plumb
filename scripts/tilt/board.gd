@@ -1,29 +1,7 @@
 class_name TiltBoard
 extends RefCounted
 
-## The whole game as data: a grid of cells, coloured holes, and marbles. Tilting moves every marble at
-## once, one cell per step, until nothing can move. A marble drops into a hole of its own colour the
-## moment it rolls over it, and a pit swallows any marble, which loses the level.
-##
-## A floor cell can also carry a tile, each a chapter's rule: a stop pad halts a marble that rolls onto
-## it, a gate lets marbles in only one way, a door only its own colour, a paint pad repaints a marble that
-## crosses it, and cracked floor gives way, becoming a pit, once a marble has rolled off it. A portal sends
-## a marble out of its twin still rolling the same way, a bumper turns it a quarter, a hatch is open only
-## while something rests on its switch, and a key opens every lock of its colour for good. A hole can be a
-## plug, which closes into floor once it has taken a marble.
-##
-## A stone moves like a marble but is never taken by a hole, and fills the pit it rolls into. Stones are
-## kept with the marbles, in the colour STONE, and need not leave the board to win.
-##
-## Later chapters add: blinking walls, up on every other tilt that moves something; conveyors, which once
-## the board stops carry a marble resting on them their way; springs, which jump a marble leaving them
-## over the next cell; magnets, which stop a marble that arrives beside them; glass posts, which stop a
-## marble once and shatter; ice holes, which take only a marble resting on them when the board stops;
-## numbered marbles, which drop only in order; edges that wrap round; and a lock on one direction the
-## board cannot be tilted, which turns a quarter clockwise after every tilt.
-##
-## Pure logic with no nodes, so the solver, the level generator and the tests all run the exact rules
-## the player sees.
+## Each tile's rule is in CHAPTERS.md, and how a tilt resolves in MATH.md sections 1 and 8 to 10.
 
 enum Cell { FLOOR, WALL, PIT }
 enum Tile { NONE, STOP, GATE, DOOR, PAINT, CRACK, PORTAL, BUMPER, SWITCH, HATCH, KEY, LOCK, BLINK, CONVEYOR, SPRING,
@@ -39,12 +17,10 @@ const TILE_NAMES: Array[String] = ["", "stop", "gate", "door", "paint", "crack",
 	"hatch", "key", "lock", "blink", "conveyor", "spring", "magnet", "glass"]
 const PLUG_NAME: String = "plug"
 const ICE_NAME: String = "ice"
-## `wrap` bits: left and right edges joined, top and bottom joined.
 const WRAP_X: int = 1
 const WRAP_Y: int = 2
-## The direction a quarter clockwise from each of DIRS: left to up, right to down, up to right, down to left.
+## A quarter clockwise from each direction, indexed like DIRS.
 const CLOCKWISE: Array[int] = [UP, DOWN, RIGHT, LEFT]
-## A bumper's two slants.
 const SLASH: int = 0
 const BACKSLASH: int = 1
 
@@ -57,27 +33,21 @@ const DOWN: int = 3
 var width: int = 0
 var height: int = 0
 var cells: PackedByteArray = PackedByteArray()
-## The colour of the hole in each cell, or NO_HOLE.
 var holes: PackedInt32Array = PackedInt32Array()
-## The tile on each cell, a Tile.
 var tiles: PackedByteArray = PackedByteArray()
-## A gate's direction (an index into DIRS); a door's, paint pad's, key's or lock's colour; a portal's pair;
-## a bumper's slant; the pair a switch and its hatch share.
+## A gate's direction (an index into DIRS), a door's, paint pad's, key's or lock's colour, a portal's pair,
+## a bumper's slant, or the pair a switch and its hatch share.
 var tile_value: PackedByteArray = PackedByteArray()
-## 1 where a hole is a plug.
 var plugs: PackedByteArray = PackedByteArray()
-## 1 where a hole is an ice hole.
 var ice: PackedByteArray = PackedByteArray()
-## Cell index of each marble, or GONE once it has dropped into a hole or a pit.
 var marble_cell: PackedInt32Array = PackedInt32Array()
 var marble_colour: PackedInt32Array = PackedInt32Array()
 ## A numbered marble's number (they drop in order, lowest first), or 0.
 var marble_number: PackedInt32Array = PackedInt32Array()
 var lost: bool = false
-## The lasting changes play has made, which the solver's key has to tell apart (Change): cracked floor
-## that gave way, a plug that closed, a pit a stone filled, a key that was used, glass that shattered.
+## Lasting changes play has made (Change), which the solver's key has to tell apart.
 var changes: PackedInt32Array = PackedInt32Array()
-## Which edges wrap round (WRAP_X, WRAP_Y).
+## WRAP_X and WRAP_Y bits.
 var wrap: int = 0
 ## The direction this board cannot be tilted now, or -1. It turns a quarter clockwise after every tilt
 ## that changes something.
@@ -118,7 +88,6 @@ func add_marble(at: Vector2i, colour: int, number: int = 0) -> void:
 func is_stone(m: int) -> bool:
 	return marble_colour[m] == STONE
 
-## Marbles still to drop in; stones are not counted.
 func marbles_left() -> int:
 	var n: int = 0
 	for m: int in range(marble_cell.size()):
@@ -155,8 +124,7 @@ func set_tile(at: Vector2i, tile: Tile, value: int = 0) -> void:
 	tile_value[index(at)] = value
 	blinks = blinks or tile == Tile.BLINK
 
-## Whether a marble heading `dir` may roll onto cell `to`, leaving aside other marbles. `open` holds 1 for
-## each hatch pair whose switch is held this tilt, `up` 1 on each blinking wall that is up.
+## Leaves aside other marbles. `open` and `up` are this tilt's held_open() and raised().
 func enterable(to: int, m: int, dir: int, open: PackedByteArray = PackedByteArray(),
 		up: PackedByteArray = PackedByteArray()) -> bool:
 	if cells[to] == Cell.WALL:
@@ -174,8 +142,7 @@ func enterable(to: int, m: int, dir: int, open: PackedByteArray = PackedByteArra
 			return up.is_empty() or up[to] == 0
 	return true
 
-## The blinking walls that are up for the coming tilt: those whose value is the beat, unless a marble or a
-## stone rests on one, since a wall never rises under something.
+## A blinking wall never rises under a marble or a stone.
 func raised() -> PackedByteArray:
 	var up: PackedByteArray = PackedByteArray()
 	if not blinks:
@@ -189,7 +156,6 @@ func raised() -> PackedByteArray:
 			up[c] = 0
 	return up
 
-## Whether marble m may drop into its hole now: unnumbered, or every lower number is already in.
 func in_turn(m: int) -> bool:
 	var n: int = marble_number[m]
 	if n == 0:
@@ -199,7 +165,6 @@ func in_turn(m: int) -> bool:
 			return false
 	return true
 
-## The cell `reach` cells along `h` from `from`, round any edge that wraps, or -1 off the board.
 func cell_along(from: int, h: Vector2i, reach: int) -> int:
 	var x: int = from % width + h.x * reach
 	var y: int = from / width + h.y * reach
@@ -219,7 +184,7 @@ func _beside_magnet(cell: int) -> bool:
 			return true
 	return false
 
-## The hatch pairs held open for a tilt: any marble or stone resting on their switch as it starts.
+## Switches are read as the tilt starts, not step by step (MATH.md section 9).
 func held_open() -> PackedByteArray:
 	var open: PackedByteArray = PackedByteArray()
 	open.resize(16)
@@ -229,7 +194,6 @@ func held_open() -> PackedByteArray:
 			open[tile_value[c]] = 1
 	return open
 
-## Each portal's twin, by cell.
 func twins() -> Dictionary:
 	var first: Dictionary = {}
 	var out: Dictionary = {}
@@ -244,19 +208,13 @@ func twins() -> Dictionary:
 			first[pair] = i
 	return out
 
-## The heading a bumper of `slant` turns `dir` into: "/" sends a marble rolling right up, "\" sends it down.
+## "/" sends a marble rolling right up, "\" sends it down.
 static func deflect(dir: int, slant: int) -> int:
 	var d: Vector2i = DIRS[dir]
 	var turned: Vector2i = Vector2i(-d.y, -d.x) if slant == SLASH else Vector2i(d.y, d.x)
 	return DIRS.find(turned)
 
-## Tilts the board in `dir` and returns what happened, step by step, for the animation. The board is
-## changed in place. Every marble starts heading `dir` and keeps its heading until a bumper turns it. On
-## each step every marble that can advances one cell, a marble moving into a cell another has just left
-## included, so a line of marbles rolls as a train rather than the back one waiting a step for the front
-## one to clear. When nothing can move, a marble resting on a conveyor that does not already head its way
-## is turned to it and the board rolls on; once nothing turns, ice holes take what rests on them, struck
-## glass shatters, and the beat moves on if anything happened. The locked direction does nothing.
+## Changes the board in place (MATH.md sections 1, 9 and 10).
 func tilt(dir: int) -> TiltMove:
 	var move: TiltMove = TiltMove.new()
 	move.dir = dir
@@ -266,8 +224,7 @@ func tilt(dir: int) -> TiltMove:
 	var occupied: PackedInt32Array = PackedInt32Array()
 	occupied.resize(cells.size())
 	occupied.fill(-1)
-	# Front first: the marble furthest along the direction of travel tries before the ones behind it.
-	# An insertion sort, stable, as the few marbles on a board need.
+	# Front first, by a stable insertion sort, the fastest for a few marbles (MATH.md section 1).
 	var d: Vector2i = DIRS[dir]
 	var order: PackedInt32Array = PackedInt32Array()
 	var ahead: PackedInt32Array = PackedInt32Array()
@@ -291,8 +248,7 @@ func tilt(dir: int) -> TiltMove:
 	heading.fill(dir)
 	var rolled: PackedByteArray = PackedByteArray()
 	rolled.resize(count)
-	# Marbles that rolled onto a stop pad, or came round to where they were heading the same way before,
-	# which only bumpers and portals together can do: they are done for this tilt.
+	# Includes a marble back on a cell it crossed heading the same way, so loops end (MATH.md section 9).
 	var halted: PackedByteArray = PackedByteArray()
 	halted.resize(count)
 	var seen: Dictionary = {}
@@ -366,8 +322,7 @@ func tilt(dir: int) -> TiltMove:
 			locked = CLOCKWISE[locked]
 	return move
 
-## Turns every marble resting on a conveyor, and not yet heading its way, to the conveyor's way. Whether
-## any turned, so the board rolls on. A turn alone changes nothing: only the rolling it starts does.
+## A turn alone changes nothing: only the rolling it starts does.
 func _carry(heading: PackedInt32Array, halted: PackedByteArray) -> bool:
 	var turned: bool = false
 	for m: int in range(marble_cell.size()):
@@ -378,8 +333,6 @@ func _carry(heading: PackedInt32Array, halted: PackedByteArray) -> bool:
 		turned = true
 	return turned
 
-## What happens once the board has stopped: marbles resting on their own ice hole drop in, and so does a
-## numbered marble waiting on its hole whose turn has come; glass that a marble struck shatters into floor.
 func _settle(step: int, move: TiltMove, struck: PackedByteArray) -> void:
 	for m: int in range(marble_cell.size()):
 		var c: int = marble_cell[m]
@@ -393,7 +346,6 @@ func _settle(step: int, move: TiltMove, struck: PackedByteArray) -> void:
 			move.settled = true
 			move.events.append({"step": step, "marble": -1, "kind": &"shatter", "cell": i})
 
-## What a cell does to the marble that has just arrived on it.
 func _arrive(m: int, cell: int, step: int, move: TiltMove, occupied: PackedInt32Array, halted: PackedByteArray,
 		heading: PackedInt32Array, seen: Dictionary) -> void:
 	if cells[cell] == Cell.PIT:
@@ -430,7 +382,6 @@ func _arrive(m: int, cell: int, step: int, move: TiltMove, occupied: PackedInt32
 		halted[m] = 1
 	seen[state] = true
 
-## Marble m drops into the hole at `cell`, and a plug closes behind it.
 func _sink(m: int, cell: int, step: int, move: TiltMove) -> void:
 	marble_cell[m] = GONE
 	move.events.append({"step": step, "marble": m, "kind": &"sink", "cell": cell})
@@ -440,7 +391,6 @@ func _sink(m: int, cell: int, step: int, move: TiltMove) -> void:
 		changes.append(cell * Change.size() + Change.PLUG)
 		move.events.append({"step": step, "marble": m, "kind": &"plug", "cell": cell})
 
-## A key that something rolled onto opens every lock of its colour, and is used up.
 func _unlock(cell: int, step: int, move: TiltMove) -> void:
 	var colour: int = tile_value[cell]
 	tiles[cell] = Tile.NONE
@@ -452,17 +402,13 @@ func _unlock(cell: int, step: int, move: TiltMove) -> void:
 			opened.append(i)
 	move.events.append({"step": step, "marble": -1, "kind": &"key", "cell": cell, "colour": colour, "opened": opened})
 
-## Cracked floor that a marble has rolled off becomes a pit, and stays one.
 func _give_way(cell: int, step: int, move: TiltMove) -> void:
 	cells[cell] = Cell.PIT
 	tiles[cell] = Tile.NONE
 	changes.append(cell * Change.size() + Change.CRACK)
 	move.events.append({"step": step, "marble": -1, "kind": &"crack", "cell": cell})
 
-## A compact, order-independent key for the solver: the sorted list of (cell, colour, number) of live
-## marbles, then the sorted lasting changes, since two boards with the marbles in the same places differ if
-## a crack gave way or a plug closed on one of them, and on a board with blinking walls the beat, and with a
-## lock the way it faces.
+## Sorted, so identical marbles in swapped places are one state (MATH.md sections 2 and 8).
 func key() -> String:
 	var parts: PackedInt32Array = PackedInt32Array()
 	for m: int in range(marble_cell.size()):
@@ -523,7 +469,7 @@ func to_dict() -> Dictionary:
 
 ## Rows are strings: `.` floor, `#` wall, `x` pit, a digit is a hole of that colour. Marbles are [x, y,
 ## colour] or [x, y, colour, number], a stone's colour being STONE. An optional "tiles" list holds [x, y,
-## name, value] for each tile (TILE_NAMES), each plug and each ice hole; "wrap" holds the wrapping edges
+## name, value] for each tile (TILE_NAMES), each plug and each ice hole. "wrap" holds the wrapping edges
 ## and "locked" the direction the board cannot be tilted.
 static func from_dict(data: Dictionary) -> TiltBoard:
 	var rows: Array = data["rows"]

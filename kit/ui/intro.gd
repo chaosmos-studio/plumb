@@ -1,22 +1,17 @@
 class_name Intro
 extends CanvasLayer
 
-## The launch flourish, once each time the app starts. The game's icon sits in the middle of a plain screen,
-## much where the phone's own launch screen showed it, and comes alive: the game's res://intro.gd moves the
-## icon's parts the way the game moves its pieces. Then the icon shrinks away as the title fades in behind
-## it. It never holds up input: a tap goes straight through to the title.
+## Never holds up input: a tap goes straight through to the title.
 ##
 ## The kit expects from the game: tools/make_icons.py writing the icon's parts to assets/branding/intro/,
 ## each full frame and drawn where it sits in the icon (ground.png and whatever else), and res://intro.gd
 ## with `static func play(stage: Control, host: Node) -> float`, which lays the parts on `stage` with
 ## `part`, finds where they sit with `centre`, sets them moving and answers how long that takes. `host` is
-## the screen that started the intro, for an intro that hands something on to it. Without them the whole
-## icon simply settles in.
+## the screen that started the intro. Without them the whole icon simply settles in.
 
 const LAYER: int = 90
 ## The icon's side as a share of the screen's width, close to Android's launch icon.
 const START_SHARE: float = 0.42
-## How long the icon takes to shrink away once its parts are done.
 const OUT_TIME: float = 0.42
 const PARTS: String = "res://assets/branding/intro/"
 const GAME: String = "res://intro.gd"
@@ -36,8 +31,7 @@ static func play(host: Node) -> void:
 	_played = true
 	host.add_child(Intro.new())
 
-## Part `name` of the icon over the whole of `stage`, behind whatever is added after it. Its texture carries
-## mipmaps, since the parts are drawn at the icon's full size and shown at a fraction of it, where curved
+## Mipmapped, since the parts are drawn at the icon's full size and shown at a fraction of it, where curved
 ## edges would otherwise shimmer as they move.
 static func part(stage: Control, name: String) -> TextureRect:
 	var rect: TextureRect = TextureRect.new()
@@ -55,7 +49,6 @@ static func part(stage: Control, name: String) -> TextureRect:
 	stage.add_child(rect)
 	return rect
 
-## Where the solid middle of part `name` sits on `stage`: the centre of the box round its opaque pixels.
 static func centre(stage: Control, name: String) -> Vector2:
 	if not _centres.has(name):
 		var img: Image = (load(PARTS + name + ".png") as Texture2D).get_image()

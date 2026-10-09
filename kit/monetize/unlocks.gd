@@ -1,33 +1,27 @@
 class_name Unlocks
 extends RefCounted
 
-## Which levels are open, and the ways to open one early. A level opens once the one before it is solved.
-## A chapter's first level also opens once GATE of the chapter before it are solved, so one stubborn level
-## never walls off the rest of the game. On Google Play any locked level also opens for good with a level
-## key, or after a short video, and Every level opens them all, bought or lent for a while by a video
-## (Passes). Nothing here is needed to play.
-##
 ## The kit expects from the game: in `Save`, `opened` (the levels opened one by one) and `keys`, with
-## `open_level(level)` and `add_keys(n)`; in `GameMonetize`, KEY_IDS and KEY_COUNTS, the consumable
+## `open_level(level)` and `add_keys(n)`. In `GameMonetize`, KEY_IDS and KEY_COUNTS, the consumable
 ## products that sell keys.
 
-## Of a chapter's levels, the share to solve before the next chapter opens.
+## Of a chapter's levels, the share to solve before the next chapter opens, so one stubborn level never
+## walls off the rest of the game.
 const GATE: float = 0.7
 
-## The level a key is being bought for, opened with that key the moment Play delivers it, or -1.
+## The level a key is being bought for, or -1.
 static var _buying: int = -1
 
 static func is_open(level: int) -> bool:
 	return Shop.levels_open() or reached(level)
 
-## Open by play, a key or a video, Every level aside: the levels the grid rings as next to play.
+## Ignores Every level, so the grid rings only the levels next to play.
 static func reached(level: int) -> bool:
 	if level <= 0 or Save.best(level - 1) > 0 or Save.opened.has(level):
 		return true
 	var chapter: int = Pack.chapter_of(level)
 	return chapter > 0 and Pack.chapter_first(chapter) == level and solved_in(chapter - 1) >= gate(chapter - 1)
 
-## How many of `chapter`'s levels open the next one.
 static func gate(chapter: int) -> int:
 	return ceili(GATE * int(Pack.chapters[chapter]["count"]))
 
@@ -48,7 +42,6 @@ static func gate_opened_by(level: int) -> int:
 		return -1
 	return chapter + 1
 
-## What it takes to open `level` by playing, as a sentence.
 static func how(level: int) -> String:
 	var chapter: int = Pack.chapter_of(level)
 	if chapter > 0 and Pack.chapter_first(chapter) == level:
@@ -56,7 +49,6 @@ static func how(level: int) -> String:
 		return "Solve %d more %s in chapter %d to open it." % [more, "level" if more == 1 else "levels", chapter]
 	return "Solve level %d to open it." % level
 
-## Opens `level` with one of the player's keys. False when there is none.
 static func use_key(level: int) -> bool:
 	if Save.keys <= 0:
 		return false
@@ -64,13 +56,12 @@ static func use_key(level: int) -> bool:
 	Save.open_level(level)
 	return true
 
-## Buys key pack `id`, for `level` when the player asked from that level (-1 for none). The level is kept
-## past a cancelled purchase, so keys Play delivers late still open what they were bought for.
+## `level` is -1 for none. It is kept past a cancelled purchase, so keys Play delivers late still open what
+## they were bought for.
 static func buy_key(id: String, level: int) -> void:
 	_buying = level
 	Shop.buy(id)
 
-## Keys arrived from Play. A level waiting on them opens with one at once.
 static func delivered(count: int) -> void:
 	if _buying >= 0 and use_key(_buying):
 		Supporter.say("Level %d is open" % (_buying + 1))
@@ -78,9 +69,6 @@ static func delivered(count: int) -> void:
 		Supporter.say("%d %s added" % [count, "key" if count == 1 else "keys"])
 	_buying = -1
 
-## The sheet a locked level opens. How it opens by playing, then on Google Play the ways to open it now: a
-## short video, a key the player has, or one bought for this level, and Every level. Everywhere else a
-## locked level only says how it opens.
 static func offer(host: Node, level: int) -> Sheet:
 	if not Supporter.on_play:
 		Toast.say(host, how(level))
@@ -128,7 +116,6 @@ static func offer(host: Node, level: int) -> Sheet:
 			offer(host, level))
 	return sheet
 
-## Opens `level` and goes straight into it.
 static func _play(level: int) -> void:
 	Save.open_level(level)
 	Pack.current = level

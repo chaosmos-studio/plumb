@@ -1,8 +1,5 @@
 extends Node2D
 
-## The front door: the name, a toy that shows what the game is before any words do, one primary way in,
-## and settings tucked in a corner.
-
 const PILL_WIDTH: float = 460.0
 
 var _seesaw: Seesaw
@@ -70,14 +67,13 @@ func _ready() -> void:
 	# Last, so the seesaw is there for the intro to drop its marbles onto.
 	Intro.play(self)
 
-## Centred in the space the column left for it, wherever the layout put that on this screen shape.
 func _place() -> void:
 	_seesaw.position = _stage.get_global_rect().get_center() + Vector2(0, 16)
 
-## The seesaw's marbles of these colours, kept off the bar until the intro drops them in (intro.gd).
+## intro.gd calls this and drop_marbles by name.
 func hold_marbles(colours: Array[int]) -> void:
 	_seesaw.hold(colours)
 
-## Those marbles falling onto the bar from `from`, points on the screen, one for each colour.
+## `from` holds screen points, one for each colour.
 func drop_marbles(colours: Array[int], from: Array[Vector2]) -> void:
 	_seesaw.drop(colours, from)

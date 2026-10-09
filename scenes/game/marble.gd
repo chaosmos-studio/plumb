@@ -1,10 +1,7 @@
 class_name Marble
 extends Node2D
 
-## One marble, drawn as layered circles: a soft shadow, a darker rim, the body, and a gloss highlight, or
-## finished as the marble set in use asks (GameLooks.finish): glass, a cut gem, a ringed planet or a
-## peppermint swirl. Squash and fades are done on the node's scale and modulate, so the drawing never
-## changes.
+## Squash and fades are done on the node's scale and modulate, so the drawing never changes.
 
 var radius: float = 30.0:
 	set(value):
@@ -19,7 +16,6 @@ var stone: bool = false:
 	set(value):
 		stone = value
 		queue_redraw()
-## A numbered marble's number, drawn on it, or 0.
 var number: int = 0:
 	set(value):
 		number = value
@@ -87,7 +83,6 @@ func _number(r: float) -> void:
 	draw_string(font, Vector2(r * 0.04 - w.x * 0.5, r * 0.06 + size * 0.36), text, HORIZONTAL_ALIGNMENT_LEFT, -1, size,
 		Color.WHITE)
 
-## A rock: a lumpy outline, a darker underside and a few flecks, matte where a marble shines.
 func _stone(r: float) -> void:
 	var lumps: PackedVector2Array = PackedVector2Array()
 	var shape: Array[float] = [1.0, 0.9, 0.97, 0.86, 0.95, 0.88, 1.0, 0.92, 0.85, 0.96]
@@ -105,7 +100,6 @@ func _gloss(r: float) -> void:
 	draw_circle(Vector2(-r * 0.3, -r * 0.34), r * 0.3, Color(1, 1, 1, 0.5), true, -1.0, true)
 	draw_circle(Vector2(-r * 0.36, -r * 0.4), r * 0.13, Color(1, 1, 1, 0.85), true, -1.0, true)
 
-## Clear tinted glass: a see-through body with a bright rim, a deeper core and a long highlight.
 func _glass(r: float) -> void:
 	draw_circle(Vector2.ZERO, r, Color(colour, 0.5), true, -1.0, true)
 	draw_circle(Vector2(r * 0.12, r * 0.16), r * 0.5, Color(colour.darkened(0.25), 0.55), true, -1.0, true)
@@ -113,7 +107,6 @@ func _glass(r: float) -> void:
 	draw_arc(Vector2.ZERO, r * 0.7, PI * 1.05, PI * 1.45, 12, Color(1, 1, 1, 0.75), r * 0.12, true)
 	draw_circle(Vector2(r * 0.38, r * 0.4), r * 0.08, Color(1, 1, 1, 0.6), true, -1.0, true)
 
-## A cut stone: an octagon with a lighter table in the middle and facets running out to its corners.
 func _gem(r: float) -> void:
 	var outer: PackedVector2Array = _ring(r, 8, PI / 8.0)
 	var table: PackedVector2Array = _ring(r * 0.56, 8, PI / 8.0)
@@ -124,7 +117,7 @@ func _gem(r: float) -> void:
 	draw_colored_polygon(table, colour.lightened(0.18))
 	draw_colored_polygon(PackedVector2Array([table[4], table[5], table[6]]), Color(1, 1, 1, 0.45))
 
-## A small planet: bands across the body and a tilted ring, its back half behind and its front half over.
+## The ring's back half is drawn before the body and its front half after.
 func _planet(r: float) -> void:
 	_tilted_ring(r, PI, TAU)
 	draw_circle(Vector2.ZERO, r * 0.86, colour.darkened(0.12), true, -1.0, true)
@@ -134,7 +127,6 @@ func _planet(r: float) -> void:
 	_tilted_ring(r, 0.0, PI)
 	draw_circle(Vector2(-r * 0.3, -r * 0.36), r * 0.12, Color(1, 1, 1, 0.6), true, -1.0, true)
 
-## A peppermint: a bright body with three white swirls turning out from the middle.
 func _candy(r: float) -> void:
 	draw_circle(Vector2.ZERO, r, colour.darkened(0.15), true, -1.0, true)
 	draw_circle(Vector2.ZERO, r * 0.9, colour, true, -1.0, true)
@@ -153,7 +145,6 @@ static func _ring(r: float, sides: int, turn: float) -> PackedVector2Array:
 		points.append(Vector2.from_angle(turn + TAU * k / sides) * r)
 	return points
 
-## Half of a planet's ring, from angle `from` to `to` around a flattened ellipse.
 func _tilted_ring(r: float, from: float, to: float) -> void:
 	var points: PackedVector2Array = PackedVector2Array()
 	for s: int in range(17):

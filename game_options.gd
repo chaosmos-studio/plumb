@@ -1,8 +1,5 @@
 extends RefCounted
 
-## Plumb's own line in Settings, after Vibration: tipping the phone to tilt the board, as well as swiping. It
-## shows only on a phone that can feel which way is down.
-
 static func rows() -> Array[Control]:
 	var lines: Array[Control] = []
 	if not PhoneTilt.can_feel():

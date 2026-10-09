@@ -1,20 +1,16 @@
 class_name QrCard
 extends Control
 
-## A QR code that looks like part of a film or a reel: a white card, rounded modules that pop in from the
-## centre outward, the three finder eyes drawn as rounded squares, the app icon in the middle, then a
-## sheen across the card and corner brackets that breathe, as if a camera were framing it. Once it has
-## settled nothing moves inside the code, so a phone held up to the screen reads it.
+## Once it has settled nothing moves inside the code, so a phone held up to the screen reads it.
 ##
-## `rows` is the module matrix without its quiet zone, one string of 0 and 1 per row, from an encoder at
-## error correction level H (Qr.rows): the icon covers well under the 30 percent that level can lose. The finder
-## eyes are rounded by under a module: at a full module OpenCV's detector stops finding them, and phone
-## readers are built on the same finder search.
+## `rows` comes from Qr.rows, without its quiet zone and at error correction level H: the icon covers well
+## under the 30 percent that level can lose. The finder eyes are rounded by under a module: at a full
+## module OpenCV's detector stops finding them, and phone readers are built on the same finder search.
 
 const QUIET: float = 4.0
 const REVEAL: float = 0.9
 const POP: float = 0.22
-## The icon's side as a fraction of the code's side. At 0.22 it hides under 5 percent of the modules.
+## The icon's side as a fraction of the code's side.
 const LOGO: float = 0.22
 
 var rows: PackedStringArray = PackedStringArray()
@@ -31,7 +27,6 @@ func _init() -> void:
 func _ready() -> void:
 	_n = rows.size()
 
-## Pops the code in, then runs the sheen once and starts the brackets breathing.
 func play() -> void:
 	_t = 0.0
 	var t: Tween = create_tween()

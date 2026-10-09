@@ -48,7 +48,6 @@ jobs:
           "$GODOT_BIN" --headless --import
           ls .godot/imported/Outfit-Medium.ttf-*.fontdata .godot/imported/Outfit-Light.ttf-*.fontdata
 
-      # The tests run on their own (tests.yml), so the web build goes out without waiting on them.
       - name: Export Web build
         run: |
           set -e
@@ -65,7 +64,6 @@ jobs:
           cp web/Outfit-Light.ttf web/favicon.ico web/favicon-16.png web/favicon-32.png web/favicon-48.png \
              web/apple-touch-icon-180.png web/icon-192.png web/icon-512.png web/gate.js build/web/
 
-      # The game lives under chaosmos.studio/plumb/play/, in the studio site's public repo.
       - name: Deploy to chaosmos.studio/plumb/play/
         uses: JamesIves/github-pages-deploy-action@v4
         with:

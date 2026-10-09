@@ -25,7 +25,6 @@ func _ready() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://shots.cfg"))
 	get_tree().quit()
 
-## The Google Play shop as a new player sees it, with stand-in prices, and a board in each marble set.
 func _shoot_shop() -> void:
 	Supporter.on_play = true
 	var staged: Dictionary = {GameMonetize.COMPLETE_ID: "$4.99", GameMonetize.LEVELS_ID: "$1.99", GameMonetize.LOOKS_ID: "$1.99",
@@ -56,7 +55,6 @@ func _shoot_sheet(open: Callable, name: String) -> void:
 	node.queue_free()
 	await get_tree().process_frame
 
-## The first level of a chapter, with its card up.
 func _shoot_card(level: int) -> void:
 	Pack.current = level
 	var game: Node = load("res://scenes/game/game.tscn").instantiate()
@@ -116,7 +114,6 @@ func _shoot_settings() -> void:
 	node.queue_free()
 	await get_tree().process_frame
 
-## Tilts the first pit level the way that loses a marble, then shoots the banner.
 func _shoot_lost() -> void:
 	Pack.current = _first_pit_level()
 	var game: Node = load("res://scenes/game/game.tscn").instantiate()
@@ -132,7 +129,6 @@ func _shoot_lost() -> void:
 	game.queue_free()
 	await get_tree().process_frame
 
-## The shortest run of tilts, up to `depth`, that drops a marble down a pit.
 func _losing_line(start: TiltBoard, depth: int) -> PackedInt32Array:
 	var frontier: Array[TiltBoard] = [start]
 	var paths: Array[PackedInt32Array] = [PackedInt32Array()]
@@ -154,7 +150,6 @@ func _losing_line(start: TiltBoard, depth: int) -> PackedInt32Array:
 		paths = next_paths
 	return PackedInt32Array()
 
-## Catches marbles mid-roll and the tray mid-tip.
 func _shoot_rolling(level: int, name: String) -> void:
 	Pack.current = level
 	var game: Node = load("res://scenes/game/game.tscn").instantiate()

@@ -1,7 +1,6 @@
 shader_type canvas_item;
 
-// Dims the screen except inside up to four soft-edged circles. The rect covers the viewport, so UV times
-// its size is the viewport position the game gives the holes in.
+// The rect covers the viewport, so UV times its size is the viewport position the game gives the holes in.
 
 uniform vec4 scrim : source_color = vec4(0.0, 0.0, 0.0, 0.5);
 uniform vec2 rect_size = vec2(720.0, 1280.0);

@@ -1,8 +1,7 @@
 name: Tests
 
-# Every push to main runs the whole suite, which re-solves every shipped level, and the smoke robot, which
-# plays some through the real screens. The web and Android builds do not wait for it, so they come out in
-# minutes; a red run here is looked into on its own, and a release is cut from a commit that passed.
+# The web and Android builds do not wait for this run, so they come out in minutes. A release is cut from a
+# commit that passed.
 on:
   push:
     branches: [main]

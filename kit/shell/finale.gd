@@ -1,12 +1,8 @@
 class_name Finale
 extends Control
 
-## What a player sees after solving the last level for the first time: a quiet screen with a note from
-## the person who made the game, signed, and a way to support the next one: the Supporter pack in the
-## Google Play build, GitHub Sponsors on the web, and a thank-you for a Supporter. Under it, a rating
-## (RatePrompt) and the studio's other games (MoreGames). The words are the
-## game's (GameCredits.NOTE, SIGNED, SUPPORT_LINE_PLAY, SUPPORT_LINE_WEB and THANKS_LINE), so each game can
-## speak for itself.
+## The words are the game's (GameCredits.NOTE, SIGNED, SUPPORT_LINE_PLAY, SUPPORT_LINE_WEB and
+## THANKS_LINE), so each game can speak for itself.
 
 const LAYER: int = 65
 const DRIFTERS: int = 18
@@ -18,18 +14,17 @@ var _drift: Array[Vector4] = []
 var _t: float = 0.0
 var _column: Control
 
-## Whether solving `level` now should end on this screen. Ask before the result is recorded.
+## Ask before the result is recorded.
 static func due(level: int) -> bool:
 	return level + 1 >= Pack.count() and Save.best(level) == 0
 
-## The line under the note. Google Play treats a donation link in an app as a payment outside its
-## billing, so the Play build offers the Supporter pack and never GitHub Sponsors.
+## Google Play treats a donation link in an app as a payment outside its billing, so the Play build offers
+## the Supporter pack and never GitHub Sponsors.
 static func support_line() -> String:
 	if Supporter.active():
 		return GameCredits.THANKS_LINE
 	return GameCredits.SUPPORT_LINE_PLAY if Supporter.on_play else GameCredits.SUPPORT_LINE_WEB
 
-## The button under that line, or "" for a Supporter, who has already helped.
 static func support_button() -> String:
 	if Supporter.active():
 		return ""
@@ -117,8 +112,7 @@ func _build(on_done: Callable) -> void:
 	column.add_child(UI.spacer(EDGE))
 	create_tween().tween_property(self, "modulate:a", 1.0, 0.6)
 
-## Side by side, to keep the column short: a rating, for a player who could still be asked, and the
-## studio's other games.
+## Side by side, to keep the column short.
 func _extras() -> HBoxContainer:
 	var row: HBoxContainer = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
@@ -141,7 +135,7 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Brand.BG)
-	# A few soft motes rising slowly: a celebration that stays calm, and fades out before the words.
+	# The motes fade out before they reach the words.
 	var words: Rect2 = _content_rect().grow(40.0)
 	for k: int in range(_drift.size()):
 		var d: Vector4 = _drift[k]

@@ -1,10 +1,7 @@
 class_name Sheet
 extends Control
 
-## A bottom sheet: the screen dims, a rounded panel rises from the bottom, and whatever the caller puts
-## in `content` sits in it. Results, failures and settings all use it, so every modal moves the same way.
-## A dismissable sheet closes on a tap on the dimmed area or a drag down on its panel. The banner steps
-## aside while any sheet is open.
+## Results, failures and settings all use it, so every modal moves the same way.
 
 signal closed
 signal rising
@@ -38,7 +35,7 @@ var _touch_from: float = -1.0
 var _dragging: bool = false
 var _flick: bool = false
 var _scrim: ColorRect
-## The panel stays where its anchors put it; this full-screen holder is what slides, by `_drop` of the
+## The panel stays where its anchors put it, and this full-screen holder is what slides, by `_drop` of the
 ## panel's current height. On a frame with no physics step Godot lays the panel out only after the next
 ## process_frame, so its height is not known when the sheet opens: it is measured on every step instead.
 var _slide: Control
@@ -47,9 +44,7 @@ var _drop: float = 1.0
 var _motion: Tween
 var _closing: bool = false
 
-## Opens a sheet over `host`, and over the layer `host` is drawn on if that is higher, as for the ending.
-## With `dismissable`, tapping the dimmed area closes it. With `hold`, it waits below the screen for
-## `rise()`.
+## Opens over the layer `host` is drawn on if that is higher than LAYER, as for the ending.
 static func open(host: Node, can_dismiss: bool = true, hold: bool = false) -> Sheet:
 	var canvas: CanvasLayer = CanvasLayer.new()
 	canvas.layer = LAYER
@@ -122,7 +117,6 @@ func _ready() -> void:
 		return
 	rise()
 
-## Brings the sheet up and the screen behind it down: at once for most sheets, on cue for a held one.
 func rise() -> void:
 	if _risen or _closing:
 		return
@@ -200,18 +194,15 @@ func _grabs(at: Vector2) -> bool:
 func top() -> float:
 	return _panel.get_global_rect().position.y - _slide.position.y
 
-## How wide a sheet's content may be before it pushes the sheet past the sides of the narrowest screen
-## the game runs on: the design width, which every portrait phone is at least, since the stretch keeps it.
+## The design width is the narrowest screen, since the stretch keeps every portrait phone at least that wide.
 static func room() -> float:
 	return float(ProjectSettings.get_setting("display/window/size/viewport_width")) - SIDE * 2.0
 
-## Back up into place after a drag that did not go far enough.
 func _settle() -> void:
 	_motion = create_tween().set_parallel(true)
 	_motion.tween_method(_set_drop, _drop, 0.0, SETTLE_TIME).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	_motion.tween_property(_scrim, "color:a", SCRIM_ALPHA, SETTLE_TIME)
 
-## The small bar at the top of a sheet that says "this slides".
 class _Grip extends Control:
 	func _init() -> void:
 		custom_minimum_size = Vector2(0, 14)

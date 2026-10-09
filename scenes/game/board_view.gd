@@ -1,9 +1,7 @@
 class_name BoardView
 extends Node2D
 
-## Draws a TiltBoard and animates tilts. The view never decides anything: the game applies a tilt to
-## the board, gets back a TiltMove, and hands it here to be played step by step, one cell per step,
-## exactly as the rules computed it.
+## The view never decides anything: it plays each TiltMove step by step, exactly as the rules computed it.
 
 ## Seconds for a marble to roll one cell.
 const STEP_TIME: float = 0.052
@@ -32,9 +30,8 @@ var _hint_dir: int = -1
 var _hint_paths: Array[Array] = []
 var _hint_t: float = 0.0
 var _hint_nudge: Tween
-## Cells a tilt being played changes partway through, drawn as they were until their step comes: the
-## board already holds the outcome. Cell to [kind, value]: &"crack"; &"plug" with the plug's colour;
-## &"fill", a pit a stone will fill; &"key" and &"lock" with their colour.
+## Cells a tilt being played changes partway through, drawn as they were until their step comes, since the
+## board already holds the outcome. Cell to [kind, value], the value a colour for &"plug", &"key" and &"lock".
 var _pending: Dictionary = {}
 ## Which hatches are drawn open: those held for the tilt being played, which the rules fix as it starts.
 var _hatches: PackedByteArray = PackedByteArray()
@@ -75,7 +72,6 @@ func intro() -> void:
 		t.tween_interval(0.12 + i * 0.07)
 		t.tween_property(marble, "scale", Vector2.ONE, 0.26).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
-## Puts every marble where the board says, at once: after an undo or a restart.
 func sync(b: TiltBoard, pop_in: bool = true) -> void:
 	_clear_hint()
 	_pending.clear()
@@ -109,8 +105,6 @@ func centre(i: int) -> Vector2:
 func bounds() -> Rect2:
 	var pad: float = cell * TRAY_PAD
 	return Rect2(_origin - Vector2(pad, pad), Vector2(board.width, board.height) * cell + Vector2(pad, pad) * 2.0)
-
-# --- Drawing ------------------------------------------------------------------------------------------
 
 func _draw() -> void:
 	if board == null:
@@ -164,8 +158,8 @@ func _draw() -> void:
 			TiltBoard.Cell.WALL:
 				draw_style_box(wall, rect)
 			TiltBoard.Cell.PIT:
-				# A square void where the tile should be. Holes are round and pits are square, so the two
-				# never read alike, whatever colours a player can tell apart.
+				# Holes are round and pits square, so the two never read alike, whatever colours a player can
+				# tell apart.
 				draw_style_box(pit_face, rect)
 				draw_style_box(pit_depth, rect.grow_individual(-cell * 0.1, -cell * 0.16, -cell * 0.1, -cell * 0.06))
 			_:
@@ -195,8 +189,6 @@ func _draw() -> void:
 	_draw_edges()
 	_draw_hint()
 
-## The tray's edges where the rules change them: wrapping edges get a ring at the end of every row or
-## column they join, and the locked side carries a bar and a padlock.
 func _draw_edges() -> void:
 	var r: Rect2 = Rect2(_origin, Vector2(board.width, board.height) * cell)
 	var ink: Color = Color(Palette.WALL, 0.55)
@@ -220,10 +212,8 @@ func _draw_edges() -> void:
 		draw_circle(mid, cell * 0.24, Palette.TRAY, true, -1.0, true)
 		Icons.draw(self, &"lock", mid, cell * 0.36, Palette.DANGER)
 
-## A tile drawn on a floor cell. Each reads by shape before colour: a mat, chevrons, a coloured frame, a
-## splash, cracks, a whirl, a slanted bar, a round plate, a barred hatch, a key, a padlock, a wall up or
-## sunk, a belt, a coil, a horseshoe, a pane. Portals, switches and hatches carry one dot or two, so the
-## pairs read without colours of their own.
+## Each tile reads by shape before colour. Portals, switches and hatches carry one dot or two, so the pairs
+## read without colours of their own.
 func _draw_tile_as(tile: int, value: int, rect: Rect2, c: Vector2) -> void:
 	match tile:
 		TiltBoard.Tile.STOP:
@@ -327,7 +317,6 @@ func _draw_tile_as(tile: int, value: int, rect: Rect2, c: Vector2) -> void:
 			draw_rect(Rect2(c + Vector2(-cell * 0.16, -cell * 0.06), Vector2(cell * 0.32, cell * 0.24)), Palette.TILE, true)
 			draw_circle(c + Vector2(0, cell * 0.05), cell * 0.04, block.bg_color, true, -1.0, true)
 		TiltBoard.Tile.BLINK:
-			# Up, a wall with a lit seam; down, the same wall's outline sunk into the floor, dashed.
 			var i: int = _cell_at(c)
 			if i < _up.size() and _up[i] == 1:
 				var raised: StyleBoxFlat = StyleBoxFlat.new()
@@ -350,7 +339,7 @@ func _draw_tile_as(tile: int, value: int, rect: Rect2, c: Vector2) -> void:
 						draw_line(a.lerp(b, s / 3.0 + 0.04), a.lerp(b, s / 3.0 + 0.22), ink, maxf(2.0, cell * 0.045), true)
 				draw_line(c + Vector2(-cell * 0.2, 0), c + Vector2(cell * 0.2, 0), Color(ink, 0.4), cell * 0.05, true)
 		TiltBoard.Tile.CONVEYOR:
-			# A belt between two rails with three solid chevrons, bolder than a gate's open ones.
+			# Solid chevrons, bolder than a gate's open ones.
 			var d: Vector2 = Vector2(TiltBoard.DIRS[value])
 			var side: Vector2 = d.orthogonal()
 			var belt: StyleBoxFlat = StyleBoxFlat.new()
@@ -366,7 +355,6 @@ func _draw_tile_as(tile: int, value: int, rect: Rect2, c: Vector2) -> void:
 				draw_colored_polygon(PackedVector2Array([tip, tip - (d * 0.14 + side * 0.16) * cell,
 					tip - d * 0.07 * cell, tip - (d * 0.14 - side * 0.16) * cell]), Color(Palette.WALL, 0.8))
 		TiltBoard.Tile.SPRING:
-			# A coil seen from the side under a round plate.
 			var ink: Color = Palette.WALL
 			var coil: PackedVector2Array = PackedVector2Array()
 			for k: int in range(9):
@@ -375,7 +363,7 @@ func _draw_tile_as(tile: int, value: int, rect: Rect2, c: Vector2) -> void:
 			draw_line(c + Vector2(-cell * 0.28, -cell * 0.22), c + Vector2(cell * 0.28, -cell * 0.22), Palette.WALL_LIP, cell * 0.1, true)
 			draw_line(c + Vector2(-cell * 0.24, cell * 0.33), c + Vector2(cell * 0.24, cell * 0.33), Color(ink, 0.6), cell * 0.06, true)
 		TiltBoard.Tile.MAGNET:
-			# A horseshoe magnet, its poles pale, standing on a dark plate: nothing rolls onto it.
+			# A dark plate, since nothing rolls onto a magnet.
 			var plate: StyleBoxFlat = StyleBoxFlat.new()
 			plate.bg_color = Palette.WALL_LIP
 			plate.set_corner_radius_all(int(cell * 0.16))
@@ -387,7 +375,6 @@ func _draw_tile_as(tile: int, value: int, rect: Rect2, c: Vector2) -> void:
 				draw_line(c + Vector2(s * cell * 0.2, cell * 0.05), c + Vector2(s * cell * 0.2, -cell * 0.16), red, cell * 0.14, true)
 				draw_line(c + Vector2(s * cell * 0.2, -cell * 0.16), c + Vector2(s * cell * 0.2, -cell * 0.3), Palette.TILE, cell * 0.14, true)
 		TiltBoard.Tile.GLASS:
-			# A clear block: a pale fill, a bright rim and two diagonal glints.
 			var pane: StyleBoxFlat = StyleBoxFlat.new()
 			pane.bg_color = Color(0.82, 0.93, 1.0, 0.55)
 			pane.border_color = Color(1, 1, 1, 0.95)
@@ -400,12 +387,10 @@ func _draw_tile_as(tile: int, value: int, rect: Rect2, c: Vector2) -> void:
 			draw_line(c + Vector2(-cell * 0.24, cell * 0.04), c + Vector2(cell * 0.04, -cell * 0.24), Color(1, 1, 1, 0.95), cell * 0.06, true)
 			draw_line(c + Vector2(-cell * 0.06, cell * 0.22), c + Vector2(cell * 0.2, -cell * 0.04), Color(1, 1, 1, 0.7), cell * 0.04, true)
 
-## The cell whose centre is `c`.
 func _cell_at(c: Vector2) -> int:
 	var at: Vector2 = ((c - _origin) / cell).floor()
 	return board.index(Vector2i(at))
 
-## One dot or two, for the first or second portal, switch or hatch pair on a board.
 func _draw_pair(pair: int, at: Vector2, ink: Color) -> void:
 	if pair == 0:
 		draw_circle(at, cell * 0.05, ink, true, -1.0, true)
@@ -425,9 +410,6 @@ func _draw_crack(c: Vector2) -> void:
 		branch.append(c + p * cell)
 	draw_polyline(branch, ink, w, true)
 
-# --- Animation ----------------------------------------------------------------------------------------
-
-## Plays one tilt. Returns when every marble has come to rest.
 func play(move: TiltMove) -> void:
 	busy = true
 	_clear_hint()
@@ -503,8 +485,6 @@ func play(move: TiltMove) -> void:
 	queue_redraw()
 	busy = false
 
-## One step of a tilt: every marble that moved goes one cell, through a portal to its twin, over a square
-## off a spring, or out of a wrapping edge and in at the far one.
 func _roll(move: TiltMove, step: int) -> void:
 	var tween: Tween = create_tween().set_parallel(true)
 	var through: Dictionary = {}
@@ -520,19 +500,16 @@ func _roll(move: TiltMove, step: int) -> void:
 		var event: Dictionary = through.get(id, {})
 		match event.get("kind", &""):
 			&"portal":
-				# Into the portal, then out of its twin at once.
 				tween.tween_property(marble, "position", centre(int(event["cell"])), STEP_TIME)
 				tween.chain().tween_callback(func() -> void:
 					marble.position = to
 					marble.scale = Vector2(0.6, 0.6))
 				tween.parallel().tween_property(marble, "scale", Vector2.ONE, STEP_TIME * 2.0).set_delay(STEP_TIME)
 			&"jump":
-				# Up and over: the marble swells at the top of the arc.
 				tween.tween_property(marble, "position", to, STEP_TIME * 2.0)
 				tween.tween_property(marble, "scale", Vector2(1.35, 1.35), STEP_TIME).set_ease(Tween.EASE_OUT)
 				tween.chain().tween_property(marble, "scale", Vector2.ONE, STEP_TIME).set_ease(Tween.EASE_IN)
 			&"wrap":
-				# Out over the edge, then in from the far side.
 				var d: Vector2 = Vector2(TiltBoard.DIRS[_heading(from, to)])
 				tween.tween_property(marble, "position", from + d * cell * 0.6, STEP_TIME * 0.5)
 				tween.chain().tween_callback(func() -> void: marble.position = to - d * cell * 0.6)
@@ -548,7 +525,7 @@ static func _heading(from: Vector2, to: Vector2) -> int:
 		return TiltBoard.RIGHT if d.x > 0.0 else TiltBoard.LEFT
 	return TiltBoard.DOWN if d.y > 0.0 else TiltBoard.UP
 
-## A swipe that moves nothing still answers: the tray twitches and settles.
+## A swipe that moves nothing still answers.
 func refuse(dir: int) -> void:
 	var d: Vector2 = Vector2(TiltBoard.DIRS[dir])
 	var t: Tween = create_tween()
@@ -607,7 +584,6 @@ func _drop(id: int, kind: StringName) -> void:
 		_shake()
 	t.chain().tween_callback(func() -> void: marble.visible = false)
 
-## A marble rolling over paint takes the new colour with a ring of it.
 func _repaint(id: int, colour: int) -> void:
 	var marble: Marble = _marbles[id]
 	marble.colour = Palette.marble(colour)
@@ -626,11 +602,7 @@ func _shake() -> void:
 		t.tween_property(self, "position", base + Vector2(randf_range(-amp, amp), randf_range(-amp, amp)), 0.035)
 	t.tween_property(self, "position", base, 0.05)
 
-# --- Hints --------------------------------------------------------------------------------------------
-
-## Previews the solver's next tilt on the board itself: a dotted trail from every marble that would move
-## to where it would stop, a ghost of it there, a glowing ring on any hole it would drop into, and the
-## tray leaning that way now and then. Drawn inside the tray, so it is on screen at every aspect ratio.
+## Drawn inside the tray, so the hint is on screen at every aspect ratio.
 func show_hint(dir: int, from: TiltBoard) -> void:
 	_clear_hint()
 	var probe: TiltBoard = from.copy()
@@ -658,7 +630,6 @@ func show_hint(dir: int, from: TiltBoard) -> void:
 	_hint_nudge.tween_interval(0.9)
 	queue_redraw()
 
-## The cells marble `m` passes through on `move`, from `start`, so a trail can turn where a bumper turns it.
 ## A portal's cell comes before its twin, with -1 between, where the trail breaks for the jump.
 static func _route(move: TiltMove, m: int, start: int, jumps: Dictionary) -> PackedInt32Array:
 	var route: PackedInt32Array = PackedInt32Array([start])

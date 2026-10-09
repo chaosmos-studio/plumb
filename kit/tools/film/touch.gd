@@ -1,9 +1,6 @@
 class_name Touch
 extends Node2D
 
-## A finger on the glass, so a viewer sees what the player did. A tap is a soft dot that presses in and
-## sends out a ring; a swipe drags the dot along and leaves a fading trail behind it.
-
 const PRESS: float = 0.1
 const RIPPLE: float = 0.55
 const SWIPE: float = 0.26

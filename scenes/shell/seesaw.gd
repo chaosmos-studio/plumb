@@ -1,9 +1,7 @@
 class_name Seesaw
 extends Node2D
 
-## The title's toy: a bar that rocks slowly while four marbles roll along it under gravity, knocking
-## into each other and the ends. One dimension of physics along the bar is all it needs. At launch the
-## intro can `hold` some of them back and then `drop` them in from the icon's holes.
+## One dimension of physics along the bar (MATH.md section 11).
 
 const LENGTH: float = 440.0
 const THICKNESS: float = 26.0
@@ -12,7 +10,6 @@ const ROCK_SPEED: float = 0.85
 const GRAVITY: float = 1500.0
 const DAMPING: float = 0.35
 const RADIUS: float = 26.0
-## How long a marble dropped in from the intro takes to land.
 const DROP_TIME: float = 0.5
 
 var _t: float = 0.0
@@ -35,14 +32,12 @@ func _ready() -> void:
 		_drop.append(-1.0)
 		_from.append(Vector2.ZERO)
 
-## Keeps the marbles of these colours off the bar and out of sight until they are dropped in.
 func hold(colours: Array[int]) -> void:
 	for k: int in colours:
 		_drop[k] = -2.0
 		_marbles[k].visible = false
 
-## The marbles of these colours fall from `from` (screen points, one each) onto their places on the bar,
-## growing as they come, and land with a clack.
+## `from` holds screen points, one for each colour.
 func drop(colours: Array[int], from: Array[Vector2]) -> void:
 	for i: int in range(colours.size()):
 		var k: int = colours[i]
@@ -61,7 +56,6 @@ func _process(delta: float) -> void:
 		_v[k] += GRAVITY * sin(angle) * delta
 		_v[k] -= _v[k] * DAMPING * delta
 		_s[k] += _v[k] * delta
-	# Keep them in order along the bar and apart, trading speeds on contact like equal balls do.
 	for k: int in range(_s.size()):
 		if _s[k] < -half:
 			_s[k] = -half
@@ -108,8 +102,7 @@ func _draw() -> void:
 	var up: Vector2 = Vector2(sin(_angle), -cos(_angle))
 	var a: Vector2 = -along * LENGTH * 0.5
 	var b: Vector2 = along * LENGTH * 0.5
-	# The plank and the darker lip under it are both capsules, so the lip shows as an even rim round the
-	# rounded ends too, not as square corners poking out beneath them.
+	# The lip is a capsule too, so it shows as an even rim round the rounded ends, not as square corners.
 	_capsule(a - up * 2.0, b - up * 2.0, THICKNESS * 0.5, Palette.WALL_LIP)
 	_capsule(a + up * 4.0, b + up * 4.0, THICKNESS * 0.5, Palette.WALL)
 	var foot: PackedVector2Array = PackedVector2Array([Vector2(0, 14), Vector2(-46, 90), Vector2(46, 90)])

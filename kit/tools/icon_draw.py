@@ -1,10 +1,6 @@
-"""Drawing pieces the games' icon scripts share: glossy marbles and dots, sunk-in holes, a board and its
-cells, soft trails, strokes with round caps and filled arrowheads.
-
-Every function draws on an RGBA image with coordinates in pixels; the scripts work in fractions of the
-icon's side and multiply up. Draw at SUPER times the final size and downsample, the cheap way to clean
-anti-aliased edges in PIL. Shapes go on their own layers where they are translucent, because ImageDraw
-replaces pixels rather than blending them.
+"""Every function draws on an RGBA image with coordinates in pixels. Draw at SUPER times the final size and
+downsample, the cheap way to clean anti-aliased edges in PIL. Shapes go on their own layers where they are
+translucent, because ImageDraw replaces pixels rather than blending them.
 """
 
 import math
@@ -31,7 +27,7 @@ def finish(img, size):
 
 
 def rounded(img, share=0.22):
-    """The icon with rounded corners, for the web's favicons and app icons. Play rounds its own."""
+    """For the web's favicons and app icons. Play rounds its own."""
     mask = Image.new("L", img.size, 0)
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, img.width - 1, img.height - 1], radius=int(img.width * share), fill=255)
     out = Image.new("RGBA", img.size, (0, 0, 0, 0))
@@ -40,7 +36,6 @@ def rounded(img, share=0.22):
 
 
 def ground(s, colour, lift=0.06):
-    """A full-bleed backdrop, a touch lighter in the middle so the motif sits in a soft light."""
     img = Image.new("RGBA", (s, s), colour)
     glow = Image.new("RGBA", (s, s), (0, 0, 0, 0))
     r = s * 0.42
@@ -56,7 +51,6 @@ def shadow(img, draw_shape, dy, blur, alpha, colour=(40, 50, 45)):
 
 
 def marble(img, cx, cy, r, body, rim, cast=True):
-    """The game's marble: a darker rim, the body set a little up and left, and two gloss spots."""
     if cast:
         shadow(img, lambda d, dy, c: d.ellipse([cx - r * 0.92, cy - r * 0.92 + dy, cx + r * 0.92, cy + r * 0.92 + dy], fill=c),
                r * 0.26, r * 0.14, 70)
@@ -74,7 +68,6 @@ def marble(img, cx, cy, r, body, rim, cast=True):
 
 
 def hole(img, cx, cy, r, ring, well=hexc("2f333d")):
-    """A ring in the marble's colour round a dark well, shaded inside so it reads as sunk in."""
     d = ImageDraw.Draw(img)
     d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=ring)
     i = r * 0.74
@@ -87,7 +80,6 @@ def hole(img, cx, cy, r, ring, well=hexc("2f333d")):
 
 
 def tray(img, box, radius, top, edge, cast_alpha=55):
-    """A raised board: its shadow, a darker lip below, and the face."""
     shadow(img, lambda d, dy, c: d.rounded_rectangle([box[0], box[1] + dy, box[2], box[3] + dy], radius=radius, fill=c),
            (box[3] - box[1]) * 0.03, (box[3] - box[1]) * 0.035, cast_alpha)
     d = ImageDraw.Draw(img)
@@ -104,7 +96,6 @@ def cell(img, box, radius, face, under):
 
 
 def trail(img, tail, head, r, colour):
-    """A soft streak from `tail` to a marble of radius `r` at `head`, widening and strengthening toward it."""
     g = layer(img)
     gd = ImageDraw.Draw(g)
     n = 48
@@ -118,7 +109,6 @@ def trail(img, tail, head, r, colour):
 
 
 def dot(img, cx, cy, r, colour):
-    """A bell or a sun: a flat disc with one soft gloss, and a darker rim for a little roundness."""
     d = ImageDraw.Draw(img)
     rim = tuple(max(0, int(c * 0.8)) for c in colour[:3]) + (255,)
     d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=rim)
@@ -133,7 +123,6 @@ def dot(img, cx, cy, r, colour):
 
 
 def stroke(img, pts, colour, w):
-    """A polyline with round caps and joins."""
     g = layer(img)
     d = ImageDraw.Draw(g)
     d.line(pts, fill=colour, width=int(w), joint="curve")
@@ -143,7 +132,7 @@ def stroke(img, pts, colour, w):
 
 
 def arrowhead(img, tip, angle, size, colour, width=0.62):
-    """A filled arrowhead with its point at `tip`, facing `angle` in radians."""
+    """`angle` is in radians."""
     d = ImageDraw.Draw(img)
     back = (tip[0] - size * math.cos(angle), tip[1] - size * math.sin(angle))
     side = (math.cos(angle + math.pi / 2) * size * width, math.sin(angle + math.pi / 2) * size * width)
@@ -151,8 +140,8 @@ def arrowhead(img, tip, angle, size, colour, width=0.62):
 
 
 def write_parts(parts, folder="assets/branding/intro"):
-    """The icon's parts for the launch flourish (kit Intro): name to image, each full frame at the icon's
-    size and drawn where it sits in the icon, so laid one over another they make the icon again."""
+    """`parts` maps name to image, each a full frame at the icon's size drawn where it sits in the icon, so
+    the kit Intro can lay them one over another to make the icon again."""
     os.makedirs(folder, exist_ok=True)
     for old in os.listdir(folder):
         if old.endswith(".png") and old[:-4] not in parts:
@@ -164,7 +153,7 @@ def write_parts(parts, folder="assets/branding/intro"):
 
 
 def ellipse_points(cx, cy, rx, ry, tilt, a0, a1, n=160):
-    """Points on an ellipse tilted by `tilt` degrees, from angle a0 to a1 in degrees."""
+    """`tilt`, `a0` and `a1` are in degrees."""
     t = math.radians(tilt)
     out = []
     for k in range(n + 1):

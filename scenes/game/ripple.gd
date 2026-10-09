@@ -1,8 +1,6 @@
 class_name Ripple
 extends Node2D
 
-## A ring that grows and fades once, then frees itself: the mark of a marble arriving home.
-
 const LIFE: float = 0.45
 
 var colour: Color = Color.WHITE

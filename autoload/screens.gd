@@ -1,7 +1,6 @@
 extends CanvasLayer
 
-# Scene changes with a short fade, so moving between the title, the level grid and a board never
-# flashes a half-built frame.
+# A short fade, so a scene change never flashes a half-built frame.
 
 const OUT_TIME: float = 0.14
 const IN_TIME: float = 0.2

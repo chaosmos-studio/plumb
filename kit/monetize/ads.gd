@@ -1,29 +1,25 @@
 class_name Ads
 extends RefCounted
 
-## The ads, in the Android build only: one banner at the foot of the level grid, now and then an ad
-## between levels, and a short video for a hint once the day's free ones are used. AdPacing decides when;
-## this runs them and never makes the game wait, because an ad that is not loaded simply does not show.
-## In every other build, and for a Supporter, each call answers "not available" at once.
+## An ad that is not loaded simply does not show, so the game never waits for one.
 ##
 ## The kit expects from the game:
 ## - `GameMonetize` (res://monetize.gd) with APP_ID, BANNER_ID, INTERSTITIAL_ID, REWARDED_ID and
-##   SUPPORTER_ID. Debug builds ask for Google's test units whatever it says.
-## - The AdMob plugin in addons/admob, enabled, and the project setting admob/general/android/app_id equal
-##   to GameMonetize.APP_ID, since the plugin writes that setting into the manifest.
+##   SUPPORTER_ID. Debug builds use Google's test units whatever it says.
+## - The AdMob plugin in addons/admob, enabled, with the project setting admob/general/android/app_id
+##   equal to GameMonetize.APP_ID, since the plugin writes that setting into the manifest.
 ## - Save._ready calling `Supporter.start()` and then `Ads.start()` once progress is restored.
-## - `EventBus.level_won(index, count, stars)` on every solve, `Save.best` and `Pack.count` to count the
-##   levels solved, and `Save.sound_on`, since ads start muted for a player who turned sound off.
-## - The play screen calling `RatePrompt.or_ad` on its Next level path and nowhere else, which comes here
-##   unless a rating is due, and routing its hint through HintGate. The Levels screen and every Sheet
-##   already do their part.
+## - `EventBus.level_won` on every solve, `Save.best`, `Pack.count`, and `Save.sound_on`, since ads start
+##   muted for a player who turned sound off.
+## - The play screen calling `RatePrompt.or_ad` on its Next level path and nowhere else, and routing its
+##   hint through HintGate.
 
-## The phone the stand-in banner assumes, in dp. Any phone in portrait gets about the same banner.
+## Any phone in portrait gets about the same adaptive banner, so the stand-in assumes one width.
 const PREVIEW_WIDTH_DP: float = 360.0
 
-## Captures on a desktop only: the Levels screen gets a stand-in banner of the real adaptive size.
+## Desktop captures only: shows a stand-in banner at the real adaptive size.
 static var preview: bool = false
-## Seconds added to the session clock, so a robot need not wait out the pacing gaps.
+## Lets a robot skip the pacing gaps without waiting.
 static var skew: float = 0.0
 
 static var _backend: AdBackend
@@ -36,8 +32,7 @@ static var _height: float = 0.0
 static var _on_height: Callable = Callable()
 static var _stand_in: CanvasLayer
 
-## Consent, then the SDK, then one ad of each kind loaded. On Android only, and not for a Supporter; the
-## Supporter class calls it again if Play says the pack is no longer owned.
+## Supporter calls this again when Play says the pack is no longer owned.
 static func start() -> void:
 	if not EventBus.level_won.is_connected(_on_solved):
 		EventBus.level_won.connect(_on_solved)
@@ -53,7 +48,6 @@ static func start() -> void:
 	var admob: GDScript = load("res://kit/monetize/android/admob.gd")
 	_attach(admob.new(), true)
 
-## Puts another backend in place with a fresh session, for the robots' mock; null leaves none.
 static func use(backend: AdBackend) -> void:
 	if is_instance_valid(_backend):
 		_backend.queue_free()
@@ -65,11 +59,9 @@ static func use(backend: AdBackend) -> void:
 	if backend != null:
 		_attach(backend, false)
 
-## Whether any ad could show here, for this player.
 static func live() -> bool:
 	return is_instance_valid(_backend) and not Supporter.active()
 
-## Whether a hint may ask for a video. Where it cannot, every hint is free.
 static func rewards() -> bool:
 	return live()
 
@@ -83,10 +75,7 @@ static func solved() -> int:
 			n += 1
 	return n
 
-# --- Banner -------------------------------------------------------------------------------------------
-
-## The Levels screen's banner, once enough levels are solved. `on_height` hears its height in design
-## pixels whenever that changes, and 0 when it goes, so the screen can lift its controls clear of it.
+## `on_height` hears the banner height in design pixels on every change, and 0 when it goes.
 static func show_banner(host: Node, on_height: Callable) -> void:
 	_wanted = AdPacing.banner_due(solved(), Supporter.active()) and (preview or live())
 	_on_height = on_height
@@ -99,9 +88,7 @@ static func show_banner(host: Node, on_height: Callable) -> void:
 		on_height.call(_height)
 	_backend.set_banner(_covers == 0)
 
-## The banner's height in design pixels if a screen asking now would get one: the real one once a banner
-## has loaded this session, Google's adaptive height for this screen before that, and 0 when none is
-## due. A play screen reserves this from its first frame, so its board never jumps when the ad arrives.
+## A play screen reserves this from its first frame, so its board never jumps when the ad arrives.
 static func expected_banner_height(host: Node) -> float:
 	if not AdPacing.banner_due(solved(), Supporter.active()) or not (preview or live()):
 		return 0.0
@@ -131,16 +118,12 @@ static func cover(on: bool) -> void:
 	if _wanted and live():
 		_backend.set_banner(_covers == 0)
 
-## The height Google gives an anchored adaptive banner `width` dp wide on a screen `height` dp tall: in
-## proportion to a 320 by 50 banner, never under 50 dp, and never over 90 dp or 15% of the screen.
+## Google's anchored adaptive banner height: in proportion to a 320 by 50 banner, never under 50 dp, and
+## never over 90 dp or 15% of the screen.
 static func adaptive_height_dp(width: float, height: float) -> float:
 	var most: float = maxf(50.0, minf(90.0, roundf(height * 0.15)))
 	return clampf(roundf(width * 50.0 / 320.0), 50.0, most)
 
-# --- Full-screen ads ----------------------------------------------------------------------------------
-
-## The Next level path: an ad between levels if AdPacing allows one and one is loaded, then `on_done`,
-## which otherwise runs at once. `after_guide` is true when the level just solved was guided.
 static func maybe_interstitial(on_done: Callable, after_guide: bool = false) -> void:
 	if after_guide or _busy or not live() or not interstitial_due() \
 			or not _backend.ready_to_show(AdBackend.INTERSTITIAL):
@@ -159,8 +142,8 @@ static func maybe_interstitial(on_done: Callable, after_guide: bool = false) -> 
 static func interstitial_due() -> bool:
 	return AdPacing.interstitial_due(solved(), _since, now(), _last_fullscreen, Supporter.active())
 
-## A short video for a hint. `on_reward` runs once it is watched through and `on_unavailable` when none
-## can play (offline, no fill, consent refused). A video closed early runs neither.
+## `on_unavailable` runs when no video can play (offline, no fill, consent refused). A video closed early
+## runs neither callback.
 static func rewarded(on_reward: Callable, on_unavailable: Callable) -> void:
 	if _busy or not live() or not _backend.ready_to_show(AdBackend.REWARDED):
 		on_unavailable.call()
@@ -178,10 +161,8 @@ static func rewarded(on_reward: Callable, on_unavailable: Callable) -> void:
 	elif not shown and on_unavailable.is_valid():
 		on_unavailable.call()
 
-# --- Privacy and the Supporter pack -------------------------------------------------------------------
-
-## Whether the consent message says the player must be able to change their choices: Settings then shows
-## Privacy choices.
+## UMP says whether the player must be able to change their consent. Settings shows Privacy choices only
+## then.
 static func privacy_options_required() -> bool:
 	return live() and _backend.privacy_required()
 
@@ -189,7 +170,6 @@ static func open_privacy_options() -> void:
 	if live():
 		_backend.open_privacy()
 
-## The Supporter pack was bought: the banner goes, and nothing more is loaded.
 static func stop() -> void:
 	if is_instance_valid(_backend):
 		_backend.stop()
@@ -198,8 +178,6 @@ static func stop() -> void:
 	_stand_in = null
 	_on_banner(0.0)
 	_wanted = false
-
-# --- Internals ----------------------------------------------------------------------------------------
 
 static func _attach(backend: AdBackend, deferred: bool) -> void:
 	_backend = backend
@@ -232,7 +210,7 @@ static func _show_stand_in(host: Node) -> void:
 	_stand_in.add_child(box)
 	_on_banner(height)
 
-## A plain box where the banner would be, drawn in a real ad's neutral colours on either theme.
+## A real ad's neutral colours, whatever the theme.
 class _StandIn extends Control:
 	func _init() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE

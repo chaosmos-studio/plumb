@@ -1,15 +1,14 @@
 class_name Brand
 extends RefCounted
 
-## Everything the shared UI kit needs to know about this game: its name, its colours and fonts, and where
-## its screens are. The kit reads only this, so restyling the game means changing only this file. Plumb
-## is warm paper by day; its dark look is the same room at dusk. The board keeps its own in Palette.
+## The kit reads the game's name, colours, fonts and scenes only from here. The board keeps its own
+## colours in Palette.
 
 const NAME: String = "Plumb"
 const WORDMARK: String = "plumb"
 const TAGLINE: String = "Roll every marble home"
 
-## The look the game was designed in, which a new player starts with.
+## A new player starts in this look.
 const NATIVE_DARK: bool = false
 const HAS_MUSIC: bool = true
 
@@ -51,7 +50,6 @@ static var ACCENT_INK: Color = LIGHT["accent_ink"]
 static var GOLD: Color = LIGHT["gold"]
 static var DANGER: Color = LIGHT["danger"]
 static var SHADOW: Color = LIGHT["shadow"]
-## The colour the screen dims toward under a sheet or a hint.
 static var SCRIM: Color = LIGHT["scrim"]
 
 const FONT_DISPLAY: String = "res://assets/fonts/Outfit-Light.ttf"
@@ -61,7 +59,6 @@ const TITLE_SCENE: String = "res://scenes/shell/title.tscn"
 const LEVELS_SCENE: String = "res://kit/shell/levels.tscn"
 const GAME_SCENE: String = "res://scenes/game/game.tscn"
 
-## Called by the kit's Appearance. Swaps the palette the kit reads, and the board's.
 static func use(dark: bool) -> void:
 	var p: Dictionary = DARK if dark else LIGHT
 	BG = p["bg"]
@@ -77,8 +74,7 @@ static func use(dark: bool) -> void:
 	SCRIM = p["scrim"]
 	Palette.use(dark)
 
-## Called by the kit's Appearance for a colour theme (Themes): the kit's colours from it, and the board's
-## worked out from the same seed by Palette. Gold and danger stay the game's own.
+## Gold and danger stay the game's own.
 static func use_theme(t: Dictionary, dark: bool) -> void:
 	use(dark)
 	BG = t["bg"]

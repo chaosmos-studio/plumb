@@ -1,7 +1,7 @@
 extends Node
 
-# Sounds and haptics. Every clip is optional: a missing file plays nothing, so the game runs the same
-# whether or not tools/make_sfx.py has been run.
+# Every clip is optional: a missing file plays nothing, so the game runs the same whether or not
+# tools/make_sfx.py has been run.
 
 const SFX_DIR: String = "res://assets/audio/sfx/"
 const VOICES: int = 12
@@ -42,8 +42,7 @@ func _ready() -> void:
 	EventBus.settings_changed.connect(_apply_music)
 	_apply_music()
 
-## Fades the music in or out to match the setting. Starting it here, before any input, is fine on the
-## web too: the browser holds the audio until the first tap and then it simply begins.
+## Starting the music before any input is fine on the web: the browser holds it until the first tap.
 func _apply_music() -> void:
 	if _music.stream == null:
 		return
@@ -58,7 +57,7 @@ func _apply_music() -> void:
 	if not want:
 		_fade.tween_callback(_music.stop)
 
-## The volumes as a slider moves: the music follows at once, and the next sound plays at the new level.
+## Called while a volume slider moves: the music follows at once, without the fade.
 func hear() -> void:
 	if _music.stream == null:
 		return
@@ -78,7 +77,6 @@ func play(key: StringName, volume_db: float = 0.0, pitch: float = 1.0) -> void:
 	var stream: AudioStream = _clips.get(key, null)
 	_play(stream, volume_db, pitch)
 
-## Each marble colour sinks on its own note of a pentatonic scale.
 func sink(colour: int) -> void:
 	if _sinks.is_empty():
 		return
@@ -94,8 +92,7 @@ func _play(stream: AudioStream, volume_db: float, pitch: float) -> void:
 	voice.pitch_scale = pitch
 	voice.play()
 
-# Web is included on purpose: a phone running the web build reports mobile=false. Keep buzzes short; a
-# long one on every move irritates fast.
+# Web is included on purpose: a phone running the web build reports mobile=false.
 func buzz(milliseconds: int) -> void:
 	if not Save.haptics_on:
 		return

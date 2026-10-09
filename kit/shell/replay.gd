@@ -1,11 +1,8 @@
 class_name Replay
 extends CanvasLayer
 
-## Watching a solve again. The game plays its own recorded moves from the start between `opening()` and
-## `closing()`, calls `beat()` as each move lands, and `finish()` at the end. This sets the game clock's
-## pace, puts the screen's controls and the banner away, gives the board a kick on every beat, and reads a
-## tap as a wish to skip, which the game sees in `skipping` between moves. A Replay mark sits at the top.
-## The clock, the board and the controls come back when it finishes or the screen goes.
+## The game plays its own recorded moves from the start between `opening()` and `closing()`, calls `beat()`
+## as each move lands and `finish()` at the end, and checks `skipping` between moves.
 
 const SPEED: float = 2.2
 const LAYER: int = 50
@@ -20,7 +17,6 @@ var _kick: float = 0.0
 var _clock: float = 0.0
 var _canvas: Transform2D = Transform2D.IDENTITY
 
-## Starts a replay over `host`.
 static func begin(host: Node) -> Replay:
 	var replay: Replay = Replay.new()
 	host.add_child(replay)
@@ -29,7 +25,7 @@ static func begin(host: Node) -> Replay:
 func _ready() -> void:
 	layer = LAYER
 	_canvas = get_viewport().canvas_transform
-	# Controls sit on layers from 1 up; a backdrop under the board, on a lower layer, stays.
+	# Controls sit on layers from 1 up. A backdrop under the board, on a lower layer, stays.
 	for child: Node in get_parent().get_children():
 		if child is CanvasLayer and child != self and (child as CanvasLayer).visible and (child as CanvasLayer).layer >= 1:
 			(child as CanvasLayer).visible = false
@@ -49,16 +45,13 @@ func _exit_tree() -> void:
 	_show_controls()
 	Ads.cover(false)
 
-## Before the first move: a short pause, then the clock runs at the replay's pace.
 func opening() -> void:
 	Engine.time_scale = SPEED
 	await get_tree().create_timer(0.45).timeout
 
-## A move has landed: the board takes a kick.
 func beat() -> void:
 	_kick = 1.0
 
-## After the last move: the clock and the board come back to rest.
 func closing() -> void:
 	Engine.time_scale = 1.0
 	_kick = 0.0
@@ -90,7 +83,6 @@ func _show_controls() -> void:
 			hidden.visible = true
 	_hidden.clear()
 
-## The mark: the fast-forward sign and the word on a pill, and how to skip.
 func _mark() -> void:
 	var mark: VBoxContainer = VBoxContainer.new()
 	mark.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
@@ -102,7 +94,6 @@ func _mark() -> void:
 	mark.add_child(UI.caption("Tap to skip", 18))
 	_root.add_child(mark)
 
-## The Replay mark: the fast-forward sign and the word, on a pill in the accent colour.
 class _Pill extends Control:
 	const HEIGHT: float = 64.0
 

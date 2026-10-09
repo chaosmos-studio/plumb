@@ -1,12 +1,9 @@
 class_name Credits
 extends RefCounted
 
-## The credits sheet: the game's icon and version, the maker on a card in the accent's tint with a quiet line
-## on the help the game was made with, then every section of the game's GameCredits on its own inset panel,
-## scrolling when it is taller than the screen allows, and a thank-you at the end. A person in
-## GameCredits.TEAM may have a "site", which their name opens, and a "site_on_play" for the Google Play
-## build, which may only open pages with no sponsor links, since Play does not let an app lead to a way to
-## pay outside its billing. Without one there, the name opens nothing.
+## A person in GameCredits.TEAM may have a "site", which their name opens, and a "site_on_play" for the
+## Google Play build, which may only open pages with no sponsor links, since Play does not let an app lead
+## to a way to pay outside its billing. Without one there, the name opens nothing.
 
 const MAX_HEIGHT: float = 0.6
 const RADIUS: int = 28
@@ -38,8 +35,6 @@ static func open(host: Node) -> Sheet:
 	list.add_child(UI.spacer(12))
 	return sheet
 
-## The people who made the game, centred on a card in a light wash of the accent, and under them the line
-## on the help it was made with.
 static func _makers() -> PanelContainer:
 	var card: PanelContainer = _panel(Brand.SURFACE.lerp(Brand.ACCENT, 0.09), Brand.ACCENT.lerp(Brand.LINE, 0.7))
 	var box: VBoxContainer = VBoxContainer.new()
@@ -58,8 +53,6 @@ static func _makers() -> PanelContainer:
 		box.add_child(help)
 	return card
 
-## A section on its own inset panel: its title beside a dot in the accent, then each item, a hairline
-## between one and the next.
 static func _section(title: String, items: Array) -> PanelContainer:
 	var panel: PanelContainer = _panel(Brand.BG.lerp(Brand.SURFACE, 0.35), Brand.LINE)
 	var box: VBoxContainer = VBoxContainer.new()
@@ -123,12 +116,9 @@ static func _dot(side: float) -> CenterContainer:
 	dot.add_theme_stylebox_override("panel", style)
 	return UI.centred(dot)
 
-## The page `person`'s name opens in this build, or "".
 static func site(person: Dictionary) -> String:
 	return String(person.get("site_on_play" if Supporter.on_play else "site", ""))
 
-## `person`'s name at `size`: an underlined link to their site where they have one for this build, else
-## plain text.
 static func name_of(person: Dictionary, size: int, align: HorizontalAlignment) -> Control:
 	var text: String = String(person["name"])
 	var url: String = site(person)

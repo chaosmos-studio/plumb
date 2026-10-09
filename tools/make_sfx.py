@@ -1,11 +1,9 @@
-"""Synthesises every sound in Plumb. Nothing is recorded or downloaded, so there is nothing to license.
+"""Nothing is recorded or downloaded, so there is nothing to license.
 
 Run from the project root: python3 tools/make_sfx.py   (needs numpy and ffmpeg with libvorbis)
 
-Deterministic: the noise generator is seeded, so re-running makes the same sounds. The Ogg container
-gets a new random stream serial each run, so the bytes differ; commit only the sounds you changed. Each marble colour
-sinks on its own note of a major pentatonic scale, which is why a board cleared in any order still
-sounds like a chord rather than a mistake.
+The noise generator is seeded, so re-running makes the same sounds. The Ogg container gets a new random
+stream serial each run, so the bytes differ. Commit only the sounds you changed.
 """
 
 import os
@@ -17,7 +15,7 @@ import numpy as np
 RATE = 44100
 OUT = "assets/audio/sfx"
 RNG = np.random.default_rng(7)
-# C major pentatonic from C5: every pair of these notes is consonant.
+# C major pentatonic from C5: every pair is consonant, so a board cleared in any order sounds like a chord.
 SINK_NOTES = [523.25, 659.25, 783.99, 880.00]
 
 
@@ -30,7 +28,7 @@ def decay(n, seconds):
 
 
 def bell(freq, seconds=0.9, bright=1.0):
-    """A soft struck bell: a sine with a few inharmonic partials, each fading at its own rate."""
+    """The partials at 2.76 and 5.40 times the pitch are inharmonic, as a struck bell's are."""
     t = t_axis(seconds)
     n = t.size
     tone = np.sin(2 * np.pi * freq * t) * decay(n, 0.35)
@@ -84,7 +82,6 @@ def tap():
 
 
 def roll():
-    """The board tipping: low rumbling noise that swells and settles."""
     n = int(RATE * 0.22)
     noise = lowpass(RNG.standard_normal(n), 420)
     env = np.sin(np.linspace(0, np.pi, n)) ** 1.5
@@ -92,7 +89,6 @@ def roll():
 
 
 def clack():
-    """Marbles meeting a wall: a short woody knock."""
     t = t_axis(0.09)
     body = np.sin(2 * np.pi * 740 * t) * decay(t.size, 0.018)
     body += 0.5 * np.sin(2 * np.pi * 1180 * t) * decay(t.size, 0.009)
@@ -101,7 +97,6 @@ def clack():
 
 
 def sink(freq):
-    """A plop into the hole, then the colour's bell."""
     plop = sweep(620, 170, 0.09, 0.6) * decay(int(RATE * 0.09), 0.05)
     tone = bell(freq, 0.9)
     out = np.zeros(int(RATE * 0.05) + tone.size)
@@ -111,7 +106,6 @@ def sink(freq):
 
 
 def pit():
-    """Lost down a pit: a falling whistle and a dull thud at the bottom."""
     fall = sweep(900, 120, 0.5, 0.7) * np.linspace(1.0, 0.2, int(RATE * 0.5))
     thud = sweep(110, 50, 0.18) * decay(int(RATE * 0.18), 0.06)
     out = np.concatenate([0.5 * fall, thud])
@@ -119,7 +113,7 @@ def pit():
 
 
 def win():
-    """C E G C, each a bell, overlapping."""
+    """The notes are C E G C."""
     notes = [523.25, 659.25, 783.99, 1046.5]
     gap = int(RATE * 0.11)
     out = np.zeros(gap * len(notes) + int(RATE * 1.2))
@@ -136,7 +130,7 @@ def star():
 
 
 def pad_voice(freq, seconds):
-    """Three slightly detuned sines: a soft, slowly beating pad note."""
+    """Detuned by a few cents so the three sines beat slowly."""
     t = t_axis(seconds)
     out = np.zeros(t.size)
     for cents in (-6, 0, 5):
@@ -146,8 +140,7 @@ def pad_voice(freq, seconds):
 
 
 def music():
-    """A 32 s ambient loop: four chords with added ninths, eight seconds each, cross-fading, and a few
-    quiet pentatonic bells. The tail is folded back onto the start, so the loop has no seam."""
+    """The tail is folded back onto the start, so the loop has no seam."""
     chord_seconds = 8.0
     loop = 4 * chord_seconds
     tail = 3.0

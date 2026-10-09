@@ -1,8 +1,8 @@
 class_name Switch
 extends BaseButton
 
-## An on/off switch: a pill track with a knob that slides across. Settings use these instead of buttons
-## that say "Sound: on", because a switch shows its state without being read.
+## Settings use these instead of buttons that say "Sound: on", because a switch shows its state without
+## being read.
 
 const TRACK: Vector2 = Vector2(96, 56)
 

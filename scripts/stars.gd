@@ -1,9 +1,8 @@
 class_name Stars
 extends RefCounted
 
-## How many stars a finished level earns. Par is the solver's shortest solution, so three stars means
-## the player found a perfect route, and the leeway for two grows with the level, because a few extra
-## moves on a thirteen-move board is a good solve.
+## The leeway for two stars grows with par, because a few extra moves on a thirteen-move board is still a
+## good solve (MATH.md section 7).
 
 static func earned(moves: int, par: int) -> int:
 	if moves <= par:
@@ -12,8 +11,7 @@ static func earned(moves: int, par: int) -> int:
 		return 2
 	return 1
 
-## The most a level part played can still earn, for the play screen's meter. A board not yet won needs
-## at least one move more, so the third star goes out as soon as the goal can no longer be met.
+## A board not yet won needs at least one move more, so a star goes out as soon as it can no longer be earned.
 static func possible(moves: int, par: int, won: bool) -> int:
 	return earned(moves if won else moves + 1, par)
 

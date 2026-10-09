@@ -1,9 +1,6 @@
 class_name StarIcon
 extends Control
 
-## A five-pointed star drawn as a polygon, filled when earned and hollow when not, so no glyph or
-## texture is needed.
-
 var filled: bool = false:
 	set(value):
 		filled = value
@@ -29,8 +26,7 @@ func _draw() -> void:
 	var loop: PackedVector2Array = points.duplicate()
 	loop.append(points[0])
 	if filled:
-		# A filled polygon has no anti-aliasing; tracing its edge with an antialiased line in the same
-		# colour smooths the stair steps.
+		# A filled polygon has no anti-aliasing, so an antialiased line in the same colour traces its edge.
 		draw_colored_polygon(points, fill_colour)
 		draw_polyline(loop, fill_colour, 1.5, true)
 	else:

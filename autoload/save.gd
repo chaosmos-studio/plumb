@@ -1,7 +1,7 @@
 extends Node
 
-# Progress and settings. ConfigFile rather than a Resource, because the file stays readable and a corrupt
-# or older file degrades to defaults instead of failing to load.
+# ConfigFile rather than a Resource, because the file stays readable and a corrupt or older file degrades
+# to defaults instead of failing to load.
 
 const PATH: String = "user://plumb.cfg"
 
@@ -10,38 +10,35 @@ var path: String = PATH
 
 ## Best stars per level, 0 for not yet solved.
 var stars: PackedByteArray = PackedByteArray()
-## Whether the sounds and the music are on: set from their volumes, 0 being off.
+## Set from the volumes, 0 being off.
 var sound_on: bool = true
 var music_on: bool = true
-## How loud the sounds and the music are, 0 to 1, as the Settings sliders set them.
+## 0 to 1, as the Settings sliders set them.
 var sound_volume: float = 1.0
 var music_volume: float = 1.0
 var haptics_on: bool = true
-## Whether tipping the phone tilts the board too (PhoneTilt), as well as swiping.
 var phone_tilt: bool = false
 ## An Appearance.Choice.
 var theme: int = Appearance.native()
-## Whether the first level's guide has been seen through or skipped.
 var tutorial_seen: bool = false
-## Whether this Google account owns the Supporter pack, as Play last said, so it holds offline.
+## As Play last said, so the Supporter pack holds offline.
 var supporter: bool = false
-## The other one-time products it owns (GameMonetize ids), the same way.
+## The other one-time products owned, by GameMonetize id, kept the same way.
 var owned: PackedStringArray = PackedStringArray()
-## How many tips it has given. They open nothing; About says thank you.
 var tips: int = 0
-## Level keys not yet used, and the levels opened one by one, with a key or a video (Unlocks).
+## Level keys not yet used, and the levels opened with a key or a video (Unlocks).
 var keys: int = 0
 var opened: PackedInt32Array = PackedInt32Array()
 ## Packs lent by a video, by product id: [start, end] in Unix seconds (Passes).
 var passes: Dictionary = {}
-## The look in use (GameLooks), or "" for the game's own.
+## A GameLooks id, or "" for the game's own.
 var look: String = ""
-## The colour theme in use (Themes), or "" for the game's own.
+## A Themes id, or "" for the game's own.
 var palette: String = ""
-## The local date of the last free hint taken, and how many were taken that day.
+## A local date, and the free hints taken on it.
 var hint_day: String = ""
 var hints_used: int = 0
-## The last milestone the rating prompt asked at (RatePrompt), and whether the player chose to rate.
+## The milestone RatePrompt last asked at, and whether the player chose to rate.
 var rate_asked: int = 0
 var rated: bool = false
 
@@ -59,7 +56,6 @@ func best(level: int) -> int:
 func unlocked(level: int) -> bool:
 	return Unlocks.is_open(level)
 
-## Keeps the best result. Returns true if this was an improvement.
 func record(level: int, earned: int) -> bool:
 	if stars.size() <= level:
 		stars.resize(level + 1)
@@ -69,7 +65,6 @@ func record(level: int, earned: int) -> bool:
 	store()
 	return true
 
-## The first level not yet solved, which is where Play takes you.
 func frontier(count: int) -> int:
 	for i: int in range(count):
 		if best(i) == 0:
@@ -82,8 +77,7 @@ func total_stars() -> int:
 		n += s
 	return n
 
-## Forgets every star. Settings, purchases, keys, the levels they opened, tips, today's hints and the rating
-## prompt's place are kept.
+## Forgets the stars only: settings, purchases, keys and the levels they opened stay.
 func reset() -> void:
 	stars = PackedByteArray()
 	store()
@@ -95,7 +89,7 @@ func set_sound(on: bool) -> void:
 func set_music(on: bool) -> void:
 	set_music_volume(1.0 if on else 0.0)
 
-## A volume taken while a slider moves, heard at once and saved by the setter when it comes to rest.
+## While a slider moves: heard at once, and saved by the setter only when it comes to rest.
 func hear_sound_volume(volume: float) -> void:
 	sound_volume = clampf(volume, 0.0, 1.0)
 	sound_on = sound_volume > 0.0

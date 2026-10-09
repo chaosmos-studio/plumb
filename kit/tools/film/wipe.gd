@@ -1,13 +1,7 @@
 class_name Wipe
 extends Control
 
-## Transitions between beats. The beat change happens while the frame is covered, so no hard cut is
-## ever seen. Each film picks one style and keeps it, so a video has one visual language:
-##   circle  a disc of the accent grows from a corner, then a hole opens from the same point
-##   bars    four slanted bars sweep across in a stagger and carry on out the far side
-##   slide   a panel slides in from one edge and away past the other
-##   iris    the frame closes to a point on the centre, then opens again
-##   flash   a quick bright flash, with the next beat punching in (the film scales it)
+## Change the beat between `cover` and `reveal`, while the frame is covered, so no hard cut is ever seen.
 
 const COVER: float = 0.34
 const REVEAL: float = 0.3
@@ -78,7 +72,6 @@ func _draw() -> void:
 			else:
 				_draw_ring(origin, far2 * _out, far2)
 
-## Everything outside a circle of radius `hole` is covered.
 func _draw_ring(at: Vector2, hole: float, far: float) -> void:
 	var width: float = far - hole
 	if width > 0.0:
@@ -93,7 +86,7 @@ func _draw_bars() -> void:
 		var p_in: float = clampf((_in - delay) / (1.0 - delay * 0.9), 0.0, 1.0)
 		var p_out: float = clampf((_out - delay) / (1.0 - delay * 0.9), 0.0, 1.0)
 		var width: float = size.x + slant
-		# Fully in, a bar spans the frame at both its slanted edges; fully out, it has left past the right.
+		# Fully in, a bar spans the frame at both its slanted edges. Fully out, it has left past the right.
 		var left: float = lerpf(-width - slant, -slant, p_in) + (size.x + slant * 2.0) * p_out
 		var y0: float = band * k
 		var y1: float = y0 + band + 1.0

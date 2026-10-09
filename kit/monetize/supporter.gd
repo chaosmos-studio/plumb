@@ -1,28 +1,22 @@
 class_name Supporter
 extends RefCounted
 
-## The Supporter pack, which turns the ads off for good and makes every hint free, and the way to support
-## the game in each build. On Android it is one of the products the Shop sells through Google Play billing,
-## because Play's Payments policy allows nothing else for things bought in an app and forbids pointing
-## players to another way to pay, so the Android build never links to GitHub Sponsors. Every other build
-## (the web one) has no ads and sells nothing: supporting there means GitHub Sponsors.
+## Play's Payments policy allows no other way to pay for things bought in an app and forbids pointing
+## players to one, so the Android build never links to GitHub Sponsors.
 ##
 ## The kit expects from the game what Shop does, plus `GameCredits.SPONSOR`, and Save._ready calling
 ## `Supporter.start()` before `Ads.start()`.
 
 const SHEET_ROWS: PackedStringArray = ["No banner", "No ads between levels", "Every hint free"]
 
-## Whether this copy came from Google Play, which decides how it may ask for support. Captures and tests
-## set it to stage either variant anywhere.
+## Captures and tests set it to stage either variant anywhere.
 static var on_play: bool = OS.has_feature("android")
-## The pack's price in the player's currency as Play gives it, or "" until Play has answered. Captures
-## set it to stage a price.
+## Captures set it to stage a price.
 static var price: String = "":
 	set(value):
 		price = value
 		Shop.prices[GameMonetize.SUPPORTER_ID] = value
 
-## Whether the ads are off: the Supporter pack, alone or in the Complete pack.
 static func active() -> bool:
 	return Shop.ads_off()
 
@@ -38,14 +32,14 @@ static func restore() -> void:
 static func grant(owned: bool) -> void:
 	Shop.grant(GameMonetize.SUPPORTER_ID, owned)
 
-## A short note on whatever screen is showing, for store answers that arrive after the tap that asked.
+## On whatever screen is showing, since store answers arrive after the tap that asked.
 static func say(text: String) -> void:
 	var tree: SceneTree = Engine.get_main_loop() as SceneTree
 	if tree != null and tree.current_scene != null:
 		Toast.say(tree.current_scene, text)
 
-## The title screen's way to the shop: a shopping bag in the corner opposite `gear`, the settings button,
-## on Google Play only. It stays once every pack is had, since the tip jar is always there.
+## `gear` is the settings button. The shop button stays once every pack is had, since the tip jar is
+## always there.
 static func add_title_button(host: Node, ui: Control, gear: Control) -> void:
 	if not on_play:
 		return
@@ -58,8 +52,6 @@ static func add_title_button(host: Node, ui: Control, gear: Control) -> void:
 	shop.pressed.connect(func() -> void: Shop.open(host))
 	ui.add_child(shop)
 
-## The support sheet: the Supporter pack with its price and Restore on Google Play; one Sponsor on GitHub
-## button elsewhere.
 static func open(host: Node) -> Sheet:
 	if on_play:
 		return Shop.offer(host, GameMonetize.SUPPORTER_ID)

@@ -1,13 +1,9 @@
 class_name Gallery
 extends RefCounted
 
-## The phone's own albums, for what a player chooses to keep: a picture into Pictures and a film into
-## Movies, each in a folder named for the game, through the MediaStore, which needs no permission from
-## Android 10 on. Older phones would need a storage permission, so there it answers false and the caller
-## offers the share sheet instead. And a native toast, which floats over the game without being part of
-## the frames it draws.
+## The MediaStore needs no permission from Android 10 on. Older phones would need a storage permission, so
+## there `keep` answers false and the caller offers the share sheet instead.
 
-## Keeps `bytes` as `file_name` of type `mime` ("image/png", "video/mp4"). False when it cannot.
 static func keep(bytes: PackedByteArray, file_name: String, mime: String) -> bool:
 	if not Engine.has_singleton("AndroidRuntime") or bytes.is_empty():
 		return false
@@ -36,8 +32,6 @@ static func keep(bytes: PackedByteArray, file_name: String, mime: String) -> boo
 	stream.call("close")
 	return not failed("write the MediaStore entry")
 
-## Whether the last call into Java threw, said in the log with `doing`, which is where a failure on a
-## phone shows up.
 static func failed(doing: String) -> bool:
 	var thrown: Object = JavaClassWrapper.get_exception()
 	if thrown == null:
@@ -45,7 +39,7 @@ static func failed(doing: String) -> bool:
 	print("%s: could not %s: %s" % [Brand.NAME, doing, String(thrown.call("toString"))])
 	return true
 
-## A short native note at the foot of the screen, outside anything the game draws.
+## Native, so it floats over the game without being part of the frames it draws.
 static func say(text: String) -> void:
 	if not Engine.has_singleton("AndroidRuntime"):
 		return

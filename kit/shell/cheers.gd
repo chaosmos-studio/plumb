@@ -1,18 +1,14 @@
 class_name Cheers
 extends RefCounted
 
-## The words on a win: a heading chosen by the stars, and a line about this very solve. News comes first,
-## in this order: a chapter just opened, a chapter finished with every star, a chapter finished, a round
-## number of levels solved, a perfect first try, more stars than before, a run of perfect solves. With no
-## news, a line for the stars, from the game's own (GameShare.CHEERS) and the kit's. Never one of the last
-## few again, so a run of wins keeps saying something new.
+## The game adds its own lines for one, two and three stars as GameShare.CHEERS.
 
 const HEADINGS: Array = [
 	["Solved", "Got there", "Done", "Cracked it", "There it is", "Sorted"],
 	["Nice one", "Well played", "Smooth", "Sharp", "Good going", "Tidy"],
 	["Flawless", "Perfect", "Spotless", "Brilliant", "Masterful", "Immaculate", "Pure class"],
 ]
-## Lines for the stars, for any game; %s is the game's word for a move, in the plural.
+## %s is the game's word for a move, in the plural.
 const LINES: Array = [
 	["Solved is solved.", "A better way is waiting.", "The stars will keep.", "Every solve counts.",
 		"Come back for the stars."],
@@ -35,7 +31,6 @@ static func _rolled() -> RandomNumberGenerator:
 	dice.randomize()
 	return dice
 
-## A heading and a line for a win of `earned` stars, as described by `moment`.
 static func pick(moment: Result.Moment, earned: int) -> PackedStringArray:
 	_perfect_run = _perfect_run + 1 if earned == 3 else 0
 	var heading: String = _fresh(HEADINGS[clampi(earned, 1, 3) - 1])
@@ -76,7 +71,6 @@ static func _news(moment: Result.Moment, earned: int) -> String:
 		return "%d perfect in a row." % _perfect_run
 	return ""
 
-## Levels solved in `chapter` (x) and the stars they hold (y).
 static func _chapter_standing(chapter: int) -> Vector2i:
 	var first: int = Pack.chapter_first(chapter)
 	var out: Vector2i = Vector2i.ZERO
@@ -85,9 +79,7 @@ static func _chapter_standing(chapter: int) -> Vector2i:
 		out.y += Save.best(i)
 	return out
 
-## A random entry of `pool` not said lately, or any entry when all were.
-## Forgets what was said and starts the dice over, for a capture that stages one win after another and
-## wants each to come out the same, as it would on its own.
+## For a capture that stages one win after another and wants each to come out the same.
 static func forget() -> void:
 	_recent = PackedStringArray()
 	_perfect_run = 0

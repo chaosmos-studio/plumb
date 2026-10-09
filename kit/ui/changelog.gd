@@ -1,12 +1,10 @@
 class_name Changelog
 extends RefCounted
 
-## The game's version and its newest notes, from res://CHANGELOG.md, the one file a release is cut from.
-## Settings and About show the version, and the release workflow applies these same rules to name the
-## build, derive Play's version code and fill Play's "What's new". The newest section comes first as
-## `## x.y.z` (a ` - YYYY-MM-DD` after it is ignored), and every line under it is one `- ` note. HTML
-## comments are skipped. Minor and patch run 0 to 99, so the code major * 10000 + minor * 100 + patch
-## grows with every version.
+## The release workflow applies these same rules to name the build, derive Play's version code and fill
+## Play's "What's new". The newest section comes first as `## x.y.z` (a ` - YYYY-MM-DD` after it is
+## ignored), and every line under it is one `- ` note. HTML comments are skipped. Minor and patch run 0 to
+## 99, so the code major * 10000 + minor * 100 + patch grows with every version.
 
 const PATH: String = "res://CHANGELOG.md"
 ## Play's limit for one language's "What's new".
@@ -15,22 +13,18 @@ const PLAY_LIMIT: int = 500
 const MAX_CODE: int = 2100000000
 const HEADING: String = "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)( - [0-9]{4}-[0-9]{2}-[0-9]{2})?$"
 
-## The newest section. `version` and `code` are set once its heading is valid; `error` says what a
-## release would be refused for.
 class Entry:
 	var version: String = ""
 	var code: int = 0
 	var notes: PackedStringArray = PackedStringArray()
 	var error: String = ""
 
-	## The notes as Play shows them, without the language tags.
 	func play_text() -> String:
 		var lines: PackedStringArray = PackedStringArray()
 		for note: String in notes:
 			lines.append("- " + note)
 		return "\n".join(lines)
 
-## The version players see, or application/config/version in a project without a readable changelog.
 static func version() -> String:
 	if FileAccess.file_exists(PATH):
 		var top: Entry = parse(FileAccess.get_file_as_string(PATH))

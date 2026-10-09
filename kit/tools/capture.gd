@@ -1,11 +1,8 @@
 extends Node
 
-## Renders game states at exact store sizes, whatever this monitor is. Each shot is staged by the game's
-## own Director (res://tools/director.gd) inside an offscreen SubViewport whose 2D size is the game's
-## design width, stretched to the requested pixels: the same layout a phone of that shape would show.
+## Each shot's 2D size is the design width stretched to the requested pixels, so it has the layout a phone
+## of that shape would show.
 ## Run: DISPLAY=:0 godot --path . res://kit/tools/capture.tscn [-- only=name,name spec=res://... out=res://...]
-## Reads res://store/shots.json, writes build/store/raw/<name>.png (24-bit, no alpha). The website's art
-## pipeline passes its own spec and output folder.
 
 const SPEC: String = "res://store/shots.json"
 const OUT: String = "res://build/store/raw"

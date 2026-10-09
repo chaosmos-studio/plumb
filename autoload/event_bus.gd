@@ -1,7 +1,6 @@
 extends Node
 
-# Global, typed signals only: no state, no methods, no class_name (the autoload name is the access path).
-# Cross-node events go through here instead of node paths up the tree.
+# Typed signals only: no state, no methods, and no class_name, since the autoload name is the access path.
 
 signal level_started(index: int)
 signal level_won(index: int, moves: int, stars: int)

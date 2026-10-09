@@ -1,17 +1,11 @@
 class_name Themes
 extends RefCounted
 
-## Colour themes beyond the game's own light and dark. Each is a family with a light and a dark variant,
-## and each variant is a seed of four colours: the background, the surface that sheets and cards sit on,
-## the ink, and an accent. The rest of the kit's colours are worked out from those four (the way
-## DrawShare builds its themes), and the game works out its own (Brand.use_theme). Light, Dark and Auto
-## still choose the variant. The game's own look comes first and is always free; the rest come with the
-## Themes pack (or the Complete pack) on Google Play, and are all open in every other build, which sells
-## nothing (Shop).
-##
-## The kit expects from the game: `Brand.use_theme(colours, dark)`, which takes what `colours` works out
-## and sets the kit's colours and the game's own from it; `Brand.LIGHT` and `Brand.DARK`, its own two
-## palettes, for the first card; and `Save.palette` with `Save.set_palette(id)`.
+## The kit expects from the game:
+## - `Brand.use_theme(colours, dark)`, which sets the kit's colours and the game's own from what `colours`
+##   works out.
+## - `Brand.LIGHT` and `Brand.DARK`, its own two palettes, for the first card.
+## - `Save.palette` with `Save.set_palette(id)`.
 
 const OWN: String = "own"
 const OWN_NAME: String = "Original"
@@ -46,11 +40,9 @@ static func name_of(id: String) -> String:
 static func is_open(id: String) -> bool:
 	return id == OWN or Shop.themes_open()
 
-## The saved theme, or the game's own if the save names one this build does not have or may not use.
 static func current() -> String:
 	return Save.palette if ids().has(Save.palette) and is_open(Save.palette) else OWN
 
-## The seed of theme `id` in light or dark: [background, surface, ink, accent], or [] for the game's own.
 static func seed_of(id: String, dark: bool) -> Array[Color]:
 	var out: Array[Color] = []
 	for f: Array in FAMILIES:
@@ -59,9 +51,7 @@ static func seed_of(id: String, dark: bool) -> Array[Color]:
 				out.append(Color(String(hex)))
 	return out
 
-## Every colour the kit reads, worked out from the seed of theme `id`, or {} for the game's own. Lines
-## and muted text are the ink let down toward the background, the scrim is the ink by day and a deeper
-## background by night, and the accent's own text is dark or white, whichever reads.
+## The accent's own text is dark or white, whichever reads on it.
 static func colours(id: String, dark: bool) -> Dictionary:
 	var s: Array[Color] = seed_of(id, dark)
 	if s.is_empty():
@@ -82,7 +72,6 @@ static func colours(id: String, dark: bool) -> Dictionary:
 		"scrim": bg.darkened(0.6) if dark else ink,
 	}
 
-## The player's pick: saved, applied, and the screen rebuilt around it.
 static func choose(id: String, tree: SceneTree, reopen: Callable = Callable()) -> void:
 	if not is_open(id) or id == current():
 		return
@@ -90,9 +79,6 @@ static func choose(id: String, tree: SceneTree, reopen: Callable = Callable()) -
 	Appearance.apply(Save.theme)
 	await Appearance.rebuild(tree, reopen)
 
-## A card for each theme, two to a row: its light and dark variants side by side, each with the theme's
-## own emblem in its accent, and its name, ringed when it is the one in use, with a lock on any the pack
-## has not opened. A locked card offers the pack.
 static func open(host: Node) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
@@ -156,8 +142,6 @@ class _Card extends BaseButton:
 		if not open:
 			Icons.draw(self, &"lock", rect.position + Vector2(rect.size.x - 26.0, 26.0), 24.0, Brand.MUTED)
 
-	## One variant as a tiny screen: its background, the theme's emblem in its accent, and a surface card
-	## with a line of ink.
 	func _tile(r: Rect2, dark: bool, fade: float) -> void:
 		var s: Array[Color] = Themes.seed_of(id, dark)
 		if s.is_empty():
@@ -178,14 +162,12 @@ class _Card extends BaseButton:
 		draw_style_box(card, Rect2(r.position + Vector2(6, 44), Vector2(r.size.x - 12, 12)))
 		draw_line(r.position + Vector2(11, 50), r.position + Vector2(r.size.x - 15, 50), Color(s[2], 0.7 * fade), 2.0, true)
 
-	## The theme's sign, `s` across around `c`, in `ink` on `ground`: the game's own icon for its own look.
 	func _emblem(c: Vector2, s: float, ink: Color, ground: Color) -> void:
 		var h: float = s * 0.5
 		match id:
 			Themes.OWN:
 				draw_texture_rect(UI.icon_texture(), Rect2(c - Vector2(h, h) * 0.9, Vector2(s, s) * 0.9), false, Color(1, 1, 1, ink.a))
 			"sepia":
-				# A page with its corner turned.
 				var page: PackedVector2Array = PackedVector2Array([c + Vector2(-h * 0.6, -h * 0.8), c + Vector2(h * 0.25, -h * 0.8),
 					c + Vector2(h * 0.6, -h * 0.45), c + Vector2(h * 0.6, h * 0.8), c + Vector2(-h * 0.6, h * 0.8), c + Vector2(-h * 0.6, -h * 0.8)])
 				draw_polyline(page, ink, 2.0, true)
@@ -197,7 +179,6 @@ class _Card extends BaseButton:
 					var a: float = k * TAU / 8.0
 					draw_line(c + Vector2(cos(a), sin(a)) * h * 0.62, c + Vector2(cos(a), sin(a)) * h * 0.9, ink, 2.0, true)
 			"gruvbox":
-				# A retro sun going down behind its stripes.
 				var sun: PackedVector2Array = PackedVector2Array()
 				for k: int in range(17):
 					var a2: float = PI + PI * k / 16.0

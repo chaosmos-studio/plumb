@@ -1,12 +1,8 @@
 class_name PhoneTilt
 extends RefCounted
 
-## Reads the phone's lean into Plumb's four tilts, for players who would rather tip the phone than swipe.
-## It learns how the phone is held at rest and measures every lean from there, as two angles: the roll to
-## one side, and the pitch back from upright. So it works sitting up, lying down or with the phone flat on
-## a table. A lean past FIRE degrees is one tilt, and the phone must come back within REARM degrees of rest
-## before the next, so holding it tipped never fires twice. While it rests, the rest follows it slowly, so
-## a player who settles into a new way of holding it is not pushed off.
+## Every lean is measured from how the phone is held at rest, so it works sitting up, lying down or with the
+## phone flat on a table.
 ##
 ## Gravity comes as Godot gives it on Android: in the screen's own axes, x to the right and y up, pointing
 ## at the ground. Lowering the right edge pulls gravity right, so the marbles roll right. Lowering the top
@@ -14,9 +10,11 @@ extends RefCounted
 
 ## Degrees of lean, from rest, that make a tilt.
 const FIRE: float = 16.0
-## Degrees from rest the phone must come back within before the next lean counts.
+## Degrees from rest the phone must come back within before the next lean counts, so holding it tipped
+## never fires twice.
 const REARM: float = 7.0
-## How quickly the rest drifts toward the phone's pose while it rests, per reading.
+## How quickly the rest drifts toward the phone's pose while it rests, per reading, so a player who settles
+## into a new way of holding it is not pushed off.
 const SETTLE: float = 0.02
 ## Below this, in m/s², the reading is not gravity at all: no sensor, or the phone in free fall.
 const WEAK: float = 2.0
@@ -24,16 +22,14 @@ const WEAK: float = 2.0
 var _rest: Vector3 = Vector3.ZERO
 var _armed: bool = false
 
-## Whether this device reports gravity at all: an Android phone does, a desktop or the web build does not.
 static func can_feel() -> bool:
 	return OS.has_feature("android") and Input.get_gravity().length() >= WEAK
 
-## Forgets the rest, so the next reading becomes it. Call when play starts again after a pause.
+## Call when play starts again after a pause, so the next reading becomes the rest.
 func reset() -> void:
 	_rest = Vector3.ZERO
 	_armed = false
 
-## Takes one gravity reading and returns the tilt it makes (TiltBoard.LEFT, RIGHT, UP or DOWN), or -1.
 func feed(gravity: Vector3) -> int:
 	if gravity.length() < WEAK:
 		return -1

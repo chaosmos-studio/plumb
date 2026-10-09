@@ -1,12 +1,9 @@
 class_name Analytics
 extends RefCounted
 
-## How the game is played, counted through Google Analytics for Firebase in the Android release build: each
-## level started and how it ended, hints, shares, the shop and the screens visited, so the levels where
-## players stop can be found. Counting waits for Google's consent message (UMP, which Ads runs) to say no
-## consent is needed here, so the EEA, the UK and Switzerland are never counted. Nothing counted serves ads:
-## every advertising signal stays denied and the build keeps the advertising id out (addons/firebase_build).
-## Debug builds and every other platform count nothing.
+## Counting waits for UMP to say no consent is needed here, so the EEA, the UK and Switzerland are never
+## counted. Nothing counted serves ads: every advertising signal stays denied and addons/firebase_build
+## keeps the advertising id out of the build.
 ##
 ## The kit expects from the game:
 ## - `Save._ready` calling `Analytics.start()` after `Ads.start()`.
@@ -22,14 +19,13 @@ const CONSENT: String = "PoingGodotAdMobConsentInformation"
 ## UMP's ConsentStatus.NOT_REQUIRED.
 const CONSENT_NOT_REQUIRED: int = 1
 
-## When valid, hears every event as (name, params) whether or not anything is counted, for the robots.
+## For the robots: hears every event as (name, params), counted or not.
 static var sink: Callable = Callable()
 
 static var _firebase: Object
 static var _counting: bool = false
 static var _started_at: int = 0
 
-## Listens for the game's events, and on Android starts Firebase, not counting until `refresh` allows it.
 static func start() -> void:
 	_listen()
 	if _firebase != null or not OS.has_feature("android") or not Engine.has_singleton(FIREBASE):
@@ -40,7 +36,6 @@ static func start() -> void:
 	_firebase.call("initialize")
 	refresh()
 
-## Counts or stops counting as the consent answer says. Ads calls it whenever that answer may have changed.
 ## Firebase keeps the choice across launches, so it is set either way.
 static func refresh() -> void:
 	if _firebase == null:
@@ -52,15 +47,13 @@ static func refresh() -> void:
 	_firebase.call("set_consent", {"analytics_storage": "granted" if _counting else "denied"})
 	_firebase.call("set_analytics_collection_enabled", _counting)
 
-## Whether to count: only a release build, and only where the consent message found none needed. Before
-## the first answer comes, the status is unknown, which counts nothing.
 static func counts(consent_status: int, debug: bool) -> bool:
 	return consent_status == CONSENT_NOT_REQUIRED and not debug
 
 static func counting() -> bool:
 	return _counting
 
-## One event, with GA4's limits in mind: a short snake_case name and a few numbers or short strings.
+## GA4 limits: a short snake_case name and a few numbers or short strings.
 static func event(name: StringName, params: Dictionary = {}) -> void:
 	if sink.is_valid():
 		sink.call(name, params)

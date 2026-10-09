@@ -1,16 +1,9 @@
 class_name Result
 extends RefCounted
 
-## The end-of-level sheets. A win names the moment (Cheers: a heading for the stars and a line about this
-## solve, never the same twice running), shows the stars arriving one by one with a spark for a perfect
-## solve, the next step as the primary action, and a row of quiet ones: watch the solve again at speed,
-## play it again, or go back to the levels. Above the sheet, a card of the win is caught like a screenshot,
-## to share or save (Snapshot). A failure leads with trying again.
-
 const STAR_SIZE: float = 92.0
 const STAR_GAP: float = 0.2
 
-## What the game knows about a win, for the words, the replay and the share card.
 class Moment extends RefCounted:
 	var level: int = 0
 	## The game's word for one move, for the lines that count them.
@@ -19,7 +12,7 @@ class Moment extends RefCounted:
 	var summary: String = ""
 	## The level's best stars before this win: 0 the first time it is solved.
 	var before: int = 0
-	## The stars this win earned, set by the win sheet.
+	## Set by the win sheet.
 	var stars: int = 0
 	## No undo, restart or extra on the way.
 	var clean: bool = false
@@ -30,9 +23,7 @@ class Moment extends RefCounted:
 	## The share card, made once, so the sheet shows the same print after a replay.
 	var card: Image = null
 
-## Opens the win sheet. `detail` lines are shown muted under the stars. With a `moment`, an empty
-## `heading` is chosen by Cheers, the quiet actions are Watch, Again and Levels, and the snapshot comes
-## above the sheet; without one, the heading is as given and the quiet actions are Replay and Levels.
+## With a `moment`, an empty `heading` is chosen by Cheers.
 static func won(host: Node, heading: String, earned: int, detail: PackedStringArray, next_text: String,
 		on_next: Callable, on_replay: Callable, on_levels: Callable, moment: Moment = null) -> Sheet:
 	# The first time, the snapshot is caught before the sheet, which rises as the print flies above it.
@@ -72,15 +63,12 @@ static func won(host: Node, heading: String, earned: int, detail: PackedStringAr
 	_awards(host, sheet, icons, earned)
 	return sheet
 
-## The stars land one by one once the sheet starts to rise.
 static func _awards(host: Node, sheet: Sheet, icons: Array[StarIcon], earned: int) -> void:
 	if sheet.held:
 		await sheet.rising
 	for k: int in range(earned):
 		_award(host, icons[k], 0.4 + k * STAR_GAP, earned == 3 and k == 2)
 
-## Opens the failure sheet. It leads with Undo when `on_undo` is given, or else with `more_text` when
-## `on_more` is given (Revive's one more heart or tap), with retry then a quiet choice beside Levels.
 static func failed(host: Node, heading: String, line: String, retry_text: String, on_retry: Callable,
 		on_levels: Callable, on_undo: Callable = Callable(), more_text: String = "",
 		on_more: Callable = Callable()) -> Sheet:
@@ -110,8 +98,6 @@ static func failed(host: Node, heading: String, line: String, retry_text: String
 	c.add_child(row)
 	return sheet
 
-## Watch (where the game can replay), Again and Levels: round buttons, each named underneath. Sharing is the
-## snapshot's, above the sheet.
 static func _actions(moment: Moment, on_replay: Callable, on_levels: Callable) -> HBoxContainer:
 	var row: HBoxContainer = HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -134,7 +120,6 @@ static func _quiet_row(on_replay: Callable, on_levels: Callable) -> HBoxContaine
 	row.add_child(levels)
 	return row
 
-## A star lands: it fills, springs up from small, rings, and for the third of a perfect solve, throws sparks.
 static func _award(host: Node, star: StarIcon, delay: float, burst: bool) -> void:
 	await host.get_tree().create_timer(delay).timeout
 	if not is_instance_valid(star):
@@ -149,7 +134,6 @@ static func _award(host: Node, star: StarIcon, delay: float, burst: bool) -> voi
 		sparks.position = star.size * 0.5
 		star.add_child(sparks)
 
-## A ring of sparks thrown out from a star and fading as they fly.
 class _Sparks extends Node2D:
 	const COUNT: int = 12
 	const REACH: float = 120.0

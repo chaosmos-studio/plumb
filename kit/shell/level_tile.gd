@@ -1,11 +1,6 @@
 class_name LevelTile
 extends BaseButton
 
-## One level in the grid: its number and the stars it has earned, in its chapter's colour. A level reached
-## and not yet solved is ringed in that colour, finished ones sit on a surface edged with it, and locked
-## ones are a faint tile with a faint number. A lock would say no, and every level can be opened now: a tap
-## says how this one opens, and offers the ways to open it at once (Unlocks).
-
 const SIZE: float = 132.0
 
 var level: int = 0
@@ -55,7 +50,6 @@ func _draw() -> void:
 			var at: Vector2 = Vector2(rect.get_center().x + (k - 1) * 22.0, rect.end.y - 26.0)
 			_star(at, 9.0, Brand.GOLD if k < stars else Color(Brand.MUTED, 0.35))
 
-## The level's number in the middle of `rect`, raised to leave room for stars under it.
 func _number(rect: Rect2, ink: Color, raised: bool) -> void:
 	var font: Font = UI.display_font()
 	var text: String = str(level + 1)

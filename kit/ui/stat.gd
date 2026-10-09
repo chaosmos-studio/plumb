@@ -1,9 +1,6 @@
 class_name Stat
 extends VBoxContainer
 
-## A number with a small spaced caption over it: MOVES 3. The quiet way to show a count. `titled` puts the
-## same caption over anything else, such as a StarMeter.
-
 var value: Label
 
 func _init(caption_text: String, initial: String = "", size_px: int = 40) -> void:

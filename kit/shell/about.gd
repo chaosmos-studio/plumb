@@ -1,12 +1,9 @@
 class_name About
 extends RefCounted
 
-## The about sheet: the game, its version, the people who made it, its links, and the studio's other
-## games (MoreGames). The web build links to the website and the privacy policy. The Google Play build
-## links only to the privacy policy and the support page, the two pages of the site with no sponsor links,
-## since Play does not let an app lead to a way to pay outside its billing. A name opens that person's site
-## the way Credits says. Reads the game's GameCredits (res://credits.gd): TEAM, WEBSITE, PRIVACY and
-## SUPPORT.
+## The Google Play build links only to the privacy policy and the support page, the two pages of the site
+## with no sponsor links, since Play does not let an app lead to a way to pay outside its billing. Reads the
+## game's GameCredits (res://credits.gd): TEAM, WEBSITE, PRIVACY and SUPPORT.
 
 static func open(host: Node) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)

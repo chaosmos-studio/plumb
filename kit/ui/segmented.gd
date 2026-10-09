@@ -1,8 +1,7 @@
 class_name Segmented
 extends Control
 
-## A few options in one pill, the chosen one raised on a card that slides between them: for a setting
-## with more than two values, where a switch cannot say which one is on.
+## For a setting with more than two values, where a switch cannot say which one is on.
 
 signal chosen(index: int)
 

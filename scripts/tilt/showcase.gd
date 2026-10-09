@@ -1,15 +1,9 @@
 class_name TiltShowcase
 extends RefCounted
 
-## The opening: the first levels a new player meets, made to be remembered as well as easy. Each slot says
-## what its level holds and the traits every route that clears it in par must show: a long roll home, two
-## marbles dropping on one tilt, a bank off a wall, a tempting tilt that strands a marble, two marbles
-## dropping together on the last tilt. Random boards for each slot, most of them built around a mirror or a
-## turn, are kept if they show their slot's traits and fit under the level that follows the opening, then
-## scored for how they look and play. The opening is the run of one board per slot with the best total score
-## that never gets easier and repeats nothing (MATH.md section 12). Nothing is hand-placed.
+## The opening, picked for what it shows as well as how hard it is (MATH.md section 12).
 
-## Each slot's marbles, its par, and the traits every route that clears it in par shows (see `shows`).
+## Every route that clears a slot's board in par must show its traits, since a player may find any of them.
 const SLOTS: Array[Dictionary] = [
 	{"marbles": 1, "par": 1, "traits": ["long"]},
 	{"marbles": 2, "par": 1, "traits": ["together", "busy"]},
@@ -35,10 +29,8 @@ const POSED: float = 0.5
 const LONG: int = 3
 ## Positions searched for one board, to measure it or to see where its marbles can go.
 const LIMIT: int = 5000
-## The score, each part from 0 to 1: how symmetric the walls and holes are, and the whole board with its
-## marbles; the share of floor the par routes cross, and that any play reaches; how far the marbles roll
-## against how far they could. Walls cost by how far their share of the board falls outside LEAST to FEW: a
-## bare board looks unfinished, a busy one cluttered.
+## Weights of the score's parts, each from 0 to 1 (MATH.md section 12). Walls cost by how far their share of
+## the board falls outside LEAST to FEW: a bare board looks unfinished, a busy one cluttered.
 const W_SYMMETRY: float = 3.0
 const W_POSE: float = 1.0
 const W_COVER: float = 2.0
@@ -70,8 +62,6 @@ var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 func _init(seed_value: int) -> void:
 	rng.seed = hash(["opening", seed_value])
 
-## The opening for a level set whose levels after it are `after`, in order: one candidate per slot, or none
-## if some slot finds nothing that fits.
 func make(after: Array[TiltGenerator.Candidate]) -> Array[TiltGenerator.Candidate]:
 	var out: Array[TiltGenerator.Candidate] = []
 	var pools: Array[Array] = []
@@ -84,8 +74,6 @@ func make(after: Array[TiltGenerator.Candidate]) -> Array[TiltGenerator.Candidat
 		out.append(p.candidate)
 	return out
 
-## Whether `board` is what `slot` asks for: its marbles, exactly its par, and every route that clears it in
-## par showing the slot's traits.
 static func holds(board: TiltBoard, slot: Dictionary) -> bool:
 	var par: int = slot["par"]
 	var traits: Array = slot["traits"]
@@ -99,7 +87,6 @@ static func holds(board: TiltBoard, slot: Dictionary) -> bool:
 			return false
 	return not found.is_empty()
 
-## Every way to clear `board` in exactly `par` tilts, each tilt moving something and none losing a marble.
 static func routes(board: TiltBoard, par: int) -> Array[PackedInt32Array]:
 	var out: Array[PackedInt32Array] = []
 	_extend(board, PackedInt32Array(), par, out)
@@ -118,10 +105,10 @@ static func _extend(board: TiltBoard, path: PackedInt32Array, par: int, out: Arr
 		elif step.size() < par:
 			_extend(next, step, par, out)
 
-## Whether `route` shows `traits` on `start`. "busy": every marble on the board rolls on every tilt. "long":
-## each marble drops at the end of a roll of at least LONG cells. "together": the last tilt drops two marbles
-## or more. "apart": every tilt drops a marble. "bank": every tilt but the last leaves each marble on the board
-## resting against a wall, and the next tilt turns a corner off it.
+## "busy": every marble on the board rolls on every tilt. "long": each marble drops at the end of a roll of at
+## least LONG cells. "together": the last tilt drops two marbles or more. "apart": every tilt drops a marble.
+## "bank": every tilt but the last leaves each marble on the board resting against a wall, and the next tilt
+## turns a corner off it.
 static func shows(start: TiltBoard, route: PackedInt32Array, traits: Array) -> bool:
 	var board: TiltBoard = start.copy()
 	for k: int in range(route.size()):
@@ -171,15 +158,12 @@ static func _rolled(move: TiltMove, m: int) -> int:
 			n += 1
 	return n
 
-## How a board looks and plays, the sum of the weighted parts.
 static func score(board: TiltBoard, par: int) -> float:
 	var found: Array[PackedInt32Array] = routes(board, par)
 	var walls: float = float(board.cells.count(TiltBoard.Cell.WALL)) / board.cells.size()
 	return W_SYMMETRY * symmetry(board, false) + W_POSE * symmetry(board, true) + W_COVER * cover(board, found) \
 		+ W_REACH * reach(board) + W_ROLL * roll(board, found) - W_WALLS * maxf(maxf(LEAST - walls, walls - FEW), 0.0)
 
-## The largest share of cells that one mirror or turn of the board leaves as they were, weighed by how
-## strongly that symmetry reads (SALIENCE): walls and holes, and with `marbles` where the marbles start too.
 static func symmetry(board: TiltBoard, marbles: bool) -> float:
 	var at: PackedByteArray = PackedByteArray()
 	at.resize(board.cells.size())
@@ -198,7 +182,6 @@ static func symmetry(board: TiltBoard, marbles: bool) -> float:
 		best = maxf(best, SALIENCE[s] * same / board.cells.size())
 	return best
 
-## The share of floor the routes `found` roll over or rest on: the room a solution uses.
 static func cover(board: TiltBoard, found: Array[PackedInt32Array]) -> float:
 	var touched: PackedByteArray = _touched(board)
 	for route: PackedInt32Array in found:
@@ -207,8 +190,6 @@ static func cover(board: TiltBoard, found: Array[PackedInt32Array]) -> float:
 			_touch(touched, b.tilt(dir))
 	return _share(board, touched)
 
-## The share of floor some marble rolls over or rests on, in any play from the start: floor no play ever
-## touches is wasted room.
 static func reach(board: TiltBoard) -> float:
 	var touched: PackedByteArray = _touched(board)
 	var seen: Dictionary = {board.key(): true}
@@ -247,8 +228,6 @@ static func _share(board: TiltBoard, touched: PackedByteArray) -> float:
 			reached += touched[i]
 	return float(reached) / floor_cells
 
-## How far the marbles roll on `found`, against how far they could: every marble on the board crossing the
-## whole board on every tilt would be 1.
 static func roll(board: TiltBoard, found: Array[PackedInt32Array]) -> float:
 	var rolled: int = 0
 	var room: int = 0
@@ -260,8 +239,6 @@ static func roll(board: TiltBoard, found: Array[PackedInt32Array]) -> float:
 				rolled += step.size()
 	return 0.0 if room == 0 else float(rolled) / room
 
-## A slot's pool: the proposals that hold it, fit under the level after the opening and repeat none of the
-## levels after it, each board once up to symmetry, and for each size and difficulty only the KEEP best.
 func _pool(slot: Dictionary, after: Array[TiltGenerator.Candidate]) -> Array[Pick]:
 	var next: TiltGenerator.Candidate = after[0]
 	var par: int = slot["par"]
@@ -312,9 +289,7 @@ static func _clashes(views: TiltNovelty.Views, others: Array[TiltGenerator.Candi
 			return true
 	return false
 
-## The best run of one pick per slot, by the scores weighed down the FUNNEL, less FLAT for each level as hard
-## as the one before: a beam of the BEAM best partial runs, each grown by every pick of the next slot that may
-## follow it and repeats no pick before it. The first run whose plateau, carried into the levels after, is no
+## A beam search (MATH.md section 12). The best run whose plateau, carried into the levels after, is no
 ## longer than TiltGenerator.RUN wins.
 func _run(pools: Array[Array], after: Array[TiltGenerator.Candidate]) -> Array[Pick]:
 	var beam: Array[Array] = [[]]
@@ -354,12 +329,10 @@ func _run(pools: Array[Array], after: Array[TiltGenerator.Candidate]) -> Array[P
 			break
 	return out
 
-## Whether `b` may come straight after `a`: no easier, par no lower, and no less room or fewer marbles.
 static func _follows(a: TiltGenerator.Candidate, b: TiltGenerator.Candidate) -> bool:
 	return not b.measure.easier_than(a.measure) and b.measure.par >= a.measure.par \
 		and b.board.cells.size() >= a.board.cells.size() and b.board.marbles_left() >= a.board.marbles_left()
 
-## The longest run of equal difficulty in the opening and on into the levels after it.
 static func _plateau(run: Array, after: Array[TiltGenerator.Candidate]) -> int:
 	var measures: Array[TiltDifficulty] = []
 	for p: Pick in run:
@@ -373,9 +346,7 @@ static func _plateau(run: Array, after: Array[TiltGenerator.Candidate]) -> int:
 		longest = maxi(longest, length)
 	return longest
 
-## A board for a slot of `marbles`: walls laid in whole orbits of a random symmetry group at a random density,
-## the hole on a cell the group leaves in place where there is one, and each marble too with the chance POSED,
-## or anywhere left.
+## Symmetry is built in, since a random board is almost never symmetric (MATH.md section 12).
 func _propose(shapes: Array[Vector2i], marbles: int) -> TiltBoard:
 	var shape: Vector2i = shapes[rng.randi_range(0, shapes.size() - 1)]
 	var fits: Array = []
@@ -410,7 +381,6 @@ func _propose(shapes: Array[Vector2i], marbles: int) -> TiltBoard:
 			board.add_marble(board.coords(at), 0)
 	return board
 
-## The cells of a `shape` board in orbits under `group`: each orbit is a cell and everywhere the group takes it.
 static func _orbits(shape: Vector2i, group: Array) -> Array[PackedInt32Array]:
 	var taken: PackedByteArray = PackedByteArray()
 	taken.resize(shape.x * shape.y)

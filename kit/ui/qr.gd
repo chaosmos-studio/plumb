@@ -1,11 +1,9 @@
 class_name Qr
 extends RefCounted
 
-## QR codes, made here so a game can draw one for any link without an image file. `rows(text)` gives the
-## module matrix without its quiet zone, one string of 0 and 1 per row, at error correction level H, which
-## can lose a third of the code: room for the app icon over the middle. Byte mode, the smallest version
-## that holds the text, and of the eight masks the one with the lowest penalty, as ISO/IEC 18004 lays out.
-## QrCard draws it.
+## ISO/IEC 18004 in byte mode, the smallest version that holds the text, and of the eight masks the one
+## with the lowest penalty. Error correction level H survives losing about 30 percent of the code, which
+## leaves room for the app icon over the middle. `rows(text)` leaves out the quiet zone.
 
 ## Level H's error correction codewords per block, and blocks, by version (index 0 unused).
 const ECC_PER_BLOCK: PackedInt32Array = [-1, 17, 28, 22, 16, 22, 28, 26, 26, 24, 28, 24, 28, 22, 24, 24, 30, 28,

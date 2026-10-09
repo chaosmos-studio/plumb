@@ -1,10 +1,7 @@
 class_name TiltNovelty
 extends RefCounted
 
-## When two levels are the same level to a player. A board seen rotated or mirrored is the same board,
-## and so is one with its colours swapped, so every comparison is taken over the eight symmetries of the
-## grid and ignores colour. Two boards of one size are too close when they differ in too few cells, or
-## when they differ in a few more but one route of tilts solves both.
+## When two levels are the same level to a player (MATH.md section 4).
 
 ## Symmetries are numbered by three bits: 1 mirrors x, 2 mirrors y, 4 swaps the axes first.
 const SYMMETRIES: int = 8
@@ -109,7 +106,6 @@ static func layout(board: TiltBoard) -> PackedByteArray:
 			out[c] = Kind.MARBLE_ON_HOLE if holed else Kind.MARBLE
 	return out
 
-## The board under symmetry `s`, marbles and all.
 static func transform(board: TiltBoard, s: int) -> TiltBoard:
 	var swap: bool = s & 4 != 0
 	var w: int = board.height if swap else board.width
@@ -126,7 +122,7 @@ static func transform(board: TiltBoard, s: int) -> TiltBoard:
 			TiltBoard.Tile.GATE, TiltBoard.Tile.CONVEYOR:
 				out.tile_value[j] = transform_dir(board.tile_value[i], s)
 			TiltBoard.Tile.BUMPER:
-				# Mirroring one axis turns "/" into "\"; swapping the axes keeps each slant.
+				# Mirroring one axis turns "/" into "\", and swapping the axes keeps each slant.
 				var flips: bool = (s & 1 != 0) != (s & 2 != 0)
 				out.tile_value[j] = 1 - board.tile_value[i] if flips else board.tile_value[i]
 	for m: int in range(board.marble_cell.size()):
@@ -150,7 +146,7 @@ static func transform_dir(dir: int, s: int) -> int:
 		d.y = -d.y
 	return TiltBoard.DIRS.find(d)
 
-## Where cell `at` lands under symmetry `s` on the turned board, which is `w` by `h`.
+## `w` by `h` is the turned board's size.
 static func map_cell(at: Vector2i, s: int, w: int, h: int) -> Vector2i:
 	var p: Vector2i = Vector2i(at.y, at.x) if s & 4 else at
 	if s & 1:

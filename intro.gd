@@ -1,9 +1,5 @@
 extends RefCounted
 
-## Plumb's launch flourish (kit Intro): the icon's three marbles roll down their columns together, the way
-## one swipe moves every marble at once, and drop into their holes, each on its own note. On the title they
-## fall out of the holes onto the seesaw, as if the icon had poured them in.
-
 const WAIT: float = 0.22
 const ROLL: float = 0.42
 const SINK: float = 0.2

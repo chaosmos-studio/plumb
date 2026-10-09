@@ -1,18 +1,14 @@
 extends SceneTree
 
-# Regenerates the [input] section of project.godot through ProjectSettings.save().
-#
-# Ported from Faceplant and Flopolis. Faceplant shipped an input map whose actions existed but carried
-# zero events, so every is_action_pressed() returned false and nothing warned. An [input] section Godot
-# cannot parse into InputEvent objects is not an error, it is an action with no bindings. Define the
-# bindings here and let the engine serialise them; tests/run_tests.gd asserts every action has events.
+# An [input] section Godot cannot parse into InputEvent objects is not an error, it is an action with no
+# bindings, and every is_action_pressed() returns false without a warning. Define the bindings here and let
+# the engine serialise them. tests/run_tests.gd asserts every action has events.
 #
 # Run after changing a binding: godot --headless --path . -s res://tools/make_input_map.gd
 
 const DEADZONE: float = 0.2
 
-# Physical keycodes, so WASD stays under the same fingers on non-QWERTY layouts. Touch front ends feed
-# these same actions with Input.action_press / Input.parse_input_event, so they need no bindings here.
+# Physical keycodes, so WASD stays under the same fingers on non-QWERTY layouts.
 static func bindings() -> Dictionary:
 	return {
 		"tilt_left": [_key(KEY_A), _key(KEY_LEFT), _axis(JOY_AXIS_LEFT_X, -1.0)],
@@ -27,8 +23,7 @@ static func bindings() -> Dictionary:
 
 func _initialize() -> void:
 	var table: Dictionary = bindings()
-	# Drop actions no longer in the table, so a renamed action does not linger in project.godot. The
-	# built-in ui_* actions are left alone.
+	# Drop actions no longer in the table, so a renamed action does not linger in project.godot.
 	for property: Dictionary in ProjectSettings.get_property_list():
 		var setting: String = property["name"]
 		if setting.begins_with("input/") and not setting.begins_with("input/ui_") and not table.has(setting.substr(6)):
@@ -60,8 +55,7 @@ static func _button(button: JoyButton) -> InputEventJoypadButton:
 	event.button_index = button
 	return event
 
-# The sign of axis_value picks which half of the stick fires the action, which is how one stick becomes
-# four directional actions that Input.get_vector() reads back as an analogue vector.
+# The sign of axis_value picks which half of the stick fires the action.
 static func _axis(axis: JoyAxis, value: float) -> InputEventJoypadMotion:
 	var event: InputEventJoypadMotion = InputEventJoypadMotion.new()
 	event.axis = axis

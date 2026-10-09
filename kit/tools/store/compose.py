@@ -2,33 +2,6 @@
 
 Run from the project root, after capturing (godot --path . res://kit/tools/capture.tscn):
   python3 kit/tools/store/compose.py            # reads store/store.json, writes assets/store/
-
-Writes the set the Play Console asks for, at the sizes it asks for (checked 2026-09):
-  play_store_icon_512.png                 512x512, 32-bit PNG
-  feature_graphic_1024x500.png            1024x500, 24-bit PNG, no alpha
-  screenshots/phone/NN_name.png           1080x1920 (9:16), up to 8
-  screenshots/tablet7/NN_name.png         1920x1080 (7-inch tablets, 16:9)
-  screenshots/tablet10/NN_name.png        1920x1080 (10-inch tablets, 16:9)
-  gpg_pc_feature_1920x1080.png            Google Play Games on PC, 16:9, no text
-  gpg_pc_logo_600x400.png                 Google Play Games on PC, transparent wordmark
-  listing.md                              title, short and full description, release notes, checked
-                                          against Play's length limits
-
-Every shot is a bold headline, one word of it in the shot's colour, over a background tinted with one of
-the game's own piece colours and scattered with its pieces, then the real game frames in one of these
-layouts:
-
-  screen  one frame as a rounded card running off the bottom edge, optionally with a swipe drawn on it
-          and a zoom: a magnified circle of one spot, joined to where it is on the card
-  pair    two frames one above the other, a move before and after, with the swipe drawn on the first
-  grid    four frames two by two, each with a label: one rule or mode each
-  fan     three frames fanned out, each with a label, and optionally a strip of the looks under them
-  pop     the win screen with the share card lifted off it, tilted and larger
-
-Phone shots put the words on top. Tablet shots are landscape, because Play wants tablet shots at 16:9 or
-9:16: the words on the left, the layout on the right. Frames are plain cards, not phones, since Play asks
-for no device imagery, and they come from the game's own renderer, so nothing in them is mocked up.
-Captions are checked against Play's graphic rules: no ranking, no price, no call to action.
 """
 
 import json
@@ -77,8 +50,6 @@ def contrast(a, b):
 
 
 class Style:
-    """The brand: its colours, fonts, piece colours and the kind of decoration its backgrounds get."""
-
     def __init__(self, spec):
         self.colours = {k: rgb(v) for k, v in spec["colours"].items()}
         self.dark = spec.get("dark", False)
@@ -87,7 +58,7 @@ class Style:
         self.decor = spec.get("decor", "glows")
         c = self.colours
         self.ink = c["ink"]
-        # The brand's muted grey is tuned for its own background; on a tinted one it needs more weight.
+        # The brand's muted grey is tuned for its own background. On a tinted one it needs more weight.
         self.quiet = mix(c["muted"], c["ink"], 0.35)
 
     def face(self, role, size):
@@ -101,12 +72,10 @@ class Style:
         return self.pieces[i % len(self.pieces)]
 
     def base(self, i):
-        """The shot's background colour before its gradient: the brand's own, leaning to the shot's piece."""
         return mix(self.colours["bg"], self.tint(i), 0.08 if self.dark else 0.16)
 
     def highlight(self, i):
-        """The shot's piece colour for its starred word, pushed towards the ink until it reads as large
-        text on that shot's background."""
+        """Pushed towards the ink until it reads as large text on the shot's background."""
         piece = self.tint(i)
         colour = mix(piece, WHITE, 0.1) if self.dark else piece
         t = 0.0
@@ -116,11 +85,9 @@ class Style:
         return colour
 
     def surface(self):
-        """What chips sit on: opaque, so nothing behind shows through the words."""
+        """Opaque, so nothing behind shows through the chips' words."""
         return mix(self.colours["bg"], WHITE, 0.14 if self.dark else 0.85) + (255,)
 
-
-# --- Drawing helpers ---------------------------------------------------------------------------------
 
 def place(canvas, layer, x, y):
     """alpha_composite that lets the layer hang off any edge."""
@@ -162,8 +129,8 @@ def disc_mask(d):
 
 
 def drop(canvas, layer, x, y, style, depth=1.0):
-    """Draws a layer with a soft shadow cast from its own alpha, so tilted cards and round callouts cast
-    their real shape: a wide ambient shade and a tighter one where it nearly touches."""
+    """The shadow is cast from the layer's own alpha, so tilted cards and round callouts cast their real
+    shape."""
     tone = BLACK if style.dark else mix(style.ink, BLACK, 0.3)
     strength = (150 if style.dark else 70) * depth
     for blur, offset, share in ((int(40 * depth) + 6, 28 * depth, 1.0), (8, 6 * depth, 0.55)):
@@ -186,7 +153,7 @@ def tilted(layer, angle):
 
 
 def autocrop(img, bg, threshold=18, margin=0.04):
-    """Crops to whatever is not background: with the HUD hidden, that is the playfield and its shadow."""
+    """With the HUD hidden, whatever is not background is the playfield and its shadow."""
     px = img.load()
     w, h = img.size
     step = max(1, min(w, h) // 400)
@@ -209,7 +176,7 @@ def raw_image(name):
 
 
 def framed_raw(name, style, crop=None):
-    """A raw frame, cut to `crop` (fractions of it) when given, or to its playfield when asked."""
+    """`crop` is "auto" for the playfield, or a box in fractions of the frame."""
     raw = raw_image(name)
     if crop == "auto":
         return autocrop(raw, style.colours.get("board_bg", style.colours["bg"]))
@@ -220,8 +187,8 @@ def framed_raw(name, style, crop=None):
 
 
 def card(raw, width, style, radius=None):
-    """A frame as a rounded card with a hairline edge, so it reads as a screen without drawing a phone
-    around it."""
+    """The hairline edge makes it read as a screen without drawing a phone around it, since Play asks for
+    no device imagery."""
     scale = width / raw.width
     screen = raw.resize((int(width), int(round(raw.height * scale))), Image.LANCZOS).convert("RGBA")
     radius = radius or int(width) // 15
@@ -234,8 +201,6 @@ def card(raw, width, style, radius=None):
     framed.alpha_composite(edge.resize(screen.size, Image.LANCZOS))
     return framed
 
-
-# --- Words ------------------------------------------------------------------------------------------
 
 def wrap(draw, text, face, max_width):
     words, lines, line = text.split(), [], ""
@@ -266,12 +231,11 @@ def balanced(draw, text, face, max_width):
 
 
 def marked(text):
-    """A caption's words, each with whether it was *starred* for the shot's colour."""
     return [(w.replace("*", ""), "*" in w) for w in text.split()]
 
 
 class Words:
-    """A shot's headline, subline and chips, measured once so the layout can make room for them."""
+    """Measured once, so the layout can make room for the words."""
 
     def __init__(self, shot, style, head_size, sub_size, max_width, align="centre"):
         self.style, self.align, self.max_width = style, align, max_width
@@ -280,7 +244,7 @@ class Words:
         self.chip = style.face("ui", sub_size * 0.92)
         probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
         self.heads = []
-        # A newline in a caption is a line break the caption asks for; each part is balanced on its own.
+        # A newline in a caption is a line break it asks for, and each part is balanced on its own.
         for part in shot["caption"].split("\n"):
             words = marked(part)
             k = 0
@@ -334,7 +298,6 @@ class Words:
 
 
 def pill(text, face, style, index, dot=True):
-    """A label on a soft rounded chip, with a dot of one of the game's piece colours."""
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     h = int(face.size * 2.1)
     pad = int(face.size * 0.95)
@@ -355,11 +318,7 @@ def pill(text, face, style, index, dot=True):
     return layer
 
 
-# --- Backgrounds -------------------------------------------------------------------------------------
-
 def background(size, style, index, keep_out):
-    """A gradient tinted with the shot's piece colour, two soft glows, and the game's pieces scattered
-    where the words and frames leave room."""
     w, h = size
     tint, other = style.tint(index), style.tint(index + 2)
     base = style.base(index)
@@ -376,8 +335,7 @@ def background(size, style, index, keep_out):
 
 
 def spots(rng, size, keep_out, count, radius, reach=1.2):
-    """Random spots for decoration, outside every keep-out box grown by how far each spot's drawing
-    reaches: `reach` times its radius."""
+    """Each keep-out box is grown by how far a spot's drawing reaches: `reach` times its radius."""
     w, h = size
     out, tries = [], 0
     while len(out) < count and tries < count * 200:
@@ -394,7 +352,6 @@ def spots(rng, size, keep_out, count, radius, reach=1.2):
 
 
 def sphere(colour, d):
-    """A glossy marble: lit from the top left, a darker rim, and a soft highlight."""
     s = d * 3
     yy, xx = np.mgrid[0:s, 0:s] / s
     light = np.hypot(xx - 0.36, yy - 0.3) / 0.86
@@ -413,8 +370,8 @@ def sphere(colour, d):
 
 
 def padded(layer, pad, colour):
-    """The layer on a margin of transparent `colour`, so a blur has room to spread and does not pull in
-    black at its edges."""
+    """A margin of transparent `colour`, so a blur has room to spread and does not pull in black at its
+    edges."""
     out = Image.new("RGBA", (layer.width + pad * 2, layer.height + pad * 2), colour + (0,))
     out.alpha_composite(layer, (pad, pad))
     return out
@@ -449,7 +406,6 @@ def decor_glows(canvas, style, rng, keep_out):
         core.putalpha(disc_mask(int(r * 2)).point(lambda v: int(v * 0.95)))
         place(canvas, core, x - r, y - r)
         ring = r * rng.uniform(3.5, 5.5)
-        # A ring only where it stays clear of the words and the frames, as the game's own rings would.
         if i % 3 == 0 and not any(x0 < x + ring and x - ring < x1 and y0 < y + ring and y - ring < y1
                                   for x0, y0, x1, y1 in keep_out):
             draw_ring.ellipse([x - ring, y - ring, x + ring, y + ring], outline=colour + (70,), width=2)
@@ -462,7 +418,6 @@ def decor_stars(canvas, style, rng, keep_out):
     layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
     for k in range(3):
-        # Wide orbits around a centre off the canvas, the sky's own lines.
         cx, cy = rng.uniform(-0.3, 1.3) * w, rng.uniform(1.0, 1.5) * h if k % 2 else -rng.uniform(0.0, 0.5) * h
         rx = rng.uniform(0.7, 1.3) * max(w, h)
         d.ellipse([cx - rx, cy - rx * 0.62, cx + rx, cy + rx * 0.62], outline=WHITE + (22,), width=2)
@@ -485,12 +440,7 @@ def decor_stars(canvas, style, rng, keep_out):
 DECOR = {"spheres": decor_spheres, "glows": decor_glows, "stars": decor_stars}
 
 
-# --- Overlays ----------------------------------------------------------------------------------------
-
 class Placed:
-    """Where a raw frame landed on the canvas: its top-left, its scale and the crop it was cut from, so
-    points given as fractions of the frame can be found on the canvas."""
-
     def __init__(self, x, y, scale, size):
         self.x, self.y, self.scale, self.size = x, y, scale, size
 
@@ -499,8 +449,7 @@ class Placed:
 
 
 def swipe(canvas, start, end, style, colour):
-    """A finger's swipe in the shot's colour: a trail that thickens towards a white touch point, with a
-    shadow so it reads on a light board as well as a dark one."""
+    """The shadow lets it read on a light board as well as a dark one."""
     unit = (canvas.width if canvas.width < canvas.height else canvas.height) / 1080
     s = SUPER
     (x0, y0), (x1, y1) = (start[0] * s, start[1] * s), (end[0] * s, end[1] * s)
@@ -523,7 +472,6 @@ def swipe(canvas, start, end, style, colour):
 
 
 def zoom(canvas, raw, placed, spec, style, colour):
-    """A magnifying circle: one spot of the frame enlarged, ringed, and joined to where it is."""
     w, h = canvas.size
     fx, fy = spec["at"]
     span = spec.get("span", 0.3) * raw.width
@@ -550,7 +498,6 @@ def zoom(canvas, raw, placed, spec, style, colour):
 
 
 def chevron(canvas, centre, size, style, colour):
-    """A round badge with a downward chevron: then."""
     x, y = centre
     d = int(size)
     big = Image.new("RGBA", (d * SUPER, d * SUPER), (0, 0, 0, 0))
@@ -562,7 +509,6 @@ def chevron(canvas, centre, size, style, colour):
     drop(canvas, big.resize((d, d), Image.LANCZOS), x - d / 2, y - d / 2, style, 0.4)
 
 
-# --- Layouts -----------------------------------------------------------------------------------------
 # Each takes the shot, the style, the stage box it may fill (x0, y0, x1, y1) and the canvas size, and
 # returns the boxes its frames cover (so decoration keeps clear) and a painter that draws them.
 
@@ -686,7 +632,7 @@ def layout_fan(shot, style, stage, size, index):
             plated.putalpha(rounded_mask(plate.size, plate.height // 3))
             drop(canvas, plated, (x0 + x1 - plated.width) / 2, y1 - strip_h + (strip_h - plated.height) / 2, style, 0.6)
         if chips:
-            # One row if a slightly smaller face fits it there; two rows otherwise.
+            # One row if a slightly smaller face fits it there, two rows otherwise.
             small = face
             for scale in (1.0, 0.92, 0.85, 0.8):
                 small = style.face("ui", face.size * scale)
@@ -698,7 +644,6 @@ def layout_fan(shot, style, stage, size, index):
 
 
 def row(canvas, pills, centre_x, y, max_width, gap):
-    """Pills in centred rows, wrapping when a row would be wider than `max_width`."""
     lines, line = [], []
     for p in pills:
         if line and sum(q.width for q in line) + gap * len(line) + p.width > max_width:
@@ -740,10 +685,7 @@ def layout_pop(shot, style, stage, size, index):
 LAYOUTS = {"screen": layout_screen, "pair": layout_pair, "grid": layout_grid, "fan": layout_fan, "pop": layout_pop}
 
 
-# --- Shots -------------------------------------------------------------------------------------------
-
 def screenshot(shot, index, style, size=PHONE):
-    """Portrait: the words centred in a band at the top, the layout under them."""
     w, h = size
     words = Words(shot, style, w * 0.098, w * 0.037, w * 0.86)
     top = h * 0.055
@@ -758,7 +700,6 @@ def screenshot(shot, index, style, size=PHONE):
 
 
 def tablet_screenshot(shot, index, style, size=TABLET):
-    """Landscape: the words on the left, vertically centred, the layout on the right."""
     w, h = size
     left = w * 0.075
     words = Words(shot, style, h * 0.098, h * 0.036, w * 0.35, align="left")
@@ -793,7 +734,6 @@ def feature(spec, style, size=(1024, 500), text=True):
     if text:
         draw = ImageDraw.Draw(canvas)
         left = int(w * 0.07)
-        # A long name shrinks to fit the room left of the art instead of running into it.
         room = ax - left - int(w * 0.04)
         size = int(h * 0.3)
         while size > 40 and draw.textlength(spec["wordmark"], font=style.face("display", size)) > room:
@@ -841,7 +781,6 @@ def listing(spec):
 
 
 def policy(spec):
-    """Every word that ends up inside a graphic, checked against Play's rules for text in graphics."""
     texts = [spec["wordmark"], spec["tagline"]]
     for shot in spec["phone"] + spec["tablet"]:
         texts += [shot["caption"].replace("*", ""), shot.get("sub", "")] + shot.get("chips", []) + shot.get("labels", [])

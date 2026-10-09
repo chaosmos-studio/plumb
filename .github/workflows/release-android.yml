@@ -42,8 +42,7 @@ jobs:
       - uses: actions/checkout@v5
 
       # The same rules as the kit's Changelog (kit/ui/changelog.gd), which the game's tests run, so a
-      # changelog this refuses has already failed locally. It writes the player notes and Play's "What's new"
-      # to build/release/.
+      # changelog this refuses has already failed locally.
       - name: Read the version from CHANGELOG.md
         run: |
           set -euo pipefail
@@ -106,9 +105,8 @@ jobs:
           EOF
           cat build/release/version.env >> "$GITHUB_ENV"
 
-      # Fails before the long build if the tag is taken, the code would not be new to Play, or a Play upload
-      # could not work. Earlier codes are read back from the release notes, which is where this workflow
-      # records them. A dry run makes no tag, so a taken one only warns.
+      # Before the long build, so a bad version fails fast. Earlier codes are read back from the release
+      # notes, which is where this workflow records them.
       - name: Check the version
         env:
           HAS_UPLOAD_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
@@ -159,8 +157,7 @@ jobs:
             echo "releasing $title ($package) $TAG with version code $VERSION_CODE, $play"
           fi
 
-      # Presets that build Firebase Analytics need the app's google-services.json from the Firebase console,
-      # committed at the project root. Without it the build would carry Firebase with nothing to report to.
+      # Without google-services.json the build would carry Firebase with nothing to report to.
       - name: Check the Firebase config
         run: |
           set -euo pipefail
@@ -212,8 +209,6 @@ jobs:
             ls -l "$(sed -n 's/^dest_files=\["res:\/\/\(.*\)"\]$/\1/p' "$meta")"
           done
 
-      # The tests run on their own (tests.yml) for every push, so a build does not wait on them. Check that
-      # the commit being released has a green Tests run.
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -256,9 +251,8 @@ jobs:
           export/android/debug_keystore_pass = "android"
           EOF
 
-      # The upload key from secrets when the repository has one, otherwise the debug key made above, which is
-      # new on every run. Godot takes the release key from GODOT_ANDROID_KEYSTORE_RELEASE_* so nothing secret is
-      # written into export_presets.cfg.
+      # Godot takes the release key from GODOT_ANDROID_KEYSTORE_RELEASE_* so nothing secret is written into
+      # export_presets.cfg.
       - name: Choose the signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -344,7 +338,6 @@ jobs:
           if grep -q '^firebase/enable_analytics=true$' export_presets.cfg; then
             "$SDK_TOOLS/aapt2" dump resources "$APK" | grep "string/google_app_id"
           fi
-          # A game with the AdMob plugin ships only the parts it runs: no samples, editor art or mocks.
           if [ -d addons/admob ] && unzip -l "$APK" | grep -E "addons/admob/(gdscript/sample|assets|internal/mock)/"; then
             echo "the APK carries parts of the AdMob plugin its export filter should leave out" >&2
             exit 1
@@ -373,7 +366,6 @@ jobs:
           test "$(manifest /manifest/uses-sdk/@android:targetSdkVersion)" = 36
           echo "MIN_SDK=$(manifest /manifest/uses-sdk/@android:minSdkVersion)" >> "$GITHUB_ENV"
           has_permission() { [[ " $permissions " == *" $1 "* ]] || { echo "missing permission $1" >&2; return 1; }; }
-          # Ads need the AdMob app id in the manifest, the network and the advertising id; purchases need billing.
           if [ -d addons/admob ]; then
             app_id="$(manifest "/manifest/application/meta-data[@android:name='com.google.android.gms.ads.APPLICATION_ID']/@android:value")"
             echo "AdMob APPLICATION_ID: ${app_id:-missing}"
@@ -384,8 +376,8 @@ jobs:
           if [ -d addons/GodotGooglePlayBilling ]; then
             has_permission com.android.vending.BILLING
           fi
-          # Firebase starts with collection off and never reads the advertising id or the device id; the kit's
-          # Analytics turns collection on where the consent message allows it.
+          # Firebase starts with collection off and never reads the advertising id or the device id. The kit's
+          # Analytics turns collection on only where UMP says no consent is needed.
           if grep -q '^firebase/enable_analytics=true$' export_presets.cfg; then
             for key in firebase_analytics_collection_enabled google_analytics_default_allow_ad_storage \
                 google_analytics_adid_collection_enabled google_analytics_ssaid_collection_enabled; do
@@ -404,8 +396,7 @@ jobs:
           unzip -l "$AAB" | grep "levels/levels.json"
           unzip -l "$AAB" | grep "assets/CHANGELOG.md"
 
-      # The player notes first, then the build, then Play's "What's new" ready to paste. The "Version code: N"
-      # line is what the version check reads back on later runs.
+      # The "Version code: N" line is what the version check reads back on later runs.
       - name: Write the release notes
         run: |
           set -euo pipefail
@@ -459,8 +450,7 @@ jobs:
           if-no-files-found: error
 
       # Before the GitHub release, so a failed upload leaves no tag and the same version can run again. The
-      # API cannot create an app, so each app's first AAB goes up by hand in Play Console. Production goes up
-      # as a draft, which leaves sending it for review to Play Console.
+      # API cannot create an app, so each app's first AAB goes up by hand in Play Console.
       - name: Upload to Google Play
         if: ${{ !inputs.dry_run && inputs.play_track != 'none' }}
         uses: r0adkll/upload-google-play@v1

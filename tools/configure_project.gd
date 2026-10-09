@@ -1,11 +1,8 @@
 extends SceneTree
 
-# Writes the display, renderer and input-device settings into project.godot through ProjectSettings.
-#
 # Hand-typed values in project.godot are read without complaint and can mean something else entirely.
-# Faceplant, Flopolis and Stickman all carry `window/handheld/orientation="portrait"`; the setting is an
-# int enum, the string converts to 0, and 0 is Landscape. Saving through ProjectSettings writes the type
-# the engine expects.
+# `window/handheld/orientation="portrait"` is read as an int enum, the string converts to 0, and 0 is
+# Landscape. Saving through ProjectSettings writes the type the engine expects.
 #
 # Run: godot --headless --path . -s res://tools/configure_project.gd -- portrait|landscape [name=My Game]
 
@@ -15,7 +12,7 @@ const PORTRAIT: Dictionary = {
 	"orientation": DisplayServer.SCREEN_PORTRAIT,
 }
 
-# Sensor landscape so the phone can be held either way round, as Flopolis intended.
+# Sensor landscape so the phone can be held either way round.
 const LANDSCAPE: Dictionary = {
 	"viewport": Vector2i(1920, 1080),
 	"window": Vector2i(1280, 720),

@@ -1,8 +1,6 @@
 extends Node2D
 
-## The play screen: one level, swipes, arrow keys or the phone's own lean to tilt, undo, restart, a hint
-## from the solver, and the result. All the rules live in TiltBoard; this only routes input, keeps history,
-## and presents.
+## All the rules live in TiltBoard. This only routes input, keeps history and presents.
 
 ## A drag this long, in viewport pixels, is a swipe.
 const SWIPE_MIN: float = 36.0
@@ -80,12 +78,11 @@ func _ready() -> void:
 	elif not kept is Dictionary and _opens_chapter() > 0:
 		ChapterCard.show_for(self, _opens_chapter())
 
-## The chapter this level is the first of, or -1.
 func _opens_chapter() -> int:
 	var chapter: int = Pack.chapter_of(level)
 	return chapter if chapter >= 0 and Pack.chapter_first(chapter) == level else -1
 
-## What a rebuild for a new theme carries over: the level as far as it has been played.
+## Appearance calls this by name when it rebuilds the screen.
 func keep() -> Dictionary:
 	return {} if finished else {"level": level, "history": history.duplicate(), "route": route.duplicate(), "board": board}
 
@@ -98,8 +95,6 @@ func _layout() -> void:
 	_view.home = Vector2(size.x * 0.5, TOP_SPACE + (size.y - TOP_SPACE - BOTTOM_SPACE - _banner_room) * 0.5)
 	if _view.board != null:
 		_view.show_board(board, _fit())
-
-# --- Input --------------------------------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
 	if (is_instance_valid(_coach) and _coach.blocks_input) or is_instance_valid(_prompt) or is_instance_valid(_replay):
@@ -141,8 +136,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("back"):
 		Screens.go(Brand.LEVELS_SCENE)
 
-## With "Tilt your phone" on, tipping the phone tilts the board too. Anything over the board holds the lean,
-## and play picks up from however the phone is held when it is gone.
+## Anything over the board holds the lean, and play picks up from however the phone is held when it is gone.
 func _process(_delta: float) -> void:
 	if not Save.phone_tilt:
 		return
@@ -153,8 +147,6 @@ func _process(_delta: float) -> void:
 	var dir: int = _phone.feed(Input.get_gravity())
 	if dir >= 0:
 		_tilt(dir)
-
-# --- Play ---------------------------------------------------------------------------------------------
 
 func _tilt(dir: int) -> void:
 	if finished or board.lost:
@@ -213,9 +205,8 @@ func _on_restart() -> void:
 	_refresh()
 	_coach_next()
 
-## Shows where every marble would go on the solver's next tilt. Waits out a roll in progress rather than
-## ignoring the tap, and always answers: a preview, or a short note saying why there is none. A hint the
-## board cannot give costs nothing; one it can goes through the hint gate, which may offer a video.
+## Waits out a roll rather than ignoring the tap. A hint the board cannot give costs nothing, so the path is
+## found before the hint gate.
 func _on_hint() -> void:
 	if finished or is_instance_valid(_prompt):
 		return
@@ -223,7 +214,6 @@ func _on_hint() -> void:
 		await get_tree().process_frame
 	if _hint_path().is_empty():
 		return
-	# The hint already given for this very board is shown again without asking twice.
 	if _hinted == board:
 		_reveal_hint()
 		return
@@ -241,7 +231,6 @@ func _reveal_hint() -> void:
 	Audio.play(&"hint", -4.0)
 	_dress_hint()
 
-## The solver's route from here, or empty with a note saying why there is none. Solved once per board.
 func _hint_path() -> PackedInt32Array:
 	if board.lost:
 		Toast.say(self, "Undo first: a marble fell in")
@@ -262,9 +251,8 @@ func _refresh() -> void:
 	_undo.disabled = history.is_empty()
 	_caption.text = "" if Coach.due(level) or finished else _tutorial()
 
-## A line of guidance on the levels that introduce something, and nothing after. The opening's slots
-## (TiltShowcase.SLOTS) place them: the second level is the first to share a hole, the third turns a corner off
-## a wall, and the fourth tempts with a tilt that costs par.
+## The captions rely on the opening's slots (TiltShowcase.SLOTS): the second level is the first to share a
+## hole, the third turns a corner off a wall, and the fourth tempts with a tilt that costs par.
 func _tutorial() -> String:
 	if level == 0:
 		return "Swipe to tilt the board"
@@ -315,10 +303,7 @@ static func _colours(b: TiltBoard) -> int:
 static func _shares_a_hole(b: TiltBoard) -> bool:
 	return b.marble_cell.size() > _colours(b)
 
-# --- Guide --------------------------------------------------------------------------------------------
-
-## Level 1's guide: the goal, where help lives, then the swipe itself on the real board. Each move is
-## shown from the solver, so the guide keeps up with whatever the player tries.
+## Each move is shown from the solver, so the guide keeps up with whatever the player tries.
 func _guide() -> void:
 	await get_tree().create_timer(0.7).timeout
 	if finished:
@@ -359,8 +344,6 @@ static func _button_light(button: Control) -> Vector3:
 	var r: Rect2 = button.get_global_rect()
 	return Vector3(r.get_center().x, r.get_center().y, r.size.x * 0.62)
 
-# --- Results ------------------------------------------------------------------------------------------
-
 func _show_won() -> void:
 	finished = true
 	if is_instance_valid(_coach):
@@ -393,7 +376,6 @@ func _show_result() -> void:
 	_sheet = Result.won(self, "Every level solved" if last else "", _earned, detail, next_text,
 		_on_finale if _ending else _on_next, _on_restart, _to_levels, _won)
 
-## The solve again from the start, at speed, then the result once more. A tap skips to the end.
 func _watch() -> void:
 	if _view.busy or not finished:
 		return
@@ -452,8 +434,6 @@ func _advance() -> void:
 func _to_levels() -> void:
 	Screens.go(Brand.LEVELS_SCENE)
 
-# --- UI -----------------------------------------------------------------------------------------------
-
 func _build_ui() -> void:
 	_ui = UI.root(self)
 	var back: IconButton = UI.icon_button(&"back", "Levels")
@@ -486,8 +466,7 @@ func _build_ui() -> void:
 	if not Coach.due(level):
 		Hud.banner(self, bar, _caption, _on_lift)
 
-## The banner's room under the bottom row: the board fits what is left. During _ready the first layout,
-## which comes after the UI is built, picks it up.
+## During _ready the first layout, which comes after the UI is built, picks the banner's room up.
 func _on_lift(lift: float) -> void:
 	_banner_room = lift
 	if is_node_ready():

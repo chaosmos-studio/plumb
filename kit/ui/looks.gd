@@ -1,18 +1,17 @@
 class_name Looks
 extends RefCounted
 
-## Other looks for the game: its own `GameLooks`, such as Plumb's marble sets or Carillon's instruments.
-## The first is the one the game was made in and always free; the rest come with the Looks pack (or the
-## Complete pack) on Google Play, and are all open in every other build, which sells nothing (Shop). A look
-## only changes what the game itself draws or plays, never the kit's colours, so light and dark still both
-## work under every look.
+## A look only changes what the game itself draws or plays, never the kit's colours, so light and dark
+## still both work under every look.
 ##
-## The kit expects from the game: `GameLooks.LOOKS`, an Array of {"id", "name"} with the free one first;
-## `GameLooks.use(id)`, which makes the next `Brand.use` paint (or the next note play) in that look;
-## `GameLooks.swatch(id)`, the colours its card shows; `GameLooks.sample(id, colour, radius)`, a node that
-## shows one of those colours as that look really draws it (a marble in its finish), or null for a plain
-## disc; `GameLooks.preview(id)`, anything a card does when tapped beyond picking, such as a few notes;
-## `GameLooks.TITLE`, `PACK`, `PACK_LINE` and `PACK_ROW`; and `Save.look` with `Save.set_look(id)`.
+## The kit expects from the game:
+## - `GameLooks.LOOKS`, an Array of {"id", "name"} with the free one first.
+## - `GameLooks.use(id)`, which makes the next `Brand.use` paint (or the next note play) in that look.
+## - `GameLooks.swatch(id)`, the colours its card shows.
+## - `GameLooks.sample(id, colour, radius)`, a node that shows one of those colours as that look really
+##   draws it (a marble in its finish), or null for a plain disc.
+## - `GameLooks.preview(id)`, anything a card does when tapped beyond picking, such as a few notes.
+## - `GameLooks.TITLE`, `PACK`, `PACK_LINE` and `PACK_ROW`, and `Save.look` with `Save.set_look(id)`.
 
 static func ids() -> PackedStringArray:
 	var out: PackedStringArray = PackedStringArray()
@@ -23,7 +22,6 @@ static func ids() -> PackedStringArray:
 static func free_id() -> String:
 	return ids()[0]
 
-## The saved look, or the free one if the save names a look this build does not have or may not use.
 static func current() -> String:
 	return Save.look if ids().has(Save.look) and is_open(Save.look) else free_id()
 
@@ -40,7 +38,6 @@ static func name_of(id: String) -> String:
 static func use_saved() -> void:
 	GameLooks.use(current())
 
-## The player's pick: saved, applied, and the screen rebuilt around it.
 static func choose(id: String, tree: SceneTree, reopen: Callable = Callable()) -> void:
 	if not is_open(id) or id == current():
 		return
@@ -49,8 +46,6 @@ static func choose(id: String, tree: SceneTree, reopen: Callable = Callable()) -
 	Appearance.apply(Save.theme)
 	await Appearance.rebuild(tree, reopen)
 
-## A card for each look, two to a row: its colours and its name, ringed when it is the one in use, with
-## a lock on any the pack has not opened. A locked card plays its preview and offers the pack.
 static func open(host: Node) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
@@ -108,7 +103,6 @@ class _Card extends BaseButton:
 			sample.modulate.a = 1.0 if open else 0.45
 			add_child(sample)
 
-	## Where the k-th of n swatches sits, centred in a row near the top of the card.
 	static func _spot(k: int, n: int) -> Vector2:
 		var width: float = n * SWATCH * 2.0 + (n - 1) * SWATCH_GAP
 		return Vector2(SIZE.x * 0.5 - width * 0.5 + SWATCH + k * (SWATCH * 2.0 + SWATCH_GAP), 3.0 + 50.0)

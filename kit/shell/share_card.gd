@@ -1,18 +1,13 @@
 class_name ShareCard
 extends Control
 
-## A card of a solved level to send to a friend: the level as it was set, the stars, the words on the win,
-## the score, and where to get the game, with a small QR code for anyone who sees the card in a story or a
-## chat, where a link cannot be tapped. It is drawn offscreen at a portrait size that suits chats and
-## stories (`render`). `send` hands it to the phone's share sheet on Android (through the FileProvider every
-## Godot app has), to the browser's share sheet or a download on the web, and saves it to the user folder
-## anywhere else. `save` keeps it in the phone's Pictures, a download on the web.
+## The QR code is for anyone who sees the card in a story or a chat, where a link cannot be tapped.
 ##
 ## The kit expects from the game: `GameShare.stage(holder, level, centre, room)`, which puts the level's
 ## board, as it starts, in `holder` (a Node2D already in the card), centred on `centre` and fitted to
-## `room`; `GameShare.LINK`, the game's web address; and `GameShare.GET`, its get link, which sends each
-## phone to the best place it has.
+## `room`. Also `GameShare.LINK`, the game's web address, and `GameShare.GET`, its get link.
 
+## A portrait size that suits chats and stories.
 const SIZE: Vector2i = Vector2i(1080, 1350)
 const MARGIN: float = 72.0
 const BOARD: Rect2 = Rect2(90.0, 220.0, 900.0, 650.0)
@@ -28,7 +23,6 @@ var earned: int = 0
 var heading: String = ""
 var _qr: PackedStringArray = PackedStringArray()
 
-## Sends a card made by `render` to the share sheet, with a line that dares the friend to match it.
 static func send(host: Node, image: Image, moment_won: Result.Moment) -> void:
 	var said: String = moment_won.summary.left(1).to_lower() + moment_won.summary.substr(1)
 	var text: String = "%s, level %d: %s. Can you match it? %s?from=share" % [Brand.NAME, moment_won.level + 1, said,
@@ -46,8 +40,6 @@ static func send(host: Node, image: Image, moment_won: Result.Moment) -> void:
 	else:
 		Toast.say(host, "Card saved to %s" % ProjectSettings.globalize_path(path))
 
-## Keeps a card made by `render`: in the phone's Pictures on Android 10 and later, through the share sheet
-## on older phones, which have no way to keep it without asking for storage, and as a download on the web.
 static func save(host: Node, image: Image, moment_won: Result.Moment) -> void:
 	var png: PackedByteArray = image.save_png_to_buffer()
 	if OS.has_feature("web"):
@@ -65,14 +57,12 @@ static func save(host: Node, image: Image, moment_won: Result.Moment) -> void:
 static func _file_name(moment_won: Result.Moment) -> String:
 	return "%s-level-%d.png" % [Brand.NAME.to_lower(), moment_won.level + 1]
 
-## The card as a PNG named `file_name` in the user folder, its path, or "" when it cannot be written.
 static func _write(image: Image, file_name: String) -> String:
 	var folder: String = "user://share"
 	DirAccess.make_dir_recursive_absolute(folder)
 	var path: String = "%s/%s" % [folder, file_name]
 	return path if image.save_png(path) == OK else ""
 
-## Draws the card offscreen and reads it back, or null where nothing is drawn (a headless run).
 static func render(host: Node, moment_won: Result.Moment, stars: int, title: String) -> Image:
 	if DisplayServer.get_name() == "headless":
 		return null
@@ -132,7 +122,6 @@ func _draw() -> void:
 		-1, 30, Brand.MUTED)
 	_code(Rect2(size.x - MARGIN - QR_SIDE, 1150.0, QR_SIDE, QR_SIDE))
 
-## The QR code to the game's get link, dark modules on a white tile with rounded corners.
 func _code(at: Rect2) -> void:
 	if _qr.is_empty():
 		return
@@ -168,7 +157,7 @@ func _star(c: Vector2, r: float, colour: Color) -> void:
 	points.append(points[0])
 	draw_polyline(points, colour, 2.0, true)
 
-## The Android share sheet for the PNG at `path`, offered through the app's FileProvider, with `text`.
+## Through the FileProvider every Godot Android app has.
 static func _android(path: String, text: String) -> bool:
 	if not Engine.has_singleton("AndroidRuntime"):
 		return false
@@ -197,7 +186,6 @@ static func _android(path: String, text: String) -> bool:
 		activity.call("startActivity", chooser)))
 	return true
 
-## The browser's share sheet where it can send files, otherwise a download.
 static func _web(png: PackedByteArray, file_name: String, text: String) -> void:
 	var can: Variant = JavaScriptBridge.eval("!!(navigator.canShare && navigator.canShare({files: [new File([new Uint8Array(1)], 'a.png', {type: 'image/png'})]}))", true)
 	if not bool(can):

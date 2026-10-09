@@ -1,19 +1,15 @@
 extends StoreBackend
 
-## Google Play billing through the Godot Foundation's plugin, loaded by Shop on Android only: every
-## product's price for the shop, each one-time product acknowledged as Play requires (it refunds one left
-## unacknowledged for three days), each key pack and tip consumed so it can be bought again, and what the
-## account owns asked again at each launch.
+## Play refunds a one-time product left unacknowledged for three days, so each is acknowledged. Key packs
+## and tips are consumed so they can be bought again.
 
 const PURCHASED: int = 1
 const PENDING: int = 2
 
 var _client: BillingClient
-## Products Play has listed, by id.
 var _listed: Dictionary = {}
 var _loud_restore: bool = false
-## Keys and tips sent to be consumed and not yet answered: their product ids by purchase token, so each
-## is counted once.
+## Product ids by purchase token, so each key pack or tip sent to be consumed is counted once.
 var _consuming: Dictionary = {}
 
 func _ready() -> void:
@@ -92,9 +88,7 @@ func _on_purchase_updated(response: Dictionary) -> void:
 		_:
 			Supporter.say("The purchase did not go through")
 
-## What Play says the account owns, at launch or from Restore. A clean answer without a product takes it
-## away again, which is how a refund reaches the game. Keys or a tip still waiting to be consumed are
-## consumed now.
+## A clean answer without a product takes it away again, which is how a refund reaches the game.
 func _on_purchases(response: Dictionary) -> void:
 	var loud: bool = _loud_restore
 	_loud_restore = false
@@ -112,8 +106,6 @@ func _on_purchases(response: Dictionary) -> void:
 	if loud:
 		Supporter.say("Purchases restored. Thank you" if found > 0 else "This Google account has no purchases here yet")
 
-## Each product's state among `purchases`: one-time products acknowledged if Play is still waiting for
-## that, keys and tips sent to be consumed. A product left out is not owned.
 func _take(purchases: Variant) -> Dictionary:
 	var states: Dictionary = {}
 	if not purchases is Array:
@@ -138,7 +130,7 @@ func _take(purchases: Variant) -> Dictionary:
 				states[id] = PENDING
 	return states
 
-## Keys or a tip used up, so they can be bought again: that is when they count.
+## Keys and tips count only once Play confirms they are consumed.
 func _on_consumed(response: Dictionary) -> void:
 	var token: String = String(response.get("purchase_token", ""))
 	var id: String = String(_consuming.get(token, ""))

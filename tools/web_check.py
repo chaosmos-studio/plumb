@@ -1,9 +1,7 @@
-"""Plays the live web build with real mouse events over the DevTools protocol: Play, a downward swipe
-(level 1's one-move solution), then Next level, screenshotting after each step.
-
-Run: python3 tools/web_check.py [out_dir] [url]   (needs Google Chrome and websocket-client)
-The headless Chrome screenshot only proves the page boots; this proves input, a solve and the result card
-all work in the browser. Run it inside a capped scope, since Chrome can use a lot of memory.
+"""Run: python3 tools/web_check.py [out_dir] [url]   (needs Google Chrome and websocket-client)
+The headless Chrome screenshot only proves the page boots. This proves input, a solve and the result card
+all work in the browser. The downward swipe is level 1's one-move solution. Run it inside a capped scope,
+since Chrome can use a lot of memory.
 """
 import base64, json, os, subprocess, sys, time, urllib.request
 import websocket

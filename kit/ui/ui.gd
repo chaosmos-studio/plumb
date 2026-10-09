@@ -1,10 +1,6 @@
 class_name UI
 extends RefCounted
 
-## The shared look: two weights of one geometric face, flat pills with soft shadows, and helpers that
-## every screen builds from. Colours and fonts come from the game's `Brand`, so the same kit dresses a
-## warm paper game and a night-sky one.
-##
 ## The kit expects the game to provide: a `Brand` class (names, a light and a dark palette, fonts and
 ## scene paths, as in any game's brand.gd), a `GameCredits` class (credits.gd), a `GameMonetize` class
 ## (monetize.gd, the ad and product ids: see kit/monetize/ads.gd for the rest of what ads need), and the
@@ -12,7 +8,6 @@ extends RefCounted
 
 enum Style { PRIMARY, SECONDARY, GHOST }
 
-## Press feedback: how far a pill sinks and how long it takes to come back.
 const PRESS_SCALE: float = 0.965
 const PRESS_TIME: float = 0.08
 const RELEASE_TIME: float = 0.22
@@ -36,7 +31,6 @@ static func ui_font() -> Font:
 		_ui = load(Brand.FONT_UI)
 	return _ui
 
-## The UI face with extra tracking, for small upper-case labels.
 static func caption_font() -> FontVariation:
 	if _caption == null:
 		_caption = FontVariation.new()
@@ -71,7 +65,6 @@ static func theme() -> Theme:
 	_theme = t
 	return t
 
-## Forgets the built theme, so the next screen builds one from the current palette.
 static func reset_theme() -> void:
 	_theme = null
 
@@ -113,8 +106,6 @@ static func _pill(state: String, style: Style) -> StyleBoxFlat:
 			box.shadow_size = 0
 	return box
 
-# --- Text ---------------------------------------------------------------------------------------------
-
 static func label(text: String, size: int = 32, colour: Color = Brand.INK) -> Label:
 	var l: Label = Label.new()
 	l.text = text
@@ -125,19 +116,15 @@ static func label(text: String, size: int = 32, colour: Color = Brand.INK) -> La
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
 
-## Large text in the light display weight: wordmarks, screen titles, results.
 static func title(text: String, size: int, colour: Color = Brand.INK) -> Label:
 	var l: Label = label(text, size, colour)
 	l.add_theme_font_override("font", display_font())
 	return l
 
-## Small, spaced, upper-case: section names and labels above numbers.
 static func caption(text: String, size: int = 22, colour: Color = Brand.MUTED) -> Label:
 	var l: Label = label(text.to_upper(), size, colour)
 	l.add_theme_font_override("font", caption_font())
 	return l
-
-# --- Buttons ------------------------------------------------------------------------------------------
 
 static func button(text: String, style: Style = Style.SECONDARY) -> Button:
 	var b: Button = Button.new()
@@ -161,7 +148,6 @@ static func icon_button(icon: StringName, label_text: String = "") -> IconButton
 	b.tooltip_text = label_text
 	return b
 
-## A round icon button named underneath, for a row of quiet actions.
 static func action(icon: StringName, text: String, run: Callable, side: float = 88.0) -> VBoxContainer:
 	var column: VBoxContainer = VBoxContainer.new()
 	column.add_theme_constant_override("separation", 6)
@@ -173,7 +159,6 @@ static func action(icon: StringName, text: String, run: Callable, side: float = 
 	column.add_child(caption(text, 18))
 	return column
 
-## A small sink on press and a spring back, plus a haptic tick. What makes a flat button feel physical.
 static func press_feedback(control: Control) -> void:
 	control.resized.connect(func() -> void: control.pivot_offset = control.size * 0.5)
 	var base: BaseButton = control as BaseButton
@@ -186,9 +171,6 @@ static func press_feedback(control: Control) -> void:
 		control.create_tween().tween_property(control, "scale", Vector2.ONE, RELEASE_TIME) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT))
 
-# --- Layout -------------------------------------------------------------------------------------------
-
-## A screen-sized root Control with the theme applied, inside its own CanvasLayer.
 static func root(owner: Node, layer: int = 1) -> Control:
 	var canvas: CanvasLayer = CanvasLayer.new()
 	canvas.layer = layer
@@ -200,8 +182,8 @@ static func root(owner: Node, layer: int = 1) -> Control:
 	canvas.add_child(r)
 	return r
 
-## Margins that keep controls clear of notches and rounded corners, in viewport units. Only phones
-## report a meaningful safe area; on desktop and web the screen's safe area is not the window's.
+## In viewport units. Only phones report a meaningful safe area: on desktop and web the screen's safe
+## area is not the window's.
 static func safe_margins(viewport: Viewport) -> Dictionary:
 	var out: Dictionary = {"top": 0.0, "bottom": 0.0, "left": 0.0, "right": 0.0}
 	if not OS.has_feature("mobile"):
@@ -218,7 +200,6 @@ static func safe_margins(viewport: Viewport) -> Dictionary:
 	out["right"] = (screen.x - safe.end.x) * k.x
 	return out
 
-## The game's icon with the rounded corners a phone gives it, so it sits well on either theme.
 static func app_icon(px: float) -> TextureRect:
 	var rect: TextureRect = TextureRect.new()
 	rect.texture = icon_texture()
@@ -253,7 +234,6 @@ static func rounded(texture: Texture2D) -> ImageTexture:
 			img.set_pixel(x, y, Color(c, c.a * inside))
 	return ImageTexture.create_from_image(img)
 
-## The raised card that opens something: Settings' pickers and the studio's other games.
 static func card_box(fill: Color) -> StyleBoxFlat:
 	var box: StyleBoxFlat = StyleBoxFlat.new()
 	box.bg_color = fill
@@ -266,7 +246,6 @@ static func card_box(fill: Color) -> StyleBoxFlat:
 	box.anti_aliasing = true
 	return box
 
-## A Button styled as a card, for content laid out inside it.
 static func card(min_size: Vector2) -> Button:
 	var b: Button = Button.new()
 	b.theme_type_variation = "SecondaryButton"

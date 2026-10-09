@@ -1,13 +1,10 @@
 class_name ChapterStyle
 extends RefCounted
 
-## Each chapter's own colour and pattern, so turning a page of the level grid feels like arriving somewhere
-## new, and the card that opens a chapter in play wears the same. The hues are spread evenly round the
-## circle, one per chapter, starting at the game's accent, and visited by a stride of about a third of a
-## turn that shares no factor with the number of chapters: every chapter gets a hue of its own and the
-## next one is always far off. Lightness and chroma are held in a band that reads on the theme's
-## background and on its cards. The pattern is one of a dozen motifs, turned and spaced for the chapter,
-## drawn faint behind the grid. A game without chapters gets the same per page of the grid.
+## The hues are spread evenly round the circle from the game's accent and visited by a stride that shares
+## no factor with the number of chapters, so every chapter gets a hue of its own and the next one is
+## always far off. Lightness and chroma are held in a band that reads on the theme's background and on
+## its cards.
 
 ## The share of a turn the stride between chapters comes closest to.
 const STRIDE: float = 0.3
@@ -16,7 +13,6 @@ const STROKE: float = 3.0
 
 enum Motif { DOTS, RINGS, WAVES, STRIPES, CROSSES, TRIANGLES, HEXES, ZIGZAG, SPARKS, SCALES, DIAMONDS, PETALS }
 
-## The chapter's colour in the theme in use.
 static func tint(chapter: int) -> Color:
 	var accent: Color = Brand.ACCENT
 	var n: int = count()
@@ -25,12 +21,9 @@ static func tint(chapter: int) -> Color:
 	var light: float = clampf(accent.ok_hsl_l, 0.7, 0.78) if Appearance.dark else clampf(accent.ok_hsl_l, 0.46, 0.52)
 	return Color.from_ok_hsl(hue, chroma, light)
 
-## The chapters, or for a game without them the pages of the level grid.
 static func count() -> int:
 	return Pack.chapters.size() if not Pack.chapters.is_empty() else maxi(1, ceili(Pack.count() / float(PER_PAGE)))
 
-## The step round `n` evenly spread hues: the one nearest STRIDE of a turn that shares no factor with `n`,
-## so stepping by it visits every hue once before coming back.
 static func stride(n: int) -> int:
 	var best: int = 1
 	for k: int in range(1, n):
@@ -48,7 +41,6 @@ static func _coprime(a: int, b: int) -> bool:
 static func motif(chapter: int) -> Motif:
 	return (chapter % Motif.size()) as Motif
 
-## Covers `rect` of `ci` with the chapter's motif in `colour`, turned and spaced for the chapter.
 static func pattern(ci: CanvasItem, chapter: int, rect: Rect2, colour: Color) -> void:
 	var kind: Motif = motif(chapter)
 	var step: float = 78.0 + float((chapter * 7) % 4) * 10.0
@@ -67,7 +59,6 @@ static func pattern(ci: CanvasItem, chapter: int, rect: Rect2, colour: Color) ->
 					_glyph(ci, kind, Vector2(col * step + shift, y), step * 0.2, colour)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
-## The chapter's motif once, about `size` across, as its emblem.
 static func emblem(ci: CanvasItem, chapter: int, centre: Vector2, size: float, colour: Color) -> void:
 	var kind: Motif = motif(chapter)
 	match kind:
@@ -77,7 +68,6 @@ static func emblem(ci: CanvasItem, chapter: int, centre: Vector2, size: float, c
 		_:
 			_glyph(ci, kind, centre, size * 0.4, colour)
 
-## One mark of the pattern around `p`, `u` its unit of size.
 static func _glyph(ci: CanvasItem, kind: Motif, p: Vector2, u: float, colour: Color) -> void:
 	match kind:
 		Motif.DOTS:
@@ -106,7 +96,6 @@ static func _glyph(ci: CanvasItem, kind: Motif, p: Vector2, u: float, colour: Co
 				var a2: float = -PI * 0.5 + k * TAU / 5.0
 				ci.draw_circle(p + Vector2(cos(a2), sin(a2)) * u * 0.55, u * 0.2, colour, true, -1.0, true)
 
-## A pattern that runs as lines: a wave, a zigzag or a pair of stripes from `from`, `length` long.
 static func _line(ci: CanvasItem, kind: Motif, from: Vector2, length: float, step: float, colour: Color) -> void:
 	var points: PackedVector2Array = PackedVector2Array()
 	match kind:
@@ -125,7 +114,6 @@ static func _line(ci: CanvasItem, kind: Motif, from: Vector2, length: float, ste
 			points.append(from + Vector2(length, 0.0))
 	ci.draw_polyline(points, colour, STROKE, true)
 
-## A closed regular polygon of `sides` around `p`.
 static func _ring(p: Vector2, r: float, sides: int, turn: float) -> PackedVector2Array:
 	var out: PackedVector2Array = PackedVector2Array()
 	for k: int in range(sides + 1):
@@ -133,7 +121,6 @@ static func _ring(p: Vector2, r: float, sides: int, turn: float) -> PackedVector
 		out.append(p + Vector2(cos(a), sin(a)) * r)
 	return out
 
-## The chapter's ground for a whole screen: a wash of its colour from the top, and its pattern, faint.
 class Ground extends Control:
 	const WASH: float = 0.14
 	const PATTERN: float = 0.07

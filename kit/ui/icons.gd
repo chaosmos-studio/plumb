@@ -1,9 +1,8 @@
 class_name Icons
 extends RefCounted
 
-## Line icons drawn with canvas calls: crisp at every size, recoloured for free, and no image files.
-## Every icon fits a square of side `s` around `c`, drawn with stroke `w`. Round caps come from a dot at
-## each end of a stroke, which is all a line icon needs to look finished.
+## Drawn with canvas calls, so icons stay crisp at every size and recolour for free. Every icon fits a
+## square of side `s` around `c`, drawn with stroke `w`.
 
 const NAMES: Array[StringName] = [&"back", &"close", &"next", &"undo", &"restart", &"hint", &"settings",
 	&"sound", &"sound_off", &"music", &"music_off", &"haptics", &"haptics_off", &"theme", &"play", &"levels",
@@ -32,8 +31,7 @@ static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour:
 			_stroke(ci, pts, colour, w)
 			_stroke(ci, [c + Vector2(-0.12, -0.24) * s, c + Vector2(-0.24, -0.12) * s, c + Vector2(-0.12, 0.0) * s], colour, w)
 		&"restart":
-			# A ring run anticlockwise from just left of the top round to the upper right. The head sits on a
-			# short straight past the ring's end, so its wings stay clear of the curve.
+			# The head sits on a short straight past the ring's end, so its wings stay clear of the curve.
 			var r2: float = 0.23 * s
 			var end: float = deg_to_rad(-30.0)
 			var arc: Array[Vector2] = []
@@ -121,12 +119,10 @@ static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour:
 				outline.append(c + Vector2(hx, -hy - 2.5) * (0.0155 * s))
 			_stroke(ci, outline, colour, w)
 		&"shop":
-			# A shopping bag: a body that widens a little toward the bottom, and a handle over it.
 			_stroke(ci, [c + Vector2(-0.2, -0.1) * s, c + Vector2(0.2, -0.1) * s, c + Vector2(0.24, 0.26) * s,
 				c + Vector2(-0.24, 0.26) * s, c + Vector2(-0.2, -0.1) * s], colour, w)
 			ci.draw_arc(c + Vector2(0, -0.1) * s, 0.11 * s, PI, TAU, 16, colour, w, true)
 		&"share":
-			# Three nodes joined: the sign every phone uses for sending something on.
 			var hub: Vector2 = c + Vector2(-0.16, 0.0) * s
 			var top: Vector2 = c + Vector2(0.16, -0.19) * s
 			var low: Vector2 = c + Vector2(0.16, 0.19) * s
@@ -134,7 +130,6 @@ static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour:
 			for node: Vector2 in [hub, top, low]:
 				ci.draw_circle(node, 0.085 * s, colour, true, -1.0, true)
 		&"watch":
-			# Fast forward: two arrowheads running right.
 			for k: int in range(2):
 				var x: float = -0.25 + 0.24 * k
 				_fill(ci, PackedVector2Array([c + Vector2(x, -0.2) * s, c + Vector2(x + 0.24, 0.0) * s,
@@ -146,7 +141,6 @@ static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour:
 			_stroke(ci, [c + Vector2(0.2, 0.0) * s, c + Vector2(0.2, 0.11) * s], colour, w)
 			_stroke(ci, [c + Vector2(0.29, 0.0) * s, c + Vector2(0.29, 0.08) * s], colour, w)
 		&"palette":
-			# A painter's palette: a round board with a thumb notch and three dabs of paint.
 			var rim: Array[Vector2] = []
 			for k: int in range(29):
 				var a4: float = deg_to_rad(35.0 + 300.0 * k / 28.0)
@@ -166,17 +160,14 @@ static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour:
 			ci.draw_circle(c + Vector2(0, -0.13) * s, w * 0.75, colour, true, -1.0, true)
 			_stroke(ci, [c + Vector2(0, -0.02) * s, c + Vector2(0, 0.15) * s], colour, w)
 		&"looks":
-			# A marble: a ball with a highlight, for a game's set of looks.
 			ci.draw_arc(c, 0.25 * s, 0.0, TAU, 40, colour, w, true)
 			ci.draw_arc(c, 0.14 * s, deg_to_rad(195.0), deg_to_rad(265.0), 12, colour, w, true)
 		&"save":
-			# Down into a tray: keep a copy.
 			_stroke(ci, [c + Vector2(0, -0.27) * s, c + Vector2(0, 0.07) * s], colour, w)
 			_stroke(ci, [c + Vector2(-0.12, -0.05) * s, c + Vector2(0, 0.07) * s, c + Vector2(0.12, -0.05) * s], colour, w)
 			_stroke(ci, [c + Vector2(-0.25, 0.08) * s, c + Vector2(-0.25, 0.25) * s, c + Vector2(0.25, 0.25) * s,
 				c + Vector2(0.25, 0.08) * s], colour, w)
 		&"tilt":
-			# A phone leaning to one side, under the arrow of the swing that tipped it.
 			var lean: Transform2D = Transform2D(0.38, c + Vector2(0.09, 0.13) * s)
 			var body: Array[Vector2] = []
 			for corner: Vector2 in [Vector2(-0.12, -0.2), Vector2(0.12, -0.2), Vector2(0.12, 0.2), Vector2(-0.12, 0.2),
@@ -193,7 +184,6 @@ static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour:
 			var out: Vector2 = Vector2(-along.y, along.x)
 			_stroke(ci, [tip - along * 0.1 * s + out * 0.07 * s, tip, tip - along * 0.1 * s - out * 0.07 * s], colour, w)
 		&"people":
-			# Two people side by side, for the credits.
 			for side3: float in [-1.0, 1.0]:
 				var head: Vector2 = c + Vector2(side3 * 0.13, -0.12) * s
 				ci.draw_arc(head, 0.08 * s, 0.0, TAU, 20, colour, w, true)

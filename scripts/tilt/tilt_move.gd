@@ -1,9 +1,6 @@
 class_name TiltMove
 extends RefCounted
 
-## What one tilt did, in the order the animation needs it: which marbles moved on each step and where
-## each one landed, and when each one dropped into a hole or a pit or did anything else on the way.
-
 var dir: int = 0
 ## One entry per step: the marbles that advanced one cell on that step.
 var steps: Array[Array] = []

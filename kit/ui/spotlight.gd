@@ -1,8 +1,7 @@
 class_name Spotlight
 extends ColorRect
 
-## A hint that cannot be missed: everything dims except soft circles around the answer. It never takes
-## input, so the player taps the lit thing directly, and the game clears it when they act.
+## It never takes input, so the player taps the lit thing directly, and the game clears it when they act.
 
 const FADE_IN: float = 0.28
 const FADE_OUT: float = 0.2

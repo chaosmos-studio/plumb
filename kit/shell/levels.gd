@@ -1,19 +1,11 @@
 extends Node2D
 
-## The level grid, shared by every game in the kit: a page per chapter, named above the grid with how far
-## along it is, for a game whose level file has chapters, otherwise twenty tiles to a page. Each page wears
-## its chapter's colour and pattern (ChapterStyle). Swipe or tap the chevrons to turn pages, and the page
-## holding the next level to play opens first. A locked tile says how it opens, and on Google Play offers
-## to open it now (Unlocks). On Android, once a few levels are solved, a banner sits at the foot of this
-## screen, as it does under the play screen, and the pager lifts clear of it.
-
 const PER_PAGE: int = 20
 const COLUMNS: int = 4
 const SWIPE: float = 70.0
-## Room under the pager with no banner, and the least room between the pager and a banner, so no tap
-## meant for a chevron lands on the ad.
 const PAGER_FLOOR: float = 54.0
 const HEADING_HEIGHT: float = 72.0
+## The least room between the pager and a banner, so no tap meant for a chevron lands on the ad.
 const BANNER_GAP: float = 32.0
 const GRID_GAP: float = 20.0
 const LIFT_TIME: float = 0.28
@@ -27,7 +19,6 @@ var _next: IconButton
 var _drag_from: Vector2 = Vector2(-1.0, -1.0)
 ## Set when a swipe turns the page, so the tile the finger lifted on is not opened as well.
 var _swiped: bool = false
-## The page's chapter, shown above the grid when the game has chapters.
 var _chapter_number: Label
 var _chapter_name: Label
 var _pager: HBoxContainer
@@ -125,13 +116,11 @@ func _leave(path: String) -> void:
 	Ads.hide_banner()
 	Screens.go(path)
 
-## Sets the pager `from_bottom` above the foot of the screen, and the grid centred in the room above it.
 func _place(from_bottom: float) -> void:
 	_pager.offset_bottom = -from_bottom
 	_pager.offset_top = _pager.offset_bottom - IconButton.SIZE
 	_centre.offset_bottom = _pager.offset_top - GRID_GAP
 
-## The banner's height in design pixels, 0 when it goes: the pager and grid move up clear of it, or back.
 ## A banner already loaded when the screen opens is in place from the first frame.
 func _lift(height: float) -> void:
 	var target: float = maxf(_floor, _safe_bottom + height + BANNER_GAP) if height > 0.0 else _floor
@@ -149,7 +138,6 @@ func _star_chip() -> Control:
 	chip.add_child(UI.label(str(Save.total_stars()), 30, Brand.MUTED))
 	return chip
 
-## A game with chapters (Pack.chapters) gets a page per chapter, named; one without, pages of PER_PAGE.
 func _pages() -> int:
 	if not Pack.chapters.is_empty():
 		return Pack.chapters.size()
@@ -163,7 +151,6 @@ func _page_end(page: int) -> int:
 		return mini(Pack.count(), _page_first(page) + int(Pack.chapters[page]["count"]))
 	return mini(Pack.count(), (page + 1) * PER_PAGE)
 
-## The page holding `level`, the last page for a level past the end.
 func _page_of(level: int) -> int:
 	if Pack.chapters.is_empty():
 		@warning_ignore("integer_division")
@@ -172,7 +159,7 @@ func _page_of(level: int) -> int:
 	return chapter if chapter >= 0 else Pack.chapters.size() - 1
 
 ## Swipes are read before the GUI, since nearly all of the grid is tiles, which would keep the touch for
-## themselves. A sideways swipe anywhere on the grid turns the page.
+## themselves.
 func _input(event: InputEvent) -> void:
 	if not event is InputEventScreenTouch or (event as InputEventScreenTouch).index != 0 or Sheet.any_open():
 		return
@@ -189,8 +176,7 @@ func _input(event: InputEvent) -> void:
 		_swiped = true
 		_show(_page + (1 if moved.x < 0.0 else -1), 1 if moved.x < 0.0 else -1)
 
-## Shows a page; `from` slides the grid in from the right (1), the left (-1) or not at all (0). `again`
-## rebuilds the page in place.
+## `from` slides the grid in from the right (1), the left (-1) or not at all (0).
 func _show(page: int, from: int, again: bool = false) -> void:
 	var target: int = clampi(page, 0, _pages() - 1)
 	if target == _page and _grid.get_child_count() > 0 and not again:
@@ -227,8 +213,6 @@ func _show(page: int, from: int, again: bool = false) -> void:
 		t.tween_property(_grid, "modulate:a", 1.0, 0.2)
 		t.tween_property(_grid, "position:x", _grid.position.x - 60.0 * from, 0.26).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
-## The line over a chapter's name: its number, then how many of its levels are solved, or while its first
-## level is still shut, what opens it.
 func _standing(chapter: int) -> String:
 	var number: String = "Chapter %d" % (chapter + 1)
 	var first: int = _page_first(chapter)
@@ -242,9 +226,6 @@ func _standing(chapter: int) -> String:
 		solved += 1 if Save.best(i) > 0 else 0
 	return "%s   %d of %d solved" % [number, solved, _page_end(chapter) - first]
 
-## Dots under the grid, one per page, the current one filled in its chapter's colour. With more pages than
-## fit, a window of them slides along with the current page, and a smaller dot at either end says there are
-## more beyond.
 class _PageDots extends Control:
 	const SHOWN: int = 9
 	const GAP: float = 26.0

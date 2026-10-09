@@ -1,13 +1,6 @@
 class_name Snapshot
 extends Control
 
-## The share card, caught like a screenshot the moment a level is won: a flash and a shutter, the card
-## filling the screen for a beat, then the win sheet rising as the card shrinks to a tilted print above it,
-## with Share and Save beside it and a close mark on its corner. Share and Save send or keep the card
-## (ShareCard). It lives on the win sheet, so it goes when the sheet does. When the sheet comes back after a
-## replay, the same print is simply there again. Nothing is written to the phone unless the player shares
-## or saves.
-
 const WIDTH: float = 300.0
 const FRAME: float = 12.0
 const TILT: float = -4.0
@@ -23,12 +16,10 @@ var moment: Result.Moment
 var _print: _Print
 var _actions: PanelContainer
 
-## Whether a card can be drawn here: not in a headless run.
 static func can_take() -> bool:
 	return DisplayServer.get_name() != "headless"
 
-## Makes the card for the win, once, and catches it over `sheet`, which the first time waits held for it.
-## Without a card (a headless run) the sheet simply rises.
+## The first time, `sheet` waits held for the card, so it must rise even when there is none.
 static func take(host: Node, sheet: Sheet, won: Result.Moment, stars: int, heading: String) -> void:
 	var first: bool = won.card == null
 	if first:
@@ -52,8 +43,6 @@ func _init() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-## The print in its place above `sheet`, then its buttons. When `caught`, a flash and the card filling the
-## screen, then the sheet rising as the card flies to its place; otherwise the print just settles in.
 func land(sheet: Sheet, caught: bool = true) -> void:
 	var view: Vector2 = get_viewport_rect().size
 	var top: float = Hud.TOP + float(UI.safe_margins(get_viewport())["top"]) + IconButton.SIZE + 12.0
@@ -138,8 +127,7 @@ func _dismiss() -> void:
 	t.tween_property(_print, "scale", Vector2(0.85, 0.85), 0.18)
 	t.chain().tween_callback(queue_free)
 
-## The card as a print: a border in the theme's surface colour with a hairline edge, so it sits in a dark
-## theme as well as a light one, a soft shadow, and the card inside.
+## The hairline edge lets the print sit in a dark theme as well as a light one.
 class _Print extends Control:
 	var _texture: Texture2D
 

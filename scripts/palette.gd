@@ -1,10 +1,8 @@
 class_name Palette
 extends RefCounted
 
-## Every colour on the board, in one place: warm paper, a slate that reads as solid, and four marble
-## colours chosen to stay distinct for the common kinds of colour blindness when paired with the hole
-## rings' positions. At dusk the paper darkens and the walls turn lighter than the floor, so walls,
-## floor and pits still read as three different heights.
+## The four marble colours stay distinct for the common kinds of colour blindness. In the dark palette the
+## walls are lighter than the floor, so walls, floor and pits still read as three different heights.
 
 const LIGHT: Dictionary = {
 	"tray": Color("e2d8c8"),
@@ -60,10 +58,7 @@ static func use(dark: bool) -> void:
 	STONE = p["stone"]
 	MARBLES.assign(GameLooks.marbles(dark, p["marbles"]))
 
-## The board in a colour theme (Themes), from its background, surface and ink: the tray a shade off the
-## background, the floor its surface, walls the ink let down toward the background (lighter than the floor
-## by night, darker by day, as in the game's own palettes), holes and pits deeper still. Marbles keep the
-## marble set's colours.
+## Walls are lighter than the floor by night and darker by day, as in the game's own palettes.
 static func use_theme(t: Dictionary, dark: bool) -> void:
 	use(dark)
 	var bg: Color = t["bg"]

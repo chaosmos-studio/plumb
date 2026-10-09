@@ -1,13 +1,10 @@
 class_name Studio
 extends RefCounted
 
-## The studio's games, for each game's More from Chaosmos sheet. The same list ships in every game, and
-## each leaves itself out by its Brand.NAME. A game on Google Play links to the others' Play pages, and a
-## game on the web to their browser versions.
+## The same list ships in every game, and each leaves itself out by its Brand.NAME.
 
 const NAME: String = "Chaosmos"
-## Every game on one page of the studio's site, kept free of sponsor links so a Google Play build may lead
-## there.
+## Kept free of sponsor links, so a Google Play build may lead there.
 const GAMES_PAGE: String = "https://chaosmos.studio/games/"
 
 const GAMES: Array[Dictionary] = [
@@ -34,7 +31,6 @@ const GAMES: Array[Dictionary] = [
 	},
 ]
 
-## Every game but this one, in the studio's order.
 static func others() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for game: Dictionary in GAMES:
@@ -42,6 +38,5 @@ static func others() -> Array[Dictionary]:
 			out.append(game)
 	return out
 
-## Where a tap on `game` leads from this build.
 static func link(game: Dictionary) -> String:
 	return String(game["store"] if Supporter.on_play else game["web"])

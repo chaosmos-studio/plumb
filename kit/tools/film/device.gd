@@ -1,10 +1,6 @@
 class_name Device
 extends Control
 
-## A phone around the game, for landscape films, shaped like a current handset: a 19.5:9 screen, thin
-## even bezels, a punch-hole camera, side keys and a hint of glass. The game is laid out for that screen
-## shape, so what is inside is exactly what a player on such a phone sees.
-
 ## Screen height over width.
 const ASPECT: float = 19.5 / 9.0
 ## Bezel and corner radius as fractions of the body's width.
@@ -16,7 +12,7 @@ var _screen: TextureRect
 var _glass: _Glass
 var _shader: Shader
 
-## The body's size for a given height, so a film can place the phone before it is built.
+## Static so a film can place the phone before it is built.
 static func body_for_height(h: float) -> Vector2:
 	return Vector2(h / (ASPECT * (1.0 - 2.0 * BEZEL) + 2.0 * BEZEL), h)
 
@@ -51,7 +47,6 @@ func _ready() -> void:
 	resized.connect(_layout)
 	_layout()
 
-## The screen, for mapping a point in the game onto the film.
 func screen() -> TextureRect:
 	return _screen
 
@@ -73,7 +68,7 @@ func _draw() -> void:
 	var dark: bool = Brand.INK.get_luminance() > 0.6
 	var body_colour: Color = Color("1a1c22") if not dark else Color("252a44")
 	var edge: Color = Color("5b5f6b") if not dark else Color("6d76a8")
-	# Side keys first, so the body covers their inner edge: power on the right, volume on the left.
+	# Side keys first, so the body covers their inner edge.
 	var key: Color = edge.darkened(0.25)
 	draw_rect(Rect2(w - 2.0, size.y * 0.22, 5.0, size.y * 0.09), key)
 	draw_rect(Rect2(-3.0, size.y * 0.18, 5.0, size.y * 0.06), key)
@@ -90,7 +85,6 @@ func _draw() -> void:
 	body.anti_aliasing = true
 	draw_style_box(body, Rect2(Vector2.ZERO, size))
 
-## What sits on top of the screen: the camera hole and a faint diagonal sheen across the glass.
 class _Glass extends Control:
 	var radius: float = 40.0
 

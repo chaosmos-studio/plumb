@@ -1,10 +1,8 @@
 class_name Coach
 extends CanvasLayer
 
-## The first level's guide. The screen dims a little except where to look, a ghost finger shows the
-## gesture, and a card says what to do. A step that asks for a move lets the move through to the game,
-## which calls the next step once it has happened; a step that only explains waits for a tap. Skip ends
-## it at any point, and Settings plays it again.
+## A step that asks for a move lets the move through to the game, which calls the next step once it has
+## happened. A step that only explains waits for a tap.
 
 signal advanced
 signal closed(completed: bool)
@@ -25,7 +23,6 @@ static var enabled: bool = true
 static var requested: bool = false
 
 var done: bool = false
-## True while a step waits for a tap.
 var waiting: bool:
 	get:
 		return _waiting
@@ -47,11 +44,9 @@ var _serial: int = 0
 var _waiting: bool = false
 var _tapped_at: int = -1
 
-## Whether this level should open with the guide.
 static func due(level: int) -> bool:
 	return enabled and level == 0 and (requested or not Save.tutorial_seen)
 
-## Level 1 with the guide, from any screen.
 static func replay() -> void:
 	requested = true
 	Pack.current = 0
@@ -94,9 +89,9 @@ func _ready() -> void:
 	_scrim.resized.connect(func() -> void: (_scrim.material as ShaderMaterial).set_shader_parameter("rect_size", _scrim.size))
 	(_scrim.material as ShaderMaterial).set_shader_parameter("rect_size", _scrim.size)
 
-## Shows one step. `holes` are the places to look, Vector3(x, y, radius) in viewport coordinates, as for
-## Spotlight. `gesture` is &"tap" at `from`, &"swipe" from `from` to `to`, or none. With `wait_tap` the
-## call returns once the player taps; otherwise it returns as soon as the step is showing.
+## `holes` are the places to look, Vector3(x, y, radius) in viewport coordinates, as for Spotlight.
+## `gesture` is &"tap" at `from`, &"swipe" from `from` to `to`, or none. With `wait_tap` the call returns
+## once the player taps, otherwise as soon as the step is showing.
 func step(text: String, holes: Array[Vector3] = [], gesture: StringName = &"", from: Vector2 = Vector2.ZERO,
 		to: Vector2 = Vector2.ZERO, wait_tap: bool = false) -> void:
 	if done:
@@ -126,7 +121,6 @@ func step(text: String, holes: Array[Vector3] = [], gesture: StringName = &"", f
 		await advanced
 		_waiting = false
 
-## The player got there: the guide fades away.
 func finish() -> void:
 	_close(true)
 
@@ -175,8 +169,6 @@ func _light(holes: Array[Vector3]) -> void:
 	if float(m.get_shader_parameter("strength")) < 1.0:
 		create_tween().tween_method(_strength, float(m.get_shader_parameter("strength")), 1.0, Spotlight.FADE_IN)
 
-## Puts the card beside what is lit, on whichever side has more room. When the lit places are spread
-## over the whole screen, as for buttons at the top and the bottom, it sits in the middle between them.
 func _place(holes: Array[Vector3]) -> void:
 	var view: Vector2 = _root.get_viewport_rect().size
 	var safe: Dictionary = UI.safe_margins(_root.get_viewport())
@@ -252,7 +244,7 @@ func _build_card() -> PanelContainer:
 	foot.add_child(skip)
 	return card
 
-## A soft ring breathing around each lit place, so what to look at stands out on either theme.
+## Rings each lit place, so what to look at stands out on either theme.
 class _Halo extends Node2D:
 	var holes: Array[Vector3] = []
 	var _t: float = 0.0
@@ -274,8 +266,6 @@ class _Halo extends Node2D:
 		for h: Vector3 in holes:
 			draw_arc(Vector2(h.x, h.y), h.z + 4.0 + 5.0 * breath, 0.0, TAU, 72, Color(pale, (0.3 + 0.25 * breath) * fade), 3.0, true)
 
-## A soft ghost of a fingertip, pressing for a tap and gliding for a swipe, on a loop until the step
-## changes.
 class _Finger extends Node2D:
 	const RADIUS: float = 34.0
 	const TAP_CYCLE: float = 1.5
@@ -298,7 +288,6 @@ class _Finger extends Node2D:
 		_t += delta
 		queue_redraw()
 
-	## A fingertip is pale on either theme: the surface colour in light, the ink colour in dark.
 	func _pale() -> Color:
 		return Brand.INK if Appearance.dark else Brand.SURFACE
 

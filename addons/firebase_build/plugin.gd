@@ -1,11 +1,7 @@
 @tool
 extends EditorPlugin
 
-## What the godotx_firebase plugin leaves to be done by hand in each Android build: Google's services Gradle
-## plugin, which turns google-services.json into the resources Firebase reads at start, applied to the
-## installed build template, Analytics told to leave screens and device ids alone, and its ad attribution
-## permissions removed. It acts only when the project has a google-services.json, so a game without one
-## builds as before.
+## Does what the godotx_firebase plugin leaves to be done by hand in each Android build.
 
 var _export: _FirebaseBuild
 
@@ -43,7 +39,7 @@ class _FirebaseBuild extends EditorExportPlugin:
 		return platform is EditorExportPlatformAndroid
 
 	# Runs after --install-android-build-template has unpacked the template and before Gradle starts, so a
-	# fresh template is patched on its first build. A patched one is left alone.
+	# fresh template is patched on its first build.
 	func _export_begin(features: PackedStringArray, _is_debug: bool, _path: String, _flags: int) -> void:
 		if not features.has("android") or not FileAccess.file_exists(CONFIG) or not FileAccess.file_exists(GRADLE):
 			return

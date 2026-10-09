@@ -1,9 +1,6 @@
 class_name Hud
 extends RefCounted
 
-## The play screen's frame, the same in every game: a top bar (left action, the level, right action)
-## and a bottom row of actions, both kept clear of notches.
-
 const SIDE: float = 32.0
 const TOP: float = 40.0
 const BOTTOM_LIFT: float = 64.0
@@ -41,14 +38,11 @@ static func bottom(ui: Control, controls: Array[Control], separation: int = 44) 
 		row.add_child(c)
 	return row
 
-## How much higher the bottom row, the caption and the board's floor must sit for a banner `height`
-## design pixels tall (Ads.show_banner's callback), and 0 with none.
 static func banner_lift(height: float) -> float:
 	return maxf(0.0, height + BANNER_GAP - BOTTOM_LIFT) if height > 0.0 else 0.0
 
-## The banner under a play screen, once AdPacing says one is due: the bottom row and the caption lift clear
-## of it, and `on_lift` hears the lift so the board can fit the room left. The room is held from the first
-## frame, so the board does not move when the ad loads, and the banner goes with the screen.
+## `on_lift` hears the lift so the board can fit the room left. The room is held from the first frame, so
+## the board does not move when the ad loads.
 static func banner(host: Node, row: Control, caption: Control, on_lift: Callable) -> void:
 	var rest: PackedFloat32Array = PackedFloat32Array([row.offset_top, row.offset_bottom, caption.offset_top,
 		caption.offset_bottom])
@@ -65,17 +59,14 @@ static func banner(host: Node, row: Control, caption: Control, on_lift: Callable
 	host.tree_exiting.connect(Ads.hide_banner)
 	Ads.show_banner(host, apply)
 
-## The settings button every play screen carries, so sound and music are one tap away mid-level.
 static func settings(host: Node) -> IconButton:
 	var gear: IconButton = UI.icon_button(&"settings", "Settings")
 	gear.pressed.connect(func() -> void: Settings.open(host))
 	return gear
 
-## LEVEL over the number, centred: the heading of every play screen.
 static func level_heading(level: int) -> Stat:
 	return Stat.new("Level", str(level + 1), 60)
 
-## A line of guidance just above the bottom row.
 static func caption_line(ui: Control) -> Label:
 	var safe: Dictionary = UI.safe_margins(ui.get_viewport())
 	var l: Label = UI.label("", 28, Brand.MUTED)

@@ -1,23 +1,12 @@
 class_name Shop
 extends RefCounted
 
-## Everything the Google Play build sells, in one place. Five one-time products: the Supporter pack (no
-## ads, every hint free), Every level (play any level without solving the one before), the Looks pack
-## (every look in Looks), the Themes pack (every colour theme in Themes) and the Complete pack (all four,
-## for less than apart). Level keys, each opening any one locked level for good (Unlocks), sold one or five
-## at a time and bought again whenever. And a tip jar: tips that can be bought again and again and open
-## nothing, a way to say thanks. Play sells only fixed prices, so the jar holds a row of them, from small to
-## generous.
-##
-## Play's Payments policy allows no other way to pay inside an app and no pointing to one, so every other
-## build sells nothing: it has no ads, opens every look, and asks for support through GitHub Sponsors
-## (Supporter.open). Nothing sold is needed to play: every level opens by playing. And a short video lends
-## Every level, the Looks pack or the Themes pack for a few hours, or gives a level key (Passes).
-##
-## The kit expects from the game: in `GameMonetize`, SUPPORTER_ID, LEVELS_ID, LOOKS_ID, THEMES_ID, COMPLETE_ID,
-## KEY_IDS with KEY_COUNTS, and TIP_IDS, each a one-time product in Play Console (keys and tips consumed
-## after each purchase); in `Save`, `supporter`, `owned`, `keys` and `tips`, with `set_supporter`,
-## `set_owned`, `add_keys` and `add_tip`; and in `GameLooks`, the pack's name and line.
+## The kit expects from the game:
+## - In `GameMonetize`: SUPPORTER_ID, LEVELS_ID, LOOKS_ID, THEMES_ID, COMPLETE_ID, KEY_IDS with KEY_COUNTS,
+##   and TIP_IDS, each a one-time product in Play Console (keys and tips are consumed after each purchase).
+## - In `Save`: `supporter`, `owned`, `keys` and `tips`, with `set_supporter`, `set_owned`, `add_keys` and
+##   `add_tip`.
+## - In `GameLooks`: PACK, PACK_LINE and PACK_ROW.
 
 ## The shop's row that leads to the level keys, which are several products.
 const KEYS: String = "keys"
@@ -26,12 +15,11 @@ const THEMES_LINE: String = "Sepia, Nord, Dracula and nine more"
 const THEMES_ROW: String = "Twelve colour themes"
 const KEEP_ROW: String = "Yours to keep after one purchase"
 
-## Prices in the player's currency as Play gives them, by product id; empty until Play has answered.
+## Play's formatted prices in the player's currency, by product id.
 static var prices: Dictionary = {}
 
 static var _store: StoreBackend
 
-## Connects to Play and asks what this account owns, on Android only.
 static func start() -> void:
 	Passes.start()
 	if is_instance_valid(_store) or not OS.has_feature("android") or not Engine.has_singleton("GodotGooglePlayBilling"):
@@ -40,7 +28,7 @@ static func start() -> void:
 	_store = billing.new()
 	(Engine.get_main_loop() as SceneTree).root.add_child.call_deferred(_store)
 
-## The one-time products, in the order the shop lists them.
+## In the order the shop lists them.
 static func one_time_ids() -> PackedStringArray:
 	return PackedStringArray([GameMonetize.COMPLETE_ID, GameMonetize.SUPPORTER_ID, GameMonetize.LEVELS_ID,
 		GameMonetize.LOOKS_ID, GameMonetize.THEMES_ID])
@@ -54,7 +42,6 @@ static func is_tip(id: String) -> bool:
 static func is_key(id: String) -> bool:
 	return GameMonetize.KEY_IDS.has(id)
 
-## Products used up on purchase, so they can be bought again: keys and tips.
 static func is_consumable(id: String) -> bool:
 	return is_key(id) or is_tip(id)
 
@@ -70,25 +57,21 @@ static func parts() -> PackedStringArray:
 	return PackedStringArray([GameMonetize.SUPPORTER_ID, GameMonetize.LEVELS_ID, GameMonetize.LOOKS_ID,
 		GameMonetize.THEMES_ID])
 
-## Whether `id` is had, bought alone or in the Complete pack.
 static func has(id: String) -> bool:
 	return owns(id) or (parts().has(id) and owns(GameMonetize.COMPLETE_ID))
 
 static func ads_off() -> bool:
 	return has(GameMonetize.SUPPORTER_ID)
 
-## Whether `id` is had or lent for now by a video.
 static func on(id: String) -> bool:
 	return has(id) or Passes.active(id)
 
 static func levels_open() -> bool:
 	return on(GameMonetize.LEVELS_ID)
 
-## Every look, everywhere but Google Play, where the pack or a pass opens them.
 static func looks_open() -> bool:
 	return not Supporter.on_play or on(GameMonetize.LOOKS_ID)
 
-## Every colour theme, everywhere but Google Play, where the Themes pack or a pass opens them.
 static func themes_open() -> bool:
 	return not Supporter.on_play or on(GameMonetize.THEMES_ID)
 
@@ -120,8 +103,6 @@ static func restore() -> void:
 	else:
 		Supporter.say("Google Play is not reachable right now")
 
-## What Play says about one product: owned, or no longer (a refund). Ads follow the Supporter pack, alone
-## or in the Complete pack.
 static func grant(id: String, owned: bool) -> void:
 	if owns(id) == owned:
 		return
@@ -136,17 +117,14 @@ static func grant(id: String, owned: bool) -> void:
 		else:
 			Ads.start()
 
-## A tip went through and was used up, so the same tip can be given again.
 static func tipped() -> void:
 	Save.add_tip()
 	Supporter.say("Thank you for the tip. It goes into the next game")
 
-## Keys went through and were used up, so the same pack can be bought again.
 static func keyed(id: String) -> void:
 	Save.add_keys(keys_in(id))
 	Unlocks.delivered(keys_in(id))
 
-## What a product is called and what it holds, for the shop and the offer sheets.
 static func title(id: String) -> String:
 	if id == GameMonetize.COMPLETE_ID:
 		return "Complete pack"
@@ -190,10 +168,6 @@ static func rows(id: String) -> PackedStringArray:
 		return PackedStringArray([THEMES_ROW, "Light and dark, picked in Settings", KEEP_ROW])
 	return PackedStringArray()
 
-# --- Sheets -------------------------------------------------------------------------------------------
-
-## The shop: the Complete pack while none of it is owned, then each pack with its price or a tick, the tip
-## jar, and Restore. Off Google Play it is the GitHub Sponsors sheet instead.
 static func open(host: Node) -> Sheet:
 	if not Supporter.on_play:
 		return Supporter.open(host)
@@ -226,8 +200,6 @@ static func open(host: Node) -> Sheet:
 		open(host))
 	return sheet
 
-## One product: what it holds, its price, and Restore, with a way on to the whole shop. Owned, it says so.
-## A pack a video can lend also offers the video as a try, and while it is lent, says for how much longer.
 static func offer(host: Node, id: String) -> Sheet:
 	if not Supporter.on_play:
 		return Supporter.open(host)
@@ -271,7 +243,6 @@ static func offer(host: Node, id: String) -> Sheet:
 		offer(host, id))
 	return sheet
 
-## Level keys: what one does, how many the player holds, and each pack with its price.
 static func keys(host: Node) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
@@ -295,7 +266,7 @@ static func keys(host: Node) -> Sheet:
 		keys(host))
 	return sheet
 
-## The tip jar: a row of tips from small to generous, each one able to be given again.
+## Play sells only fixed prices, so the jar holds a row of them, from small to generous.
 static func tips(host: Node) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
@@ -311,8 +282,7 @@ static func tips(host: Node) -> Sheet:
 		tip.pressed.connect(func() -> void: buy(id))
 		grid.add_child(tip)
 	c.add_child(UI.centred(grid))
-	# Two to a row where two fit, else one: a price such as "Rp 799.000,00" is too wide for two on a phone,
-	# and three of "₹4,800.00" pushed the sheet off the side of the screen.
+	# Two to a row only where two fit: a price such as "Rp 799.000,00" is too wide for two on a phone.
 	var widest: float = 0.0
 	for tip: Node in grid.get_children():
 		widest = maxf(widest, (tip as Control).get_combined_minimum_size().x)
@@ -324,7 +294,6 @@ static func tips(host: Node) -> Sheet:
 		tips(host))
 	return sheet
 
-## Right after a pass: the looks or the themes to pick from. The level grid redraws by itself.
 static func _show_lent(host: Node, id: String) -> void:
 	if not is_instance_valid(host) or not host.is_inside_tree():
 		return
@@ -338,8 +307,7 @@ static func _buy_text(id: String) -> String:
 		return "Support for %s" % price(id) if price(id) != "" else "Support the game"
 	return "Get it for %s" % price(id) if price(id) != "" else "Get %s" % title(id)
 
-## A row of the shop: the product's name and line, and its price, a tick once it is had, or for the tip
-## jar ("" as `id`) and the keys (KEYS) a way in.
+## `id` is "" for the tip jar and KEYS for the level keys.
 static func _item(id: String, pick: Callable) -> Button:
 	var product: bool = id != "" and id != KEYS
 	var item: Button = Button.new()
@@ -379,7 +347,6 @@ static func _item(id: String, pick: Callable) -> Button:
 		row.add_child(_Chevron.new())
 	return item
 
-## Rebuilds an open sheet when the store answers: a price arrived, or something was bought.
 static func live(sheet: Sheet, rebuild: Callable) -> void:
 	if not is_instance_valid(_store):
 		return

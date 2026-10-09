@@ -1,11 +1,6 @@
 class_name Kinetic
 extends Control
 
-## Kinetic type: a line of words that arrive one by one, each rising a little and settling with a soft
-## overshoot, then leave together. Words wrapped in *asterisks* are the line's key words. In the
-## "accent" style they are set in the accent colour; in the "marker" style a pill of the accent swipes in
-## behind them, like a highlighter, and the word turns to the accent's ink.
-
 const STAGGER: float = 0.065
 const RISE: float = 26.0
 const IN_TIME: float = 0.42
@@ -14,7 +9,7 @@ const OUT_TIME: float = 0.28
 var _flow: HFlowContainer
 var _words: Array[Control] = []
 
-## `align` is "center" or "left". `width` wraps the line; `size_px` is the type size.
+## `align` is "center" or "left". `style` is "accent" or "marker", which puts key words on a highlighter pill.
 func _init(text: String, size_px: int, width: float, align: String = "center", colour: Color = Brand.INK,
 		style: String = "accent") -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -55,7 +50,6 @@ func _ready() -> void:
 	size = _flow.size
 	custom_minimum_size.y = _flow.size.y
 
-## Brings the words in, one after another.
 func play_in() -> void:
 	await get_tree().process_frame
 	for k: int in range(_words.size()):
@@ -79,7 +73,6 @@ func play_out() -> void:
 	await t.finished
 	queue_free()
 
-## A key word on a highlighter pill that sweeps in from its left edge.
 class _Marked extends Control:
 	var grow: float = 0.0:
 		set(value):

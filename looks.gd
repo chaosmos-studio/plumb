@@ -1,9 +1,8 @@
 class_name GameLooks
 extends RefCounted
 
-## Plumb's looks, for the kit's Looks: marble sets. Each keeps the four colours in the same families as
-## Classic (red, teal, amber, violet), so the colours stay as easy to tell apart, and the holes, colour
-## gates and paint follow the marbles. What changes is the colours' tone and how a marble is finished.
+## Each marble set keeps Classic's colour families (red, teal, amber, violet), so the colours stay as easy
+## to tell apart.
 
 const TITLE: String = "Marbles"
 const PACK: String = "Marble pack"
@@ -18,10 +17,9 @@ const LOOKS: Array = [
 	{"id": "candy", "name": "Candy"},
 ]
 
-## How a marble is drawn (Marble).
 enum Finish { GLOSS, GLASS, GEM, PLANET, CANDY }
 
-## Each set's colours, or none to keep the palette's own, and its finish. Dark boards lift them a little.
+## Each set's colours, [] for the palette's own, and its finish.
 const SETS: Dictionary = {
 	"classic": [[], Finish.GLOSS],
 	"glass": [[Color("ff7a7a"), Color("39c6b8"), Color("ffc54d"), Color("8f84ff")], Finish.GLASS],
@@ -37,7 +35,6 @@ static func use(id: String) -> void:
 	_look = id if SETS.has(id) else "classic"
 	finish = SETS[_look][1]
 
-## The marble colours for the look in use, given the palette's own for this theme.
 static func marbles(dark: bool, own: Array) -> Array:
 	var colours: Array = SETS[_look][0]
 	if colours.is_empty():
@@ -48,7 +45,6 @@ static func swatch(id: String) -> Array:
 	var colours: Array = SETS.get(id, SETS["classic"])[0]
 	return colours if not colours.is_empty() else Palette.LIGHT["marbles"]
 
-## A marble in that set's finish, so each card shows glass as glass and gems as gems.
 static func sample(id: String, colour: Color, radius: float) -> Node2D:
 	var marble: Marble = Marble.new()
 	marble.radius = radius

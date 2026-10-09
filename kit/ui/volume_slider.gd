@@ -1,10 +1,8 @@
 class_name VolumeSlider
 extends Range
 
-## A loudness from 0 to 1, drawn to match the kit: a rounded track, the part up to the knob in the accent,
-## and a round knob. A touch anywhere on it moves the knob to the finger, a drag carries it, and `released`
-## says where it came to rest, for the setting to be saved once rather than on every step. It is a Range, so
-## a sheet leaves a drag that starts on it alone.
+## `released` says where the knob came to rest, for the setting to be saved once rather than on every step.
+## It is a Range, so a sheet leaves a drag that starts on it alone.
 
 signal released(value: float)
 

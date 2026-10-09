@@ -7,7 +7,7 @@ extends RefCounted
 ## won:N, failed:N (the shortest fall into a pit), hero:N (the board with the HUD hidden), and for the website board:N[:LRUD], boardsolve:N:K and
 ## boardhint:N:K, which also hide the HUD, guide:K (level 1's guide at step K, counting from 0) and ending
 ## (the note after the last level). Levels are 1-based here, as a player counts them. Any action takes a
-## "dark/" prefix to stage it in the dark theme; without one it is in the game's own look. Also looks[:owned]
+## "dark/" prefix to stage it in the dark theme. Without one it is in the game's own look. Also looks[:owned]
 ## (the marble sets sheet), colours (the colour themes sheet), themed:ID:K[:SET] (level K in colour theme
 ## ID, with marble set SET), sets (one marble of every set, named) and tiles[::K] (every mark from chapter 16 on, after K tilts). levels:K shows page K of the grid,
 ## unlock:N the sheet a locked level N opens on Google Play, replay:N:K level N's solve watched back K
@@ -25,7 +25,6 @@ extends RefCounted
 ## (arg = L, R, U or D), fail (tilts into a pit), undo, wait (arg = seconds).
 
 const SETTLE: float = 0.9
-## The board the `tiles` action shows.
 const TILES: Dictionary = {
 	"rows": ["0.....", "......", "..#...", "....1.", "......", ".x...2"],
 	"marbles": [[1, 1, 0, 1], [3, 0, 1, 2], [5, 4, 2], [2, 4, 9]],
@@ -34,11 +33,10 @@ const TILES: Dictionary = {
 	"wrap": 1, "locked": 2}
 
 var _settle: float = SETTLE
-## Set by the film runner, which draws the finger for each move; null for stills.
+## Set by the film runner, which draws the finger for each move. Null for stills.
 var film: Object = null
 
-## `settle` waits for the level's opening animation, which stills want and films do not: a film reveals
-## the level while its marbles pop in.
+## `settle` waits for the level's opening animation, which stills want and films do not.
 func stage(action: String, host: Node, settle: bool = true) -> void:
 	_settle = SETTLE if settle else 0.02
 	var dark: bool = action.begins_with("dark/")
@@ -46,7 +44,6 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 	# Saved as well as applied, so a staged Settings sheet shows the theme the shot is in.
 	Save.theme = Appearance.Choice.DARK if dark else Appearance.native()
 	Save.palette = ""
-	# A marble set for themed:ID:K:SET, the first for everything else.
 	Save.look = action.get_slice(":", 3) if action.begins_with("themed:") else ""
 	GameLooks.use(Looks.current())
 	Appearance.apply(Save.theme)
@@ -68,7 +65,6 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			_hide_tally(cover)
 			await _wait(host, 1.2)
 		"looks":
-			# Every marble set unlocked when the variant says so, as the Looks pack shows them.
 			Save.owned = PackedStringArray([GameMonetize.LOOKS_ID]) if variant == "owned" else PackedStringArray()
 			Supporter.on_play = true
 			var home: Node = load(Brand.TITLE_SCENE).instantiate()
@@ -77,7 +73,6 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			Looks.open(home)
 			await _wait(host, 0.7)
 		"sets":
-			# One marble from every set, side by side and named, large enough to see each finish.
 			var shelf: ColorRect = ColorRect.new()
 			shelf.color = Brand.BG
 			shelf.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -105,13 +100,11 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			Themes.open(front)
 			await _wait(host, 0.7)
 		"themed":
-			# Level K in colour theme `variant`, as the Themes pack shows it (the set was chosen above).
 			Save.palette = variant
 			Appearance.apply(Save.theme)
 			await _game(host, k - 1)
 		"tiles":
-			# Every mark from chapter 16 on, on one board, to see how each reads (`k` tilts it that many times
-			# left and right, so blinking walls show both ways).
+			# The `k` tilts alternate left and right, so blinking walls show both ways.
 			var holder: Node2D = Node2D.new()
 			host.add_child(holder)
 			var view: BoardView = BoardView.new()
@@ -125,7 +118,7 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 				await view.play(move)
 			await _wait(host, 0.6)
 		"levels":
-			# The grid opens where play is; levels:K turns to page K, and levels:K:S has the first S solved.
+			# levels:K:S also has the first S levels solved.
 			if parts.size() > 2:
 				_seed_progress(k)
 			var grid: Node = load(Brand.LEVELS_SCENE).instantiate()
@@ -135,7 +128,6 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 				grid.call("_show", n, 0)
 			await _wait(host, 0.5)
 		"unlock":
-			# Level N's locked tile tapped on Google Play, with a video, keys for sale and Every level.
 			Supporter.on_play = true
 			Ads.use(_PreviewAds.new())
 			Shop.prices[GameMonetize.KEY_IDS[0]] = "$0.49"
@@ -148,26 +140,22 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			Unlocks.offer(shut, n)
 			await _wait(host, 0.6)
 		"replay":
-			# Level N solved, then watched back, `k` tenths of a second in.
 			var watched: Node = await _game(host, n)
 			await _solve(watched, 999)
 			await _wait(host, 1.9)
 			watched.call("_watch")
 			await _wait(host, 0.1 * k)
 		"snapshot":
-			# Level N solved, its card caught over the win sheet with Share, Save and Reel, once it has landed.
 			var caught: Node = await _game(host, n)
 			await _solve(caught, 999)
 			await _wait(host, 2.8)
 		"reel":
-			# Level N solved and watched as a reel, `k` tenths of a second of game time in.
 			var reeled: Node = await _game(host, n)
 			await _solve(reeled, 999)
 			await _wait(host, 1.9)
 			reeled.call("_watch", true)
 			await _wait(host, 0.1 * k)
 		"card":
-			# The share card for level N once solved, as the share sheet would get it.
 			var shared: Node = await _game(host, n)
 			await _solve(shared, 999)
 			await _wait(host, 1.9)
@@ -184,8 +172,7 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			layer.add_child(shown)
 			await _wait(host, 0.2)
 		"offer", "shop", "keys":
-			# On Google Play with a video to be had: the sheet for product `variant`, the whole shop, or the
-			# level keys. `k` minutes left on a pass for `variant` shows it lent.
+			# offer:ID[:K] opens product ID's sheet, and K minutes left on a pass for it shows it lent.
 			Supporter.on_play = true
 			Ads.use(_PreviewAds.new())
 			for id: String in Shop.one_time_ids() + GameMonetize.KEY_IDS:
@@ -265,7 +252,6 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			await _solve(game4, 999)
 			await _wait(host, 0.1 * k if parts.size() > 2 else 1.9)
 		"board":
-			# The board alone, for the website: optionally after a run of tilts given as letters (L R U D).
 			var game6: Node = await _game(host, n)
 			if parts.size() > 2:
 				for letter: String in parts[2].split(""):
@@ -275,7 +261,7 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 		"boardsolve":
 			var game7: Node = await _game(host, n)
 			await _solve(game7, k)
-			# A finished level raises its result sheet a moment later; wait for it so it is hidden too.
+			# A finished level raises its result sheet a moment later. Wait for it so it is hidden too.
 			await _wait(host, 1.4 if bool(game7.get("finished")) else 0.3)
 			_hide_hud(game7)
 			await _wait(host, 0.1)
@@ -323,7 +309,6 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 		_:
 			push_error("director: unknown action %s" % action)
 
-## Something happening in an already staged game, paced for the camera.
 func perform(game: Node, verb: String, arg: Variant) -> void:
 	match verb:
 		"solve":
@@ -351,8 +336,6 @@ func perform(game: Node, verb: String, arg: Variant) -> void:
 		"wait":
 			await game.get_tree().create_timer(float(arg)).timeout
 
-## Tilts the board the way a player would: a swipe across the middle of the board in that direction,
-## drawn by the film when there is one.
 func _swipe(game: Node, dir: int) -> void:
 	if film != null:
 		var view: Node2D = game.get("_view")
@@ -362,7 +345,6 @@ func _swipe(game: Node, dir: int) -> void:
 		film.call("touch", "swipe", centre - d * reach, centre + d * reach)
 	game.call("_tilt", dir)
 
-## The shortest run of tilts, up to `depth`, that drops a marble down a pit.
 func _losing_line(start: TiltBoard, depth: int) -> PackedInt32Array:
 	var frontier: Array[TiltBoard] = [start]
 	var paths: Array[PackedInt32Array] = [PackedInt32Array()]
@@ -384,8 +366,7 @@ func _losing_line(start: TiltBoard, depth: int) -> PackedInt32Array:
 		paths = next_paths
 	return PackedInt32Array()
 
-## The title's star tally counts out of every star there is, which would give away how many levels there
-## are: shots never say that, since it goes stale as levels are added.
+## Shots hide the star tally: it gives away the level count, which goes stale as levels are added.
 func _hide_tally(title: Node) -> void:
 	var tally: CanvasItem = title.find_child("Tally", true, false)
 	if tally != null:
@@ -412,7 +393,6 @@ func _game(host: Node, level: int) -> Node:
 	await _wait(host, _settle)
 	return game
 
-## Plays the first `count` moves of the solver's route, each one allowed to finish rolling.
 func _solve(game: Node, count: int) -> void:
 	var path: PackedInt32Array = TiltSolver.new().solve(game.get("board"))
 	for i: int in range(mini(count, path.size())):
@@ -431,8 +411,7 @@ func _seed_progress(solved: int = 14) -> void:
 func _wait(host: Node, seconds: float) -> void:
 	await host.get_tree().create_timer(seconds).timeout
 
-## A stand-in ad network for captures: nothing to show, but it counts as ads being possible, and its
-## consent message asks for privacy choices.
+## Nothing to show, but ads count as possible and the consent message asks for privacy choices.
 class _PreviewAds extends AdBackend:
 	func privacy_required() -> bool:
 		return true

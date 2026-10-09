@@ -1,9 +1,7 @@
 extends Node
 
-## A robot that plays: opens levels, feeds the solver's solution through the game's own input path,
-## and checks the result screen and the saved stars. Then boots every other screen once, and plays the
-## ads and the Supporter pack against a stand-in ad network: the hint gate, the banner on the level grid,
-## and the pacing of ads between levels through the real Next level path.
+## A robot that plays levels through the game's own input path, then the ads and the Supporter pack
+## against a stand-in ad network.
 ## Run: godot --headless --path . res://tools/smoke.tscn     Prints SMOKE_OK on success.
 
 const LEVELS: Array[int] = [0, 3, 12, 44, 90, 119]
@@ -58,7 +56,6 @@ func _ready() -> void:
 	print("SMOKE_OK" if failures == 0 else "SMOKE_FAILED %d" % failures)
 	get_tree().quit(0 if failures == 0 else 1)
 
-## Level 1's guide from start to end: two explaining steps, then the swipe it shows is the one that wins.
 func _guide() -> int:
 	Save.tutorial_seen = false
 	Save.stars = PackedByteArray()
@@ -83,7 +80,6 @@ func _guide() -> int:
 	await get_tree().process_frame
 	return 0 if ok else 1
 
-## Solving the last level for the first time offers the ending, and the ending opens.
 func _ending() -> int:
 	Save.stars = PackedByteArray()
 	Pack.current = Pack.count() - 1
@@ -102,8 +98,6 @@ func _ending() -> int:
 	game.queue_free()
 	await get_tree().process_frame
 	return 0 if shown else 1
-
-# --- Ads and the Supporter pack -----------------------------------------------------------------------
 
 func _report(ok: bool, what: String) -> int:
 	print("%s %s" % ["PASS" if ok else "FAIL", what])
@@ -127,8 +121,6 @@ func _press(host: Node, text: String) -> bool:
 			return true
 	return false
 
-## Taps the hint and says what came of it: "hint" (shown at once), "asked" (the video prompt is up) or
-## "nothing".
 func _tap_hint(game: Node, fresh: bool = true) -> String:
 	var view: Node = game.get("_view")
 	view.call("_clear_hint")
@@ -141,7 +133,6 @@ func _tap_hint(game: Node, fresh: bool = true) -> String:
 		return "asked"
 	return "hint" if int(view.get("_hint_dir")) >= 0 else "nothing"
 
-## The prompt's answer, then whether a hint showed.
 func _answer(game: Node, button: String) -> bool:
 	var prompt: Sheet = game.get("_prompt")
 	_press(prompt, button)
@@ -276,8 +267,7 @@ func _solve(game: Node) -> void:
 			await get_tree().process_frame
 	await _wait(0.6)
 
-## Solves `level` and takes Next level. Returns the interstitials shown while playing it and on Next,
-## or -1 if the next level did not open.
+## The interstitials shown while playing `level` and on Next level, or -1s if the next level did not open.
 func _through(fake: _FakeAds, level: int, guided: bool = false) -> Vector2i:
 	var game: Node = await _play_scene(level)
 	if game == null:
@@ -346,7 +336,6 @@ func _interstitials() -> int:
 	await get_tree().process_frame
 	return failures
 
-## An ad network with every ad loaded, or none, that counts what it shows.
 class _FakeAds extends AdBackend:
 	const BANNER: float = 112.0
 

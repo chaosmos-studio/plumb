@@ -1,25 +1,22 @@
 extends SceneTree
 
-## Writes levels/levels.json: every level of every chapter, each proven solvable with its par, needing its
-## chapter's rule, new to the set, and no easier than the one before it, with the chapter list beside them.
+## Writes levels/levels.json: the chapter list and every level of every chapter with its par.
 ## Run: godot --headless --path . -s res://tools/generate_levels.gd [-- seed=2026 out=user://try.json
 ##   chapters=6 resume=10 workers=8 opening]
 ## `chapters` stops after that many chapters, for trying a schedule out. `resume` keeps that many chapters
 ## from the file already written and makes only the ones after them: the file keeps the generator's random
 ## state at the end of every chapter, so the result is the same as a full run's. `workers` is how many
-## worker processes the batched chapters (TiltGenerator.PARALLEL_FROM) spread over; GDScript threads gain
+## worker processes the batched chapters (TiltGenerator.PARALLEL_FROM) spread over. GDScript threads gain
 ## little, separate processes scale with the cores. `opening` makes only the opening (TiltShowcase) again,
-## in the file already written, and leaves every other byte of it as it was: the other levels, the chapters
-## and the random states. The same seed always writes the same file, whatever `workers` is, so the levels
-## are a build product of the generator.
+## in the file already written, and leaves every other byte of it as it was. The same seed always writes
+## the same file, whatever `workers` is, so the levels are a build product of the generator.
 
 const OUT: String = "res://levels/levels.json"
 ## How often a lane that stops before its batches are done is started again before the run gives up.
 const RESTARTS: int = 3
 
-## Spreads a batched phase over worker processes: lane k works batches k, k + lanes, ... in order, writing
-## one JSON line per batch to its own file, and `take` waits for the batch it is asked for. Workers run
-## this script with `work=`.
+## Lane k works batches k, k + lanes, ... in order, writing one JSON line per batch to its own file.
+## Workers run this script with `work=`.
 class Workers:
 	extends TiltGenerator.Farm
 	var lanes: int
@@ -78,7 +75,7 @@ class Workers:
 			"work=" + _dir.path_join("job.json"), "lane=%d" % k, "lanes=%d" % lanes, "from=%d" % from,
 			"out=" + _lane(k)])
 
-	## Every whole line a lane has written so far; a line still being written has no newline yet.
+	## Only whole lines: a line still being written has no newline yet.
 	func _read(k: int) -> void:
 		if not FileAccess.file_exists(_lane(k)):
 			return
@@ -168,7 +165,6 @@ func _initialize() -> void:
 	print("wrote %d levels in %d chapters to %s" % [gen.levels.size(), chapters, out])
 	quit(0)
 
-## A worker process: every lanes-th batch of the job, from batch `from` on, one JSON line each.
 func _work(args: Dictionary, out: String) -> void:
 	var job: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(String(args["work"])))
 	var lanes: int = int(args["lanes"])
@@ -182,8 +178,6 @@ func _work(args: Dictionary, out: String) -> void:
 	file.close()
 	quit(0)
 
-## Makes the opening again in the file already written: the levels after it are measured as they are, the
-## showcase picks the opening under them, and only the opening's text is replaced in the file.
 func _reopen(seed_value: int, out: String) -> void:
 	var text: String = FileAccess.get_file_as_string(OUT)
 	var data: Variant = JSON.parse_string(text)
@@ -217,7 +211,7 @@ static func _report_opening(made: Array[TiltDifficulty]) -> void:
 		print("opening level %d: par %d, bits %.2f, %s" % [k + 1, made[k].par, made[k].bits,
 			", ".join(PackedStringArray(TiltShowcase.SLOTS[k]["traits"]))])
 
-## `text`, a level file, with its first levels' text replaced by `fresh`, written as _write writes them.
+## Writes `fresh` as _write would, so every other byte of `text` stays as it was.
 static func splice(text: String, fresh: Array) -> String:
 	var start: int = text.find("{", text.find("\"levels\": ["))
 	var end: int = start
@@ -251,7 +245,6 @@ static func _close(text: String, from: int) -> int:
 		i += 1
 	return text.length()
 
-## Whether `now`, read back, holds `fresh` as its first levels and everything else as `was` had it.
 static func _kept(was: Dictionary, now: Variant, fresh: Array) -> bool:
 	if typeof(now) != TYPE_DICTIONARY:
 		return false
@@ -275,8 +268,7 @@ static func _write(out: String, seed_value: int, chapters: int, states: PackedSt
 		"levels": levels}, "\t"))
 	file.close()
 
-## Why the file written before cannot be resumed after `kept` chapters, or "" if it can: it must be from
-## the same seed, hold those chapters as they are planned now, and keep the random state after each.
+## Why the file written before cannot be resumed after `kept` chapters, or "" if it can.
 static func _resumable(data: Variant, kept: int, seed_value: int) -> String:
 	if typeof(data) != TYPE_DICTIONARY:
 		return "no level file"

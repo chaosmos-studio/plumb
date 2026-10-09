@@ -1,13 +1,11 @@
 extends SceneTree
 
-# Headless tests for the pure logic in scripts/ (no framework dependency). Same shape as Faceplant's.
 # Run: godot --headless --path . -s res://tests/run_tests.gd [-- quick]
-# CI greps the last line for "0 failed", so keep that wording. `quick` skips re-solving the whole level
-# pack, the one slow check, for iterating on everything else; CI always runs it.
+# CI greps for "0 failed", so keep that wording. `quick` skips re-solving the whole level pack, the one
+# slow check. CI always runs it.
 
 const InputMapGen: GDScript = preload("res://tools/make_input_map.gd")
 const LevelTool: GDScript = preload("res://tools/generate_levels.gd")
-## Google's official test app, which the AdMob plugin also falls back to when the setting is unset.
 const ADMOB_SETTINGS: GDScript = preload("res://addons/admob/internal/services/project_settings_service.gd")
 const APP_ID_SETTING: String = "admob/general/android/app_id"
 ## The least contrast each pairing needs, as a WCAG ratio, in both palettes: body text, the quiet
@@ -191,7 +189,6 @@ func _test_wave_two_tiles() -> void:
 	b = _tiled([".....", "....."], [[0, 1, 0]], [[2, 1, "bumper", TiltBoard.SLASH]])
 	b.tilt(TiltBoard.RIGHT)
 	_check("and a slash bumper upwards", b.marble_cell[0] == b.index(Vector2i(2, 0)))
-	# Four bumpers round a wall send a marble round and round: it stops where it came round to.
 	b = _tiled(["...", ".#.", "..."], [[1, 0, 0]], [[2, 0, "bumper", TiltBoard.BACKSLASH],
 		[2, 2, "bumper", TiltBoard.SLASH], [0, 2, "bumper", TiltBoard.BACKSLASH], [0, 0, "bumper", TiltBoard.SLASH]])
 	m = b.tilt(TiltBoard.RIGHT)
@@ -328,7 +325,6 @@ func _test_wave_three_tiles() -> void:
 	_check("ice, wrap and the locked direction", not plain.ice.has(1) and plain.wrap == 0 and plain.locked == -1)
 	plain = TiltGenerator.without(dressed, "glass")
 	_check("and a tile", not plain.tiles.has(TiltBoard.Tile.GLASS))
-	# Only the conveyor brings the marble home: with it taken off there is no solution, so the rule is needed.
 	var needed: TiltBoard = _tiled(["..", ".0"], [[0, 0, 0]], [[1, 0, "conveyor", TiltBoard.DOWN]])
 	_check("a board needs a rule its solution cannot do without", TiltGenerator.needs(needed, "conveyor", 1)
 		and TiltGenerator.needs(needed, "mix", 1))
@@ -384,23 +380,19 @@ func _test_chapter_tiles() -> void:
 	var turned: TiltBoard = TiltNovelty.transform(_tiled(["..."], [[0, 0, 0]], [[1, 0, "gate", TiltBoard.RIGHT]]), 1)
 	_check("mirroring a board turns its gates", turned.tile_value[1] == TiltBoard.LEFT)
 
-	# The pad is the only way to stop above the hole; without it the marble can't get in at all.
+	# Only the pad can stop the marble above the hole.
 	var pad: TiltBoard = _tiled(["....", "#0##"], [[0, 0, 0]], [[1, 0, "stop", 0]])
 	_check("a level needs a helping rule when the plain board can't be solved", TiltGenerator.needs(pad, "stop", 2))
-	# The gate turns the marble back, so it has to go round: two moves instead of one without it.
 	var gate: TiltBoard = _tiled(["0..", "..."], [[2, 0, 0]], [[1, 0, "gate", TiltBoard.RIGHT]])
 	_check("and a restricting rule when the plain board solves in fewer moves", TiltGenerator.needs(gate, "gate", 3))
-	# Here the pad sits off the marble's path, so the plain board solves just as fast.
 	var idle: TiltBoard = _tiled(["...0", "...."], [[0, 0, 0]], [[1, 1, "stop", 0]])
 	_check("and does not when the tile changes nothing", not TiltGenerator.needs(idle, "stop", 1))
-	# The gate makes the marble go round; the pad sits where it never rolls, so only the pad comes off.
 	var cluttered: TiltBoard = _tiled(["0..", "...", "..."], [[2, 0, 0]],
 		[[1, 0, "gate", TiltBoard.RIGHT], [1, 1, "stop", 0]])
 	var pruned: TiltBoard = TiltGenerator.prune(cluttered, 3)
 	_check("pruning takes off a tile that changes nothing and keeps one that matters",
 		pruned.tiles[pruned.index(Vector2i(1, 1))] == TiltBoard.Tile.NONE
 		and pruned.tiles[pruned.index(Vector2i(1, 0))] == TiltBoard.Tile.GATE)
-	# Two gates that each turn the marble back alone: one comes off, and the other then matters.
 	var twice: TiltBoard = _tiled(["0...", "....", "...."], [[3, 0, 0]],
 		[[1, 0, "gate", TiltBoard.RIGHT], [2, 0, "gate", TiltBoard.RIGHT]])
 	var once: TiltBoard = TiltGenerator.prune(twice, 3)
@@ -470,9 +462,8 @@ func _test_stars() -> void:
 		Stars.possible(5, 5, false) == 2 and Stars.possible(5, 5, true) == 3)
 	_check("and another past the two-star leeway", Stars.possible(5 + Stars.leeway(5), 5, false) == 1)
 
-# Every shipped level is re-solved against the current rules. If a rule change alters a par or makes a
-# level unsolvable, this fails before a build can ship it. The same measures the generator uses then
-# check the set as a whole: no level repeats another, and none is easier than the one before.
+# Every shipped level is re-solved against the current rules, so a rule change that alters a par or makes
+# a level unsolvable fails before a build can ship it.
 func _test_level_pack() -> void:
 	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://levels/levels.json"))
 	_check("levels.json parses", typeof(data) == TYPE_DICTIONARY)
@@ -542,8 +533,7 @@ func _test_level_pack() -> void:
 		if run > TiltGenerator.RUN:
 			flat.append(i + 1)
 		# A new chapter's tiles carry some of the load, so its first board may hold less than the last
-		# chapter's, as long as it measures no easier. Stones are a rule's mark, not marbles, so in the mixed
-		# chapter a board without the stone rule holds no less.
+		# chapter's, as long as it measures no easier.
 		var a: TiltBoard = boards[i - 1]
 		var b: TiltBoard = boards[i]
 		if not opens.has(i) and (b.cells.size() < a.cells.size() or b.marbles_left() < a.marbles_left()
@@ -556,8 +546,8 @@ func _test_level_pack() -> void:
 		less.is_empty())
 	_check("every pit level has a pit in play (not: %s)" % str(tame), tame.is_empty())
 
-# The opening is picked for what its levels show (TiltShowcase), so a rule change that quietly undoes a trait
-# fails here, and so does a splice that would touch anything in the level file but the opening.
+# A rule change that quietly undoes an opening level's trait fails here, and so does a splice that would
+# touch anything in the level file but the opening.
 func _test_opening() -> void:
 	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://levels/levels.json"))
 	if typeof(data) != TYPE_DICTIONARY:
@@ -584,7 +574,7 @@ func _test_opening() -> void:
 	_check("a new opening is spliced into the level file and nothing else changes",
 		LevelTool.splice(JSON.stringify(file, "\t"), [fresh]) == JSON.stringify(after, "\t"))
 
-## Whether a chapter list read back from JSON, where every number is a float, matches the generator's.
+## JSON reads every number back as a float.
 static func _same_chapters(read: Array, made: Array) -> bool:
 	if read.size() != made.size():
 		return false
@@ -595,7 +585,6 @@ static func _same_chapters(read: Array, made: Array) -> bool:
 			return false
 	return true
 
-## The marble colours on a board, a stone's grey not among them.
 static func _colours(b: TiltBoard) -> int:
 	var seen: Dictionary = {}
 	for c: int in b.marble_colour:
@@ -634,7 +623,6 @@ func _test_contrast() -> void:
 			_check("Brand.%s %s on %s has contrast %.1f, needs %.1f" % [palette, pair[0], pair[1], ratio, pair[2]],
 				ratio >= float(pair[2]))
 
-## Every colour theme, light and dark, reads as well as the game's own palettes, and so does the board in it.
 func _test_themes() -> void:
 	var themes: GDScript = load("res://kit/ui/themes.gd")
 	for id: String in themes.call("ids"):
@@ -658,8 +646,6 @@ func _test_themes() -> void:
 			_check("the %s theme reads in %s: %s" % [id, "dark" if dark else "light", ", ".join(short)], short.is_empty())
 	Brand.use(Brand.NATIVE_DARK)
 
-## Every chapter's colour reads on the background and on a card, in every theme, light and dark; the next
-## chapter's is always a clearly different hue, and no two chapters share one.
 func _test_chapter_colours() -> void:
 	var themes: GDScript = load("res://kit/ui/themes.gd")
 	var appearance: GDScript = load("res://kit/ui/appearance.gd")
@@ -702,7 +688,6 @@ static func _contrast(a: Color, b: Color) -> float:
 	var lb: float = b.srgb_to_linear().get_luminance()
 	return (maxf(la, lb) + 0.05) / (minf(la, lb) + 0.05)
 
-# The theme and the guide's state live with the other settings, and survive a restart of the app.
 func _test_saved_settings() -> void:
 	var save: Node = root.get_node("Save")
 	var real: String = save.get("path")
@@ -756,8 +741,6 @@ func _test_guide_and_ending() -> void:
 	save.set("tutorial_seen", old_seen)
 	pack.set("levels", old_levels)
 
-# --- Monetization -------------------------------------------------------------------------------------
-
 func _test_banner_pacing() -> void:
 	_check("no banner before any level is solved", not AdPacing.banner_due(0, false))
 	_check("no banner with two levels solved", not AdPacing.banner_due(AdPacing.BANNER_AFTER - 1, false))
@@ -798,7 +781,6 @@ func _test_hint_pacing() -> void:
 	_check("yesterday's hints are forgotten at midnight", AdPacing.used_today("2026-09-29", 3, "2026-09-30") == 0)
 	_check("a never-saved day counts none", AdPacing.used_today("", 3, "2026-09-30") == 0)
 
-# The stand-in banner the captures draw has the height Google gives a phone's anchored adaptive banner.
 func _test_adaptive_banner() -> void:
 	var ads: GDScript = load("res://kit/monetize/ads.gd")
 	_check("a 360 dp phone gets a 56 dp banner", is_equal_approx(ads.call("adaptive_height_dp", 360.0, 800.0), 56.0))
@@ -821,7 +803,6 @@ func _test_monetize_ids() -> void:
 	_check("each placement has its own unit", ids[0] != ids[1] and ids[1] != ids[2] and ids[0] != ids[2])
 	_check("the Supporter pack is the product 'supporter'", GameMonetize.SUPPORTER_ID == "supporter")
 
-# The Android builds carry the plugins and may reach the network; the web build carries neither plugin.
 func _test_presets_and_plugins() -> void:
 	var enabled: PackedStringArray = ProjectSettings.get_setting("editor_plugins/enabled", PackedStringArray())
 	_check("the AdMob plugin is enabled", enabled.has("res://addons/admob/plugin.cfg"))
@@ -851,7 +832,6 @@ func _test_presets_and_plugins() -> void:
 			_check("%s leaves the plugin's samples out" % preset_name, exclude.contains("addons/admob/gdscript/sample/*"))
 			# Android's own backup carries user:// to the player's next install, so progress survives a reinstall.
 			_check("%s lets Android back up the save" % preset_name, bool(presets.get_value(options, "user_data_backup/allow", false)))
-			# Analytics only: collection starts off and every consent signal denied, until Analytics allows it.
 			_check("%s builds Firebase Core and Analytics" % preset_name,
 				bool(presets.get_value(options, "firebase/enable_core", false))
 				and bool(presets.get_value(options, "firebase/enable_analytics", false)))
@@ -866,8 +846,7 @@ func _test_presets_and_plugins() -> void:
 			_check("the web build leaves the plugins out", exclude.contains("addons/*")
 				and exclude.contains("kit/monetize/android/*"))
 
-# The release workflow names the build, derives Play's version code and fills Play's "What's new" from
-# CHANGELOG.md's newest section by these same rules, so a changelog it would refuse fails here first.
+# The release workflow reads CHANGELOG.md by these rules, so a changelog it would refuse fails here first.
 func _test_changelog() -> void:
 	var top: Changelog.Entry = Changelog.parse(FileAccess.get_file_as_string(Changelog.PATH))
 	_check("CHANGELOG.md's newest section can be released: %s" % top.error, top.error == "")
@@ -892,9 +871,8 @@ func _test_changelog() -> void:
 			"## 1.0.0\n-\n", "## 1.0.0\n- " + "x".repeat(Changelog.PLAY_LIMIT - 1)]:
 		_check("the release rules refuse \"%s\"" % bad.left(40).c_escape(), Changelog.parse(bad).error != "")
 
-# Counting needs a release build and a consent message that found no consent needed (UMP's NOT_REQUIRED,
-# 1). Unknown (0), required (2) and obtained (3) count nothing. The game's level signals reach Analytics
-# as GA4 events, numbered from 1 as players see them.
+# UMP consent status: 0 unknown, 1 not required, 2 required, 3 obtained. Only 1 counts. Levels reach
+# Analytics numbered from 1, as players see them.
 func _test_analytics() -> void:
 	var analytics: GDScript = load("res://kit/monetize/analytics.gd")
 	_check("a release build counts where no consent is needed", analytics.counts(1, false))
@@ -960,7 +938,7 @@ func _test_saved_monetization() -> void:
 	save.set("tips", old[5])
 	save.set("look", old[6])
 
-## The text of every button a kit sheet builds, on a host outside the tree so nothing animates.
+## The host stays outside the tree so nothing animates.
 func _buttons(opener: GDScript, method: String = "open") -> PackedStringArray:
 	var host: Node = Node.new()
 	opener.call(method, host)
@@ -1005,8 +983,7 @@ func _test_about_variants() -> void:
 	_check("About leads to the studio's other games on both", play.has(more) and web.has(more))
 	supporter.set("on_play", old)
 
-## The maker's name in About and Credits opens his homepage, except on Google Play, where it opens the studio
-## page: the homepage has a sponsor link, and Play does not let an app lead to one.
+## The homepage has a sponsor link, and Play does not let an app lead to one.
 func _test_maker_link() -> void:
 	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
 	var about: GDScript = load("res://kit/shell/about.gd")
@@ -1021,7 +998,6 @@ func _test_maker_link() -> void:
 		and _name_link(credits) == "https://shravangoswami.com/")
 	supporter.set("on_play", old)
 
-## The page the maker's name opens on `opener`'s sheet, or "" when it opens none.
 func _name_link(opener: GDScript) -> String:
 	var host: Control = Control.new()
 	root.add_child(host)
@@ -1176,8 +1152,7 @@ func _test_supporter_entry_points() -> void:
 	host.free()
 	_check("on Google Play the video prompt also offers the pack",
 		texts == PackedStringArray(["Watch", "Remove ads, unlimited hints", "Not now"]))
-	# On Google Play, on the web, for a Supporter, and for an owner of the Complete pack: the title's shop
-	# button, then whether one should show. The tip jar is always there, so it shows on Google Play always.
+	# The tip jar is always there, so the title's shop button shows on Google Play always.
 	var old_owned: PackedStringArray = save.get("owned")
 	for case: Array in [[true, false, [], true], [false, false, [], false], [true, true, [], true],
 			[true, false, [GameMonetize.COMPLETE_ID], true]]:
@@ -1197,7 +1172,7 @@ func _test_supporter_entry_points() -> void:
 	save.set("supporter", old[1])
 	save.set("owned", old_owned)
 
-## Every label a kit sheet builds, for sheets whose rows are labels inside buttons.
+## For sheets whose rows are labels inside buttons.
 func _labels(opener: GDScript, method: String, args: Array = []) -> PackedStringArray:
 	var host: Node = Node.new()
 	opener.callv(method, [host] + args)
@@ -1267,7 +1242,6 @@ func _test_shop() -> void:
 	save.set("look", old[4])
 	save.set("path", old[5])
 
-## The words on a win: news before praise, and never the same line twice running.
 func _test_cheers() -> void:
 	var cheers: GDScript = load("res://kit/shell/cheers.gd")
 	var result: GDScript = load("res://kit/shell/result.gd")
@@ -1295,7 +1269,6 @@ func _test_cheers() -> void:
 	save.set("stars", old[0])
 	save.set("path", old[1])
 
-## The win sheet's quiet actions, and the replay putting the clock and the controls back.
 func _test_win_sheet() -> void:
 	var result: GDScript = load("res://kit/shell/result.gd")
 	var replay_script: GDScript = load("res://kit/shell/replay.gd")
@@ -1343,7 +1316,6 @@ func _texts(node: Node) -> PackedStringArray:
 		out.append((l as Label).text)
 	return out
 
-## The share card's code: the right size for the text, and the patterns and format a reader looks for.
 func _test_qr() -> void:
 	var qr: GDScript = load("res://kit/ui/qr.gd")
 	var small: PackedStringArray = qr.call("rows", "hi")
@@ -1377,7 +1349,7 @@ func _test_qr() -> void:
 		rem = (rem << 1) ^ ((rem >> 9) * 0x537)
 	_check("the format says level H, and its check bits agree", data >> 3 == 2 and rem == (format & 0x3FF))
 
-## The volume sliders: a square law, 0 as off, saved, and an older save's switches read as volumes.
+## The sliders follow a square law.
 func _test_volumes() -> void:
 	var save: Node = root.get_node("Save")
 	var old: Array = [save.get("sound_volume"), save.get("music_volume"), save.get("path")]
@@ -1409,7 +1381,6 @@ func _test_volumes() -> void:
 	save.call("hear_music_volume", old[1])
 	save.set("path", old[2])
 
-## Chapters open on the gate, and a single level opens with a key that Play delivered.
 func _test_unlocks() -> void:
 	var unlocks: GDScript = load("res://kit/monetize/unlocks.gd")
 	var shop: GDScript = load("res://kit/monetize/shop.gd")
@@ -1461,7 +1432,6 @@ func _test_unlocks() -> void:
 	save.set("path", old[4])
 	supporter.set("on_play", old[5])
 
-## Packs a video lends for a while: which ones, what they open, for how long, and a key for a video.
 func _test_passes() -> void:
 	var passes: GDScript = load("res://kit/monetize/passes.gd")
 	var shop: GDScript = load("res://kit/monetize/shop.gd")
@@ -1552,7 +1522,7 @@ func _test_play_screen_banner() -> void:
 	save.set("stars", old[0])
 	ads.set("preview", old[1])
 
-# A line that cannot wrap widens the whole sheet past the screen, as one long credit once did.
+# A line that cannot wrap widens the whole sheet past the screen.
 func _test_sheets_fit_a_phone() -> void:
 	var design_width: float = float(ProjectSettings.get_setting("display/window/size/viewport_width"))
 	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
@@ -1572,8 +1542,7 @@ func _test_sheets_fit_a_phone() -> void:
 			var width: float = (sheet.get("_panel") as Control).get_combined_minimum_size().x
 			_check("the %s sheet fits a phone's width (%.0f of %.0f)" % [kind, width, design_width], width <= design_width)
 			host.free()
-	# Every sheet that shows a price, with a price as long as Play is likely to give in any currency: a
-	# dollar price fits anything, a rupee or peso one is what pushed the tip jar off the screen.
+	# A price as long as Play is likely to give in any currency, since a dollar price fits anything.
 	var shop: GDScript = load("res://kit/monetize/shop.gd")
 	var unlocks: GDScript = load("res://kit/monetize/unlocks.gd")
 	var prices: Dictionary = (shop.get("prices") as Dictionary).duplicate()
@@ -1651,8 +1620,7 @@ func _test_levels_swipe() -> void:
 	levels.queue_free()
 	await process_frame
 
-## A tap at `at` on the canvas, sent through the window the way a phone hands one over: the mouse button
-## made from the touch, then the touch itself, pressed and lifted.
+## Sent the way a phone hands a tap over: the mouse button made from the touch, then the touch itself.
 func _screen_tap(at: Vector2) -> void:
 	var on_screen: Vector2 = root.get_final_transform() * at
 	for down: bool in [true, false]:
@@ -1667,7 +1635,6 @@ func _screen_tap(at: Vector2) -> void:
 		touch.position = on_screen
 		root.push_input(touch)
 
-## A finger pressed at `from`, moved to `to` in a few steps and lifted, handed to `target`'s _input.
 func _touch_drag(target: Node, from: Vector2, to: Vector2) -> void:
 	var press: InputEventScreenTouch = InputEventScreenTouch.new()
 	press.pressed = true
@@ -1681,12 +1648,10 @@ func _touch_drag(target: Node, from: Vector2, to: Vector2) -> void:
 	lift.position = to
 	target.call("_input", lift)
 
-## An ad network whose consent message asks for privacy choices.
 class _ConsentAds extends AdBackend:
 	func privacy_required() -> bool:
 		return true
 
-## An ad network with a video always ready, and always watched through.
 class _VideoAds extends AdBackend:
 	func ready_to_show(_kind: StringName) -> bool:
 		return true

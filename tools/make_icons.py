@@ -1,15 +1,10 @@
-"""Draws Plumb's icon at every size the web build and stores use: a tilted mint board on mint, three
-marbles in the game's colours rolling down their columns, each toward the hole of its own colour.
-
-The motion is the game's own rule, one swipe moving every marble at once, so the trails all run the same
+"""The motion is the game's own rule, one swipe moving every marble at once, so the trails all run the same
 way. Mint because it is light, stands apart from the dark icons most marble puzzles use, and is the cool
 opposite of the warm marbles, so they stand out on it.
 
 Run from the project root: python3 tools/make_icons.py   (needs Pillow)
 
-Writes web/ (favicons, touch icon, 192/512 app icons), assets/branding/icon.png (the project icon, full
-square as Play asks, which rounds and shadows it itself), the Android adaptive icon's two layers, and the
-icon's parts for the launch flourish (intro.gd) in assets/branding/intro/.
+assets/branding/icon.png is full square, as Play asks, since Play rounds and shadows it itself.
 """
 
 import os
@@ -32,13 +27,10 @@ ALL = (0, 1, 2)
 
 
 def board(size, frame=True, holes=ALL, trails=ALL, marbles=ALL):
-    """The tilted board with the pieces asked for, on a clear layer: all of it for the icon, one piece at a
-    time for the intro's parts."""
     return finish(board_large(size, frame, holes, trails, marbles), size)
 
 
 def board_large(size, frame=True, holes=ALL, trails=ALL, marbles=ALL):
-    """The same at SUPER times `size`, before the downsample."""
     s = size * SUPER
     img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
     x0, x1 = 0.15 * s, 0.85 * s
@@ -72,8 +64,7 @@ def icon(size, rounded_corners=True):
 
 
 def parts():
-    """The board with its holes, then each trail, marble and hole alone: the intro rolls the marbles from
-    their places in the icon into their holes, which it finds from the hole parts."""
+    """intro.gd finds where each marble rolls to from the centre of its hole part."""
     n = PART_SIZE
     out = {"ground": finish(rounded(ground(n * SUPER, MINT)), n), "board": board(n, holes=ALL, trails=(), marbles=())}
     for i in ALL:

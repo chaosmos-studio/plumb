@@ -1,11 +1,7 @@
 extends Node2D
 
-## Films a promo from a spec: a list of timed beats (title, play, card, challenge, end) with captions,
-## camera moves, game actions and the finger that performs them. The game itself runs in an offscreen
-## viewport through the game's Director, so every frame of play is the real game; the motion graphics are
-## drawn here in the game's own fonts and colours. Rendered offline by Movie Maker, so timing is exact
-## and the planner's audio lines up. The film writes cues (beats, transitions, captions, countdown
-## ticks, the QR reveal) that the mixer turns into sound effects.
+## Rendered offline by Movie Maker, so timing is exact and the planner's audio lines up. The mixer turns
+## the cues it writes into sound effects.
 ##
 ## Run (the promo pipeline does this): godot --path . --write-movie out.avi --fixed-fps 60
 ##   res://kit/tools/film/film.tscn -- spec=res://build/promo/<id>/spec.json cues=res://build/promo/<id>/cues.json
@@ -19,7 +15,7 @@ const DESIGN_WIDTH: float = 720.0
 ## and 130 at the right of a 1080x1920 frame.
 const SAFE_TOP: float = 0.13
 const SAFE_BOTTOM: float = 0.78
-## The landscape phone's height as a fraction of the frame, and how far it rocks while it floats.
+## The landscape phone's height as a fraction of the frame, and how far it rocks in degrees.
 const PHONE_HEIGHT: float = 0.9
 const PHONE_ROCK: float = 1.6
 
@@ -103,8 +99,6 @@ func _save_cues() -> void:
 	f.store_string(JSON.stringify({"id": spec.get("id", ""), "frames": _frames, "fps": 60, "cues": cues}, "\t"))
 	f.close()
 
-# --- Stage --------------------------------------------------------------------------------------------
-
 func _build() -> void:
 	var root: Control = Control.new()
 	root.size = frame
@@ -179,9 +173,7 @@ func _wipe_origin(i: int) -> Vector2:
 	var corners: Array[Vector2] = [Vector2(0.15, 0.85), Vector2(0.85, 0.2), Vector2(0.5, 1.0), Vector2(0.9, 0.9)]
 	return frame * corners[i % corners.size()]
 
-# --- Beats --------------------------------------------------------------------------------------------
-
-## Sets a beat up. Anything that plays out over the beat is started here and not awaited.
+## Anything that plays out over the beat is started here and not awaited.
 func _enter(beat: Dictionary) -> void:
 	match String(beat["kind"]):
 		"title":
@@ -265,9 +257,8 @@ func _caption(c: Dictionary, beat: Dictionary) -> void:
 		if not bool(c.get("stay", false)):
 			k.play_out()
 
-## Shows where the player acts: a tap, or a swipe from `at` to `to`, both in the game's own coordinates
-## (its 720-wide design space). The Director calls this as it performs, so the finger and the game move
-## on the same frame.
+## `at` and `to` are in the game's 720-wide design space. The Director calls this as it performs, so the
+## finger and the game move on the same frame.
 func touch(kind: String, at: Vector2, to: Vector2 = Vector2.ZERO) -> void:
 	var rect: TextureRect = _screen if reel else _device.screen()
 	if rect == null or not _stage.visible:
@@ -329,9 +320,7 @@ func _card(text: String, sub: String) -> void:
 		create_tween().tween_property(s, "modulate:a", 1.0, 0.4).set_delay(0.45)
 	Audio.play(&"star", -12.0, 0.9)
 
-## An unsolved level left for the viewer. In a reel the game lifts into a rounded card on the brand
-## backdrop, which makes room under the board for a ring that counts down; nothing is played, so the
-## last thing on screen before the call to action is a puzzle waiting for them.
+## In a reel the game lifts into a card to make room under the board for the countdown ring.
 func _challenge(beat: Dictionary) -> void:
 	await _play(beat)
 	var ring_r: float = frame.x * (0.05 if reel else 0.03)
@@ -370,8 +359,6 @@ func _count_down(ring: _Countdown, count: int) -> void:
 		_cue("tick", {"n": 0})
 		ring.tick(0)
 
-## The last beat: the call to action over a QR code that opens the store listing. In a reel everything
-## sits inside the safe zone, and the code holds still long enough for a phone to read it off a screen.
 func _end(beat: Dictionary) -> void:
 	var text: String = String(beat.get("text", Brand.WORDMARK))
 	var sub: String = String(beat.get("sub", "Free on Google Play"))
@@ -509,7 +496,6 @@ class _Shade extends Control:
 			var k: float = float(i) / steps
 			draw_rect(Rect2(0.0, h * k, size.x, h / steps + 1.0), Color(Brand.BG, 0.82 * (1.0 - k * k)))
 
-## A ring that empties once a second around the number left, then shows a question mark.
 class _Countdown extends Node2D:
 	var radius: float
 	var _left: int
@@ -548,8 +534,8 @@ class _Countdown extends Node2D:
 		else:
 			draw_arc(Vector2.ZERO, radius, 0.0, TAU, 64, Brand.ACCENT, radius * 0.12, true)
 
-## The brand's background: a quiet vertical gradient, and the shadow under the game when it lifts into a
-## card, so the lift reads even where the game's own background matches this one.
+## Draws the shadow under the lifted game card, so the lift reads even where the game's own background
+## matches this one.
 class _Backdrop extends Control:
 	var card: float = 0.0:
 		set(value):
@@ -581,7 +567,6 @@ class _Backdrop extends Control:
 			box.shadow_offset = Vector2(0, size.x * 0.02)
 			draw_style_box(box, Rect2(at, card_of.size * card_of.scale))
 
-## A thin accent line that grows out from its centre.
 class _Line extends Control:
 	var grow: float = 0.0:
 		set(value):

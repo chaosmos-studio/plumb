@@ -1,7 +1,6 @@
 class_name IconButton
 extends BaseButton
 
-## A round button with a line icon: the kit's control for anything that is not the screen's main action.
 ## Drawn entirely here, so it looks the same on every game's palette with no textures.
 
 const SIZE: float = 96.0
@@ -10,7 +9,7 @@ var icon_name: StringName = &"back":
 	set(value):
 		icon_name = value
 		queue_redraw()
-## Draw the disc in the accent colour, for the one icon action a screen wants noticed.
+## For the one icon action a screen wants noticed.
 var accent: bool = false:
 	set(value):
 		accent = value
@@ -19,7 +18,6 @@ var badge: String = "":
 	set(value):
 		badge = value
 		queue_redraw()
-## An icon in the badge instead of text, such as the play mark on a hint that needs a video.
 var badge_icon: StringName = &"":
 	set(value):
 		badge_icon = value

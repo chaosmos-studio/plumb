@@ -1,10 +1,7 @@
 extends Node
 
-# Throwaway visual-verify harness, as used in Faceplant and Stickman. Loads a scene, lets it run,
-# saves a PNG of the render target (not the desktop), quits. This machine has no Xvfb, so it opens a
-# window on the real display for a moment.
+# This machine has no Xvfb, so it opens a window on the real display for a moment.
 # Run: DISPLAY=:0 godot --path . res://tools/shotter.tscn -- <scene_path> <frames> <out_name>
-# The PNG lands in user://, printed as an absolute path on the SHOT_SAVED line.
 
 func _ready() -> void:
 	var args: PackedStringArray = OS.get_cmdline_user_args()

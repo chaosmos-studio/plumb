@@ -1,8 +1,7 @@
 class_name Toast
 extends PanelContainer
 
-## A short message in a pill near the bottom that fades away on its own: for "no hint from here" and
-## similar, where a modal would be too much and silence would feel broken.
+## For "no hint from here" and similar, where a modal would be too much and silence would feel broken.
 
 const HOLD: float = 2.2
 const FROM_BOTTOM: float = 300.0

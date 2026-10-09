@@ -1,11 +1,9 @@
 extends Node
 
-# The level set, loaded once from the generated file, and which level is being played.
-
 const PATH: String = "res://levels/levels.json"
 
 var levels: Array[Dictionary] = []
-## The chapters in order, each {"name", "line", "count"}; empty for a level file without them.
+## Each {"name", "line", "count"}. Empty for a level file without chapters.
 var chapters: Array[Dictionary] = []
 var current: int = 0
 
@@ -29,7 +27,7 @@ func board(level: int) -> TiltBoard:
 func par(level: int) -> int:
 	return int(levels[level]["par"])
 
-## The chapter level `level` is in, or -1 when there are no chapters or it is past the last.
+## -1 when there are no chapters or `level` is past the last.
 func chapter_of(level: int) -> int:
 	var end: int = 0
 	for c: int in range(chapters.size()):

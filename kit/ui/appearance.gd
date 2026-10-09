@@ -1,8 +1,6 @@
 class_name Appearance
 extends RefCounted
 
-## Light or dark. Each game's Brand holds two palettes and names the one it was designed in; the player
-## keeps that, picks the other, or lets the phone decide, and may lay a colour theme over either (Themes).
 ## Every screen reads Brand while it builds, so a change rebuilds the current screen rather than
 ## repainting it piece by piece.
 ##
@@ -15,15 +13,12 @@ enum Choice { AUTO, LIGHT, DARK }
 const NAMES: PackedStringArray = ["Auto", "Light", "Dark"]
 
 static var dark: bool = false
-## Set by a screen that is rebuilding itself, read back by the new copy of it (see `rebuild`).
 static var kept: Variant = null
 static var _watcher: Node
 
-## The choice a new player starts with: the look the game was designed in.
 static func native() -> int:
 	return Choice.DARK if Brand.NATIVE_DARK else Choice.LIGHT
 
-## Whether a choice means dark. AUTO follows the system where it can tell, else the game's own look.
 static func resolve(choice: int) -> bool:
 	match choice:
 		Choice.LIGHT:
@@ -34,7 +29,6 @@ static func resolve(choice: int) -> bool:
 		return DisplayServer.is_dark_mode()
 	return Brand.NATIVE_DARK
 
-## Switches every colour the kit and the game read. Screens built after this use the new palette.
 static func apply(choice: int) -> void:
 	dark = resolve(choice)
 	var themed: Dictionary = Themes.colours(Themes.current(), dark)
@@ -50,7 +44,6 @@ static func apply(choice: int) -> void:
 		tree.root.add_child.call_deferred(_watcher)
 	EventBus.theme_changed.emit()
 
-## The player's pick from Settings: saved, applied, and the screen rebuilt around them.
 static func choose(choice: int, tree: SceneTree, reopen: Callable = Callable()) -> void:
 	Save.set_theme(choice)
 	if resolve(choice) == dark:
@@ -58,8 +51,8 @@ static func choose(choice: int, tree: SceneTree, reopen: Callable = Callable()) 
 	apply(choice)
 	await rebuild(tree, reopen)
 
-## Builds the current screen again in the current palette. A screen with state worth keeping, such as a
-## level half played, offers it from `keep()` and finds it in `Appearance.take()` when it is rebuilt.
+## A screen with state worth keeping, such as a level half played, offers it from `keep()` and finds it
+## in `Appearance.take()` when it is rebuilt.
 static func rebuild(tree: SceneTree, reopen: Callable = Callable()) -> void:
 	var scene: Node = tree.current_scene
 	if scene == null or scene.scene_file_path == "":
@@ -69,7 +62,6 @@ static func rebuild(tree: SceneTree, reopen: Callable = Callable()) -> void:
 	if reopen.is_valid() and tree.current_scene != null:
 		reopen.call(tree.current_scene)
 
-## What the screen before a rebuild kept, handed over once.
 static func take() -> Variant:
 	var state: Variant = kept
 	kept = null
@@ -83,9 +75,9 @@ static func _on_system_change() -> void:
 	if tree != null:
 		rebuild(tree)
 
-## Holds the system theme callback for as long as the app runs. The callback must be cleared before the
-## engine shuts down, or DisplayServer calls into freed script state on quit and the process aborts, so a
-## node in the tree owns it and lets go when it leaves.
+## The system theme callback must be cleared before the engine shuts down, or DisplayServer calls into
+## freed script state on quit and the process aborts, so a node in the tree owns it and lets go when it
+## leaves.
 class _Watcher extends Node:
 	func _ready() -> void:
 		DisplayServer.set_system_theme_change_callback(_changed)

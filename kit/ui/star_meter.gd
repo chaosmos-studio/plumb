@@ -1,9 +1,8 @@
 class_name StarMeter
 extends HBoxContainer
 
-## Three small stars: the most this attempt can still earn, where a play screen would otherwise show a
-## goal number. A star that goes out shrinks back into its outline, so the moment it is lost is felt
-## rather than read.
+## The most this attempt can still earn. A star that goes out shrinks back into its outline, so the moment
+## it is lost is felt rather than read.
 
 const STAR: float = 30.0
 ## The height of a Stat's number, so the meter sits level with a count beside it.

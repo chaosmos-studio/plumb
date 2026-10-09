@@ -1,12 +1,6 @@
 class_name Settings
 extends RefCounted
 
-## The settings sheet, reachable from every screen, in calm groups: how loud the sounds and the music are,
-## each a slider whose icon mutes it at a tap, and vibration; the theme; the colours and the game's looks
-## as two cards that show what is picked; and a row of round buttons for the guide, the shop, About and
-## Credits. The consent choices, where the law asks for them, a guarded reset and the version line sit
-## quietly at the foot.
-
 const RESET_ARM_TIME: float = 3.0
 const CARD_SIZE: Vector2 = Vector2(296, 112)
 const FOOT_HEIGHT: float = 76.0
@@ -83,8 +77,7 @@ static func _row_of(gap: int) -> HBoxContainer:
 	row.add_theme_constant_override("separation", gap)
 	return row
 
-## A volume: its icon, which mutes it at a tap and brings it back at the next, its name, and its slider.
-## `hear` takes each step of a drag and `keep` the place it rests at; the sound slider ticks as it moves.
+## `hear` takes each step of a drag and `keep` the place it rests at.
 static func _volume(icon: StringName, muted_icon: StringName, text: String, start: float, hear: Callable, keep: Callable,
 		ticks: bool) -> Control:
 	var row: HBoxContainer = HBoxContainer.new()
@@ -98,7 +91,6 @@ static func _volume(icon: StringName, muted_icon: StringName, text: String, star
 	var slider: VolumeSlider = VolumeSlider.new(start)
 	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(slider)
-	# The level to come back to after a mute, and the time of the last tick.
 	var back: Array[float] = [start if start > 0.0 else 1.0]
 	var ticked: Array[int] = [0]
 	slider.value_changed.connect(func(v: float) -> void:
@@ -121,7 +113,6 @@ static func _volume(icon: StringName, muted_icon: StringName, text: String, star
 		keep.call(slider.value))
 	return row
 
-## A settings line: the icon, what it sets, and the control that sets it.
 static func setting_row(icon: StringName, text: String, control: Control) -> Control:
 	var row: HBoxContainer = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 24)
@@ -136,7 +127,6 @@ static func setting_row(icon: StringName, text: String, control: Control) -> Con
 	row.add_child(control)
 	return row
 
-## A card that opens a picker: an icon in an accent disc, what it picks, and what is picked now.
 static func _card(icon: StringName, title: String, value: String, pick: Callable) -> Button:
 	var card: Button = UI.card(CARD_SIZE)
 	card.pressed.connect(pick)
@@ -174,7 +164,6 @@ static func _quiet(text: String) -> Button:
 	b.add_theme_font_size_override("font_size", FOOT_FONT)
 	return b
 
-## A volume's icon as a button: the sound or the music sign, and its crossed-out sign while muted.
 class _Mute extends BaseButton:
 	var muted: bool = false:
 		set(value):
@@ -199,7 +188,6 @@ class _Mute extends BaseButton:
 class _Glyph extends Control:
 	var icon: StringName = &"sound"
 	var colour: Color = Brand.MUTED
-	## Drawn on a soft disc of the accent, in the accent.
 	var disc: bool = false
 
 	func _init() -> void:

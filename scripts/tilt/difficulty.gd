@@ -1,14 +1,10 @@
 class_name TiltDifficulty
 extends RefCounted
 
-## How hard a level is, measured rather than guessed. The score is the bits of luck a player who tilts
-## at random needs to clear the board in par: minus log2 of the chance that uniformly random tilts,
-## among those that move something, follow a shortest solution. Par sets most of it, and at one par a
-## level scores higher when it offers more ways to go wrong or fewer ways to go right. A tilt into a pit
-## is one more way to go wrong, no worse than another, since undo gives the move back.
+## The bits of luck a player tilting at random needs to clear the board in par (MATH.md section 5).
 
 var par: int = 0
-## A shortest solution, the same one the solver finds; empty when there is none within the search.
+## The same shortest solution the solver finds, empty when there is none within the search.
 var path: PackedInt32Array = PackedInt32Array()
 var bits: float = 0.0
 ## The chance that random tilting drops a marble down a pit while par is still possible. Above zero
@@ -17,8 +13,6 @@ var risk: float = 0.0
 ## Positions strictly closer than par: the search a perfect planner has to rule out.
 var states: int = 0
 
-## Breadth-first by whole layers, so the chance of a random walk being on a shortest route can be
-## carried forward layer by layer. Gives up past `max_depth` tilts or `limit` positions.
 static func of(start: TiltBoard, max_depth: int = 64, limit: int = 100000) -> TiltDifficulty:
 	var out: TiltDifficulty = TiltDifficulty.new()
 	if start.is_won():
@@ -85,15 +79,14 @@ static func of(start: TiltBoard, max_depth: int = 64, limit: int = 100000) -> Ti
 func solved() -> bool:
 	return par > 0
 
-## The order levels ship in: by bits, and at equal bits by the size of the search.
+## At equal bits, the level with more positions closer than par is the harder (MATH.md section 5).
 func easier_than(other: TiltDifficulty) -> bool:
 	if bits != other.bits:
 		return bits < other.bits
 	return states < other.states
 
-## The order levels ship in from TiltGenerator.BY_PAR_FROM on: by par, then as `easier_than`. A level that
-## needs a move more comes after one that needs fewer, whatever its bits, so bits may start lower again
-## each time par steps up, and the climb can go on for hundreds of levels (MATH.md section 10).
+## The order levels ship in from TiltGenerator.BY_PAR_FROM on, so bits may start lower again each time
+## par steps up (MATH.md section 10).
 func before(other: TiltDifficulty) -> bool:
 	if par != other.par:
 		return par < other.par

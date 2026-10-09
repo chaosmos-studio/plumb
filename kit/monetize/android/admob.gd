@@ -1,17 +1,14 @@
 extends AdBackend
 
-## Google AdMob through the Poing Studios plugin, loaded by Ads on Android only: Google's consent message
-## (UMP) first, then the Mobile Ads SDK with ads rated PG at most, then one interstitial and one rewarded
-## ad kept loaded. The banner is made the first time a screen wants it and kept for the session.
 ## Debug builds always ask for Google's test units, so a phone under test never sees a real ad.
 
 const TEST_BANNER: String = "ca-app-pub-3940256099942544/9214589741"
 const TEST_INTERSTITIAL: String = "ca-app-pub-3940256099942544/1033173712"
 const TEST_REWARDED: String = "ca-app-pub-3940256099942544/5224354917"
-## A failed load waits this long before trying again, doubling each time up to the cap.
+## Seconds before a failed load tries again, doubling each time up to the cap.
 const RETRY_FIRST: float = 30.0
 const RETRY_CAP: float = 600.0
-## A loaded full-screen ad is good for an hour; one older than this is loaded again rather than shown.
+## A loaded full-screen ad expires after an hour, so one older than this is loaded again rather than shown.
 const STALE: float = 3300.0
 ## An ad that has neither shown nor failed this long after `present` is given up on.
 const SHOW_TIMEOUT: float = 5.0
@@ -43,8 +40,7 @@ func _on_consent_info() -> void:
 	else:
 		_start_sdk()
 
-## What UMP's canRequestAds() answers: a choice made, or none needed. After a failed update this is the
-## choice kept from the last session.
+## UMP's canRequestAds(). After a failed update this is the choice kept from the last session.
 func _can_request() -> bool:
 	var status: int = UserMessagingPlatform.consent_information.get_consent_status()
 	return status == ConsentInformation.ConsentStatus.OBTAINED or status == ConsentInformation.ConsentStatus.NOT_REQUIRED
@@ -83,8 +79,6 @@ func _unit(kind: StringName) -> String:
 		REWARDED:
 			return TEST_REWARDED if debug else GameMonetize.REWARDED_ID
 	return TEST_BANNER if debug else GameMonetize.BANNER_ID
-
-# --- Full-screen ads ----------------------------------------------------------------------------------
 
 func _load(kind: StringName) -> void:
 	if not _sdk_ready or _stopped or _loading.get(kind, false) or _loaded.has(kind):
@@ -148,8 +142,7 @@ func present(kind: StringName) -> void:
 	if _showing == kind and not _shown:
 		_end(kind)
 
-## The ad closed or never showed. The reward callback can land just after the close, so this waits a
-## frame before reporting.
+## The reward callback can land just after the close, so this waits a frame before reporting.
 func _end(kind: StringName) -> void:
 	if _showing != kind:
 		return
@@ -164,8 +157,6 @@ func _drop(kind: StringName) -> void:
 	_loaded.erase(kind)
 	if ad != null:
 		ad.call("destroy")
-
-# --- Banner -------------------------------------------------------------------------------------------
 
 func set_banner(on: bool) -> void:
 	_banner_on = on and not _stopped
@@ -209,16 +200,13 @@ func _on_banner_failed() -> void:
 		if _banner_on:
 			_make_banner())
 
-## The banner's height in the game's design pixels, which every layout in the kit is written in: its size
-## in dp at the screen's density, or the laid-out view if that is taller, so it is never underestimated.
+## In design pixels. The laid-out view wins if it is taller than the dp size, so it is never underestimated.
 func _design_height() -> float:
 	var pixels: float = maxf(float(_banner.ad_size.height), 50.0) * DisplayServer.screen_get_dpi() / 160.0
 	pixels = maxf(pixels, float(_banner.get_height_in_pixels()))
 	var view: float = get_viewport().get_visible_rect().size.y
 	var window: float = float(DisplayServer.window_get_size().y)
 	return pixels * view / window if window > 0.0 else pixels
-
-# --- Privacy and the Supporter pack -------------------------------------------------------------------
 
 func privacy_required() -> bool:
 	return UserMessagingPlatform.consent_information.get_privacy_options_requirement_status() \

@@ -1,9 +1,5 @@
-"""Android's adaptive icon layers, from a game's own icon drawing: the backdrop alone, full bleed, and the
-motif alone on a transparent layer, fitted into the middle.
-
-Android masks an adaptive icon's layers to roughly their inner two thirds (a circle, a squircle or a
-rounded square, as the phone likes), and its launch screen to a circle inside that. A motif drawn edge to
-edge for the square store icon therefore loses its edges on the phone unless it is fitted in here. See
+"""Android masks an adaptive icon's layers to roughly their inner two thirds, and its launch screen to a
+circle inside that, so a motif drawn edge to edge for the store icon is fitted in here. See
 https://developer.android.com/develop/ui/views/launch/icon_design_adaptive
 
 Used by each game's tools/make_icons.py: write_adaptive(motif, backdrop), where motif(size) and
@@ -16,7 +12,7 @@ LAYER = 432
 # The share of the layer the motif's bounding box may span. Android keeps a circle 66/108 across safe
 # from every mask, and a round motif boxed at this size sits inside it.
 SAFE = 0.58
-# Alpha below this counts as empty when finding the motif's bounds, so a glow's faint tail does not
+# Alpha up to this counts as empty when finding the motif's bounds, so a glow's faint tail does not
 # shrink the motif for nothing.
 SOLID = 8
 

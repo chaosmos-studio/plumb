@@ -1,24 +1,16 @@
 class_name TiltGenerator
 extends RefCounted
 
-## Makes the level set, one chapter at a time, and each chapter one phase at a time. A phase fixes the board
-## size and what goes on it. Random boards for the phase are proposed, solved and measured; the ones that
-## solve inside the phase's par window, sit near its stretch of the difficulty ramp, need the chapter's
-## rule, and are not a replay of any level already made go into a pool. From the pool the generator picks
-## the run of levels that follows the ramp most closely without ever getting easier, in par or in
-## difficulty, chapter starts included. Once the first chapter is made, its opening levels are swapped for a
-## showcase (TiltShowcase), boards picked for how they look and play under the level that follows them.
-## Nothing is hand-placed.
+## Levels by rejection, then a run picked from each pool to follow the ramp (MATH.md sections 3, 6, 8 to 10).
 
-## Each chapter is one page of the Levels screen and brings one rule. `rule` names the tile its levels must
-## need (TiltBoard.TILE_NAMES, or "plug", "stone", "ice", "number", "wrap", "locked"; "" for the opening
-## chapters, whose rules are the game's own; "mix" for a chapter that needs every rule on each board), and
-## `line` is how the game teaches it. A phase is: count, width, height, colours, marbles, wall density,
-## pits, par min, par max, then the marks it places: a count per tile name (a pair for "portal", a switch
-## and its hatch for "switch", a key and its lock for "key"), "stone" for stones, "plug" true to make every
-## hole a plug, with as many holes of a colour as it has marbles, "ice" for icy holes, "number" for
-## numbered marbles, "wrap" 1 for one axis that wraps and 2 for both, "locked" for a turning lock,
-## and "mix" for that many rules drawn from MIX.
+## `rule` names the tile a chapter's levels must need: a TiltBoard.TILE_NAMES entry, "plug", "stone", "ice",
+## "number", "wrap" or "locked", "" for the opening chapters, whose rules are the game's own, or "mix" for a
+## chapter that needs every rule on each board. A phase is: count, width, height, colours, marbles, wall
+## density, pits, par min, par max, then the marks it places: a count per tile name (a pair for "portal", a
+## switch and its hatch for "switch", a key and its lock for "key"), "stone" for stones, "plug" true to make
+## every hole a plug, with as many holes of a colour as it has marbles, "ice" for icy holes, "number" for
+## numbered marbles, "wrap" 1 for one axis that wraps and 2 for both, "locked" for a turning lock, and "mix"
+## for that many rules drawn from MIX.
 const CHAPTERS: Array = [
 	{"name": "Roll home", "rule": "", "line": "Swipe to tilt the board", "phases": [
 		[1, 4, 4, 1, 1, 0.10, 0, 1, 1, {}],
@@ -136,22 +128,17 @@ const CHAPTERS: Array = [
 		[10, 8, 8, 3, 5, 0.15, 1, 14, 24, {"mix": 3}],
 	]},
 ]
-## What a mixed chapter (rule "mix") draws its rules from, one entry per rule, each with the marks that
-## rule places on a board.
 const MIX: Array[Dictionary] = [{"stop": 2}, {"gate": 2}, {"door": 1}, {"paint": 1}, {"crack": 3}, {"stone": 1},
 	{"portal": 1}, {"bumper": 2}, {"switch": 1}, {"key": 1}, {"blink": 3}, {"conveyor": 2}, {"spring": 2},
 	{"wrap": 1}, {"magnet": 2}, {"number": 3}, {"glass": 2}, {"ice": 2}, {"locked": 1}]
-## A phase's count of stones, and the tile names that place two tiles each.
 const STONE_NAME: String = "stone"
 const PAIRED: Array[String] = ["portal", "switch", "key"]
 ## The rule tiles that stand on one cell alone, which `prune` takes off a board where they change nothing.
 const SINGLE: Array[int] = [TiltBoard.Tile.STOP, TiltBoard.Tile.GATE, TiltBoard.Tile.DOOR, TiltBoard.Tile.PAINT,
 	TiltBoard.Tile.CRACK, TiltBoard.Tile.BUMPER, TiltBoard.Tile.BLINK, TiltBoard.Tile.CONVEYOR, TiltBoard.Tile.SPRING,
 	TiltBoard.Tile.MAGNET, TiltBoard.Tile.GLASS]
-## The ramp runs over RAMP_LEVELS, the whole game as planned (CHAPTERS.md), not just the chapters made so
-## far, so the levels made now stay the same when later chapters are added after them. Level 1 aims at
-## FIRST_PAR and FIRST_BITS (see TiltDifficulty), level RAMP_LEVELS at LAST_PAR and LAST_BITS, and both
-## climb along the same curve. A RAMP_POWER below 1 climbs faster early.
+## The ramp runs over the whole game as planned, not the chapters made so far, so adding chapters later
+## leaves the levels made now as they are (MATH.md sections 6 and 8).
 const RAMP_LEVELS: int = 500
 const FIRST_PAR: float = 1.0
 const LAST_PAR: float = 16.0
@@ -170,25 +157,21 @@ const BAND: float = 1.0
 const POOL: int = 6
 ## Positions the solver may explore for one candidate. One that needs more is too tangled for its phase.
 const SEARCH_LIMIT: int = 12000
-## Proposals tried per level a phase ships before its pool closes, full or not. From TILED_FROM on,
-## chapters place rule tiles and `prune` turns down far more proposals (a board whose tiles do nothing
-## measures easier without them), so they try ATTEMPTS_TILED.
+## Proposals tried per level a phase ships before its pool closes, full or not. Chapters from TILED_FROM on
+## try ATTEMPTS_TILED, since pruning their tiles turns down far more proposals (MATH.md section 8).
 const ATTEMPTS: int = 1500
 const ATTEMPTS_TILED: int = 4500
 const TILED_FROM: int = 4
-## Chapters from this one on build their pools in batches of BATCH proposals, which a Farm may work out
-## anywhere, in any order. Each batch has its own seed, made from one number the phase draws from the
-## generator's RNG and the batch's index, and the batches are merged in index order, so the levels depend
-## only on the seed, never on where or when a batch ran. The chapters before, which have no tiles to
-## prune, keep the one-at-a-time way they were made, so a full run still writes the levels already shipped.
+## Chapters from this one on pool in seeded batches of BATCH that a Farm may run anywhere, merged in batch
+## order, so the levels depend only on the seed (MATH.md section 10). The chapters before keep the
+## one-at-a-time way they were made, so a full run still writes the levels already shipped.
 const PARALLEL_FROM: int = 4
 const BATCH: int = 24
 ## Chapters from this one on ship in TiltDifficulty.before's order, par first, rather than with par and
 ## bits each never falling (MATH.md section 10). Every level before them keeps both, which also keeps this.
 const BY_PAR_FROM: int = 10
-## From this chapter on a phase pools only boards at the last level's par or one more, so its pool crowds
-## the low end of what it may ship and par climbs slowly, and it pools POOL_LATE boards per level it ships
-## rather than POOL, packing them closer in bits (MATH.md section 10).
+## From this chapter on a phase pools only boards at the last level's par or one more, and POOL_LATE per
+## level rather than POOL, so par climbs slowly (MATH.md section 10).
 const CLOSE_FROM: int = 10
 const POOL_LATE: int = 8
 
@@ -204,9 +187,8 @@ class Candidate:
 		views = v
 		order = n
 
-## Works out a batched phase's batches. `job` (see `_fill`) says which phase and window; `take(b)` gives
-## batch b's candidates in the order they were found. This one works each batch out here when it is
-## asked for; tools/generate_levels.gd puts one in its place that spreads them over worker processes.
+## Runs each batch here when asked. tools/generate_levels.gd puts in its place one that spreads them over
+## worker processes, and its `take(b)` must give batch b's candidates in the order they were found.
 class Farm:
 	extends RefCounted
 	var _job: Dictionary
@@ -222,7 +204,7 @@ class Farm:
 
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var farm: Farm = Farm.new()
-## Every level made so far, in shipping order, as {"rows", "marbles", "par"}.
+## Each a TiltBoard.to_dict() with its "par", in shipping order.
 var levels: Array[Dictionary] = []
 ## What the last phase measured, for reporting: pool size and attempts used.
 var pooled: int = 0
@@ -244,7 +226,6 @@ static func chapter_size(c: int) -> int:
 		n += int(phase[0])
 	return n
 
-## The chapters as the level file lists them: name, line and how many levels, in order.
 static func chapter_list() -> Array:
 	var out: Array = []
 	for c: int in range(CHAPTERS.size()):
@@ -261,9 +242,8 @@ static func target_par(i: int) -> float:
 static func target_bits(i: int) -> float:
 	return FIRST_BITS + (LAST_BITS - FIRST_BITS) * progress(i)
 
-## Takes `made`, the levels of the chapters already shipped, as made, measuring each one afresh, and the
-## random state the generator had once it made them, so the chapters after them come out exactly as a
-## full run from the start would make them.
+## `state` is the RNG state saved once `made` was made, so the chapters after come out exactly as a full
+## run would make them (MATH.md section 9).
 func resume(made: Array, state: int) -> void:
 	for entry: Variant in made:
 		var level: Dictionary = entry
@@ -273,9 +253,8 @@ func resume(made: Array, state: int) -> void:
 		_made.append(Candidate.new(board, m, TiltNovelty.views(board, m.path), _made.size()))
 	rng.state = state
 
-## Swaps the opening, the first levels as TiltShowcase.SLOTS lists them, for the showcase's, once the levels
-## after it are made. The showcase draws on a random stream of its own, so every level after the opening
-## comes out the same either way. False if it found no opening.
+## Call once the levels after the opening are made. The showcase has a random stream of its own, so those
+## levels come out the same either way.
 func open() -> bool:
 	var count: int = TiltShowcase.SLOTS.size()
 	var picks: Array[Candidate] = TiltShowcase.new(rng.seed).make(_made.slice(count))
@@ -288,22 +267,19 @@ func open() -> bool:
 		_made[k] = picks[k]
 	return true
 
-## The measured difficulty of every level made so far, in order.
 func made() -> Array[TiltDifficulty]:
 	var out: Array[TiltDifficulty] = []
 	for c: Candidate in _made:
 		out.append(c.measure)
 	return out
 
-## Makes phase `p` of chapter `chapter` and appends its levels. False if its pool could not fill a run that
-## never gets easier.
 func add_phase(chapter: int, p: int) -> bool:
 	var phase: Array = CHAPTERS[chapter]["phases"][p]
 	var rule: String = CHAPTERS[chapter]["rule"]
 	var count: int = phase[0]
 	var par_min: int = phase[7]
 	var par_max: int = phase[8]
-	# Deeper chapters may search further; the ones before keep the limit they were made with.
+	# Deeper chapters may search further, but the ones before keep the limit they were made with.
 	var limit: int = int(CHAPTERS[chapter].get("search", SEARCH_LIMIT))
 	var first: int = levels.size()
 	var last: TiltDifficulty = null if _made.is_empty() else _made[-1].measure
@@ -335,18 +311,13 @@ func add_phase(chapter: int, p: int) -> bool:
 		_made.append(c)
 	return true
 
-## A proposal measured against everything a phase asks that does not depend on the pool: solved within
-## the search, par and bits in the window, no easier than the last level, its pits a real risk where the
-## phase has pits, and needing the chapter's rule. Its tiles that change nothing come off first (prune),
-## so it is judged as it would ship. Null if it fails any of them.
 static func _try(board: TiltBoard, phase: Array, rule: String, limit: int, lo: float, hi: float,
 		last: TiltDifficulty, by_par: bool = false, cap: int = -1) -> Candidate:
 	if board == null or not _open(board):
 		return null
 	var deepest: int = cap if cap > 0 else int(phase[8])
-	# A plain search finds par first, so a board outside the phase's window never pays for the measure,
-	# which carries every position's chance as well. Its count of positions differs a little from the
-	# measure's, so the chapters made before it keep the one way they were made.
+	# The plain search is cheaper, so a board outside the window never pays for the measure. It counts
+	# positions a little differently, so the chapters before BY_PAR_FROM keep the one way they were made.
 	if by_par and TiltSolver.new().solve(board, limit, deepest).size() < int(phase[7]):
 		return null
 	var m: TiltDifficulty = TiltDifficulty.of(board, deepest, limit)
@@ -371,10 +342,8 @@ static func _fits(m: TiltDifficulty, phase: Array, lo: float, hi: float, last: T
 		return false
 	return int(phase[6]) <= 0 or m.risk > 0.0
 
-## `board` without the tiles that change nothing: each single-cell rule tile is taken off in turn and
-## stays off if the board still needs exactly `par` moves. Taking one off can make another matter (two
-## gates that each do the job alone) or stop mattering, so it goes round until nothing more comes off. A
-## search that gives up proves nothing, so that tile stays.
+## Goes round until nothing more comes off, since taking one tile off can make another matter or stop
+## mattering. A search that gives up proves nothing, so that tile stays (MATH.md section 8).
 static func prune(board: TiltBoard, par: int, limit: int = SEARCH_LIMIT) -> TiltBoard:
 	var out: TiltBoard = board.copy()
 	var changed: bool = true
@@ -394,15 +363,14 @@ static func _without_tile(board: TiltBoard, i: int) -> TiltBoard:
 	out.tiles[i] = TiltBoard.Tile.NONE
 	return out
 
-## Adds a measured candidate to the pool unless it repeats a level made or pooled already.
 func _keep(c: Candidate, pool: Array[Candidate]) -> void:
 	if c == null or _replays(c.views, pool):
 		return
 	c.order = pool.size()
 	pool.append(c)
 
-## The batched pool (PARALLEL_FROM): the farm's batches, merged in batch order until the pool holds `size`
-## or the phase's attempts are spent. `cap` is the deepest par it searches for.
+## Batches are merged strictly in batch order, so the pool never depends on where a batch ran. `cap` is the
+## deepest par searched for.
 func _fill(pool: Array[Candidate], chapter: int, p: int, lo: float, hi: float, last: TiltDifficulty, cap: int,
 		size: int) -> void:
 	var count: int = CHAPTERS[chapter]["phases"][p][0]
@@ -420,8 +388,7 @@ func _fill(pool: Array[Candidate], chapter: int, p: int, lo: float, hi: float, l
 				_keep(c, pool)
 	farm.stop()
 
-## Batch b of a batched phase's `job`: BATCH proposals from a generator seeded for that batch alone,
-## measured, in order.
+## Seeded from the job's seed and `b` alone, so a batch comes out the same wherever it runs.
 static func batch(job: Dictionary, b: int) -> Array[Candidate]:
 	var chapter: int = job["chapter"]
 	var phase: Array = CHAPTERS[chapter]["phases"][int(job["phase"])]
@@ -443,8 +410,7 @@ static func batch(job: Dictionary, b: int) -> Array[Candidate]:
 			found.append(c)
 	return found
 
-## A batch's candidates as JSON a worker process can send, and back. Floats must be written at full
-## precision, since equal bits are compared exactly.
+## Floats must be written at full precision, since equal bits are compared exactly.
 static func batch_to_json(found: Array[Candidate]) -> Array:
 	var out: Array = []
 	for c: Candidate in found:
@@ -467,11 +433,8 @@ static func batch_from_json(data: Array) -> Array[Candidate]:
 		found.append(Candidate.new(board, m, TiltNovelty.views(board, m.path), 0))
 	return found
 
-## Whether `board` needs its `rule`: the same board with every such tile turned back into plain floor, or
-## every plug into an ordinary hole, has no solution or a different par. A rule that helps (a stop pad,
-## paint) shows by the plain board getting harder; one that restricts (a gate, a plug, cracked floor) by
-## it getting easier. A level whose rule changes nothing would teach nothing. The search only has to look
-## `par` moves deep, and one that gives up proves nothing, so that board is turned down.
+## The board without its rule must have no solution or a different par. A search that gives up proves
+## nothing, so that board is turned down (MATH.md section 8).
 static func needs(board: TiltBoard, rule: String, par: int, limit: int = SEARCH_LIMIT) -> bool:
 	if rule == "mix":
 		var on: PackedStringArray = rules_on(board)
@@ -535,7 +498,7 @@ static func without(board: TiltBoard, rule: String) -> TiltBoard:
 				plain.marble_colour.append(board.marble_colour[m])
 				plain.marble_number.append(board.marble_number[m])
 		return plain
-	# A switch goes with its hatch, so the door is simply open; a key goes with its lock.
+	# A switch goes with its hatch, so the door is simply open, and a key goes with its lock.
 	var gone: Array[int] = [TiltBoard.TILE_NAMES.find(rule)]
 	if rule == "switch":
 		gone.append(TiltBoard.Tile.HATCH)
@@ -555,11 +518,9 @@ func _replays(v: TiltNovelty.Views, pool: Array[Candidate]) -> bool:
 			return true
 	return false
 
-## The `count` candidates, in order of difficulty with par never falling, closest to the ramp in the
-## least-squares sense, with no more than RUN levels in a row on one bits value, counting the `streak` of
-## them the set already ends on. A phase's first level aims where the level before it aimed, so whatever
-## the phase introduces arrives without a step up in difficulty. The state is (candidate, how many levels
-## in a row it ends that share its bits).
+## The dynamic program of MATH.md sections 6 and 8. A phase's first level aims where the level before it
+## aimed, so whatever the phase introduces arrives without a step up. The state is (candidate, how many
+## levels in a row it ends that share its bits).
 func _run(pool: Array[Candidate], first: int, count: int, last: TiltDifficulty, streak: int,
 		by_par: bool = false) -> Array[Candidate]:
 	var sorted: Array[Candidate] = pool.duplicate()
@@ -624,7 +585,6 @@ func _run(pool: Array[Candidate], first: int, count: int, last: TiltDifficulty, 
 		end = back[k][end]
 	return run
 
-## How many levels at the end of the set so far are as hard as the last one.
 func _streak(by_par: bool = false) -> int:
 	var n: int = 0
 	for k: int in range(_made.size() - 1, -1, -1):
@@ -633,10 +593,9 @@ func _streak(by_par: bool = false) -> int:
 		n += 1
 	return n
 
-## A marble only ever rolls over floor, so one that open floor does not join to the hole of its colour
-## can never drop in. A cheap test that spares the solver boards it could only fail on. Paint can change a
-## marble's colour on the way, a portal or a spring can carry it across a wall, an edge can wrap and a
-## stone can fill a pit in its way, so a board with any of those is left to the solver.
+## A cheap flood fill (MATH.md section 3). Paint can change a marble's colour on the way, a portal or a
+## spring can carry it across a wall, an edge can wrap and a stone can fill a pit in its way, so a board
+## with any of those is left to the solver.
 static func _open(board: TiltBoard) -> bool:
 	if board.tiles.has(TiltBoard.Tile.PAINT) or board.tiles.has(TiltBoard.Tile.PORTAL) or board.marble_colour.has(TiltBoard.STONE):
 		return true
@@ -747,7 +706,6 @@ func _propose(phase: Array) -> TiltBoard:
 		board.locked = rng.randi_range(0, 3)
 	return board
 
-## `n` different rules from MIX, their marks together.
 func _mixed(n: int) -> Dictionary:
 	var picks: Array[int] = []
 	for k: int in range(MIX.size()):
