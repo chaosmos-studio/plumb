@@ -23,8 +23,9 @@ const THANKS_LINE: String = "You are a Supporter. Thank you for helping me make 
 const TEAM: Array[Dictionary] = [
 	{"name": "Shravan Goswami", "role": "Game designer and developer", "site": "https://shravangoswami.com/",
 		"site_on_play": "https://shravangoswami.com/projects/studio/"},
-	{"name": "Claude Opus 5.5", "role": "AI co-developer, by Anthropic"},
 ]
+## A quiet line under the makers on the Credits sheet. It names no model version, so it never goes stale.
+const HELP: String = "Made with the help of Claude, an AI by Anthropic."
 
 const SECTIONS: Array[Dictionary] = [
 	{"title": "Engine", "items": [

@@ -21,6 +21,7 @@ To ship: add a new section at the top, push, then Actions > Release Android > Ru
 - About and the ending now show the studio's other games, Carillon and Apsis.
 - At a few milestones, a short note asks for a rating, and Not now is always there.
 - The ending scrolls when it is taller than the screen.
+- A cleaner Credits page.
 
 ## 1.1.4 - 2026-10-07
 
