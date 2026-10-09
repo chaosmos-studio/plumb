@@ -53,7 +53,7 @@
 		"fail": ["Watch the *pits*", "One wrong tilt... *oops*", "Undo is *one* tap away"],
 		"dense": ["Now it gets *interesting*", "More marbles. Same *one* rule.", "Harder boards, *same* swipe", "A new *twist* every chapter"],
 		"challenge": ["Your turn. Which way *first*?", "Can you solve *this* one?", "Four directions. *One* answer.", "Try it. No *peeking*."],
-		"cta": ["Solve it *yourself*", "Your move. *Download* free.", "Finish *this* level"],
+		"cta": ["Solve it *yourself*", "Your move. *Scan* the code.", "Finish *this* level"],
 		"scan": ["Scan to play", "Scan to solve it", "Point your camera here"],
 		"facts": [
 			["No timers", "no lives, no rush", "No timers, no lives, and no rush."],
@@ -69,7 +69,7 @@
 			"fail": ["Careful, the square pits swallow any marble. But undo is always one tap away.", "Tilt the wrong way and you lose one. So think first."],
 			"dense": ["Then the boards fill up, and the same simple rule gets surprisingly deep.", "More marbles, more walls, and still the same one swipe.", "Every chapter brings a new twist, like gates, portals and bumpers."],
 			"challenge": ["Now it's your turn. Which way would you tilt first?", "Here's one for you. Can you solve it?", "Think you've got it? Try this one."],
-			"outro": ["Scan the code and play Plumb, free on Google Play.", "Plumb is free on Google Play. Scan the code and solve it yourself.", "Solve it yourself. Plumb, free on Google Play."]
+			"outro": ["Scan the code to get Plumb on Google Play.", "Plumb is free. Scan the code and solve it yourself.", "Solve it yourself. Get Plumb on Google Play."]
 		}
 	}
 }
