@@ -1,7 +1,9 @@
 # Godot
 .godot/
-# Android build template, installed by the editor or --install-android-build-template
-/android/
+# Android build template, installed by the editor or --install-android-build-template. The Firebase
+# plugin's own libraries sit beside it in android/firebase_*/ and are committed.
+/android/build/
+/android/.build_version
 
 # Python bytecode from the tools/ generators
 __pycache__/
