@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "774261168232",
+    "project_id": "chaosmos-studio",
+    "storage_bucket": "chaosmos-studio.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:774261168232:android:1127915af20748d5db03dd",
+        "android_client_info": {
+          "package_name": "com.shravangoswami.apsis"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9avW87bb8NZXyEPv6veRPAhmrwoEep5I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:774261168232:android:e45db9606b22af18db03dd",
+        "android_client_info": {
+          "package_name": "com.shravangoswami.carillon"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9avW87bb8NZXyEPv6veRPAhmrwoEep5I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:774261168232:android:b51da0b03934c1d9db03dd",
+        "android_client_info": {
+          "package_name": "com.shravangoswami.plumb"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9avW87bb8NZXyEPv6veRPAhmrwoEep5I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
