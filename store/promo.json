@@ -53,7 +53,7 @@
 		"fail": ["Watch the *pits*", "One wrong tilt... *oops*", "Undo is *one* tap away"],
 		"dense": ["Now it gets *interesting*", "More marbles. Same *one* rule.", "Harder boards, *same* swipe", "A new *twist* every chapter"],
 		"challenge": ["Your turn. Which way *first*?", "Can you solve *this* one?", "Four directions. *One* answer.", "Try it. No *peeking*."],
-		"cta": ["Solve it *yourself*", "Your move. *Scan* the code.", "Finish *this* level"],
+		"cta": ["Solve it *yourself*", "Your *move*.", "Finish *this* level"],
 		"scan": ["Scan to play", "Scan to solve it", "Point your camera here"],
 		"facts": [
 			["No timers", "no lives, no rush", "No timers, no lives, and no rush."],
