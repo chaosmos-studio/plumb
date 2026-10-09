@@ -1,7 +1,8 @@
 extends Node2D
 
-## The play screen: one level, swipes or arrow keys to tilt, undo, restart, a hint from the solver, and
-## the result. All the rules live in TiltBoard; this only routes input, keeps history, and presents.
+## The play screen: one level, swipes, arrow keys or the phone's own lean to tilt, undo, restart, a hint
+## from the solver, and the result. All the rules live in TiltBoard; this only routes input, keeps history,
+## and presents.
 
 ## A drag this long, in viewport pixels, is a swipe.
 const SWIPE_MIN: float = 36.0
@@ -25,6 +26,7 @@ var _queued: int = -1
 var _touch_from: Vector2 = Vector2.ZERO
 var _touching: bool = false
 var _swiped: bool = false
+var _phone: PhoneTilt = PhoneTilt.new()
 
 var _ui: Control
 var _moves: Stat
@@ -138,6 +140,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		_on_hint()
 	elif event.is_action_pressed("back"):
 		Screens.go(Brand.LEVELS_SCENE)
+
+## With "Tilt your phone" on, tipping the phone tilts the board too. Anything over the board holds the lean,
+## and play picks up from however the phone is held when it is gone.
+func _process(_delta: float) -> void:
+	if not Save.phone_tilt:
+		return
+	if (is_instance_valid(_coach) and _coach.blocks_input) or is_instance_valid(_prompt) or is_instance_valid(_replay) \
+			or is_instance_valid(_sheet) or Sheet.any_open():
+		_phone.reset()
+		return
+	var dir: int = _phone.feed(Input.get_gravity())
+	if dir >= 0:
+		_tilt(dir)
 
 # --- Play ---------------------------------------------------------------------------------------------
 

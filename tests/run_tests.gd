@@ -26,6 +26,7 @@ func _initialize() -> void:
 	_test_input_map_is_wired()
 	_test_orientation_is_an_int()
 	_test_tilt_rules()
+	_test_phone_tilt()
 	_test_chapter_tiles()
 	_test_wave_two_tiles()
 	_test_wave_three_tiles()
@@ -106,6 +107,29 @@ func _test_orientation_is_an_int() -> void:
 
 static func _board(rows: Array, marbles: Array) -> TiltBoard:
 	return TiltBoard.from_dict({"rows": rows, "marbles": marbles})
+
+## Gravity for a phone held `back` degrees off vertical, then leaned `side` degrees right and `forward`
+## degrees top-edge-down, in the screen's axes as Godot reports it on Android.
+static func _gravity(back: float, side: float, forward: float) -> Vector3:
+	var g: Vector3 = Vector3(0.0, -cos(deg_to_rad(back)), -sin(deg_to_rad(back))) * 9.8
+	return g.rotated(Vector3.FORWARD, deg_to_rad(-side)).rotated(Vector3.RIGHT, deg_to_rad(forward))
+
+func _test_phone_tilt() -> void:
+	var phone: PhoneTilt = PhoneTilt.new()
+	_check("a phone with no gravity tilts nothing", phone.feed(Vector3.ZERO) == -1)
+	_check("the first reading is the rest", phone.feed(_gravity(40, 0, 0)) == -1)
+	_check("a small wobble tilts nothing", phone.feed(_gravity(40, 8, 0)) == -1)
+	_check("lowering the right edge tilts right", phone.feed(_gravity(40, 25, 0)) == TiltBoard.RIGHT)
+	_check("holding the lean does not tilt again", phone.feed(_gravity(40, 30, 0)) == -1)
+	_check("coming back to rest tilts nothing", phone.feed(_gravity(40, 2, 0)) == -1)
+	_check("then lowering the left edge tilts left", phone.feed(_gravity(40, -25, 0)) == TiltBoard.LEFT)
+	phone.feed(_gravity(40, 0, 0))
+	_check("tipping the top edge down tilts up", phone.feed(_gravity(40, 0, 25)) == TiltBoard.UP)
+	phone.feed(_gravity(40, 0, 0))
+	_check("raising the top edge tilts down", phone.feed(_gravity(40, 0, -25)) == TiltBoard.DOWN)
+	phone.reset()
+	phone.feed(_gravity(80, 0, 0))
+	_check("held nearly flat, a lean reads from the new rest", phone.feed(_gravity(80, 0, -20)) == TiltBoard.DOWN)
 
 func _test_tilt_rules() -> void:
 	var b: TiltBoard = _board(["..."], [[0, 0, 0]])
@@ -819,6 +843,8 @@ func _test_presets_and_plugins() -> void:
 			_check("%s builds with Gradle, which the plugins need" % preset_name,
 				bool(presets.get_value(options, "gradle_build/use_gradle_build", false)))
 			_check("%s leaves the plugin's samples out" % preset_name, exclude.contains("addons/admob/gdscript/sample/*"))
+			# Android's own backup carries user:// to the player's next install, so progress survives a reinstall.
+			_check("%s lets Android back up the save" % preset_name, bool(presets.get_value(options, "user_data_backup/allow", false)))
 		elif presets.get_value(section, "platform") == "Web":
 			_check("the web build leaves the plugins out", exclude.contains("addons/*")
 				and exclude.contains("kit/monetize/android/*"))

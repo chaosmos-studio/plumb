@@ -17,6 +17,8 @@ var music_on: bool = true
 var sound_volume: float = 1.0
 var music_volume: float = 1.0
 var haptics_on: bool = true
+## Whether tipping the phone tilts the board too (PhoneTilt), as well as swiping.
+var phone_tilt: bool = false
 ## An Appearance.Choice.
 var theme: int = Appearance.native()
 ## Whether the first level's guide has been seen through or skipped.
@@ -120,6 +122,11 @@ func set_haptics(on: bool) -> void:
 	store()
 	EventBus.settings_changed.emit()
 
+func set_phone_tilt(on: bool) -> void:
+	phone_tilt = on
+	store()
+	EventBus.settings_changed.emit()
+
 func set_theme(choice: int) -> void:
 	theme = choice
 	store()
@@ -195,6 +202,7 @@ func restore() -> void:
 	hear_sound_volume(float(file.get_value("settings", "sound_volume", 1.0 if sound_on else 0.0)))
 	hear_music_volume(float(file.get_value("settings", "music_volume", 1.0 if music_on else 0.0)))
 	haptics_on = bool(file.get_value("settings", "haptics_on", true))
+	phone_tilt = bool(file.get_value("settings", "phone_tilt", false))
 	theme = clampi(int(file.get_value("settings", "theme", Appearance.native())), 0, Appearance.Choice.size() - 1)
 	tutorial_seen = bool(file.get_value("progress", "tutorial_seen", false))
 	supporter = bool(file.get_value("monetize", "supporter", false))
@@ -224,6 +232,7 @@ func store() -> void:
 	file.set_value("settings", "sound_volume", sound_volume)
 	file.set_value("settings", "music_volume", music_volume)
 	file.set_value("settings", "haptics_on", haptics_on)
+	file.set_value("settings", "phone_tilt", phone_tilt)
 	file.set_value("settings", "theme", theme)
 	file.set_value("progress", "tutorial_seen", tutorial_seen)
 	file.set_value("monetize", "supporter", supporter)
