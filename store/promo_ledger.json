@@ -176,6 +176,86 @@
       "fingerprint": "0a307a87c460",
       "seed": 161,
       "made": "2026-10-09"
+    },
+    {
+      "id": "plumb-demo-003",
+      "format": "demo",
+      "template": "tour",
+      "scenes": [
+        "m63",
+        "m69-sepia",
+        "h66",
+        "w12",
+        "d221",
+        "c119"
+      ],
+      "lines": [
+        "Which way would you tilt first?",
+        "Each one drops into *its* colour",
+        "Each marble drops into the hole of its own colour.",
+        "One swipe moves them *all*",
+        "The trick is planning where they'll all end up.",
+        "See it *before* you tilt",
+        "Take a peek at the next move whenever you need one.",
+        "Fewest moves, *three* stars",
+        "Find the shortest route, and all three stars are yours.",
+        "*3* stars",
+        "Three stars wait for the shortest route.",
+        "More marbles. Same *one* rule.",
+        "More marbles, more walls, and still the same one swipe.",
+        "Try it. No *peeking*.",
+        "Think you've got it? Try this one.",
+        "Your move. *Scan* the code.",
+        "Plumb is free. Scan the code and solve it yourself."
+      ],
+      "music_style": "ambient",
+      "voice": "af_heart",
+      "transition": "slide",
+      "caption_style": "marker",
+      "end": "store",
+      "fingerprint": "a6f48f46f3f9",
+      "seed": 982901424,
+      "made": "2026-10-09"
+    },
+    {
+      "id": "plumb-demo-004",
+      "format": "demo",
+      "template": "tour",
+      "scenes": [
+        "m33",
+        "m69-sepia",
+        "h54",
+        "w20",
+        "d143",
+        "c99"
+      ],
+      "lines": [
+        "One swipe, and everything rolls.",
+        "Each one drops into *its* colour",
+        "Swipe to tilt the board, and every marble rolls until something stops it.",
+        "Every marble rolls until it *stops*",
+        "Each marble drops into the hole of its own colour.",
+        "Stuck? The hint shows *where* they land",
+        "Stuck? The hint shows exactly where every marble will land.",
+        "Clean. *Every* marble home.",
+        "Every marble home, in the fewest moves.",
+        "*1* rule",
+        "One rule: everything rolls until something stops it.",
+        "Harder boards, *same* swipe",
+        "Then the boards fill up, and the same simple rule gets surprisingly deep.",
+        "Four directions. *One* answer.",
+        "Now it's your turn. Which way would you tilt first?",
+        "Your *move*.",
+        "Solve it yourself. Get Plumb on Google Play."
+      ],
+      "music_style": "marimba",
+      "voice": "af_bella",
+      "transition": "circle",
+      "caption_style": "accent",
+      "end": "store",
+      "fingerprint": "85379f70b7d1",
+      "seed": 163083998,
+      "made": "2026-10-09"
     }
   ]
 }
