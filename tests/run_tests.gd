@@ -68,7 +68,6 @@ func _initialize() -> void:
 	await _test_win_sheet()
 	_test_qr()
 	_test_volumes()
-	_test_reel_video()
 	_test_sheets_fit_a_phone()
 	_test_maker_link()
 	_test_play_screen_banner()
@@ -1258,7 +1257,7 @@ func _test_win_sheet() -> void:
 	moment.set("level", 3)
 	moment.set("summary", "4 moves, goal 4")
 	moment.set("before", 3)
-	moment.set("watch", func(_reel: bool) -> void: pass)
+	moment.set("watch", func() -> void: pass)
 	var none: Callable = func() -> void: pass
 	result.call("won", host, "", 3, PackedStringArray(["4 moves, goal 4"]), "Next level", none, none, none, moment)
 	var texts: PackedStringArray = PackedStringArray()
@@ -1278,38 +1277,16 @@ func _test_win_sheet() -> void:
 	_check("a replay puts the controls away, not the backdrop", not controls.visible and backdrop.visible)
 	await replay.call("opening")
 	_check("and runs the clock fast once it opens", Engine.time_scale > 1.0)
-	replay.call("finish")
-	await process_frame
-	_check("and puts both back when it ends", is_equal_approx(Engine.time_scale, 1.0) and controls.visible)
-	var reel: CanvasLayer = replay_script.call("begin", host, moment, 2)
-	var framed: PackedStringArray = _texts(reel)
-	_check("a reel frames the moves with the game's name, the level and the score", framed.has(Brand.NAME)
-		and framed.has("LEVEL 4") and framed.has("4 moves, goal 4"))
-	reel.call("beat")
-	reel.call("closing")
-	await process_frame
-	_check("and ends on a card with a code to scan", _texts(reel).has("SCAN TO PLAY")
-		and _texts(reel).has("Get %s on Google Play" % Brand.NAME))
-	var asked: Array[bool] = [false]
-	var card_script: GDScript = replay_script.get_script_constant_map()["_Card"]
-	var offered: Control = card_script.new(moment, true, func() -> void: asked[0] = true)
-	(reel.get("_root") as Control).add_child(offered)
-	await process_frame
-	await process_frame
-	var save: Button = offered.find_children("*", "Button", true, false)[0]
-	_screen_tap(save.get_global_rect().get_center())
-	_check("a tap on the end card's Save video asks for the film rather than closing the reel",
-		asked[0] and not bool(reel.get("skipping")))
-	offered.free()
-	await create_timer(1.2).timeout
+	replay.call("beat")
 	var tap: InputEventScreenTouch = InputEventScreenTouch.new()
 	tap.pressed = true
-	reel.call("_on_input", tap)
+	replay.call("_on_input", tap)
+	_check("a tap asks to skip the rest", bool(replay.get("skipping")))
+	replay.call("closing")
+	replay.call("finish")
 	await process_frame
-	reel.call("finish")
-	await process_frame
-	_check("which a tap closes, leaving the board where it was",
-		host.get_viewport().canvas_transform == Transform2D.IDENTITY and is_equal_approx(Engine.time_scale, 1.0))
+	_check("and it puts the clock, the controls and the board back when it ends", is_equal_approx(Engine.time_scale, 1.0)
+		and controls.visible and host.get_viewport().canvas_transform == Transform2D.IDENTITY)
 	host.free()
 
 func _texts(node: Node) -> PackedStringArray:
@@ -1318,16 +1295,16 @@ func _texts(node: Node) -> PackedStringArray:
 		out.append((l as Label).text)
 	return out
 
-## The codes the reel ends on: the right size for the text, and the patterns and format a reader looks for.
+## The share card's code: the right size for the text, and the patterns and format a reader looks for.
 func _test_qr() -> void:
 	var qr: GDScript = load("res://kit/ui/qr.gd")
 	var small: PackedStringArray = qr.call("rows", "hi")
 	_check("a short text fits the smallest code", small.size() == 21 and small[0].length() == 21)
 	# Loaded, not named: GameShare uses the autoloads, which an import run has not made yet.
-	var store: String = load("res://share.gd").get_script_constant_map()["STORE"]
-	var rows: PackedStringArray = qr.call("rows", store)
+	var link: String = String(load("res://share.gd").get_script_constant_map()["GET"]) + "?from=card"
+	var rows: PackedStringArray = qr.call("rows", link)
 	var n: int = rows.size()
-	_check("the store link fits version 8 at level H, 49 modules a side", n == 49)
+	_check("the share card's link fits version 5 at level H, 37 modules a side, so its code stays small", n == 37)
 	var eyes: bool = true
 	for corner: Vector2i in [Vector2i(0, 0), Vector2i(n - 7, 0), Vector2i(0, n - 7)]:
 		for y: int in range(7):
@@ -1351,19 +1328,6 @@ func _test_qr() -> void:
 	for k: int in range(10):
 		rem = (rem << 1) ^ ((rem >> 9) * 0x537)
 	_check("the format says level H, and its check bits agree", data >> 3 == 2 and rem == (format & 0x3FF))
-
-## A saved reel: frames handed over under half the film's rate, so the recorder's time lapse plays them at
-## true speed, at a size its encoder takes, and nothing on hand off Android.
-func _test_reel_video() -> void:
-	var video: GDScript = load("res://kit/shell/reel_video.gd")
-	var fps: int = video.get_script_constant_map()["FPS"]
-	var fast: float = video.call("rate_for", 5.0)
-	var slow: float = video.call("rate_for", 400.0)
-	_check("frames go over under half the film's rate, however quick the phone", fast < fps * 0.5 and fast >= slow)
-	_check("and never so few that the film stutters", slow >= 4.0)
-	var size: Vector2i = video.call("size_for", Vector2i(1080, 2400))
-	_check("a 20:9 phone films at 720 by 1600, both multiples of 16", size == Vector2i(720, 1600))
-	_check("a film can only be made on Android", not video.call("available"))
 
 ## The volume sliders: a square law, 0 as off, saved, and an older save's switches read as volumes.
 func _test_volumes() -> void:

@@ -2,27 +2,37 @@ class_name ShareCard
 extends Control
 
 ## A card of a solved level to send to a friend: the level as it was set, the stars, the words on the win,
-## the score, and where to get the game. It is drawn offscreen at a portrait size that suits chats and
+## the score, and where to get the game, with a small QR code for anyone who sees the card in a story or a
+## chat, where a link cannot be tapped. It is drawn offscreen at a portrait size that suits chats and
 ## stories (`render`). `send` hands it to the phone's share sheet on Android (through the FileProvider every
 ## Godot app has), to the browser's share sheet or a download on the web, and saves it to the user folder
 ## anywhere else. `save` keeps it in the phone's Pictures, a download on the web.
 ##
 ## The kit expects from the game: `GameShare.stage(holder, level, centre, room)`, which puts the level's
 ## board, as it starts, in `holder` (a Node2D already in the card), centred on `centre` and fitted to
-## `room`; `GameShare.LINK`, the game's web address; and `GameShare.STORE`, its Google Play listing.
+## `room`; `GameShare.LINK`, the game's web address; and `GameShare.GET`, its get link, which sends each
+## phone to the best place it has.
 
 const SIZE: Vector2i = Vector2i(1080, 1350)
 const MARGIN: float = 72.0
-const BOARD: Rect2 = Rect2(90.0, 230.0, 900.0, 700.0)
+const BOARD: Rect2 = Rect2(90.0, 220.0, 900.0, 650.0)
+## The code in the card's corner, quiet zone included, and the two-module margin a reader needs round it.
+## Wide enough for four pixels a module even at version 6, which the longest game's link needs.
+const QR_SIDE: float = 184.0
+const QR_QUIET: int = 2
+## The code dark on white in every theme, since a reader needs the contrast.
+const QR_INK: Color = Color("1d2030")
 
 var moment: Result.Moment
 var earned: int = 0
 var heading: String = ""
+var _qr: PackedStringArray = PackedStringArray()
 
 ## Sends a card made by `render` to the share sheet, with a line that dares the friend to match it.
 static func send(host: Node, image: Image, moment_won: Result.Moment) -> void:
 	var said: String = moment_won.summary.left(1).to_lower() + moment_won.summary.substr(1)
-	var text: String = "%s, level %d: %s. Can you match it? %s" % [Brand.NAME, moment_won.level + 1, said, GameShare.LINK]
+	var text: String = "%s, level %d: %s. Can you match it? %s?from=share" % [Brand.NAME, moment_won.level + 1, said,
+		GameShare.GET]
 	if OS.has_feature("web"):
 		_web(image.save_png_to_buffer(), _file_name(moment_won), text)
 		return
@@ -92,6 +102,7 @@ func _ready() -> void:
 	icon.position = Vector2(MARGIN, 66.0)
 	icon.size = Vector2(100.0, 100.0)
 	add_child(icon)
+	_qr = Qr.rows(GameShare.GET + "?from=card")
 
 func _draw() -> void:
 	var chapter: int = maxi(Pack.chapter_of(moment.level), 0)
@@ -109,12 +120,36 @@ func _draw() -> void:
 	if not Pack.chapters.is_empty() and Pack.chapter_of(moment.level) >= 0:
 		_right(ui, Pack.chapter_name(chapter), 156.0, 28, Brand.MUTED)
 	for k: int in range(3):
-		var at: Vector2 = Vector2(size.x * 0.5 + (k - 1) * 104.0, 1000.0)
+		var at: Vector2 = Vector2(size.x * 0.5 + (k - 1) * 104.0, 922.0)
 		_star(at, 40.0, Brand.GOLD if k < earned else Color(Brand.MUTED, 0.3))
-	_centre(display, heading, 1122.0, 84, Brand.INK)
-	_centre(ui, moment.summary, 1184.0, 36, Brand.MUTED)
-	draw_rect(Rect2(MARGIN, 1236.0, size.x - MARGIN * 2.0, 2.0), Brand.LINE)
-	_centre(ui, "Can you match it?   %s" % GameShare.LINK.trim_prefix("https://").trim_suffix("/"), 1296.0, 30, Brand.INK)
+	_centre(display, heading, 1044.0, 84, Brand.INK)
+	_centre(ui, moment.summary, 1098.0, 36, Brand.MUTED)
+	draw_rect(Rect2(MARGIN, 1136.0, size.x - MARGIN * 2.0, 2.0), Brand.LINE)
+	draw_string(display, Vector2(MARGIN, 1214.0), "Can you match it?", HORIZONTAL_ALIGNMENT_LEFT, -1, 48, Brand.INK)
+	draw_string(UI.caption_font(), Vector2(MARGIN, 1258.0), "SCAN TO GET %s" % Brand.NAME.to_upper(), HORIZONTAL_ALIGNMENT_LEFT,
+		-1, 24, Brand.MUTED)
+	draw_string(ui, Vector2(MARGIN, 1300.0), GameShare.LINK.trim_prefix("https://").trim_suffix("/"), HORIZONTAL_ALIGNMENT_LEFT,
+		-1, 30, Brand.MUTED)
+	_code(Rect2(size.x - MARGIN - QR_SIDE, 1150.0, QR_SIDE, QR_SIDE))
+
+## The QR code to the game's get link, dark modules on a white tile with rounded corners.
+func _code(at: Rect2) -> void:
+	if _qr.is_empty():
+		return
+	var tile: StyleBoxFlat = StyleBoxFlat.new()
+	tile.bg_color = Color.WHITE
+	tile.set_corner_radius_all(14)
+	tile.anti_aliasing = true
+	draw_style_box(tile, at)
+	var n: int = _qr.size()
+	# Whole pixels a module, so neighbouring modules meet without a seam.
+	var module: float = floorf(at.size.x / float(n + QR_QUIET * 2))
+	var origin: Vector2 = at.position + Vector2.ONE * floorf((at.size.x - module * n) * 0.5)
+	for y: int in n:
+		var row: String = _qr[y]
+		for x: int in n:
+			if row[x] == "1":
+				draw_rect(Rect2(origin + Vector2(x, y) * module, Vector2.ONE * module), QR_INK)
 
 func _centre(font: Font, text: String, baseline: float, font_size: int, colour: Color) -> void:
 	var w: float = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x

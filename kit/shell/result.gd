@@ -5,7 +5,7 @@ extends RefCounted
 ## solve, never the same twice running), shows the stars arriving one by one with a spark for a perfect
 ## solve, the next step as the primary action, and a row of quiet ones: watch the solve again at speed,
 ## play it again, or go back to the levels. Above the sheet, a card of the win is caught like a screenshot,
-## to share, save or watch as a reel (Snapshot). A failure leads with trying again.
+## to share or save (Snapshot). A failure leads with trying again.
 
 const STAR_SIZE: float = 92.0
 const STAR_GAP: float = 0.2
@@ -23,8 +23,7 @@ class Moment extends RefCounted:
 	var stars: int = 0
 	## No undo, restart or extra on the way.
 	var clean: bool = false
-	## Replays the solve and then shows the sheet again, `watch.call(reel)`: a quick look, or as a reel with
-	## a title and an end card. Invalid where the game has no replay.
+	## Replays the solve at speed and then shows the sheet again. Invalid where the game has no replay.
 	var watch: Callable = Callable()
 	## The heading and line Cheers chose, kept so the sheet says the same after a replay.
 	var words: PackedStringArray = PackedStringArray()
@@ -118,7 +117,7 @@ static func _actions(moment: Moment, on_replay: Callable, on_levels: Callable) -
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 40)
 	if moment.watch.is_valid():
-		row.add_child(UI.action(&"watch", "Watch", func() -> void: moment.watch.call(false)))
+		row.add_child(UI.action(&"watch", "Watch", func() -> void: moment.watch.call()))
 	row.add_child(UI.action(&"restart", "Again", on_replay))
 	row.add_child(UI.action(&"levels", "Levels", on_levels))
 	return row

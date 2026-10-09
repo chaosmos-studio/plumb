@@ -3,10 +3,10 @@ extends Control
 
 ## The share card, caught like a screenshot the moment a level is won: a flash and a shutter, the card
 ## filling the screen for a beat, then the win sheet rising as the card shrinks to a tilted print above it,
-## with Share, Save and Reel beside it and a close mark on its corner. Share and Save send or keep the card
-## (ShareCard); Reel plays the solve as a reel (Replay). It lives on the win sheet, so it goes when the
-## sheet does. When the sheet comes back after a replay, the same print is simply there again. Nothing is
-## written to the phone unless the player shares or saves.
+## with Share and Save beside it and a close mark on its corner. Share and Save send or keep the card
+## (ShareCard). It lives on the win sheet, so it goes when the sheet does. When the sheet comes back after a
+## replay, the same print is simply there again. Nothing is written to the phone unless the player shares
+## or saves.
 
 const WIDTH: float = 300.0
 const FRAME: float = 12.0
@@ -104,8 +104,6 @@ func land(sheet: Sheet, caught: bool = true) -> void:
 	column.add_theme_constant_override("separation", 14)
 	column.add_child(UI.action(&"share", "Share", func() -> void: ShareCard.send(self, image, moment), ACTION))
 	column.add_child(UI.action(&"save", "Save", func() -> void: ShareCard.save(self, image, moment), ACTION))
-	if moment.watch.is_valid():
-		column.add_child(UI.action(&"reel", "Reel", _reel, ACTION))
 	_actions = PanelContainer.new()
 	var tray: StyleBoxFlat = StyleBoxFlat.new()
 	tray.bg_color = Brand.SURFACE
@@ -128,13 +126,7 @@ func land(sheet: Sheet, caught: bool = true) -> void:
 
 ## The tray's height before layout: each action is its button and its name, inside the tray's margins.
 func _height() -> float:
-	var n: int = 3 if moment.watch.is_valid() else 2
-	return n * (ACTION + 28.0) + (n - 1) * 14.0 + 28.0
-
-func _reel() -> void:
-	var watch: Callable = moment.watch
-	queue_free()
-	watch.call(true)
+	return 2.0 * (ACTION + 28.0) + 14.0 + 28.0
 
 func _dismiss() -> void:
 	var t: Tween = create_tween().set_parallel(true)

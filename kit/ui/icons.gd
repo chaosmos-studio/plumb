@@ -8,7 +8,7 @@ extends RefCounted
 const NAMES: Array[StringName] = [&"back", &"close", &"next", &"undo", &"restart", &"hint", &"settings",
 	&"sound", &"sound_off", &"music", &"music_off", &"haptics", &"haptics_off", &"theme", &"play", &"levels",
 	&"lock", &"check", &"heart", &"shop", &"share", &"watch", &"key", &"palette", &"help", &"info", &"looks", &"people",
-	&"save", &"reel", &"tilt"]
+	&"save", &"tilt"]
 
 static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour: Color, w: float = -1.0) -> void:
 	if w < 0.0:
@@ -175,11 +175,6 @@ static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour:
 			_stroke(ci, [c + Vector2(-0.12, -0.05) * s, c + Vector2(0, 0.07) * s, c + Vector2(0.12, -0.05) * s], colour, w)
 			_stroke(ci, [c + Vector2(-0.25, 0.08) * s, c + Vector2(-0.25, 0.25) * s, c + Vector2(0.25, 0.25) * s,
 				c + Vector2(0.25, 0.08) * s], colour, w)
-		&"reel":
-			# A phone-shaped frame with a play mark: the solve as a short film.
-			_round_rect(ci, Rect2(c - Vector2(0.17, 0.28) * s, Vector2(0.34, 0.56) * s), 0.07 * s, colour, w)
-			_fill(ci, PackedVector2Array([c + Vector2(-0.06, -0.1) * s, c + Vector2(0.1, 0.0) * s,
-				c + Vector2(-0.06, 0.1) * s]), colour)
 		&"tilt":
 			# A phone leaning to one side, under the arrow of the swing that tipped it.
 			var lean: Transform2D = Transform2D(0.38, c + Vector2(0.09, 0.13) * s)

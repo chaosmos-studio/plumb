@@ -393,37 +393,31 @@ func _show_result() -> void:
 	_sheet = Result.won(self, "Every level solved" if last else "", _earned, detail, next_text,
 		_on_finale if _ending else _on_next, _on_restart, _to_levels, _won)
 
-## The solve again from the start, at speed, or as a reel with a title and an end card, then the result
-## once more. A tap skips to the end.
-func _watch(reel: bool = false) -> void:
+## The solve again from the start, at speed, then the result once more. A tap skips to the end.
+func _watch() -> void:
 	if _view.busy or not finished:
 		return
 	_close_sheet()
 	var solved: TiltBoard = board
-	var replay: Replay = Replay.begin(self, _won if reel else null, route.size())
+	var replay: Replay = Replay.begin(self)
 	_replay = replay
-	# Once more when the reel is to be saved as a video: that pass is filmed.
-	var again: bool = true
-	while again:
-		board = start.copy()
-		_view.sync(board)
-		await replay.opening()
-		for dir: int in route:
-			if replay.skipping or not is_inside_tree():
-				break
-			var next: TiltBoard = board.copy()
-			var move: TiltMove = next.tilt(dir)
-			board = next
-			await _view.play(move)
-			replay.beat()
-			await get_tree().create_timer(0.1).timeout
-		if not is_inside_tree():
-			return
-		board = solved
-		_view.sync(board, false)
-		again = await replay.closing()
-		if not is_inside_tree():
-			return
+	board = start.copy()
+	_view.sync(board)
+	await replay.opening()
+	for dir: int in route:
+		if replay.skipping or not is_inside_tree():
+			break
+		var next: TiltBoard = board.copy()
+		var move: TiltMove = next.tilt(dir)
+		board = next
+		await _view.play(move)
+		replay.beat()
+		await get_tree().create_timer(0.1).timeout
+	if not is_inside_tree():
+		return
+	board = solved
+	_view.sync(board, false)
+	replay.closing()
 	replay.finish()
 	_show_result()
 
