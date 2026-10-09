@@ -8,7 +8,7 @@ extends RefCounted
 const NAMES: Array[StringName] = [&"back", &"close", &"next", &"undo", &"restart", &"hint", &"settings",
 	&"sound", &"sound_off", &"music", &"music_off", &"haptics", &"haptics_off", &"theme", &"play", &"levels",
 	&"lock", &"check", &"heart", &"shop", &"share", &"watch", &"key", &"palette", &"help", &"info", &"looks", &"people",
-	&"save", &"reel"]
+	&"save", &"reel", &"tilt"]
 
 static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour: Color, w: float = -1.0) -> void:
 	if w < 0.0:
@@ -180,6 +180,23 @@ static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour:
 			_round_rect(ci, Rect2(c - Vector2(0.17, 0.28) * s, Vector2(0.34, 0.56) * s), 0.07 * s, colour, w)
 			_fill(ci, PackedVector2Array([c + Vector2(-0.06, -0.1) * s, c + Vector2(0.1, 0.0) * s,
 				c + Vector2(-0.06, 0.1) * s]), colour)
+		&"tilt":
+			# A phone leaning to one side, under the arrow of the swing that tipped it.
+			var lean: Transform2D = Transform2D(0.38, c + Vector2(0.09, 0.13) * s)
+			var body: Array[Vector2] = []
+			for corner: Vector2 in [Vector2(-0.12, -0.2), Vector2(0.12, -0.2), Vector2(0.12, 0.2), Vector2(-0.12, 0.2),
+					Vector2(-0.12, -0.2)]:
+				body.append(lean * (corner * s))
+			_stroke(ci, body, colour, w)
+			var swing: Array[Vector2] = []
+			for k: int in range(11):
+				var a: float = -PI * 0.84 + PI * 0.32 * k / 10.0
+				swing.append(c + Vector2(-0.1, 0.5) * s + Vector2(cos(a), sin(a)) * 0.74 * s)
+			_stroke(ci, swing, colour, w)
+			var tip: Vector2 = swing[swing.size() - 1]
+			var along: Vector2 = (tip - swing[swing.size() - 2]).normalized()
+			var out: Vector2 = Vector2(-along.y, along.x)
+			_stroke(ci, [tip - along * 0.1 * s + out * 0.07 * s, tip, tip - along * 0.1 * s - out * 0.07 * s], colour, w)
 		&"people":
 			# Two people side by side, for the credits.
 			for side3: float in [-1.0, 1.0]:

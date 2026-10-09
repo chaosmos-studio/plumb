@@ -13,6 +13,7 @@ const FOOT_HEIGHT: float = 76.0
 const FOOT_FONT: int = 28
 ## The least time between the ticks the sound slider plays, so a drag sounds like a few taps, not a buzz.
 const TICK_GAP: int = 140
+const GAME_OPTIONS: String = "res://game_options.gd"
 
 static func open(host: Node) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
@@ -25,11 +26,16 @@ static func open(host: Node) -> Sheet:
 			Save.set_music_volume, false))
 	var buzz: Switch = Switch.new(Save.haptics_on)
 	buzz.toggled.connect(func(on: bool) -> void: Save.set_haptics(on))
-	c.add_child(_row(&"haptics", "Vibration", buzz))
+	c.add_child(setting_row(&"haptics", "Vibration", buzz))
+	# A game's own switches follow, from the static rows() of its res://game_options.gd, where it has one.
+	if ResourceLoader.exists(GAME_OPTIONS):
+		var options: GDScript = load(GAME_OPTIONS)
+		for extra: Variant in options.call("rows"):
+			c.add_child(extra as Control)
 	var looks: Segmented = Segmented.new(Appearance.NAMES, Save.theme)
 	looks.chosen.connect(func(choice: int) -> void:
 		Appearance.choose(choice, host.get_tree(), func(scene: Node) -> void: Settings.open(scene)))
-	c.add_child(_row(&"theme", "Theme", looks))
+	c.add_child(setting_row(&"theme", "Theme", looks))
 	var cards: HBoxContainer = _row_of(16)
 	cards.add_child(_card(&"palette", "Colours", Themes.name_of(Themes.current()), func() -> void: Themes.open(host)))
 	cards.add_child(_card(&"looks", GameLooks.TITLE, Looks.name_of(Looks.current()), func() -> void: Looks.open(host)))
@@ -115,7 +121,8 @@ static func _volume(icon: StringName, muted_icon: StringName, text: String, star
 		keep.call(slider.value))
 	return row
 
-static func _row(icon: StringName, text: String, control: Control) -> Control:
+## A settings line: the icon, what it sets, and the control that sets it.
+static func setting_row(icon: StringName, text: String, control: Control) -> Control:
 	var row: HBoxContainer = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 24)
 	var glyph: _Glyph = _Glyph.new()
