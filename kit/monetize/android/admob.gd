@@ -49,7 +49,9 @@ func _can_request() -> bool:
 	var status: int = UserMessagingPlatform.consent_information.get_consent_status()
 	return status == ConsentInformation.ConsentStatus.OBTAINED or status == ConsentInformation.ConsentStatus.NOT_REQUIRED
 
+## Every way through the consent message ends here, so Analytics learns each new answer.
 func _start_sdk() -> void:
+	Analytics.refresh()
 	if _sdk_ready or _stopped or not _can_request():
 		return
 	var listener: OnInitializationCompleteListener = OnInitializationCompleteListener.new()

@@ -197,6 +197,7 @@ static func rows(id: String) -> PackedStringArray:
 static func open(host: Node) -> Sheet:
 	if not Supporter.on_play:
 		return Supporter.open(host)
+	Analytics.event(&"shop_open")
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
 	c.add_child(UI.title("Shop", 56))
@@ -230,6 +231,7 @@ static func open(host: Node) -> Sheet:
 static func offer(host: Node, id: String) -> Sheet:
 	if not Supporter.on_play:
 		return Supporter.open(host)
+	Analytics.event(&"shop_offer", {"item": id})
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
 	var owned: bool = has(id)

@@ -24,7 +24,9 @@ static func today() -> String:
 ## Runs `give` now if the hint is free, or after a video if the player chooses one. Returns the sheet
 ## that asks, so the play screen can hold its input while it is open, or null.
 static func request(host: Node, level: int, give: Callable) -> Sheet:
-	match cost(level):
+	var price: AdPacing.Hint = cost(level)
+	Analytics.event(&"hint", {"level": level + 1, "cost": String(AdPacing.Hint.keys()[price]).to_lower()})
+	match price:
 		AdPacing.Hint.ALLOWANCE:
 			Save.set_hints(today(), used() + 1)
 		AdPacing.Hint.VIDEO:

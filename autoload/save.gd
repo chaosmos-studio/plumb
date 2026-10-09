@@ -51,6 +51,7 @@ func _ready() -> void:
 	Appearance.apply(theme)
 	Supporter.start()
 	Ads.start()
+	Analytics.start()
 
 func best(level: int) -> int:
 	return stars[level] if level < stars.size() else 0

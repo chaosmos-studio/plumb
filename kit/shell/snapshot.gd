@@ -102,8 +102,12 @@ func land(sheet: Sheet, caught: bool = true) -> void:
 		t.tween_property(_print, "modulate:a", 1.0, 0.2)
 	var column: VBoxContainer = VBoxContainer.new()
 	column.add_theme_constant_override("separation", 14)
-	column.add_child(UI.action(&"share", "Share", func() -> void: ShareCard.send(self, image, moment), ACTION))
-	column.add_child(UI.action(&"save", "Save", func() -> void: ShareCard.save(self, image, moment), ACTION))
+	column.add_child(UI.action(&"share", "Share", func() -> void:
+		Analytics.event(&"share", {"method": "share", "level": moment.level + 1})
+		ShareCard.send(self, image, moment), ACTION))
+	column.add_child(UI.action(&"save", "Save", func() -> void:
+		Analytics.event(&"share", {"method": "save", "level": moment.level + 1})
+		ShareCard.save(self, image, moment), ACTION))
 	_actions = PanelContainer.new()
 	var tray: StyleBoxFlat = StyleBoxFlat.new()
 	tray.bg_color = Brand.SURFACE

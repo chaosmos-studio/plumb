@@ -57,6 +57,7 @@ func _initialize() -> void:
 	_test_support_and_hint_sheets()
 	_test_supporter_entry_points()
 	_test_shop()
+	_test_analytics()
 	# The root takes new children only once _initialize has handed control back to the engine.
 	await process_frame
 	_test_chapter_colours()
@@ -829,6 +830,12 @@ func _test_presets_and_plugins() -> void:
 		FileAccess.file_exists("res://addons/admob/android/bin/ads/libs/poing-godot-admob-ads-release.aar")
 		and FileAccess.file_exists("res://addons/admob/android/bin/package.gd")
 		and FileAccess.file_exists("res://addons/admob/ios/bin/package.gd"))
+	_check("the Firebase plugins are enabled", enabled.has("res://addons/godotx_firebase/plugin.cfg")
+		and enabled.has("res://addons/firebase_build/plugin.cfg"))
+	for module: String in ["firebase_core", "firebase_analytics"]:
+		for build: String in ["release", "debug"]:
+			var aar: String = "res://android/%s/%s.%s.aar" % [module, module, build]
+			_check("%s is in place" % aar, FileAccess.file_exists(aar))
 	var presets: ConfigFile = ConfigFile.new()
 	_check("export_presets.cfg reads", presets.load("res://export_presets.cfg") == OK)
 	for section: String in presets.get_sections():
@@ -844,6 +851,17 @@ func _test_presets_and_plugins() -> void:
 			_check("%s leaves the plugin's samples out" % preset_name, exclude.contains("addons/admob/gdscript/sample/*"))
 			# Android's own backup carries user:// to the player's next install, so progress survives a reinstall.
 			_check("%s lets Android back up the save" % preset_name, bool(presets.get_value(options, "user_data_backup/allow", false)))
+			# Analytics only: collection starts off and every consent signal denied, until Analytics allows it.
+			_check("%s builds Firebase Core and Analytics" % preset_name,
+				bool(presets.get_value(options, "firebase/enable_core", false))
+				and bool(presets.get_value(options, "firebase/enable_analytics", false)))
+			_check("%s leaves Crashlytics and Messaging out" % preset_name,
+				not bool(presets.get_value(options, "firebase/enable_crashlytics", true))
+				and not bool(presets.get_value(options, "firebase/enable_messaging", true)))
+			_check("%s starts Firebase with collection off" % preset_name,
+				bool(presets.get_value(options, "firebase/privacy_safe_defaults", false)))
+			_check("%s leaves the editor-only Firebase scripts out" % preset_name,
+				exclude.contains("addons/godotx_firebase/*") and exclude.contains("addons/firebase_build/*"))
 		elif presets.get_value(section, "platform") == "Web":
 			_check("the web build leaves the plugins out", exclude.contains("addons/*")
 				and exclude.contains("kit/monetize/android/*"))
@@ -873,6 +891,36 @@ func _test_changelog() -> void:
 			"## 1.0.100\n- A", "## 0.0.0\n- A", "## 1.0.0\n", "## 1.0.0\n- A\n  wrapped", "## 1.0.0\n### Fixes\n- A",
 			"## 1.0.0\n-\n", "## 1.0.0\n- " + "x".repeat(Changelog.PLAY_LIMIT - 1)]:
 		_check("the release rules refuse \"%s\"" % bad.left(40).c_escape(), Changelog.parse(bad).error != "")
+
+# Counting needs a release build and a consent message that found no consent needed (UMP's NOT_REQUIRED,
+# 1). Unknown (0), required (2) and obtained (3) count nothing. The game's level signals reach Analytics
+# as GA4 events, numbered from 1 as players see them.
+func _test_analytics() -> void:
+	var analytics: GDScript = load("res://kit/monetize/analytics.gd")
+	_check("a release build counts where no consent is needed", analytics.counts(1, false))
+	_check("a debug build never counts", not analytics.counts(1, true))
+	for status: int in [0, 2, 3]:
+		_check("consent status %d counts nothing" % status, not analytics.counts(status, false))
+	_check("nothing is counted off Android", not analytics.counting())
+	var heard: Array[Array] = []
+	analytics.sink = func(event: StringName, params: Dictionary) -> void: heard.append([event, params])
+	analytics.start()
+	var bus: Node = root.get_node("EventBus")
+	bus.emit_signal(&"level_started", 4)
+	bus.emit_signal(&"level_won", 4, 9, 3)
+	var lost: bool = bus.has_signal(&"level_failed")
+	if lost:
+		bus.emit_signal(&"level_failed", 4)
+	analytics.sink = Callable()
+	_check("each level event is heard once", heard.size() == (3 if lost else 2))
+	if heard.size() < 2:
+		return
+	_check("a start is level_start with the level's number", heard[0][0] == &"level_start" and heard[0][1]["level"] == 5)
+	var won: Dictionary = heard[1][1]
+	_check("a win is a successful level_end with its stars", heard[1][0] == &"level_end" and won["level"] == 5
+		and won["success"] == 1 and won["stars"] == 3 and won.has("seconds"))
+	if lost and heard.size() == 3:
+		_check("a loss is a failed level_end", heard[2][0] == &"level_end" and heard[2][1]["success"] == 0)
 
 func _test_saved_monetization() -> void:
 	var save: Node = root.get_node("Save")
