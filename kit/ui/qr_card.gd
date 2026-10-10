@@ -27,14 +27,6 @@ func _init() -> void:
 func _ready() -> void:
 	_n = rows.size()
 
-## The finished code at once, for a caller that fades it in: it holds still from then on, and only the
-## corner brackets, outside the code, keep breathing.
-func show_whole() -> void:
-	_t = REVEAL + POP
-	var b: Tween = create_tween().set_loops()
-	b.tween_property(self, "_brackets", 1.0, 0.8).set_trans(Tween.TRANS_SINE)
-	b.tween_property(self, "_brackets", 0.0, 0.8).set_trans(Tween.TRANS_SINE)
-
 func play() -> void:
 	_t = 0.0
 	var t: Tween = create_tween()

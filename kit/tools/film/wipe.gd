@@ -5,7 +5,7 @@ extends Control
 
 const COVER: float = 0.34
 const REVEAL: float = 0.3
-const MODES: Array[String] = ["circle", "bars", "slide", "iris", "flash", "ball"]
+const MODES: Array[String] = ["circle", "bars", "slide", "iris", "flash"]
 
 var mode: String = "circle"
 var colour: Color = Brand.ACCENT
@@ -20,20 +20,15 @@ func _init() -> void:
 func cover(from: Vector2) -> void:
 	origin = from
 	_out = 0.0
+	var time: float = 0.12 if mode == "flash" else COVER
 	var t: Tween = create_tween()
-	if mode == "ball":
-		# The brand's ball grows out of the last tap and fills the frame, gathering speed as it goes.
-		t.tween_method(func(k: float) -> void: _set_in(FilmMotion.leave(k)), 0.0, 1.0, FilmMotion.ball_cover)
-	else:
-		t.tween_method(_set_in, 0.0, 1.0, 0.12 if mode == "flash" else COVER).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	t.tween_method(_set_in, 0.0, 1.0, time).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	await t.finished
 
 func reveal() -> void:
+	var time: float = 0.22 if mode == "flash" else REVEAL
 	var t: Tween = create_tween()
-	if mode == "ball":
-		t.tween_method(func(k: float) -> void: _set_out(FilmMotion.arrive(k)), 0.0, 1.0, FilmMotion.ball_reveal)
-	else:
-		t.tween_method(_set_out, 0.0, 1.0, 0.22 if mode == "flash" else REVEAL).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	t.tween_method(_set_out, 0.0, 1.0, time).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	await t.finished
 	_in = 0.0
 	_out = 0.0

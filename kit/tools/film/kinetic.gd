@@ -56,26 +56,22 @@ func play_in() -> void:
 		var w: Control = _words[k]
 		var home: float = w.position.y
 		w.position.y = home + RISE
-		# Text never bounces: it fades and rises on the motion language's arrive curve.
-		var t: Tween = create_tween()
+		w.pivot_offset = w.size * 0.5
+		w.scale = Vector2(0.92, 0.92)
+		var t: Tween = create_tween().set_parallel(true)
 		t.tween_interval(k * STAGGER)
-		t.tween_method(_rise_in.bind(w, home), 0.0, 1.0, FilmMotion.base)
+		t.chain().tween_property(w, "modulate:a", 1.0, IN_TIME * 0.6)
+		t.parallel().tween_property(w, "position:y", home, IN_TIME).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		t.parallel().tween_property(w, "scale", Vector2.ONE, IN_TIME).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		if w is _Marked:
 			(w as _Marked).sweep(k * STAGGER + IN_TIME * 0.5)
 
 func play_out() -> void:
-	var t: Tween = create_tween()
-	t.tween_method(_rise_out.bind(position.y), 0.0, 1.0, FilmMotion.leave_time(FilmMotion.base))
+	var t: Tween = create_tween().set_parallel(true)
+	t.tween_property(self, "modulate:a", 0.0, OUT_TIME)
+	t.tween_property(self, "position:y", position.y - RISE * 0.6, OUT_TIME).set_ease(Tween.EASE_IN)
 	await t.finished
 	queue_free()
-
-func _rise_in(e: float, w: Control, home: float) -> void:
-	w.modulate.a = e
-	w.position.y = home + RISE * (1.0 - FilmMotion.arrive(e))
-
-func _rise_out(e: float, from: float) -> void:
-	modulate.a = 1.0 - e
-	position.y = from - RISE * 0.6 * FilmMotion.leave(e)
 
 class _Marked extends Control:
 	var grow: float = 0.0:
