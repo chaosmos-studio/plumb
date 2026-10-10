@@ -10,11 +10,12 @@ extends Node2D
 ## Reels render the game this much larger than the frame, so a slow push-in never upscales.
 const SUPERSAMPLE: float = 1.25
 const DESIGN_WIDTH: float = 720.0
-## Where Reels, Shorts and TikTok keep their own buttons and captions, as fractions of the frame: text
-## and the QR code stay inside. Measured guides agree on roughly 250 px at the top, 420 at the bottom
-## and 130 at the right of a 1080x1920 frame.
-const SAFE_TOP: float = 0.13
-const SAFE_BOTTOM: float = 0.78
+## Where Reels, Shorts, TikTok and X keep their own buttons and captions, as fractions of the frame: text,
+## the countdown and the QR code stay inside. The working margins keep about 15% clear at the top, 10 to
+## 15% at each side and 25 to 35% at the bottom of a 1080x1920 frame.
+const SAFE_TOP: float = 0.15
+const SAFE_BOTTOM: float = 0.70
+const SAFE_WIDTH: float = 0.76
 ## The landscape phone's height as a fraction of the frame, and how far it rocks in degrees.
 const PHONE_HEIGHT: float = 0.9
 const PHONE_ROCK: float = 1.6
@@ -248,7 +249,7 @@ func _perform(p: Dictionary) -> void:
 
 func _caption(c: Dictionary, beat: Dictionary) -> void:
 	await get_tree().create_timer(float(c.get("at", 0.2))).timeout
-	var width: float = frame.x * (0.8 if reel else 0.38)
+	var width: float = frame.x * (SAFE_WIDTH if reel else 0.38)
 	var size_px: int = int(frame.x * (0.07 if reel else 0.046))
 	var k: Kinetic = Kinetic.new(String(c["text"]), size_px, width, "center" if reel else "left", Brand.INK, _caption_style)
 	_fx.add_child(k)
@@ -344,26 +345,28 @@ func _card(text: String, sub: String) -> void:
 		create_tween().tween_property(s, "modulate:a", 1.0, 0.4).set_delay(0.45)
 	Audio.play(&"star", -12.0, 0.9)
 
-## In a reel the game lifts into a card to make room under the board for the countdown ring.
+## In a reel the game lifts into a card to make room under the board for the countdown ring. The card
+## shrinks towards a point high in the frame, so the board ends near 62% of the height and the ring fits
+## between it and the bottom safe line.
 func _challenge(beat: Dictionary) -> void:
 	await _play(beat)
 	var ring_r: float = frame.x * (0.05 if reel else 0.03)
 	var ring: _Countdown = _Countdown.new(int(beat.get("count", 3)), ring_r)
 	if reel:
 		_bg.visible = true
-		_screen.pivot_offset = frame * Vector2(0.5, 0.47)
+		_screen.pivot_offset = frame * Vector2(0.5, 0.36)
 		var m: ShaderMaterial = ShaderMaterial.new()
 		m.shader = _round_shader()
 		m.set_shader_parameter("rect_size", frame)
 		m.set_shader_parameter("radius", 0.0)
 		_screen.material = m
 		var lift: Tween = create_tween().set_parallel(true)
-		lift.tween_property(_screen, "scale", Vector2.ONE * 0.74, 0.6).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		lift.tween_property(_screen, "scale", Vector2.ONE * 0.62, 0.6).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		lift.tween_method(func(r: float) -> void: m.set_shader_parameter("radius", r), 0.0, frame.x * 0.07, 0.6)
 		lift.tween_property(_bg, "card", 1.0, 0.6)
-		lift.chain().tween_property(_screen, "scale", Vector2.ONE * 0.76, maxf(0.5, float(beat.get("dur", 4.0)) - 0.6)).set_trans(Tween.TRANS_SINE)
+		lift.chain().tween_property(_screen, "scale", Vector2.ONE * 0.64, maxf(0.5, float(beat.get("dur", 4.0)) - 0.6)).set_trans(Tween.TRANS_SINE)
 		_bg.card_of = _screen
-		ring.position = Vector2(frame.x * 0.5, frame.y * 0.74)
+		ring.position = Vector2(frame.x * 0.5, frame.y * SAFE_BOTTOM - ring_r * 1.2)
 	else:
 		var side: String = String(beat.get("side", "left"))
 		ring.position = Vector2(frame.x * (0.56 if side == "left" else 0.07) + ring_r, frame.y * 0.72)
@@ -419,7 +422,7 @@ func _end_qr(text: String, sub: String, cta: String, qr: Dictionary, scan: Strin
 	lines.add_child(UI.label(sub, int(frame.x * (0.04 if reel else 0.022)), Brand.MUTED))
 	var head: Kinetic = null
 	if cta != "":
-		head = Kinetic.new(cta, int(frame.x * (0.075 if reel else 0.05)), frame.x * (0.8 if reel else 0.4),
+		head = Kinetic.new(cta, int(frame.x * (0.075 if reel else 0.05)), frame.x * (SAFE_WIDTH if reel else 0.4),
 			"center" if reel else "left", Brand.INK, _caption_style)
 	for c: Control in [card, brand, lines]:
 		_fx.add_child(c)
@@ -429,7 +432,7 @@ func _end_qr(text: String, sub: String, cta: String, qr: Dictionary, scan: Strin
 	if reel:
 		if head != null:
 			head.position = Vector2((frame.x - head.size.x) * 0.5, frame.y * SAFE_TOP)
-		card.position = Vector2((frame.x - side) * 0.5, frame.y * 0.3)
+		card.position = Vector2((frame.x - side) * 0.5, frame.y * 0.26)
 		brand.position = Vector2((frame.x - brand.size.x) * 0.5, card.position.y + side + frame.y * 0.035)
 		lines.alignment = BoxContainer.ALIGNMENT_CENTER
 		for l: Node in lines.get_children():
