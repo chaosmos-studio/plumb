@@ -256,6 +256,84 @@
       "fingerprint": "85379f70b7d1",
       "seed": 163083998,
       "made": "2026-10-09"
+    },
+    {
+      "id": "plumb-reel-005",
+      "format": "reel",
+      "template": "hook_challenge",
+      "scenes": [
+        "m33",
+        "w20",
+        "c185"
+      ],
+      "lines": [
+        "This looks easy. It *isn't*.",
+        "Every marble moves at once. So where do they all end up?",
+        "That's the *perfect* route",
+        "Find the shortest route, and all three stars are yours.",
+        "Your turn. Which way *first*?",
+        "Here's one for you. Can you solve it?",
+        "Solve it *yourself*",
+        "Scan the code to get Plumb on Google Play."
+      ],
+      "music_style": "lofi",
+      "voice": "af_bella:0.6,af_heart:0.4",
+      "transition": "flash",
+      "caption_style": "marker",
+      "end": "store",
+      "fingerprint": "fe3a98177d5d",
+      "seed": 395231723,
+      "made": "2026-10-10"
+    },
+    {
+      "id": "plumb-reel-006",
+      "format": "reel",
+      "template": "satisfying",
+      "scenes": [
+        "d131",
+        "m77",
+        "c233"
+      ],
+      "lines": [
+        "Gravity has *opinions*",
+        "Plan the whole *route*",
+        "Can you solve *this* one?",
+        "Your *move*."
+      ],
+      "music_style": "pluck",
+      "voice": null,
+      "transition": "bars",
+      "caption_style": "accent",
+      "end": "store",
+      "fingerprint": "adc38e8fd45f",
+      "seed": 344522657,
+      "made": "2026-10-10"
+    },
+    {
+      "id": "plumb-reel-007",
+      "format": "reel",
+      "template": "triple",
+      "scenes": [
+        "m63",
+        "w24-rose",
+        "d245",
+        "c119"
+      ],
+      "lines": [
+        "Which way would *you* tilt?",
+        "Fewest moves, *three* stars",
+        "Now it gets *interesting*",
+        "Try it. No *peeking*.",
+        "Finish *this* level"
+      ],
+      "music_style": "ambient",
+      "voice": null,
+      "transition": "iris",
+      "caption_style": "marker",
+      "end": "store",
+      "fingerprint": "804d4995aec6",
+      "seed": 650233060,
+      "made": "2026-10-10"
     }
   ]
 }
