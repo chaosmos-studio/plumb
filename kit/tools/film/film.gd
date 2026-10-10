@@ -16,6 +16,8 @@ const DESIGN_WIDTH: float = 720.0
 const SAFE_TOP: float = 0.15
 const SAFE_BOTTOM: float = 0.70
 const SAFE_WIDTH: float = 0.76
+## How far down a reel's caption can reach: two lines under SAFE_TOP, with room for the push-in.
+const CAPTION_FLOOR: float = 0.3
 ## The landscape phone's height as a fraction of the frame, and how far it rocks in degrees.
 const PHONE_HEIGHT: float = 0.9
 const PHONE_ROCK: float = 1.6
@@ -281,6 +283,11 @@ func _caption_out(k: Kinetic) -> void:
 	if reel:
 		create_tween().tween_property(_shade, "modulate:a", 0.0, 0.3)
 	k.play_out()
+
+## Where a staged game's own floating text, such as a chain count, must stay below so it never lands in
+## the caption, in the game's design space. Zero when there are no reel captions.
+func caption_floor() -> float:
+	return _design.y * CAPTION_FLOOR if reel else 0.0
 
 ## `at` and `to` are in the game's 720-wide design space. The Director calls this as it performs, so the
 ## finger and the game move on the same frame.
