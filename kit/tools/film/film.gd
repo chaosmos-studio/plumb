@@ -41,6 +41,15 @@ var _cues_path: String = "res://build/promo/cues.json"
 var _design: Vector2
 var _caption_style: String = "accent"
 var _shade: _Shade
+## The spoken captions, on a layer of their own so a line can run on over a cut.
+var _talk: Control
+var _beat: int = 0
+var _hook_bottom: float = 0.0
+var _last_tap: Vector2 = Vector2(-1.0, -1.0)
+var _display_font: Font
+var _small_font: Font
+var _band_colour: Color = Color("ffd23f")
+var _ink_colour: Color = Color("141414")
 
 func _ready() -> void:
 	var spec_path: String = ""
@@ -65,23 +74,35 @@ func _ready() -> void:
 		director.set("film", self)
 	var style: Dictionary = spec.get("style", {})
 	_caption_style = String(style.get("caption", "accent"))
+	FilmMotion.use(spec.get("motion", {}))
+	var colours: Dictionary = (spec.get("motion", {}) as Dictionary).get("colours", {})
+	_band_colour = Color(String(colours.get("band", "ffd23f")))
+	_ink_colour = Color(String(colours.get("ink", "141414")))
+	var fonts: Dictionary = spec.get("fonts", {})
+	_display_font = _font(String(fonts.get("display", "")), UI.display_font())
+	_small_font = _font(String(fonts.get("small", "")), UI.ui_font())
+	EventBus.level_won.connect(func(_level: int, _score: int, _stars: int) -> void: _cue("won", {"beat": _beat}))
 	_build()
 	_wipe.mode = String(style.get("transition", "circle"))
+	if _wipe.mode == "ball":
+		_wipe.colour = _band_colour
 	await get_tree().process_frame
 	var beats: Array = spec["beats"]
 	for i: int in range(beats.size()):
 		var beat: Dictionary = beats[i]
-		if i > 0:
-			_cue("transition", {"mode": _wipe.mode})
+		# A beat may name its own way in: a hard cut, or the brand's ball growing from the last tap.
+		var way: String = String(beat.get("transition", _wipe.mode)) if i > 0 else "cut"
+		if way != "cut":
+			_wipe.mode = way
+			_cue("transition", {"mode": way})
 			await _wipe.cover(_wipe_origin(i))
-			_clear()
-			_cue("beat", {"kind": beat["kind"], "index": i})
-			await _enter(beat)
+		_clear()
+		_beat = i
+		_cue("beat", {"kind": beat["kind"], "index": i})
+		_talk_for(i)
+		await _enter(beat)
+		if way != "cut":
 			_wipe.reveal()
-		else:
-			_clear()
-			_cue("beat", {"kind": beat["kind"], "index": i})
-			await _enter(beat)
 		await _hold(beat)
 	_cue("end", {})
 	_save_cues()
@@ -151,8 +172,19 @@ func _build() -> void:
 	_fx.size = frame
 	_fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_fx)
+	_talk = Control.new()
+	_talk.size = frame
+	_talk.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_talk)
 	_wipe = Wipe.new()
 	root.add_child(_wipe)
+
+## A font file the pipeline names by path, read straight from disk so no game has to import it.
+func _font(path: String, fallback: Font) -> Font:
+	if path.is_empty() or not FileAccess.file_exists(path):
+		return fallback
+	var f: FontFile = FontFile.new()
+	return f if f.load_dynamic_font(path) == OK else fallback
 
 func _clear() -> void:
 	for child: Node in _game_view.get_children():
@@ -167,12 +199,15 @@ func _clear() -> void:
 	_bg.card_of = null
 	if _screen != null:
 		_screen.scale = Vector2.ONE
+		_screen.position = Vector2.ZERO
 		_screen.material = null
 		_screen.pivot_offset = frame * Vector2(0.5, 0.55)
 	if _device != null:
 		_device.rotation = 0.0
 
 func _wipe_origin(i: int) -> Vector2:
+	if _wipe.mode == "ball" and _last_tap.x >= 0.0:
+		return _last_tap
 	var corners: Array[Vector2] = [Vector2(0.15, 0.85), Vector2(0.85, 0.2), Vector2(0.5, 1.0), Vector2(0.9, 0.9)]
 	return frame * corners[i % corners.size()]
 
@@ -185,6 +220,8 @@ func _enter(beat: Dictionary) -> void:
 			await _play(beat)
 		"challenge":
 			await _challenge(beat)
+		"finale":
+			await _finale(beat)
 		"card":
 			_card(String(beat.get("text", "")), String(beat.get("sub", "")))
 		"end":
@@ -198,7 +235,9 @@ func _play(beat: Dictionary) -> void:
 	_bg.visible = not reel
 	var hud: bool = bool(beat.get("hud", false))
 	var zoom: Array = beat.get("zoom", [1.0, 1.0])
-	var challenge: bool = String(beat["kind"]) == "challenge"
+	var challenge: bool = String(beat["kind"]) in ["challenge", "finale"]
+	if beat.has("hook"):
+		_hook((beat["hook"] as Dictionary)["text"])
 	if reel:
 		_screen.scale = Vector2.ONE if challenge else Vector2.ONE * float(zoom[0]) * (1.07 if _wipe.mode == "flash" else 1.0)
 	# The game draws a frame before stage() returns: its HUD and an unzoomed board were a reel's first frame.
@@ -249,8 +288,56 @@ func _perform(p: Dictionary) -> void:
 	_cue("perform", {"verb": p.get("verb", "")})
 	await director.call("perform", _game, String(p.get("verb", "")), p.get("arg", 0))
 
+## The hook, whole on the first frame: the first second is when a viewer decides to stay.
+func _hook(text: String) -> void:
+	var width: float = frame.x * SAFE_WIDTH
+	var band: Band = Band.new(text, _display_font, int(frame.x * 0.064), width, _band_colour, _ink_colour)
+	band.position = Vector2((frame.x - width) * 0.5, frame.y * SAFE_TOP)
+	_fx.add_child(band)
+	band.play(true)
+	_hook_bottom = band.position.y + band.band_height()
+	_cue("caption", {"text": text})
+
+## Schedules the spoken captions that start in beat i: a few words at a time, the word being said lit.
+func _talk_for(i: int) -> void:
+	for ph: Variant in spec.get("talk", []):
+		if int((ph as Dictionary)["beat"]) == i:
+			_phrase(ph as Dictionary)
+
+func _phrase(ph: Dictionary) -> void:
+	var at: float = float(ph["at"])
+	await get_tree().create_timer(at).timeout
+	var words: Array = []
+	var text: PackedStringArray = PackedStringArray()
+	for w: Variant in ph["words"]:
+		var row: Array = w as Array
+		words.append([row[0], float(row[1]) - at, float(row[2]) - at])
+		text.append(String(row[0]))
+	var width: float = frame.x * SAFE_WIDTH
+	var band: Band = Band.new(" ".join(text), _display_font, int(frame.x * 0.054), width, _band_colour, _ink_colour, words)
+	var top: float = frame.y * SAFE_TOP
+	if int(ph.get("slot", 0)) == 1 and _hook_bottom > 0.0:
+		top = _hook_bottom + frame.y * 0.008
+	band.position = Vector2((frame.x - width) * 0.5, top)
+	_talk.add_child(band)
+	band.play()
+	await get_tree().create_timer(maxf(0.1, float(ph["until"]) - at)).timeout
+	if is_instance_valid(band):
+		band.leave()
+
 func _caption(c: Dictionary, beat: Dictionary) -> void:
 	await get_tree().create_timer(float(c.get("at", 0.2))).timeout
+	if reel and _caption_style == "studio":
+		var bw: float = frame.x * SAFE_WIDTH
+		var band: Band = Band.new(String(c["text"]), _display_font, int(frame.x * 0.06), bw, _band_colour, _ink_colour)
+		band.position = Vector2((frame.x - bw) * 0.5, frame.y * SAFE_TOP)
+		_fx.add_child(band)
+		_cue("caption", {"text": c["text"]})
+		band.play()
+		await get_tree().create_timer(float(c.get("dur", 2.4))).timeout
+		if is_instance_valid(band):
+			band.leave()
+		return
 	var width: float = frame.x * (SAFE_WIDTH if reel else 0.38)
 	# Sized so most hooks fit one line: a second line under SAFE_TOP would sit on a tall board's edge.
 	var size_px: int = int(frame.x * (0.066 if reel else 0.046))
@@ -302,8 +389,10 @@ func touch(kind: String, at: Vector2, to: Vector2 = Vector2.ZERO) -> void:
 	var r: float = rect.size.x * rect.scale.x * 0.05
 	if kind == "swipe":
 		Touch.swipe(_fx, xf * (at * k), xf * (to * k), r, tint)
+		_last_tap = xf * (to * k)
 	else:
 		Touch.tap(_fx, xf * (at * k), r, tint)
+		_last_tap = xf * (at * k)
 	_cue("touch", {"kind": kind})
 
 func _title(text: String, sub: String) -> void:
@@ -393,6 +482,81 @@ func _count_down(ring: _Countdown, count: int) -> void:
 	if is_instance_valid(ring):
 		_cue("tick", {"n": 0})
 		ring.tick(0)
+
+## A reel's last part: the unsolved board first fills the frame, then shrinks into a card on the left while
+## the QR code arrives on the right, whole, with the game's name and the way in under it. Everything sits
+## inside the safe zones, under the spoken captions, and the code holds still from the moment it lands.
+func _finale(beat: Dictionary) -> void:
+	await _play(beat)
+	_finale_moves(beat)
+
+## Runs on its own, so the beat is revealed and held while the card shrinks and the code lands.
+func _finale_moves(beat: Dictionary) -> void:
+	_bg.visible = true
+	var scale_to: float = 0.36
+	var card_at: Vector2 = Vector2(frame.x * 0.10, frame.y * 0.22)
+	var m: ShaderMaterial = ShaderMaterial.new()
+	m.shader = _round_shader()
+	m.set_shader_parameter("rect_size", frame)
+	m.set_shader_parameter("radius", 0.0)
+	_screen.material = m
+	_screen.pivot_offset = Vector2.ZERO
+	_bg.card_of = _screen
+	await get_tree().create_timer(float(beat.get("card_at", 0.9))).timeout
+	create_tween().tween_method(_shrink.bind(m, card_at, scale_to), 0.0, 1.0, FilmMotion.large)
+	var wait: float = float(beat.get("qr_at", 1.0)) - float(beat.get("card_at", 0.9))
+	if wait > 0.0:
+		await get_tree().create_timer(wait).timeout
+	var qr: Dictionary = beat.get("qr", {})
+	if qr.is_empty():
+		return
+	var side: float = frame.x * 0.41
+	var left: float = card_at.x + frame.x * scale_to + frame.x * 0.028
+	var card: QrCard = QrCard.new()
+	card.rows = PackedStringArray(qr.get("rows", []))
+	card.icon = load("res://assets/branding/icon.png")
+	card.ink = Color(String(qr.get("ink", "1d2030")))
+	card.size = Vector2(side, side)
+	card.position = Vector2(left, card_at.y + frame.y * scale_to * 0.5 - side * 0.5)
+	_fx.add_child(card)
+	card.show_whole()
+	var column: VBoxContainer = VBoxContainer.new()
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.add_theme_constant_override("separation", int(frame.y * 0.004))
+	var brand: HBoxContainer = HBoxContainer.new()
+	brand.alignment = BoxContainer.ALIGNMENT_CENTER
+	brand.add_theme_constant_override("separation", int(frame.x * 0.018))
+	var icon: TextureRect = TextureRect.new()
+	icon.texture = load("res://assets/branding/icon.png")
+	icon.custom_minimum_size = Vector2.ONE * frame.x * 0.06
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	brand.add_child(icon)
+	var title: Label = UI.label(String(beat.get("brand", Brand.WORDMARK)).to_lower(), int(frame.x * 0.05), Brand.INK)
+	title.add_theme_font_override("font", _display_font)
+	brand.add_child(title)
+	column.add_child(brand)
+	for line: Array in [[String(beat.get("scan", "Scan to play")), Brand.ACCENT], [String(beat.get("sub", "")), Brand.MUTED]]:
+		if String(line[0]).is_empty():
+			continue
+		var l: Label = UI.label(String(line[0]).to_lower(), int(frame.x * 0.03), line[1])
+		l.add_theme_font_override("font", _small_font)
+		column.add_child(l)
+	column.size = Vector2(side + frame.x * 0.06, 0.0)
+	_fx.add_child(column)
+	await get_tree().process_frame
+	column.position = Vector2(left + side * 0.5 - column.size.x * 0.5, card.position.y + side + frame.y * 0.012)
+	for c: CanvasItem in [card, column]:
+		c.modulate.a = 0.0
+		create_tween().tween_method(func(k: float) -> void: c.modulate.a = FilmMotion.arrive(k), 0.0, 1.0, FilmMotion.base)
+	_cue("qr", {})
+
+func _shrink(k: float, m: ShaderMaterial, card_at: Vector2, scale_to: float) -> void:
+	var e: float = FilmMotion.arrive(k)
+	_screen.scale = Vector2.ONE * lerpf(1.0, scale_to, e)
+	_screen.position = card_at * e
+	m.set_shader_parameter("radius", frame.x * 0.09 * e)
+	_bg.card = e
 
 func _end(beat: Dictionary) -> void:
 	var text: String = String(beat.get("text", Brand.WORDMARK))
