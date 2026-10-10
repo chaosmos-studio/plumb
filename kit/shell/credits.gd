@@ -85,6 +85,8 @@ static func _section(title: String, items: Array) -> PanelContainer:
 static func _panel(fill: Color, edge: Color) -> PanelContainer:
 	var panel: PanelContainer = PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# A panel stops the mouse by default, and then a drag that starts on it never scrolls the list.
+	panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = fill
 	style.border_color = edge

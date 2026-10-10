@@ -68,6 +68,7 @@ func _initialize() -> void:
 	_test_qr()
 	_test_volumes()
 	_test_sheets_fit_a_phone()
+	_test_credits_scroll_by_drag()
 	_test_maker_link()
 	_test_play_screen_banner()
 	await _test_sheet_rises_before_layout()
@@ -981,6 +982,8 @@ func _test_about_variants() -> void:
 	_check("About on the web links to the website and Privacy", web.has("Website") and web.has("Privacy") and not web.has("Help"))
 	var more: String = load("res://kit/shell/more_games.gd").call("title")
 	_check("About leads to the studio's other games on both", play.has(more) and web.has(more))
+	var rate: String = load("res://kit/shell/rate_prompt.gd").call("button_text")
+	_check("About on Google Play always offers a rating, and the web build does not", play.has(rate) and not web.has(rate))
 	supporter.set("on_play", old)
 
 ## The homepage has a sponsor link, and Play does not let an app lead to one.
@@ -1523,6 +1526,21 @@ func _test_play_screen_banner() -> void:
 	ads.set("preview", old[1])
 
 # A line that cannot wrap widens the whole sheet past the screen.
+# A control that stops the mouse inside a scrolling list keeps a drag that starts on it from scrolling the
+# list on a phone. Buttons keep their taps, and the list's own scroll bars are sliders.
+func _test_credits_scroll_by_drag() -> void:
+	var host: Control = Control.new()
+	root.add_child(host)
+	load("res://kit/shell/credits.gd").call("open", host)
+	var blockers: PackedStringArray = PackedStringArray()
+	for scroll: Node in host.find_children("*", "ScrollContainer", true, false):
+		for node: Node in scroll.find_children("*", "Control", true, false):
+			var control: Control = node
+			if control.mouse_filter == Control.MOUSE_FILTER_STOP and not (control is BaseButton or control is Range):
+				blockers.append(control.get_class())
+	_check("a drag anywhere on the credits list scrolls it (%s)" % ", ".join(blockers), blockers.is_empty())
+	host.free()
+
 func _test_sheets_fit_a_phone() -> void:
 	var design_width: float = float(ProjectSettings.get_setting("display/window/size/viewport_width"))
 	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
