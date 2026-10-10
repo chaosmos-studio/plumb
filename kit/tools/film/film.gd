@@ -193,22 +193,27 @@ func _hold(beat: Dictionary) -> void:
 func _play(beat: Dictionary) -> void:
 	_stage.visible = true
 	_bg.visible = not reel
-	await director.call("stage", String(beat["action"]), _game_view, false)
-	_game = _game_view.get_child(_game_view.get_child_count() - 1)
-	if not bool(beat.get("hud", false)):
-		for child: Node in _game.get_children():
-			if child is CanvasLayer:
-				(child as CanvasLayer).visible = false
-	var dur: float = float(beat.get("dur", 4.0))
+	var hud: bool = bool(beat.get("hud", false))
 	var zoom: Array = beat.get("zoom", [1.0, 1.0])
-	if reel and String(beat["kind"]) == "challenge":
-		_screen.scale = Vector2.ONE
-	elif reel:
-		_screen.scale = Vector2.ONE * float(zoom[0])
-		if _wipe.mode == "flash":
-			_screen.scale *= 1.07
-			create_tween().tween_property(_screen, "scale", Vector2.ONE * float(zoom[0]), 0.28).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		create_tween().tween_property(_screen, "scale", Vector2.ONE * float(zoom[1]), dur).set_trans(Tween.TRANS_SINE).set_delay(0.28 if _wipe.mode == "flash" else 0.0)
+	var challenge: bool = String(beat["kind"]) == "challenge"
+	if reel:
+		_screen.scale = Vector2.ONE if challenge else Vector2.ONE * float(zoom[0]) * (1.07 if _wipe.mode == "flash" else 1.0)
+	# The game draws a frame before stage() returns: its HUD and an unzoomed board were a reel's first frame.
+	var hide: Callable = func(node: Node) -> void: _hide_hud.call_deferred(node)
+	if not hud:
+		_game_view.child_entered_tree.connect(hide)
+	await director.call("stage", String(beat["action"]), _game_view, false)
+	if not hud:
+		_game_view.child_entered_tree.disconnect(hide)
+	_game = _game_view.get_child(_game_view.get_child_count() - 1)
+	if not hud:
+		_hide_hud(_game)
+	var dur: float = float(beat.get("dur", 4.0))
+	if reel:
+		if not challenge:
+			if _wipe.mode == "flash":
+				create_tween().tween_property(_screen, "scale", Vector2.ONE * float(zoom[0]), 0.28).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+			create_tween().tween_property(_screen, "scale", Vector2.ONE * float(zoom[1]), dur).set_trans(Tween.TRANS_SINE).set_delay(0.28 if _wipe.mode == "flash" else 0.0)
 	else:
 		var side: String = String(beat.get("side", "left"))
 		var home: Vector2 = Vector2(frame.x * (0.3 if side == "left" else 0.7) - _device.size.x * 0.5, (frame.y - _device.size.y) * 0.5)
@@ -226,6 +231,13 @@ func _play(beat: Dictionary) -> void:
 	var caption: Variant = beat.get("caption", null)
 	if caption is Dictionary:
 		_caption(caption as Dictionary, beat)
+
+func _hide_hud(node: Node) -> void:
+	if not is_instance_valid(node):
+		return
+	for child: Node in node.get_children():
+		if child is CanvasLayer:
+			(child as CanvasLayer).visible = false
 
 func _perform(p: Dictionary) -> void:
 	await get_tree().create_timer(float(p.get("at", 0.0))).timeout
