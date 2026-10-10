@@ -16,6 +16,11 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
+## 1.2.1 - 2026-10-10
+
+- The Credits page scrolls with a swipe anywhere on it.
+- Rate the game any time from About.
+
 ## 1.2.0 - 2026-10-09
 
 - About and the ending now show the studio's other games, Carillon and Apsis.
