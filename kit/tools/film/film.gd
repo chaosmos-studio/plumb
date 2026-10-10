@@ -15,7 +15,7 @@ const DESIGN_WIDTH: float = 720.0
 ## 15% at each side and 25 to 35% at the bottom of a 1080x1920 frame.
 const SAFE_TOP: float = 0.15
 const SAFE_BOTTOM: float = 0.70
-const SAFE_WIDTH: float = 0.76
+const SAFE_WIDTH: float = 0.8
 ## How far down a reel's caption can reach: two lines under SAFE_TOP, with room for the push-in.
 const CAPTION_FLOOR: float = 0.3
 ## The landscape phone's height as a fraction of the frame, and how far it rocks in degrees.
@@ -252,7 +252,8 @@ func _perform(p: Dictionary) -> void:
 func _caption(c: Dictionary, beat: Dictionary) -> void:
 	await get_tree().create_timer(float(c.get("at", 0.2))).timeout
 	var width: float = frame.x * (SAFE_WIDTH if reel else 0.38)
-	var size_px: int = int(frame.x * (0.07 if reel else 0.046))
+	# Sized so most hooks fit one line: a second line under SAFE_TOP would sit on a tall board's edge.
+	var size_px: int = int(frame.x * (0.066 if reel else 0.046))
 	var k: Kinetic = Kinetic.new(String(c["text"]), size_px, width, "center" if reel else "left", Brand.INK, _caption_style)
 	_fx.add_child(k)
 	await get_tree().process_frame
