@@ -23,7 +23,7 @@ window.chaosmosGate = (function () {
 #gate { display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(340px, 86vw); text-align: center; }
 #gate p { margin: 0; color: var(--muted); font-size: 18px; line-height: 1.45; }
 #gate a { display: block; width: 100%; padding: 16px 20px; border-radius: 99px; background: var(--accent, var(--coral));
-	color: #141414; font-size: 20px; text-decoration: none; }
+	color: var(--accent-ink, #141414); font-size: 20px; text-decoration: none; }
 #gate a.more { padding: 10px; background: none; color: var(--ink); font-size: 17px; text-decoration: underline;
 	text-underline-offset: 4px; opacity: 0.8; }`;
 			document.head.appendChild(style);
