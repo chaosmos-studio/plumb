@@ -846,6 +846,7 @@ func _test_presets_and_plugins() -> void:
 		elif presets.get_value(section, "platform") == "Web":
 			_check("the web build leaves the plugins out", exclude.contains("addons/*")
 				and exclude.contains("kit/monetize/android/*"))
+			_check("and the Firebase config, since the web build is public", exclude.contains("google-services.json"))
 
 # The release workflow reads CHANGELOG.md by these rules, so a changelog it would refuse fails here first.
 func _test_changelog() -> void:
