@@ -66,10 +66,36 @@ Category **Game > Puzzle**. Tags: Puzzle, Logic puzzle, Brain teaser, Casual, Ph
 
 ## Products (2.6)
 
-The three products that name the game. Every other product is the same in every game (2.6).
+Monetize with Play > Products > **One-time products** > Create one-time product, once for each row
+below. The product IDs must be exactly these, and they are permanent. Every product has the same settings:
 
-| Product ID | Name | Description |
-| --- | --- | --- |
-| `supporter` | `Supporter pack` | Turns off the ads in Plumb for good and makes every hint free. One purchase, yours to keep, and it helps me make the next game. Thank you for playing. |
-| `looks` | `Marble pack` | Four more marble sets: glass, gems, planets and candy. Pick one any time in Settings. One purchase, yours to keep. |
-| `complete` | `Complete pack` | Everything in one: no ads, every hint free, every level open, the Marble pack and the Themes pack, for less than buying them apart. One purchase, yours to keep. |
+| Field | Answer |
+| --- | --- |
+| Tags | Empty |
+| Icon | None |
+| Product tax category | Digital app sales |
+| Age rating (US states) | The lowest, matching the game (Everyone) |
+| Payment location restriction | No country / region restricted |
+| Purchase option (next page) | ID `buy`, type Buy, multi-quantity purchases off |
+| Availability | All countries and regions |
+| Price | The Price column, entered with Set prices > Bulk edit. Play converts it for every other country. |
+| Then | Activate |
+
+| Product ID | Name | Price | Description |
+| --- | --- | --- | --- |
+| `supporter` | `Supporter pack` | US$2.99 | Turns off the ads in Plumb for good and makes every hint free. One purchase, yours to keep, and it helps me make the next game. Thank you for playing. |
+| `all_levels` | `Every level` | US$1.99 | Opens every level at once, so you can play them in any order. Stars are still earned by solving. One purchase, yours to keep. |
+| `looks` | `Marble pack` | US$1.99 | Four more marble sets: glass, gems, planets and candy. Pick one any time in Settings. One purchase, yours to keep. |
+| `themes` | `Themes pack` | US$1.99 | 12 colour themes, each in light & dark: Sepia, Solarized, Gruvbox, Nord, Dracula, Tokyo Night, Catppuccin, One, Ocean, Forest, Rose & Grape. One purchase, yours to keep. |
+| `complete` | `Complete pack` | US$6.99 | Everything in one: no ads, every hint free, every level open, the Marble pack and the Themes pack, for less than buying them apart. One purchase, yours to keep. |
+| `level_key` | `Level key` | US$0.49 (INR 20) | Opens any one locked level for good. Tap a locked level to use it. Buy as often as you like. |
+| `level_keys_5` | `5 level keys` | US$0.99 (INR 49) | Five keys, each opening any one locked level for good. Tap a locked level to use one. Buy as often as you like. |
+| `tip_1` | `Small tip` | US$0.99 | A thank-you to the maker of this game. It opens nothing, but it helps make the next game and more levels. Tip as often as you like. |
+| `tip_2` | `Tip` | US$1.99 | A thank-you to the maker of this game. It opens nothing, but it helps make the next game and more levels. Tip as often as you like. |
+| `tip_5` | `Big tip` | US$4.99 | A thank-you to the maker of this game. It opens nothing, but it helps make the next game and more levels. Tip as often as you like. |
+| `tip_10` | `Generous tip` | US$9.99 | A thank-you to the maker of this game. It opens nothing, but it helps make the next game and more levels. Tip as often as you like. |
+| `tip_20` | `Very generous tip` | US$19.99 | A thank-you to the maker of this game. It opens nothing, but it helps make the next game and more levels. Tip as often as you like. |
+| `tip_50` | `Huge thank you` | US$49.99 | A thank-you to the maker of this game. It opens nothing, but it helps make the next game and more levels. Tip as often as you like. |
+
+For the Supporter pack, check the India price Play suggests: around INR 199 is your call. Then test the
+products with the steps in 2.6 and 2.7.
