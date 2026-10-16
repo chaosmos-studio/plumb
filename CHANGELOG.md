@@ -16,6 +16,12 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
+## 1.3.0 - 2026-10-17
+
+- Glass marbles and the Sepia colours are now free for everyone.
+- Two new marble sets in the Marble pack: Pearls and Yarn.
+- Four new colour themes: Everforest, Rosé Pine, Kanagawa and Mono.
+
 ## 1.2.1 - 2026-10-10
 
 - The Credits page scrolls with a swipe anywhere on it.
