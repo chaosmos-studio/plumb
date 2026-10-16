@@ -39,6 +39,7 @@ func _initialize() -> void:
 	_test_appearance()
 	_test_contrast()
 	_test_themes()
+	_test_marble_sets()
 	_test_saved_settings()
 	_test_guide_and_ending()
 	_test_banner_pacing()
@@ -646,6 +647,42 @@ func _test_themes() -> void:
 					short.append("%s on floor %.1f" % [pair[0], ratio])
 			_check("the %s theme reads in %s: %s" % [id, "dark" if dark else "light", ", ".join(short)], short.is_empty())
 	Brand.use(Brand.NATIVE_DARK)
+
+func _test_marble_sets() -> void:
+	var families: Array = Palette.LIGHT["marbles"]
+	var finishes: Array[int] = []
+	var bad: PackedStringArray = PackedStringArray()
+	var strays: PackedStringArray = PackedStringArray()
+	for look: Dictionary in GameLooks.LOOKS:
+		var id: String = look["id"]
+		var entry: Array = GameLooks.SETS.get(id, [])
+		var colours: Array = entry[0] if entry.size() == 2 else []
+		if entry.size() != 2 or (colours.size() != 4 and not (colours.is_empty() and id == "classic")) \
+				or finishes.has(int(entry[1])):
+			bad.append(id)
+			continue
+		finishes.append(int(entry[1]))
+		for k: int in range(colours.size()):
+			var nearest: int = 0
+			for j: int in range(families.size()):
+				if _hue_gap(colours[k], families[j]) < _hue_gap(colours[k], families[nearest]):
+					nearest = j
+			if nearest != k:
+				strays.append("%s %d" % [id, k])
+	_check("every marble set has four colours and a finish of its own: %s" % ", ".join(bad),
+		bad.is_empty() and GameLooks.SETS.size() == GameLooks.LOOKS.size())
+	_check("every marble set keeps Classic's red, teal, amber and violet in order: %s" % ", ".join(strays), strays.is_empty())
+	var given: int = (load("res://kit/ui/looks.gd") as GDScript).get_script_constant_map()["FREE"]
+	var counts: PackedStringArray = PackedStringArray(["One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight"])
+	var named: bool = GameLooks.PACK_ROW.begins_with(counts[GameLooks.LOOKS.size() - given - 1] + " more")
+	for k: int in range(GameLooks.LOOKS.size()):
+		var set_name: String = String(GameLooks.LOOKS[k]["name"]).to_lower()
+		named = named and GameLooks.PACK_LINE.to_lower().contains(set_name) == (k >= given)
+	_check("the Marble pack counts and names the sets it opens, and none of the free ones", named)
+
+static func _hue_gap(a: Color, b: Color) -> float:
+	var d: float = absf(a.h - b.h)
+	return minf(d, 1.0 - d)
 
 func _test_chapter_colours() -> void:
 	var themes: GDScript = load("res://kit/ui/themes.gd")
