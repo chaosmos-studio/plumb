@@ -6,8 +6,8 @@ extends RefCounted
 
 const TITLE: String = "Marbles"
 const PACK: String = "Marble pack"
-const PACK_LINE: String = "Glass, gems, planets and candy"
-const PACK_ROW: String = "Four more marble sets"
+const PACK_LINE: String = "Gems, planets, candy, pearls and yarn"
+const PACK_ROW: String = "Five more marble sets"
 
 const LOOKS: Array = [
 	{"id": "classic", "name": "Classic"},

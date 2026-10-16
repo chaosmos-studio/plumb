@@ -85,7 +85,7 @@ below. The product IDs must be exactly these, and they are permanent. Every prod
 | --- | --- | --- | --- |
 | `supporter` | `Supporter pack` | US$2.99 | Turns off the ads in Plumb for good and makes every hint free. One purchase, yours to keep, and it helps me make the next game. Thank you for playing. |
 | `all_levels` | `Every level` | US$1.99 | Opens every level at once, so you can play them in any order. Stars are still earned by solving. One purchase, yours to keep. |
-| `looks` | `Marble pack` | US$1.99 | Four more marble sets: glass, gems, planets and candy. Pick one any time in Settings. One purchase, yours to keep. |
+| `looks` | `Marble pack` | US$1.99 | Five more marble sets: gems, planets, candy, pearls and yarn. Pick one any time in Settings. One purchase, yours to keep. |
 | `themes` | `Themes pack` | US$1.99 | 12 colour themes, each in light & dark: Sepia, Solarized, Gruvbox, Nord, Dracula, Tokyo Night, Catppuccin, One, Ocean, Forest, Rose & Grape. One purchase, yours to keep. |
 | `complete` | `Complete pack` | US$6.99 | Everything in one: no ads, every hint free, every level open, the Marble pack and the Themes pack, for less than buying them apart. One purchase, yours to keep. |
 | `level_key` | `Level key` | US$0.49 (INR 20) | Opens any one locked level for good. Tap a locked level to use it. Buy as often as you like. |
