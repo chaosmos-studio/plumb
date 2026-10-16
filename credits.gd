@@ -20,8 +20,8 @@ const TEAM: Array[Dictionary] = [
 	{"name": "Shravan Goswami", "role": "Game designer and developer", "site": "https://shravangoswami.com/",
 		"site_on_play": "https://shravangoswami.com/projects/studio/"},
 ]
-## It names no model version, so it never goes stale.
-const HELP: String = "Made with the help of Claude, an AI by Anthropic."
+## It names no AI tool or model, since more than one is used and they change.
+const HELP: String = "Made with the help of AI tools."
 
 const SECTIONS: Array[Dictionary] = [
 	{"title": "Engine", "items": [
