@@ -16,9 +16,10 @@ const LOOKS: Array = [
 	{"id": "planets", "name": "Planets"},
 	{"id": "candy", "name": "Candy"},
 	{"id": "pearls", "name": "Pearls"},
+	{"id": "yarn", "name": "Yarn"},
 ]
 
-enum Finish { GLOSS, GLASS, GEM, PLANET, CANDY, PEARL }
+enum Finish { GLOSS, GLASS, GEM, PLANET, CANDY, PEARL, YARN }
 
 ## Each set's colours, [] for the palette's own, and its finish.
 const SETS: Dictionary = {
@@ -28,6 +29,7 @@ const SETS: Dictionary = {
 	"planets": [[Color("dd6544"), Color("2f9fb0"), Color("e3b264"), Color("8b78dc")], Finish.PLANET],
 	"candy": [[Color("ff7fa0"), Color("3fd3b9"), Color("ffcb4c"), Color("a88cff")], Finish.CANDY],
 	"pearls": [[Color("e8707f"), Color("3db8aa"), Color("eab454"), Color("8e7fe6")], Finish.PEARL],
+	"yarn": [[Color("e65f5c"), Color("27a696"), Color("f0a532"), Color("7b67e0")], Finish.YARN],
 }
 
 static var finish: Finish = Finish.GLOSS

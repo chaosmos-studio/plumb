@@ -68,6 +68,8 @@ func _draw() -> void:
 			_candy(r)
 		GameLooks.Finish.PEARL:
 			_pearl(r)
+		GameLooks.Finish.YARN:
+			_yarn(r)
 		_:
 			draw_circle(Vector2.ZERO, r, colour.darkened(0.22), true, -1.0, true)
 			draw_circle(Vector2(-r * 0.06, -r * 0.08), r * 0.88, colour, true, -1.0, true)
@@ -151,6 +153,36 @@ func _pearl(r: float) -> void:
 		var t: float = k / 12.0
 		draw_circle(Vector2(-r * 0.2, -r * 0.24) * t, r * lerpf(0.76, 0.18, t), Color(colour.lightened(0.1 + 0.8 * t), 0.24),
 			true, -1.0, true)
+
+## Two bands of wound strands, the second wound over the first, so it hides what lies under it.
+func _yarn(r: float) -> void:
+	var c: Vector2 = Vector2(-r * 0.03, -r * 0.04)
+	var ball: float = r * 0.92
+	var ink: Color = colour.darkened(0.28)
+	var width: float = r * 0.075
+	draw_circle(Vector2.ZERO, r, colour.darkened(0.22), true, -1.0, true)
+	draw_circle(c, ball, colour, true, -1.0, true)
+	draw_circle(c + Vector2(-r * 0.22, -r * 0.26), r * 0.46, Color(colour.lightened(0.3), 0.35), true, -1.0, true)
+	var first: float = 0.55
+	var second: float = first + 1.75
+	for lean: float in [-0.7, -0.3, 0.1, 0.5]:
+		draw_polyline(_strand(c, ball, first, lean), ink, width, true)
+	var over: PackedVector2Array = _strand(c, ball, second, 0.98)
+	var under: PackedVector2Array = _strand(c, ball, second, -0.1)
+	for s: int in range(under.size() - 2, 0, -1):
+		over.append(under[s])
+	draw_colored_polygon(over, colour)
+	for lean: float in [-0.1, 0.25, 0.6]:
+		draw_polyline(_strand(c, ball, second, lean), ink, width, true)
+
+## Half a great circle on a ball of radius `r` about `c`: its ends sit on the rim at `axis` and opposite, and
+## `lean` tips it from edge on (0) to the outline itself (1 or -1), as wound strands look from the front.
+static func _strand(c: Vector2, r: float, axis: float, lean: float) -> PackedVector2Array:
+	var points: PackedVector2Array = PackedVector2Array()
+	for s: int in range(17):
+		var a: float = PI * s / 16.0
+		points.append(c + Vector2(cos(a) * r, sin(a) * r * lean).rotated(axis))
+	return points
 
 static func _ring(r: float, sides: int, turn: float) -> PackedVector2Array:
 	var points: PackedVector2Array = PackedVector2Array()
