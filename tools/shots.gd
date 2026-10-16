@@ -35,7 +35,7 @@ func _shoot_shop() -> void:
 	await _shoot_sheet(func(host: Node) -> void: Shop.tips(host), "tip_jar")
 	await _shoot_sheet(func(host: Node) -> void: Shop.offer(host, GameMonetize.LEVELS_ID), "offer_levels")
 	await _shoot_sheet(func(host: Node) -> void: Looks.open(host), "looks")
-	for look: String in ["glass", "gems", "planets", "candy"]:
+	for look: String in ["glass", "gems", "planets", "candy", "pearls"]:
 		GameLooks.use(look)
 		Appearance.apply(Save.theme)
 		await _shoot_level(110, "look_%s" % look, false, false)

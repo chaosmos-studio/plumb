@@ -66,6 +66,8 @@ func _draw() -> void:
 			_planet(r)
 		GameLooks.Finish.CANDY:
 			_candy(r)
+		GameLooks.Finish.PEARL:
+			_pearl(r)
 		_:
 			draw_circle(Vector2.ZERO, r, colour.darkened(0.22), true, -1.0, true)
 			draw_circle(Vector2(-r * 0.06, -r * 0.08), r * 0.88, colour, true, -1.0, true)
@@ -138,6 +140,17 @@ func _candy(r: float) -> void:
 			swirl.append(Vector2.from_angle(start + t * 1.3) * r * 0.8 * t)
 		draw_polyline(swirl, Color(1, 1, 1, 0.8), r * 0.2, true)
 	_gloss(r)
+
+## Nacre has no hard spot of light: the sheen rises in soft steps, and the shaded side catches a second hue.
+func _pearl(r: float) -> void:
+	draw_circle(Vector2.ZERO, r, colour.darkened(0.2), true, -1.0, true)
+	draw_circle(Vector2(-r * 0.03, -r * 0.04), r * 0.92, colour, true, -1.0, true)
+	var overtone: Color = Color.from_hsv(fposmod(colour.h - 0.09, 1.0), 0.4, 1.0, 0.7)
+	draw_arc(Vector2(-r * 0.03, -r * 0.04), r * 0.8, PI * 0.02, PI * 0.7, 18, overtone, r * 0.12, true)
+	for k: int in range(1, 13):
+		var t: float = k / 12.0
+		draw_circle(Vector2(-r * 0.2, -r * 0.24) * t, r * lerpf(0.76, 0.18, t), Color(colour.lightened(0.1 + 0.8 * t), 0.24),
+			true, -1.0, true)
 
 static func _ring(r: float, sides: int, turn: float) -> PackedVector2Array:
 	var points: PackedVector2Array = PackedVector2Array()
