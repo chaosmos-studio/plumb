@@ -9,6 +9,8 @@ extends RefCounted
 
 const OWN: String = "own"
 const OWN_NAME: String = "Original"
+## The one colour theme every player has without the pack, beside the game's own.
+const FREE: String = "sepia"
 ## id, name, then [background, surface, ink, accent] for the light variant and for the dark one.
 const FAMILIES: Array = [
 	["sepia", "Sepia", ["f6edd6", "fdf8ea", "47392a", "9a6431"], ["29231b", "373024", "ecdfc6", "d9a35f"]],
@@ -23,6 +25,10 @@ const FAMILIES: Array = [
 	["forest", "Forest", ["eef6f0", "ffffff", "10261b", "0b7d58"], ["0e1a14", "182a20", "e1efe6", "3bd19a"]],
 	["rose", "Rose", ["fbf0f3", "ffffff", "2b1a20", "c81d4a"], ["1f1418", "2d1e25", "f5e4e9", "fb7c96"]],
 	["grape", "Grape", ["f5f1fc", "ffffff", "1f1733", "6d35d6"], ["171226", "241b3a", "ece6f8", "b197fc"]],
+	["everforest", "Everforest", ["f3efda", "fdf9e8", "3d474c", "2f8f6c"], ["2d353b", "343e43", "e2d7bd", "a7c080"]],
+	["rosepine", "Rosé Pine", ["faf4ed", "fffaf3", "464261", "8a6fa8"], ["191724", "26233a", "e0def4", "c4a7e7"]],
+	["kanagawa", "Kanagawa", ["f2ecbc", "f9f5d7", "43436c", "4d699b"], ["1f1f28", "2a2a37", "dcd7ba", "7e9cd8"]],
+	["mono", "Mono", ["f2f2f2", "ffffff", "1a1a1a", "3d3d3d"], ["121212", "1f1f1f", "ececec", "c4c4c4"]],
 ]
 
 static func ids() -> PackedStringArray:
@@ -37,8 +43,11 @@ static func name_of(id: String) -> String:
 			return String(f[1])
 	return OWN_NAME
 
+static func is_free(id: String) -> bool:
+	return id == OWN or id == FREE
+
 static func is_open(id: String) -> bool:
-	return id == OWN or Shop.themes_open()
+	return is_free(id) or Shop.themes_open()
 
 static func current() -> String:
 	return Save.palette if ids().has(Save.palette) and is_open(Save.palette) else OWN
@@ -245,3 +254,35 @@ class _Card extends BaseButton:
 				for spot: Vector2 in spots:
 					draw_circle(c + spot * h, h * 0.24, ink, true, -1.0, true)
 				draw_line(c + Vector2(0.0, -h * 0.6), c + Vector2(h * 0.25, -h * 0.95), ink, 1.8, true)
+			"everforest":
+				var leaf: PackedVector2Array = PackedVector2Array()
+				for j: int in range(17):
+					var a5: float = PI * j / 16.0
+					leaf.append(c + Vector2(-cos(a5) * h * 0.85, -sin(a5) * h * 0.5).rotated(-0.6))
+				for j: int in range(1, 16):
+					var a6: float = PI - PI * j / 16.0
+					leaf.append(c + Vector2(-cos(a6) * h * 0.85, sin(a6) * h * 0.5).rotated(-0.6))
+				draw_colored_polygon(leaf, ink)
+				draw_line(c + Vector2(-h * 0.95, 0.0).rotated(-0.6), c + Vector2(h * 0.6, 0.0).rotated(-0.6), ground, 1.6, true)
+			"rosepine":
+				draw_line(c + Vector2(0.0, -h * 0.9), c + Vector2(0.0, h * 0.9), ink, 2.0, true)
+				for k: int in range(4):
+					var y: float = -h * 0.65 + k * h * 0.4
+					var reach: float = h * (0.35 + k * 0.12)
+					for side: float in [-1.0, 1.0]:
+						draw_line(c + Vector2(0.0, y), c + Vector2(side * reach, y + h * 0.3), ink, 1.8, true)
+			"kanagawa":
+				var curl: PackedVector2Array = PackedVector2Array()
+				for j: int in range(33):
+					var t2: float = j / 32.0
+					var a7: float = PI * 0.5 + t2 * TAU * 0.85
+					curl.append(c + Vector2(h * 0.1, -h * 0.1) + Vector2(cos(a7), sin(a7)) * h * (0.75 - 0.5 * t2))
+				draw_polyline(curl, ink, 2.2, true)
+				draw_line(c + Vector2(-h * 0.95, h * 0.7), c + Vector2(h * 0.95, h * 0.7), ink, 2.2, true)
+			"mono":
+				draw_arc(c, h * 0.75, 0.0, TAU, 32, ink, 2.0, true)
+				var half: PackedVector2Array = PackedVector2Array()
+				for j: int in range(17):
+					var a8: float = -PI * 0.5 + PI * j / 16.0
+					half.append(c + Vector2(cos(a8), sin(a8)) * h * 0.75)
+				draw_colored_polygon(half, ink)

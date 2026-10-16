@@ -5,7 +5,8 @@ extends RefCounted
 ## still both work under every look.
 ##
 ## The kit expects from the game:
-## - `GameLooks.LOOKS`, an Array of {"id", "name"} with the free one first.
+## - `GameLooks.LOOKS`, an Array of {"id", "name"} with the FREE free ones first, the game's own look first
+##   of all.
 ## - `GameLooks.use(id)`, which makes the next `Brand.use` paint (or the next note play) in that look.
 ## - `GameLooks.swatch(id)`, the colours its card shows.
 ## - `GameLooks.sample(id, colour, radius)`, a node that shows one of those colours as that look really
@@ -13,20 +14,28 @@ extends RefCounted
 ## - `GameLooks.preview(id)`, anything a card does when tapped beyond picking, such as a few notes.
 ## - `GameLooks.TITLE`, `PACK`, `PACK_LINE` and `PACK_ROW`, and `Save.look` with `Save.set_look(id)`.
 
+## How many looks, from the first, every player has without the pack.
+const FREE: int = 2
+
 static func ids() -> PackedStringArray:
 	var out: PackedStringArray = PackedStringArray()
 	for look: Dictionary in GameLooks.LOOKS:
 		out.append(String(look["id"]))
 	return out
 
+## The game's own look, which a look that is no longer open falls back to.
 static func free_id() -> String:
 	return ids()[0]
+
+static func is_free(id: String) -> bool:
+	var at: int = ids().find(id)
+	return at >= 0 and at < FREE
 
 static func current() -> String:
 	return Save.look if ids().has(Save.look) and is_open(Save.look) else free_id()
 
 static func is_open(id: String) -> bool:
-	return id == free_id() or Shop.looks_open()
+	return is_free(id) or Shop.looks_open()
 
 static func name_of(id: String) -> String:
 	for look: Dictionary in GameLooks.LOOKS:

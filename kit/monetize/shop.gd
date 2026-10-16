@@ -11,8 +11,8 @@ extends RefCounted
 ## The shop's row that leads to the level keys, which are several products.
 const KEYS: String = "keys"
 const THEMES_PACK: String = "Themes pack"
-const THEMES_LINE: String = "Sepia, Nord, Dracula and nine more"
-const THEMES_ROW: String = "Twelve colour themes"
+const THEMES_LINE: String = "Nord, Dracula, Rosé Pine and twelve more"
+const THEMES_ROW: String = "Fifteen more colour themes"
 const KEEP_ROW: String = "Yours to keep after one purchase"
 
 ## Play's formatted prices in the player's currency, by product id.

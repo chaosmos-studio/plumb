@@ -101,8 +101,8 @@ static func _ended(id: String) -> void:
 		return
 	Supporter.say("Your try of %s has ended" % _called(id))
 	EventBus.settings_changed.emit()
-	var in_use: bool = (id == GameMonetize.LOOKS_ID and Save.look != "" and Save.look != Looks.free_id()) \
-		or (id == GameMonetize.THEMES_ID and Save.palette != "" and Save.palette != Themes.OWN)
+	var in_use: bool = (id == GameMonetize.LOOKS_ID and Save.look != "" and not Looks.is_free(Save.look)) \
+		or (id == GameMonetize.THEMES_ID and Save.palette != "" and not Themes.is_free(Save.palette))
 	var tree: SceneTree = Engine.get_main_loop() as SceneTree
 	if in_use and tree != null:
 		GameLooks.use(Looks.current())
