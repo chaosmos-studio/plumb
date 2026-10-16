@@ -612,6 +612,15 @@ def layout_fan(shot, style, stage, size, index):
         placed.append((layer, (x0 + x1) / 2 + side * spread - layer.width / 2, top + abs(side) * room_h * 0.06, side))
     boxes = [(lx + layer.width * 0.1, ly, lx + layer.width * 0.9, ly + layer.height) for layer, lx, ly, _ in placed]
     label_y = max(ly + layer.height for layer, _, ly, _ in placed) + face.size * 0.6
+    # Each label sits under its own card, so long ones would overlap their neighbours: a smaller face if needed.
+    centres = [lx + layer.width / 2 for layer, lx, _, _ in placed]
+    tag_face = face
+    for scale in (1.0, 0.92, 0.85, 0.78, 0.72):
+        tag_face = style.face("ui", face.size * scale)
+        widths = [pill(shot["labels"][i], tag_face, style, 0).width for i in range(len(placed))]
+        if all((widths[i] + widths[i + 1]) / 2 + tag_face.size * 0.4 <= centres[i + 1] - centres[i]
+               for i in range(len(placed) - 1)):
+            break
     boxes.append((x0, label_y, x1, label_y + face.size * 2.2))
     if strip_h:
         boxes.append((x0, y1 - strip_h, x1, y1))
@@ -620,7 +629,7 @@ def layout_fan(shot, style, stage, size, index):
         for layer, lx, ly, side in sorted(placed, key=lambda p: -abs(p[3])):
             drop(canvas, layer, lx, ly, style, 0.9)
         for i, (layer, lx, ly, side) in enumerate(placed):
-            tag = pill(shot["labels"][i], face, style, i + index)
+            tag = pill(shot["labels"][i], tag_face, style, i + index)
             place(canvas, tag, lx + (layer.width - tag.width) / 2, label_y)
         if strip:
             # The strip on a plate of its own background, rounded, so it reads as one more card.
