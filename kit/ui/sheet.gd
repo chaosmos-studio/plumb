@@ -63,6 +63,15 @@ static func open(host: Node, can_dismiss: bool = true, hold: bool = false) -> Sh
 static func any_open() -> bool:
 	return not _open.is_empty()
 
+## The back button: the sheet on top closes if it may be dismissed. True if a sheet was open to take it.
+static func back() -> bool:
+	if _open.is_empty():
+		return false
+	var top: Sheet = _open.back()
+	if top.dismissable and not top._closing:
+		top.close()
+	return true
+
 func _init() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = UI.theme()

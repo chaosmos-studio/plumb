@@ -72,6 +72,7 @@ func _initialize() -> void:
 	_test_credits_scroll_by_drag()
 	_test_maker_link()
 	_test_play_screen_banner()
+	await _test_go_back()
 	await _test_sheet_rises_before_layout()
 	await _test_sheet_drags_closed()
 	await _test_levels_swipe()
@@ -1627,6 +1628,22 @@ func _test_sheets_fit_a_phone() -> void:
 	shut.free()
 	shop.set("prices", prices)
 	supporter.set("on_play", old)
+
+# Android's back button goes back a screen and asks before the game closes, instead of quitting outright.
+func _test_go_back() -> void:
+	_check("the back button never quits the app outright",
+		ProjectSettings.get_setting("application/config/quit_on_go_back") == false)
+	var sheets: GDScript = load("res://kit/ui/sheet.gd")
+	var go_back: GDScript = load("res://kit/shell/go_back.gd")
+	_check("with no sheet open, back is the screen's to handle", not sheets.call("back"))
+	var host: Control = Control.new()
+	root.add_child(host)
+	go_back.call("ask", host)
+	_check("on the title it asks before closing the game", sheets.call("any_open"))
+	_check("and back answers that by staying", sheets.call("back"))
+	await create_timer(0.8).timeout
+	_check("so the game carries on", not sheets.call("any_open"))
+	host.free()
 
 func _test_sheet_rises_before_layout() -> void:
 	var settings: GDScript = load("res://kit/shell/settings.gd")

@@ -33,3 +33,8 @@ func go(path: String) -> void:
 	await back.finished
 	_veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_busy = false
+
+## Android's back button and gesture, which would otherwise close the app.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST and not _busy:
+		GoBack.request(get_tree())

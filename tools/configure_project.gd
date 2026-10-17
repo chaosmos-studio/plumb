@@ -42,6 +42,8 @@ func _initialize() -> void:
 	ProjectSettings.set_setting("rendering/textures/vram_compression/import_etc2_astc", true)
 	# The mouse drives touch handlers on desktop. It also makes is_touchscreen_available() true there.
 	ProjectSettings.set_setting("input_devices/pointing/emulate_touch_from_mouse", true)
+	# Android's back button goes back a screen and asks before leaving (kit GoBack), never quits outright.
+	ProjectSettings.set_setting("application/config/quit_on_go_back", false)
 
 	var status: int = ProjectSettings.save()
 	var orientation: Variant = ProjectSettings.get_setting("display/window/handheld/orientation")
