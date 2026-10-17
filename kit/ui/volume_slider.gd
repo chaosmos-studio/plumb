@@ -2,20 +2,22 @@ class_name VolumeSlider
 extends Range
 
 ## `released` says where the knob came to rest, for the setting to be saved once rather than on every step.
-## It is a Range, so a sheet leaves a drag that starts on it alone.
+## It is a Range, so a sheet leaves a drag that starts on it alone. It moves in detents of STEP, and
+## value_changed fires once per detent, which is what Settings clicks and buzzes on.
 
 signal released(value: float)
 
 const HEIGHT: float = 56.0
 const TRACK: float = 10.0
 const KNOB: float = 17.0
+const STEP: float = 0.05
 
 var _dragging: bool = false
 
 func _init(start: float) -> void:
 	min_value = 0.0
 	max_value = 1.0
-	step = 0.01
+	step = STEP
 	value = start
 	custom_minimum_size = Vector2(280.0, HEIGHT)
 	focus_mode = Control.FOCUS_NONE

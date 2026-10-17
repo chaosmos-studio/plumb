@@ -5,19 +5,24 @@ const RESET_ARM_TIME: float = 3.0
 const CARD_SIZE: Vector2 = Vector2(296, 112)
 const FOOT_HEIGHT: float = 76.0
 const FOOT_FONT: int = 28
-## The least time between the ticks the sound slider plays, so a drag sounds like a few taps, not a buzz.
-const TICK_GAP: int = 140
+## A volume slider's detents: each one clicks at the level it sets, its pitch rising with it, and the phone
+## taps harder the louder it goes, so the level is heard and felt. TICK_GAP keeps a fast flick from
+## rattling, and the two ends always land with a firmer tap.
+const TICK_GAP: int = 45
+const TICK_PITCH: Vector2 = Vector2(0.8, 1.3)
+const TAP_MS: int = 12
+const EDGE_MS: int = 30
+const TAP_STRENGTH: Vector2 = Vector2(0.2, 1.0)
 const GAME_OPTIONS: String = "res://game_options.gd"
 
 static func open(host: Node) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
 	c.add_child(UI.title("Settings", 56))
-	c.add_child(_volume(&"sound", &"sound_off", "Sound", Save.sound_volume, Save.hear_sound_volume, Save.set_sound_volume,
-		true))
+	c.add_child(_volume(&"sound", &"sound_off", "Sound", Save.sound_volume, Save.hear_sound_volume, Save.set_sound_volume))
 	if Brand.HAS_MUSIC:
 		c.add_child(_volume(&"music", &"music_off", "Music", Save.music_volume, Save.hear_music_volume,
-			Save.set_music_volume, false))
+			Save.set_music_volume))
 	var buzz: Switch = Switch.new(Save.haptics_on)
 	buzz.toggled.connect(func(on: bool) -> void: Save.set_haptics(on))
 	c.add_child(setting_row(&"haptics", "Vibration", buzz))
@@ -78,8 +83,8 @@ static func _row_of(gap: int) -> HBoxContainer:
 	return row
 
 ## `hear` takes each step of a drag and `keep` the place it rests at.
-static func _volume(icon: StringName, muted_icon: StringName, text: String, start: float, hear: Callable, keep: Callable,
-		ticks: bool) -> Control:
+static func _volume(icon: StringName, muted_icon: StringName, text: String, start: float, hear: Callable,
+		keep: Callable) -> Control:
 	var row: HBoxContainer = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 24)
 	var mute: _Mute = _Mute.new(icon, muted_icon, start <= 0.0)
@@ -97,9 +102,10 @@ static func _volume(icon: StringName, muted_icon: StringName, text: String, star
 		hear.call(v)
 		Audio.hear()
 		mute.muted = v <= 0.0
-		if ticks and v > 0.0 and Time.get_ticks_msec() - ticked[0] >= TICK_GAP:
+		var edge: bool = v <= 0.0 or v >= 1.0
+		if edge or Time.get_ticks_msec() - ticked[0] >= TICK_GAP:
 			ticked[0] = Time.get_ticks_msec()
-			Audio.play(&"tap", -4.0))
+			detent(v))
 	slider.released.connect(func(v: float) -> void:
 		if v > 0.0:
 			back[0] = v
@@ -112,6 +118,13 @@ static func _volume(icon: StringName, muted_icon: StringName, text: String, star
 			slider.value = back[0]
 		keep.call(slider.value))
 	return row
+
+## One detent of a volume slider at level `v`. The click goes through the sound volume, so on the sound
+## slider it is the level itself, and at 0 only the tap is left.
+static func detent(v: float) -> void:
+	var edge: bool = v <= 0.0 or v >= 1.0
+	Audio.buzz(EDGE_MS if edge else TAP_MS, lerpf(TAP_STRENGTH.x, TAP_STRENGTH.y, v) if v > 0.0 else TAP_STRENGTH.y)
+	Audio.play(&"tap", -4.0, lerpf(TICK_PITCH.x, TICK_PITCH.y, v))
 
 static func setting_row(icon: StringName, text: String, control: Control) -> Control:
 	var row: HBoxContainer = HBoxContainer.new()

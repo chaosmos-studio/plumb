@@ -1413,10 +1413,21 @@ func _test_volumes() -> void:
 	_check("a save from before the sliders keeps its switches as volumes", is_zero_approx(float(save.get("sound_volume")))
 		and is_equal_approx(float(save.get("music_volume")), 1.0) and not bool(save.get("sound_on")))
 	var host: Node = Node.new()
+	root.add_child(host)
 	load("res://kit/shell/settings.gd").call("open", host)
-	var sliders: int = host.find_children("*", "Range", true, false).size()
+	var sliders: Array[Node] = host.find_children("*", "Range", true, false)
 	_check("settings has a slider for the sound, and one for the music where there is music",
-		sliders == (2 if Brand.HAS_MUSIC else 1))
+		sliders.size() == (2 if Brand.HAS_MUSIC else 1))
+	var sound: Range = sliders[0] as Range
+	var detents: Array[float] = []
+	sound.value_changed.connect(func(v: float) -> void: detents.append(v))
+	sound.value = 0.33
+	var heard: float = float(save.get("sound_volume"))
+	sound.value = 0.34
+	sound.value = 0.0
+	_check("a volume slider moves in detents, each one heard at once",
+		detents.size() == 2 and is_equal_approx(detents[0], 0.35) and is_equal_approx(heard, 0.35)
+		and is_zero_approx(detents[1]) and is_zero_approx(float(save.get("sound_volume"))))
 	host.free()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_volumes.cfg"))
 	save.call("hear_sound_volume", old[0])

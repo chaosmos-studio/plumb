@@ -93,8 +93,9 @@ func _play(stream: AudioStream, volume_db: float, pitch: float) -> void:
 	voice.play()
 
 # Web is included on purpose: a phone running the web build reports mobile=false.
-func buzz(milliseconds: int) -> void:
+## `strength` runs 0 to 1 on phones that can vary it, and -1 leaves it to the phone.
+func buzz(milliseconds: int, strength: float = -1.0) -> void:
 	if not Save.haptics_on:
 		return
 	if OS.has_feature("mobile") or OS.has_feature("web"):
-		Input.vibrate_handheld(milliseconds)
+		Input.vibrate_handheld(milliseconds, strength)
