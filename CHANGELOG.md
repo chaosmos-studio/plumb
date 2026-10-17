@@ -22,6 +22,7 @@ To ship: add a new section at the top, push, then Actions > Release Android > Ru
 - Two new marble sets in the Marble pack: Pearls and Yarn.
 - Four new colour themes: Everforest, Rosé Pine, Kanagawa and Mono.
 - The back button goes back a screen, and asks before it closes the game.
+- The volume sliders click in steps you can hear and feel.
 
 ## 1.2.1 - 2026-10-10
 
