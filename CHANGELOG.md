@@ -21,6 +21,7 @@ To ship: add a new section at the top, push, then Actions > Release Android > Ru
 - Glass marbles and the Sepia colours are now free for everyone.
 - Two new marble sets in the Marble pack: Pearls and Yarn.
 - Four new colour themes: Everforest, Rosé Pine, Kanagawa and Mono.
+- The back button goes back a screen, and asks before it closes the game.
 
 ## 1.2.1 - 2026-10-10
 
