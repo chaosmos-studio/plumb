@@ -14,7 +14,8 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # The org variable RUNNER moves the tests onto a self-hosted runner, to save the plan's minutes.
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 60
     env:
       GODOT_RELEASE: "4.7-stable"

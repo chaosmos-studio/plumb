@@ -440,6 +440,8 @@ jobs:
           } > build/release/body.md
           cat build/release/body.md
 
+      # A real release keeps its files on the GitHub release, which costs no Actions storage, so this copy is
+      # only for a dry run to be downloaded, and goes after three days: kept 90, every release held ~120 MB.
       - uses: actions/upload-artifact@v6
         with:
           name: ${{ github.event.repository.name }}-${{ env.VERSION_NAME }}-android
@@ -448,6 +450,7 @@ jobs:
             build/android/*.apk
             build/release/play-release-notes.txt
           if-no-files-found: error
+          retention-days: 3
 
       # Before the GitHub release, so a failed upload leaves no tag and the same version can run again. The
       # API cannot create an app, so each app's first AAB goes up by hand in Play Console.
