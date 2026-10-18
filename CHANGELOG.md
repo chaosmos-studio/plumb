@@ -16,6 +16,12 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
+## 1.3.1 - 2026-10-18
+
+- No more ads between levels.
+- A hint, a key or a try of a pack now costs a quick game of one of our other puzzles instead of a video, and you can close it any time.
+- The back button on a solved level takes you to the level grid.
+
 ## 1.3.0 - 2026-10-17
 
 - Glass marbles and the Sepia colours are now free for everyone.

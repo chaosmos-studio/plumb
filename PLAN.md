@@ -108,6 +108,10 @@ the Android build only; the web build and desktop runs have no ads and no pack, 
 answers "not available" at once. The numbers are constants in `kit/monetize/pacing.gd` (`AdPacing`),
 tested on their edges in `tests/run_tests.gd`.
 
+- **While AdMob is off** (`GameMonetize.ADMOB` false, since 2026-10-18, until the AdMob account is
+  approved): the studio's house ads stand in. The banner shows the studio's other games in the same
+  places, there are no interstitials, and every video offer becomes "Try a quick game", a tiny playable
+  board of another game that closes any time and gives the reward anyway. Everything below still holds.
 - **Banner**: one anchored adaptive AdMob banner at the foot of the Levels screen and of the play screen,
   never over the board and never on a guided level. It appears once 3 levels are solved and steps aside
   while any sheet or the ending is open. The pager lifts clear of it with a 32 px gap, and the play

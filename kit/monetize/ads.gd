@@ -4,8 +4,9 @@ extends RefCounted
 ## An ad that is not loaded simply does not show, so the game never waits for one.
 ##
 ## The kit expects from the game:
-## - `GameMonetize` (res://monetize.gd) with APP_ID, BANNER_ID, INTERSTITIAL_ID, REWARDED_ID and
-##   SUPPORTER_ID. Debug builds use Google's test units whatever it says.
+## - `GameMonetize` (res://monetize.gd) with ADMOB, APP_ID, BANNER_ID, INTERSTITIAL_ID, REWARDED_ID and
+##   SUPPORTER_ID. Debug builds use Google's test units whatever it says. With ADMOB false the studio's own
+##   house ads stand in (HouseAds), one line to switch back.
 ## - The AdMob plugin in addons/admob, enabled, with the project setting admob/general/android/app_id
 ##   equal to GameMonetize.APP_ID, since the plugin writes that setting into the manifest.
 ## - Save._ready calling `Supporter.start()` and then `Ads.start()` once progress is restored.
@@ -43,10 +44,20 @@ static func start() -> void:
 		return
 	if not OS.has_feature("android"):
 		return
+	if not GameMonetize.ADMOB:
+		_attach(HouseAds.new(), true)
+		return
 	if not Engine.has_singleton("PoingGodotAdMob"):
 		return
 	var admob: GDScript = load("res://kit/monetize/android/admob.gd")
 	_attach(admob.new(), true)
+
+## How a reward is earned, for the buttons that offer one: a video from AdMob, or a game of the studio's.
+static func watch() -> String:
+	return "Watch a video" if GameMonetize.ADMOB else "Try a quick game"
+
+static func with_one() -> String:
+	return "with a video" if GameMonetize.ADMOB else "with a quick game"
 
 static func use(backend: AdBackend) -> void:
 	if is_instance_valid(_backend):
@@ -94,6 +105,10 @@ static func expected_banner_height(host: Node) -> float:
 		return 0.0
 	if _height > 0.0:
 		return _height
+	return banner_height(host)
+
+## The height a phone's adaptive banner takes, in design pixels.
+static func banner_height(host: Node) -> float:
 	var view: Vector2 = host.get_viewport().get_visible_rect().size
 	var window: Vector2 = Vector2(DisplayServer.window_get_size())
 	var dpi: float = float(DisplayServer.screen_get_dpi())
@@ -204,10 +219,13 @@ static func _show_stand_in(host: Node) -> void:
 	_stand_in.layer = 55
 	_stand_in.visible = _covers == 0
 	host.add_child(_stand_in)
-	var box: _StandIn = _StandIn.new()
+	# With AdMob off the stand-in is the house banner itself, as a phone would show it.
+	var box: Control = _StandIn.new() if GameMonetize.ADMOB or Studio.others().is_empty() else HouseBanner.new()
 	box.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	box.offset_top = -height
 	_stand_in.add_child(box)
+	if box is HouseBanner:
+		(box as HouseBanner).show_game(HouseAds.next_game())
 	_on_banner(height)
 
 ## A real ad's neutral colours, whatever the theme.

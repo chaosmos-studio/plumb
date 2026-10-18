@@ -73,6 +73,7 @@ func _initialize() -> void:
 	_test_maker_link()
 	_test_play_screen_banner()
 	await _test_go_back()
+	_test_house_ads()
 	await _test_sheet_rises_before_layout()
 	await _test_sheet_drags_closed()
 	await _test_levels_swipe()
@@ -1135,8 +1136,10 @@ func _test_more_games() -> void:
 		_check("%s's icon ships in the kit" % game["name"], ResourceLoader.exists(String(game["icon"])))
 	_check("the studio's list includes this game", names.has(name))
 	var others: Array = studio.call("others")
-	_check("More games shows every other game and not this one", others.size() == games.size() - 1
-		and others.all(func(game: Dictionary) -> bool: return String(game["name"]) != name))
+	var out: Array = games.filter(func(game: Dictionary) -> bool:
+		return String(game["name"]) != name and bool(game.get("live", true)))
+	_check("More games shows every other game out on Google Play, and not this one", others.size() == out.size()
+		and others.all(func(game: Dictionary) -> bool: return out.has(game)))
 	supporter.set("on_play", true)
 	_check("on Google Play a game opens its Play page", String(studio.call("link", others[0])).begins_with("https://play.google.com/"))
 	supporter.set("on_play", false)
@@ -1174,7 +1177,8 @@ func _test_support_and_hint_sheets() -> void:
 	for b: Node in host.find_children("*", "Button", true, false):
 		texts.append((b as Button).text)
 	host.free()
-	_check("the video prompt asks with Watch and Not now", texts == PackedStringArray(["Watch", "Not now"]))
+	var watch: String = "Watch" if GameMonetize.ADMOB else "Play"
+	_check("the video prompt asks with %s and Not now" % watch, texts == PackedStringArray([watch, "Not now"]))
 	supporter.set("on_play", old[0])
 	supporter.set("price", old[1])
 	save.set("supporter", old[2])
@@ -1193,7 +1197,7 @@ func _test_supporter_entry_points() -> void:
 		texts.append((b as Button).text)
 	host.free()
 	_check("on Google Play the video prompt also offers the pack",
-		texts == PackedStringArray(["Watch", "Remove ads, unlimited hints", "Not now"]))
+		texts == PackedStringArray(["Watch" if GameMonetize.ADMOB else "Play", "Remove ads, unlimited hints", "Not now"]))
 	# The tip jar is always there, so the title's shop button shows on Google Play always.
 	var old_owned: PackedStringArray = save.get("owned")
 	for case: Array in [[true, false, [], true], [false, false, [], false], [true, true, [], true],
@@ -1508,7 +1512,7 @@ func _test_passes() -> void:
 		and passes.call("offers", GameMonetize.LEVELS_ID) and not passes.call("offers", GameMonetize.SUPPORTER_ID)
 		and not passes.call("offers", GameMonetize.COMPLETE_ID))
 	_check("a pack's sheet offers it beside the price",
-		_labels(shop, "offer", [GameMonetize.THEMES_ID]).has("Try it for %d hours with a video" % hours))
+		_labels(shop, "offer", [GameMonetize.THEMES_ID]).has("Try it for %d hours %s" % [hours, ads.call("with_one")]))
 	_check("and says a purchase is for good", _labels(shop, "offer", [GameMonetize.THEMES_ID]).has(shop.get("KEEP_ROW")))
 	passes.call("lend", GameMonetize.THEMES_ID)
 	await process_frame
@@ -1532,7 +1536,7 @@ func _test_passes() -> void:
 	await process_frame
 	_check("a pass for Every level opens every level", save.call("unlocked", last))
 	var keys: int = save.get("keys")
-	_check("the keys sheet offers a key for a video", _labels(shop, "keys").has("Watch a video for a key"))
+	_check("the keys sheet offers a key for a video", _labels(shop, "keys").has("%s for a key" % ads.call("watch")))
 	passes.call("give_key")
 	await process_frame
 	await process_frame
@@ -1639,6 +1643,37 @@ func _test_sheets_fit_a_phone() -> void:
 	shut.free()
 	shop.set("prices", prices)
 	supporter.set("on_play", old)
+
+# With AdMob off, the studio's house ads stand in: no interstitials, one of its games for every reward, and a
+# banner as tall as a phone's ad. Every playable board starts unsolved and its winning moves clear it.
+func _test_house_ads() -> void:
+	var house: GDScript = load("res://kit/monetize/house_ads.gd")
+	var boards: GDScript = load("res://kit/monetize/house_games.gd")
+	var ads: GDScript = load("res://kit/monetize/ads.gd")
+	var backend: Node = house.new()
+	root.add_child(backend)
+	_check("house ads never show an interstitial, and always have a game to give a reward",
+		not backend.call("ready_to_show", &"interstitial") and backend.call("ready_to_show", &"rewarded"))
+	var heights: Array[float] = []
+	backend.connect("banner_changed", func(h: float) -> void: heights.append(h))
+	backend.call("set_banner", true)
+	_check("the house banner takes a phone banner's height", heights.size() == 1 and heights[0] > 0.0)
+	backend.call("stop")
+	_check("and gives the room back when ads stop", heights.size() == 2 and is_zero_approx(heights[1]))
+	backend.free()
+	_check("a reward is offered as a quick game while AdMob is off",
+		GameMonetize.ADMOB or String(ads.call("watch")) == "Try a quick game")
+	var cleared: Array[String] = []
+	for name: String in ["Plumb", "Carillon", "Apsis", "Pyxis"]:
+		var board: Control = boards.call("make", name)
+		root.add_child(board)
+		var fresh: bool = not board.call("is_solved")
+		board.call("play_through")
+		if fresh and board.call("is_solved"):
+			cleared.append(name)
+		board.free()
+	_check("every playable starts unsolved and its winning moves clear it (%s)" % ", ".join(cleared),
+		cleared.size() == 4)
 
 # Android's back button goes back a screen and asks before the game closes, instead of quitting outright.
 func _test_go_back() -> void:

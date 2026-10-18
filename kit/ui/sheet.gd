@@ -22,6 +22,8 @@ const LAYER: int = 60
 const DRAG_CLOSE: float = 0.3
 const FLICK: float = 1400.0
 const SLOP: float = 14.0
+## A control in this group keeps a drag that starts on it, as a list or a slider does: a playable board.
+const KEEPS_DRAG: StringName = &"sheet_keeps_drag"
 
 ## Open sheets, newest last: only the top one follows a drag.
 static var _open: Array[Sheet] = []
@@ -204,6 +206,9 @@ func _grabs(at: Vector2) -> bool:
 		for keep: Node in _panel.find_children("*", kind, true, false):
 			if (keep as Control).get_global_rect().has_point(at):
 				return false
+	for keep: Node in get_tree().get_nodes_in_group(KEEPS_DRAG):
+		if _panel.is_ancestor_of(keep) and (keep as Control).get_global_rect().has_point(at):
+			return false
 	return true
 
 ## Where the panel's top edge is on screen once it has risen, for anything that sits above the sheet.

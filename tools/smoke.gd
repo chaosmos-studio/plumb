@@ -164,14 +164,14 @@ func _hint_gate() -> int:
 		"asking again on the board a hint was given for shows it again for nothing")
 	failures += _report(await _tap_hint(game) == "asked" and not await _answer(game, "Not now")
 		and int(fake.shown.get(AdBackend.REWARDED, 0)) == 0, "the fourth asks for a video, and Not now gives nothing")
-	failures += _report(await _tap_hint(game) == "asked" and await _answer(game, "Watch")
+	failures += _report(await _tap_hint(game) == "asked" and await _answer(game, "Watch" if GameMonetize.ADMOB else "Play")
 		and int(fake.shown.get(AdBackend.REWARDED, 0)) == 1, "a video watched through gives the hint")
 	fake.watch_through = false
-	failures += _report(await _tap_hint(game) == "asked" and not await _answer(game, "Watch")
+	failures += _report(await _tap_hint(game) == "asked" and not await _answer(game, "Watch" if GameMonetize.ADMOB else "Play")
 		and int(fake.shown.get(AdBackend.REWARDED, 0)) == 2, "a video closed early gives nothing")
 	fake.watch_through = true
 	fake.has_video = false
-	failures += _report(await _tap_hint(game) == "asked" and await _answer(game, "Watch")
+	failures += _report(await _tap_hint(game) == "asked" and await _answer(game, "Watch" if GameMonetize.ADMOB else "Play")
 		and int(fake.shown.get(AdBackend.REWARDED, 0)) == 2, "with no video to show, the hint comes anyway")
 	failures += _report(Ads.interstitial_due() == false and int(fake.shown.get(AdBackend.INTERSTITIAL, 0)) == 0,
 		"nothing between levels while playing one")

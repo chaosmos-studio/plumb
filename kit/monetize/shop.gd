@@ -225,7 +225,7 @@ static func offer(host: Node, id: String) -> Sheet:
 		buy_button.pressed.connect(func() -> void: buy(id))
 		c.add_child(buy_button)
 		if Passes.offers(id):
-			var lend: Button = UI.button("Try it for %d hours with a video" % Passes.HOURS, UI.Style.SECONDARY)
+			var lend: Button = UI.button("Try it for %d hours %s" % [Passes.HOURS, Ads.with_one()], UI.Style.SECONDARY)
 			lend.pressed.connect(func() -> void:
 				sheet.close()
 				Passes.lend(id, func() -> void: _show_lent(host, id)))
@@ -254,7 +254,7 @@ static func keys(host: Node) -> Sheet:
 		pack.pressed.connect(func() -> void: Unlocks.buy_key(id, -1))
 		c.add_child(pack)
 	if Ads.rewards():
-		var video: Button = UI.button("Watch a video for a key", UI.Style.GHOST)
+		var video: Button = UI.button("%s for a key" % Ads.watch(), UI.Style.GHOST)
 		video.pressed.connect(func() -> void:
 			sheet.close()
 			Passes.give_key(func() -> void:

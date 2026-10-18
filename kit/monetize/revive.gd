@@ -12,7 +12,7 @@ static func asks_video() -> bool:
 	return Ads.rewards() and not Supporter.active()
 
 static func label(what: String) -> String:
-	return ("Watch a video for one more %s" if asks_video() else "One more %s") % what
+	return ("%s for one more %s" % [Ads.watch(), what]) if asks_video() else "One more %s" % what
 
 ## A video closed early gives nothing and leaves the failure sheet as it was, so the player can choose again.
 static func request(host: Node, what: String, give: Callable) -> void:

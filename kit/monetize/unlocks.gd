@@ -82,7 +82,7 @@ static func offer(host: Node, level: int) -> Sheet:
 	c.add_child(UI.spacer(6))
 	var lead: bool = true
 	if Ads.rewards():
-		var watch: Button = UI.button("Watch a video to open it", UI.Style.PRIMARY)
+		var watch: Button = UI.button("%s to open it" % Ads.watch(), UI.Style.PRIMARY)
 		watch.pressed.connect(func() -> void:
 			sheet.close()
 			Ads.rewarded(func() -> void: _play(level), func() -> void:

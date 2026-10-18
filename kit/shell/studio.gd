@@ -29,12 +29,22 @@ const GAMES: Array[Dictionary] = [
 		"store": "https://play.google.com/store/apps/details?id=com.shravangoswami.apsis",
 		"web": "https://chaosmos.studio/apsis/play/",
 	},
+	# Shown once it is out on Google Play: set "live" to true then.
+	{
+		"name": "Pyxis",
+		"line": "Pull the knots apart until no strands cross.",
+		"icon": "res://kit/shell/studio/pyxis.webp",
+		"store": "https://play.google.com/store/apps/details?id=com.shravangoswami.pyxis",
+		"web": "https://chaosmos.studio/pyxis/play/",
+		"live": false,
+	},
 ]
 
+## The other games that are out, for More games and the house ads.
 static func others() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for game: Dictionary in GAMES:
-		if String(game["name"]) != Brand.NAME:
+		if String(game["name"]) != Brand.NAME and bool(game.get("live", true)):
 			out.append(game)
 	return out
 
