@@ -1654,6 +1654,11 @@ func _test_go_back() -> void:
 	_check("and back answers that by staying", sheets.call("back"))
 	await create_timer(0.8).timeout
 	_check("so the game carries on", not sheets.call("any_open"))
+	var went: Array[bool] = [false]
+	var none: Callable = func() -> void: pass
+	load("res://kit/shell/result.gd").call("won", host, "Solved", 3, PackedStringArray(), "Next level", none, none,
+		func() -> void: went[0] = true)
+	_check("on the win sheet, back goes to the level grid", sheets.call("back") and went[0])
 	host.free()
 
 func _test_sheet_rises_before_layout() -> void:

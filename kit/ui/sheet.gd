@@ -28,6 +28,9 @@ static var _open: Array[Sheet] = []
 
 var content: VBoxContainer
 var dismissable: bool = true
+## What the back button does instead of closing, for a sheet with a way back of its own: the result sheets
+## go to the level grid.
+var on_back: Callable = Callable()
 ## Kept below the screen until `rise()`, for a sheet that something else comes before.
 var held: bool = false
 var _risen: bool = false
@@ -68,7 +71,11 @@ static func back() -> bool:
 	if _open.is_empty():
 		return false
 	var top: Sheet = _open.back()
-	if top.dismissable and not top._closing:
+	if top._closing:
+		return true
+	if top.on_back.is_valid():
+		top.on_back.call()
+	elif top.dismissable:
 		top.close()
 	return true
 
