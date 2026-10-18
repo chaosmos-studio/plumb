@@ -33,8 +33,8 @@ static func open(host: Node) -> Sheet:
 		links.add_child(_link("Website", GameCredits.WEBSITE, UI.Style.SECONDARY))
 		links.add_child(_link("Privacy", GameCredits.PRIVACY, UI.Style.GHOST))
 	c.add_child(links)
-	# Always here, since the prompt stops asking after one tap on Rate and Play never says whether a rating
-	# followed.
+	# Always here: Play shows its review card only so often and never says whether a rating followed, so this
+	# opens the Play page instead, as Google asks of a button.
 	if Supporter.on_play:
 		var rate: Button = UI.button(RatePrompt.button_text(), UI.Style.SECONDARY)
 		rate.pressed.connect(func() -> void: RatePrompt.rate())

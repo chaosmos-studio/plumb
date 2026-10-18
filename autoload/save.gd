@@ -49,6 +49,7 @@ func _ready() -> void:
 	Supporter.start()
 	Ads.start()
 	Analytics.start()
+	PlayCore.start()
 
 func best(level: int) -> int:
 	return stars[level] if level < stars.size() else 0

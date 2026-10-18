@@ -107,6 +107,7 @@ func _build(on_done: Callable) -> void:
 		t.tween_property(self, "modulate:a", 0.0, 0.25)
 		await t.finished
 		on_done.call()
+		RatePrompt.at_end()
 		get_parent().queue_free())
 	column.add_child(UI.centred(back))
 	column.add_child(UI.spacer(EDGE))

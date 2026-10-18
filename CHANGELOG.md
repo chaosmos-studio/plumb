@@ -20,6 +20,7 @@ To ship: add a new section at the top, push, then Actions > Release Android > Ru
 
 - No more ads between levels.
 - A hint, a key or a try of a pack now costs a quick game of one of our other puzzles instead of a video, and you can close it any time.
+- Updates download while you play, and you can rate the game without leaving it.
 - The back button on a solved level takes you to the level grid.
 
 ## 1.3.0 - 2026-10-17

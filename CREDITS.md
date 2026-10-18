@@ -27,6 +27,7 @@ The web build ships none of these plugins (the Web preset excludes `addons/`).
 | Godotx Firebase 3.1.0 (`addons/godotx_firebase/`, with its Android libraries in `android/firebase_core/` and `android/firebase_analytics/`) | Paulo Coutinho (godot-x) | MIT (`addons/godotx_firebase/LICENSE`) | Unmodified. Only the Core and Analytics modules: no iOS, Crashlytics or Messaging parts. The Android presets leave its editor scripts out. |
 | Google Analytics for Firebase 23.2.0, with Firebase Common 22.1.0 | Google | Google's terms: the Firebase and Google Analytics for Firebase terms | Fetched by Gradle at build time, not stored in the repo. |
 | Google services Gradle plugin 4.4.4 | Google | Apache License 2.0 | Applied to the build by `addons/firebase_build/`, not shipped in the app. |
+| Google Play In-App Review 2.0.2 and In-App Updates 2.1.0 | Google | Play Core Software Development Kit Terms of Service | Fetched by Gradle at build time, not stored in the repo. `addons/play_core/` adds them and its own small Java helper, `PlayCore.java`, which is original to this project. |
 
 ## Sound effects and music
 

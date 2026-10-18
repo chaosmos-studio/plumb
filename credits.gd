@@ -40,6 +40,6 @@ const SECTIONS: Array[Dictionary] = [
 		{"name": "Godot AdMob Plugin", "detail": "By Poing Studios. MIT licence."},
 		{"name": "Godot Google Play Billing", "detail": "By the Godot Engine contributors. MIT licence."},
 		{"name": "Godotx Firebase", "detail": "By Paulo Coutinho. MIT licence."},
-		{"name": "Google Mobile Ads SDK, User Messaging Platform, Play Billing Library and Google Analytics for Firebase", "detail": "By Google, under Google's terms."},
+		{"name": "Google Mobile Ads SDK, User Messaging Platform, Play Billing Library, Play In-App Review, Play In-App Updates and Google Analytics for Firebase", "detail": "By Google, under Google's terms."},
 	]},
 ]

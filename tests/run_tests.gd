@@ -62,6 +62,7 @@ func _initialize() -> void:
 	_test_chapter_colours()
 	_test_unlocks()
 	_test_rate_prompt()
+	_test_play_core()
 	_test_more_games()
 	await _test_passes()
 	_test_cheers()
@@ -853,6 +854,8 @@ func _test_presets_and_plugins() -> void:
 		and FileAccess.file_exists("res://addons/admob/ios/bin/package.gd"))
 	_check("the Firebase plugins are enabled", enabled.has("res://addons/godotx_firebase/plugin.cfg")
 		and enabled.has("res://addons/firebase_build/plugin.cfg"))
+	_check("the Play Core plugin is enabled, with the Java helper it builds in",
+		enabled.has("res://addons/play_core/plugin.cfg") and FileAccess.file_exists("res://addons/play_core/PlayCore.java"))
 	for module: String in ["firebase_core", "firebase_analytics"]:
 		for build: String in ["release", "debug"]:
 			var aar: String = "res://android/%s/%s.%s.aar" % [module, module, build]
@@ -882,6 +885,7 @@ func _test_presets_and_plugins() -> void:
 				bool(presets.get_value(options, "firebase/privacy_safe_defaults", false)))
 			_check("%s leaves the editor-only Firebase scripts out" % preset_name,
 				exclude.contains("addons/godotx_firebase/*") and exclude.contains("addons/firebase_build/*"))
+			_check("%s leaves the Play Core plugin's own files out" % preset_name, exclude.contains("addons/play_core/*"))
 		elif presets.get_value(section, "platform") == "Web":
 			_check("the web build leaves the plugins out", exclude.contains("addons/*")
 				and exclude.contains("kit/monetize/android/*"))
@@ -1092,17 +1096,19 @@ func _test_rate_prompt() -> void:
 	_check("no rating ask before the first milestone", prompt.call("due") == 0)
 	solve.call(20)
 	_check("the first ask comes at the first milestone", prompt.call("due") == 20)
-	var host: Node = Node.new()
-	prompt.call("open", host, 20)
-	var texts: PackedStringArray = PackedStringArray()
-	for b: Node in host.find_children("*", "Button", true, false):
-		texts.append((b as Button).text)
-	host.free()
-	_check("the ask offers Rate and Not now, and no Never",
-		texts == PackedStringArray([prompt.call("button_text"), "Not now"]))
+	var went: Array[bool] = [false]
+	prompt.call("or_ad", root, func() -> void: went[0] = true)
+	_check("at a milestone, Next level asks for Play's review card in place of an ad, then goes on",
+		went[0] and int(save.get("rate_asked")) == 20)
 	_check("once asked, it waits for the next milestone", prompt.call("due") == 0)
 	solve.call(60)
-	_check("Not now asks again at the next milestone", prompt.call("due") == 60)
+	_check("the next milestone asks again, since Play never says whether a rating came", prompt.call("due") == 60)
+	solve.call(70)
+	prompt.call("at_end")
+	_check("the ending asks only when the session has not asked already", int(save.get("rate_asked")) == 20)
+	prompt.set("_asked_this_session", false)
+	prompt.call("at_end")
+	_check("and otherwise asks once more", int(save.get("rate_asked")) == 70)
 	save.set("rate_asked", 0)
 	solve.call(130)
 	_check("a player past several milestones is asked once, at the highest", prompt.call("due") == 120)
@@ -1123,6 +1129,43 @@ func _test_rate_prompt() -> void:
 	save.set("stars", old[2])
 	save.set("rate_asked", old[3])
 	save.set("rated", old[4])
+	prompt.set("_asked_this_session", false)
+
+# PlayCore calls PlayCore.java by name, so a renamed method would fail only on a phone. Off Android there is no
+# helper: the review goes straight on and no update is ever ready.
+func _test_play_core() -> void:
+	var core: GDScript = load("res://kit/shell/play_core.gd")
+	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
+	var java: String = FileAccess.get_file_as_string("res://addons/play_core/PlayCore.java")
+	var helper: PackedStringArray = String(core.get_script_constant_map()["HELPER"]).rsplit(".", true, 1)
+	_check("PlayCore looks for the helper's own package and class",
+		java.contains("package %s;" % helper[0]) and java.contains("public final class %s " % helper[1]))
+	var missing: PackedStringArray = PackedStringArray()
+	for method: String in ["requestReview", "reviewState", "checkForUpdate", "updateState", "completeUpdate"]:
+		if not core.source_code.contains('"%s"' % method) or RegEx.create_from_string(
+				"public static \\w+ %s\\(" % method).search(java) == null:
+			missing.append(method)
+	_check("every helper method PlayCore calls exists in the Java (%s)" % ", ".join(missing), missing.is_empty())
+	var plugin: String = FileAccess.get_file_as_string("res://addons/play_core/plugin.gd")
+	_check("the build adds the review and update libraries the helper imports",
+		plugin.contains("com.google.android.play:review:") and plugin.contains("com.google.android.play:app-update:")
+		and java.contains("com.google.android.play.core.review.") and java.contains("com.google.android.play.core.appupdate."))
+	var old: bool = supporter.get("on_play")
+	supporter.set("on_play", true)
+	var went: Array[bool] = [false]
+	core.call("review", func() -> void: went[0] = true)
+	_check("without the helper the review goes straight on, and no update is ready",
+		went[0] and not core.call("available") and not core.call("update_ready"))
+	supporter.set("on_play", old)
+	var host: Control = Control.new()
+	root.add_child(host)
+	core.call("offer_update", host)
+	var texts: PackedStringArray = PackedStringArray()
+	for b: Node in host.find_children("*", "Button", true, false):
+		texts.append((b as Button).text)
+	host.free()
+	core.set("_offered", false)
+	_check("a downloaded update is offered with Restart and Later", texts == PackedStringArray(["Restart", "Later"]))
 
 func _test_more_games() -> void:
 	var supporter: GDScript = load("res://kit/monetize/supporter.gd")

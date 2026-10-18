@@ -121,6 +121,11 @@ tested on their edges in `tests/run_tests.gd`.
   levels are solved in all, 4 levels have been solved this session since the last one, 4 minutes have
   passed since any full-screen ad and 3 since the app started. Never after level 1's guide, on the ending,
   after a failure or mid-level. If none is loaded, Next simply goes on.
+- **Reviews and updates**: Google Play's own review card, with nothing of ours before it, at a few
+  milestones on Next level (it takes the interstitial's place) and as the ending closes. Play decides
+  whether it shows. About and the ending keep a Rate button that opens the Play page. A new version
+  downloads in the background once Play has asked, and the title or the level grid offers to restart into
+  it, never mid-level. Both through `addons/play_core/` and `kit/shell/play_core.gd`.
 - **Hints**: free and unlimited on the first 15 levels. After that, 3 free a day (by the phone's calendar,
   back at local midnight), shown as a badge on the hint button; then the button shows a play mark and asks
   "Watch a short video for a hint?" (Watch, Not now). If no video can play (offline, no fill, consent
