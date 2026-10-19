@@ -25,17 +25,17 @@ Section numbers below point there.
 
 ## Progress
 
-- [x] Builds 1.0.0 to 1.2.1 on GitHub
+- [x] Builds 1.0.0 to 1.3.1 on GitHub
 - [x] Create the app (2.1)
 - [x] Listing, store settings and App content (2.2 to 2.4)
 - [x] Internal testing (2.5)
 - [x] Supporter pack (2.6)
-- [ ] The other shop products (2.6): Every level, Marble pack, Themes, Complete, keys, tips
+- [x] The other shop products (2.6): Every level, Marble pack, Themes, Complete, keys, tips
 - [x] Test purchase (2.7)
 - [x] Closed test live with 1.2.1 (2.8, 2026-10-10)
-- [ ] 12 testers opted in for 14 days (write the date): ____
-- [ ] Applied for production (2.9), from 17 October
-- [ ] Live on Play (2.10)
+- [x] 12 testers opted in for 14 days
+- [x] Applied for production (2.9), approved 2026-10-18
+- [x] Live on Play (2.10), 2026-10-19 with 1.3.1: https://play.google.com/store/apps/details?id=com.shravangoswami.plumb
 - [ ] Firebase key restricted with both SHA-1s (1.8)
 - [ ] AdMob linked to the listing and Ready (3.1)
 

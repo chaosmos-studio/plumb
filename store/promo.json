@@ -3,7 +3,7 @@
 	"wordmark": "plumb",
 	"tagline": "Roll every marble home",
 	"store_url": "https://chaosmos.studio/plumb/get/?from=qr",
-	"store_sub": "Coming soon to Google Play",
+	"store_sub": "Get it on Google Play",
 	"qr_ink": "2f333d",
 	"mood": ["calm", "tactile", "clever", "warm"],
 	"music": {"styles": ["lofi", "marimba", "pluck", "ambient"], "moods": ["calm", "playful", "dreamy"], "bpm": [80, 104], "scales": ["major", "pentatonic"], "keys": ["C", "D", "F", "G", "A"]},
