@@ -20,6 +20,10 @@ func present(kind: StringName) -> void:
 func set_banner(_on: bool) -> void:
 	pass
 
+## Whether the rewarded ad that would play now is a real video, for the buttons' wording.
+func video_ready() -> bool:
+	return false
+
 func privacy_required() -> bool:
 	return false
 

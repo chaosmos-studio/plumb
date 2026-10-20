@@ -31,13 +31,15 @@ static func request(host: Node, level: int, give: Callable) -> Sheet:
 static func ask(host: Node, give: Callable) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
-	# Broken by hand, so no line is left with one word on it.
-	c.add_child(UI.title("Watch a short video\nfor a hint?" if GameMonetize.ADMOB else "Try a quick game\nfor a hint?", 50))
+	# Broken by hand, so no line is left with one word on it. The words follow what would play right now: a video
+	# when AdMob has one ready, otherwise a quick game of the studio's.
+	var video: bool = Ads.video_ready()
+	c.add_child(UI.title("Watch a short video\nfor a hint?" if video else "Try a quick game\nfor a hint?", 50))
 	var why: Label = UI.label("Today's free hints are used.\nMore come at midnight.", 28, Brand.MUTED)
 	why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	c.add_child(why)
 	c.add_child(UI.spacer(6))
-	var watch: Button = UI.button("Watch" if GameMonetize.ADMOB else "Play", UI.Style.PRIMARY)
+	var watch: Button = UI.button("Watch" if video else "Play", UI.Style.PRIMARY)
 	watch.pressed.connect(func() -> void:
 		sheet.close()
 		Ads.rewarded(give, func() -> void:

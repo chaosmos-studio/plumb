@@ -1,6 +1,8 @@
 extends AdBackend
 
-## Debug builds always ask for Google's test units, so a phone under test never sees a real ad.
+## Debug builds always ask for Google's test units, so a phone under test never sees a real ad. Whenever AdMob
+## has no banner or video to give (before the account is approved, offline, no fill), the studio's house ads
+## fill in: the house banner holds the strip until a real one loads, and a quick game stands in for a video.
 
 const TEST_BANNER: String = "ca-app-pub-3940256099942544/9214589741"
 const TEST_INTERSTITIAL: String = "ca-app-pub-3940256099942544/1033173712"
@@ -25,8 +27,15 @@ var _retry: Dictionary = {}
 var _showing: StringName = &""
 var _shown: bool = false
 var _earned: bool = false
+var _house: HouseAds
 
 func _ready() -> void:
+	_house = HouseAds.new()
+	_house.consent = false
+	add_child(_house)
+	_house.banner_changed.connect(func(height: float) -> void:
+		if not _banner_loaded:
+			banner_changed.emit(height))
 	var request: ConsentRequestParameters = ConsentRequestParameters.new()
 	UserMessagingPlatform.consent_information.update(request, _on_consent_info, func(_error: FormError) -> void: _start_sdk())
 	EventBus.settings_changed.connect(_match_sound)
@@ -115,6 +124,12 @@ func _on_failed(kind: StringName) -> void:
 	get_tree().create_timer(wait).timeout.connect(func() -> void: _load(kind))
 
 func ready_to_show(kind: StringName) -> bool:
+	return _admob_ready(kind) or (kind == REWARDED and _showing == &"" and _house.ready_to_show(kind))
+
+func video_ready() -> bool:
+	return _admob_ready(REWARDED)
+
+func _admob_ready(kind: StringName) -> bool:
 	if not _loaded.has(kind) or _showing != &"":
 		return false
 	var age: float = Time.get_ticks_msec() / 1000.0 - float(_loaded_at.get(kind, 0.0))
@@ -125,8 +140,15 @@ func ready_to_show(kind: StringName) -> bool:
 	return true
 
 func present(kind: StringName) -> void:
-	if not ready_to_show(kind):
-		finished.emit.call_deferred(kind, false, false)
+	if not _admob_ready(kind):
+		if kind == REWARDED and _showing == &"" and _house.ready_to_show(kind):
+			_showing = kind
+			_house.present(kind)
+			var result: Array = await _house.finished
+			_showing = &""
+			finished.emit(result[0], result[1], result[2])
+		else:
+			finished.emit.call_deferred(kind, false, false)
 		return
 	_showing = kind
 	_shown = false
@@ -160,6 +182,7 @@ func _drop(kind: StringName) -> void:
 
 func set_banner(on: bool) -> void:
 	_banner_on = on and not _stopped
+	_house.set_banner(_banner_on and not _banner_loaded)
 	if _banner == null:
 		if _banner_on:
 			_make_banner()
@@ -218,6 +241,7 @@ func open_privacy() -> void:
 func stop() -> void:
 	_stopped = true
 	_banner_on = false
+	_house.stop()
 	if _banner != null:
 		_banner.destroy()
 		_banner = null

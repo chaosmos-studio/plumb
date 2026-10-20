@@ -6,7 +6,8 @@ extends RefCounted
 ## The kit expects from the game:
 ## - `GameMonetize` (res://monetize.gd) with ADMOB, APP_ID, BANNER_ID, INTERSTITIAL_ID, REWARDED_ID and
 ##   SUPPORTER_ID. Debug builds use Google's test units whatever it says. With ADMOB false the studio's own
-##   house ads stand in (HouseAds), one line to switch back.
+##   house ads stand in (HouseAds), one line to switch back. With it on they still fill in, under AdMob,
+##   whenever AdMob has no banner or video to give.
 ## - The AdMob plugin in addons/admob, enabled, with the project setting admob/general/android/app_id
 ##   equal to GameMonetize.APP_ID, since the plugin writes that setting into the manifest.
 ## - Save._ready calling `Supporter.start()` and then `Ads.start()` once progress is restored.
@@ -52,12 +53,16 @@ static func start() -> void:
 	var admob: GDScript = load("res://kit/monetize/android/admob.gd")
 	_attach(admob.new(), true)
 
-## How a reward is earned, for the buttons that offer one: a video from AdMob, or a game of the studio's.
+## How a reward is earned, for the buttons that offer one: a video when AdMob has one ready, and otherwise a
+## game of the studio's.
 static func watch() -> String:
-	return "Watch a video" if GameMonetize.ADMOB else "Try a quick game"
+	return "Watch a video" if video_ready() else "Try a quick game"
 
 static func with_one() -> String:
-	return "with a video" if GameMonetize.ADMOB else "with a quick game"
+	return "with a video" if video_ready() else "with a quick game"
+
+static func video_ready() -> bool:
+	return live() and _backend.video_ready()
 
 static func use(backend: AdBackend) -> void:
 	if is_instance_valid(_backend):
@@ -125,7 +130,12 @@ static func hide_banner() -> void:
 	if live():
 		_backend.set_banner(false)
 
-## Every Sheet calls this as it opens and closes, so the banner is never on screen with one.
+## The banner's height while it is on screen, else 0: what a Sheet that keeps the banner leaves clear below it.
+static func banner_room() -> float:
+	return _height if _wanted and _covers == 0 and (preview or live()) else 0.0
+
+## A Sheet calls this as it opens and closes, so the banner is never on screen with one, except one that keeps
+## it in a strip of its own below the panel (Sheet.keeps_banner).
 static func cover(on: bool) -> void:
 	_covers = maxi(_covers + (1 if on else -1), 0)
 	if is_instance_valid(_stand_in):

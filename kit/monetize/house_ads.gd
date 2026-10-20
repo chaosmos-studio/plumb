@@ -1,21 +1,24 @@
 class_name HouseAds
 extends AdBackend
 
-## The studio's own ads, for while AdMob is switched off (GameMonetize.ADMOB false): a banner for another of
-## its games where an ad's banner would be, a tiny playable taste of one in place of a rewarded video, which
-## the player may close at once and still earns the reward, and no interstitials at all. Nothing is fetched,
-## so both are always ready. On Android it still asks Google's consent service whether this phone needs
-## consent, since Analytics waits on that answer before it counts.
+## The studio's own ads: a banner for another of its games where an ad's banner would be, a tiny playable taste
+## of one in place of a rewarded video, which the player may close at once and still earns the reward, and no
+## interstitials at all. Nothing is fetched, so both are always ready. They stand in for AdMob while it is
+## switched off (GameMonetize.ADMOB false), and fill in under it whenever it has nothing to give. Standing in
+## on Android, they still ask Google's consent service whether this phone needs consent, since Analytics waits
+## on that answer before it counts.
 
 ## The game the next banner or playable shows: they take turns.
 static var _turn: int = 0
 
+## False when filling in under AdMob, which asks for consent itself.
+var consent: bool = true
 var _layer: CanvasLayer
 var _banner: HouseBanner
 var _height: float = 0.0
 
 func _ready() -> void:
-	if OS.has_feature("android") and Engine.has_singleton("PoingGodotAdMob"):
+	if consent and OS.has_feature("android") and Engine.has_singleton("PoingGodotAdMob"):
 		add_child(load("res://kit/monetize/android/consent.gd").new() as Node)
 
 func ready_to_show(kind: StringName) -> bool:

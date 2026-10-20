@@ -1220,7 +1220,7 @@ func _test_support_and_hint_sheets() -> void:
 	for b: Node in host.find_children("*", "Button", true, false):
 		texts.append((b as Button).text)
 	host.free()
-	var watch: String = "Watch" if GameMonetize.ADMOB else "Play"
+	var watch: String = "Watch" if bool(load("res://kit/monetize/ads.gd").call("video_ready")) else "Play"
 	_check("the video prompt asks with %s and Not now" % watch, texts == PackedStringArray([watch, "Not now"]))
 	supporter.set("on_play", old[0])
 	supporter.set("price", old[1])
@@ -1240,7 +1240,7 @@ func _test_supporter_entry_points() -> void:
 		texts.append((b as Button).text)
 	host.free()
 	_check("on Google Play the video prompt also offers the pack",
-		texts == PackedStringArray(["Watch" if GameMonetize.ADMOB else "Play", "Remove ads, unlimited hints", "Not now"]))
+		texts == PackedStringArray(["Watch" if bool(load("res://kit/monetize/ads.gd").call("video_ready")) else "Play", "Remove ads, unlimited hints", "Not now"]))
 	# The tip jar is always there, so the title's shop button shows on Google Play always.
 	var old_owned: PackedStringArray = save.get("owned")
 	for case: Array in [[true, false, [], true], [false, false, [], false], [true, true, [], true],
@@ -1704,8 +1704,10 @@ func _test_house_ads() -> void:
 	backend.call("stop")
 	_check("and gives the room back when ads stop", heights.size() == 2 and is_zero_approx(heights[1]))
 	backend.free()
-	_check("a reward is offered as a quick game while AdMob is off",
-		GameMonetize.ADMOB or String(ads.call("watch")) == "Try a quick game")
+	_check("a reward is offered as a quick game while no video is ready", String(ads.call("watch")) == "Try a quick game")
+	ads.call("use", _VideoAds.new())
+	_check("and as a video once AdMob has one", String(ads.call("watch")) == "Watch a video")
+	ads.call("use", null)
 	var cleared: Array[String] = []
 	for name: String in ["Plumb", "Carillon", "Apsis", "Pyxis"]:
 		var board: Control = boards.call("make", name)
@@ -1821,6 +1823,9 @@ class _ConsentAds extends AdBackend:
 
 class _VideoAds extends AdBackend:
 	func ready_to_show(_kind: StringName) -> bool:
+		return true
+
+	func video_ready() -> bool:
 		return true
 
 	func present(kind: StringName) -> void:
