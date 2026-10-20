@@ -81,7 +81,12 @@ func _guide() -> int:
 	return 0 if ok else 1
 
 func _ending() -> int:
-	Save.stars = PackedByteArray()
+	# Every other level solved, so the last is the one the ending waits for.
+	var stars: PackedByteArray = PackedByteArray()
+	stars.resize(Pack.count())
+	stars.fill(1)
+	stars[Pack.count() - 1] = 0
+	Save.stars = stars
 	Pack.current = Pack.count() - 1
 	var game: Node = load("res://scenes/game/game.tscn").instantiate()
 	add_child(game)

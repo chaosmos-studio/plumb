@@ -10,6 +10,8 @@ const SUPPORT: String = "https://chaosmos.studio/plumb/support/"
 ## Web build only: Play's Payments policy forbids pointing players at a way to pay outside its billing.
 const SPONSOR: String = "https://github.com/sponsors/shravanngoswamii"
 
+## The ending's one line, under the motif, once every level is solved.
+const ENDING: String = "Every marble home."
 const NOTE: String = "You rolled every marble home. Thank you for playing Plumb all the way to the last board. I made it for the quiet minute between other things, a puzzle you can pick up, think through and put down with a smile, and it means a lot to me that you stayed for every level. More levels are on the way."
 const SIGNED: String = "Shravan Goswami"
 const SUPPORT_LINE_PLAY: String = "If Plumb gave you a few calm minutes, the Supporter pack helps me make the next game, and turns the ads off for good."

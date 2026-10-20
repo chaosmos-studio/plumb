@@ -19,12 +19,20 @@ const CONSENT: String = "PoingGodotAdMobConsentInformation"
 ## UMP's ConsentStatus.NOT_REQUIRED.
 const CONSENT_NOT_REQUIRED: int = 1
 
+## Totals of solved levels that each send one event (solved_100 and so on), and solved_all once every level
+## is solved. A custom insight in Google Analytics turns them into an email, so the studio hears when players
+## near the end in time to make more levels.
+const MILESTONES: Array[int] = [100, 200, 300, 400]
+
 ## For the robots: hears every event as (name, params), counted or not.
 static var sink: Callable = Callable()
 
 static var _firebase: Object
 static var _counting: bool = false
 static var _started_at: int = 0
+## Solved levels when the level now played began, so a replay never repeats a milestone. -1 before any level
+## has begun, when no milestone is judged.
+static var _solved_at_start: int = -1
 
 static func start() -> void:
 	_listen()
@@ -71,10 +79,21 @@ static func _listen() -> void:
 
 static func _on_started(index: int) -> void:
 	_started_at = Time.get_ticks_msec()
+	_solved_at_start = Ads.solved()
 	event(&"level_start", {"level": index + 1})
 
+## The game records a solve before it says so, so the total here already counts this level.
 static func _on_won(index: int, _count: int, stars: int) -> void:
 	event(&"level_end", {"level": index + 1, "success": 1, "stars": stars, "seconds": _seconds()})
+	if _solved_at_start < 0:
+		return
+	var solved: int = Ads.solved()
+	for m: int in MILESTONES:
+		if _solved_at_start < m and solved >= m and m < Pack.count():
+			event(StringName("solved_%d" % m), {"level": index + 1})
+	if _solved_at_start < Pack.count() and solved >= Pack.count():
+		event(&"solved_all", {"level": index + 1})
+	_solved_at_start = solved
 
 static func _on_failed(index: int) -> void:
 	event(&"level_end", {"level": index + 1, "success": 0, "stars": 0, "seconds": _seconds()})

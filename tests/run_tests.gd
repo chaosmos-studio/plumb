@@ -53,6 +53,7 @@ func _initialize() -> void:
 	_test_settings_variants()
 	_test_about_variants()
 	_test_finale_variants()
+	_test_ending_line_and_milestones()
 	_test_support_and_hint_sheets()
 	_test_supporter_entry_points()
 	_test_shop()
@@ -771,13 +772,13 @@ func _test_guide_and_ending() -> void:
 	pack.set("levels", three)
 	var last: int = 2
 	save.set("stars", PackedByteArray())
-	_check("solving the last level ends the game", finale.call("due", last))
-	_check("no other level does", not finale.call("due", last - 1))
-	var some: PackedByteArray = PackedByteArray()
-	some.resize(last + 1)
-	some[last] = 2
-	save.set("stars", some)
-	_check("replaying a solved last level does not", not finale.call("due", last))
+	_check("the last level ends nothing while others are unsolved", not finale.call("due", last))
+	save.set("stars", PackedByteArray([1, 3, 0]))
+	_check("solving the last unsolved level ends the game", finale.call("due", last))
+	save.set("stars", PackedByteArray([1, 0, 2]))
+	_check("wherever it sits", finale.call("due", 1) and not finale.call("due", 0))
+	save.set("stars", PackedByteArray([1, 3, 2]))
+	_check("replaying with every level solved does not", not finale.call("due", last))
 	save.set("stars", old_stars)
 	save.set("tutorial_seen", old_seen)
 	pack.set("levels", old_levels)
@@ -1055,6 +1056,55 @@ func _name_link(opener: GDScript) -> String:
 			uri = (b as LinkButton).uri
 	host.free()
 	return uri
+
+# The ending says one short line, and the studio hears once when a player passes each milestone, never again
+# on a replay, and once when every level is solved.
+func _test_ending_line_and_milestones() -> void:
+	var line: String = GameCredits.ENDING
+	var regex: RegEx = RegEx.create_from_string("[0-9]")
+	_check("the ending's line is short, ends with a full stop and names no count",
+		line.length() > 0 and line.length() <= 22 and line.ends_with(".") and regex.search(line) == null)
+	_check("the ending's motif is a Control that plays", ResourceLoader.exists("res://scenes/shell/ending_motif.gd")
+		and (load("res://scenes/shell/ending_motif.gd") as GDScript).new().has_method("play"))
+	var analytics: GDScript = load("res://kit/monetize/analytics.gd")
+	var save: Node = root.get_node("Save")
+	var pack: Node = root.get_node("Pack")
+	var old_levels: Array[Dictionary] = pack.get("levels")
+	var old_stars: PackedByteArray = save.get("stars")
+	var old_sink: Callable = analytics.get("sink")
+	var heard: Array[String] = []
+	analytics.set("sink", func(name: StringName, _params: Dictionary) -> void:
+		if String(name).begins_with("solved_"):
+			heard.append(String(name)))
+	var levels: Array[Dictionary] = []
+	for i: int in range(320):
+		levels.append({})
+	pack.set("levels", levels)
+	var stars: PackedByteArray = PackedByteArray()
+	stars.resize(320)
+	for i: int in range(299):
+		stars[i] = 1
+	save.set("stars", stars)
+	analytics.call("_on_started", 299)
+	stars[299] = 2
+	save.set("stars", stars)
+	analytics.call("_on_won", 299, 0, 2)
+	_check("the 300th solve sends solved_300 (%s)" % [heard], heard == ["solved_300"])
+	analytics.call("_on_started", 299)
+	analytics.call("_on_won", 299, 0, 3)
+	_check("a replay sends nothing", heard.size() == 1)
+	for i: int in range(320):
+		stars[i] = 1
+	stars[5] = 0
+	save.set("stars", stars)
+	analytics.call("_on_started", 5)
+	stars[5] = 1
+	save.set("stars", stars)
+	analytics.call("_on_won", 5, 0, 1)
+	_check("the last unsolved level sends solved_all", heard.size() == 2 and heard[1] == "solved_all")
+	analytics.set("sink", old_sink)
+	pack.set("levels", old_levels)
+	save.set("stars", old_stars)
 
 func _test_finale_variants() -> void:
 	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
