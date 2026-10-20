@@ -26,6 +26,12 @@ func _on_connected() -> void:
 	_client.query_purchases(BillingClient.ProductType.INAPP)
 	_ask_prices()
 
+## A promo code redeemed in the Play Store while the game waits in the background is a purchase made outside
+## it, which only a fresh query sees, so coming back asks again.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_RESUMED and _client != null:
+		restore(true)
+
 func _ask_prices() -> void:
 	_client.query_product_details(Shop.all_ids(), BillingClient.ProductType.INAPP)
 
