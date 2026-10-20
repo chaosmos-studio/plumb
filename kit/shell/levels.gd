@@ -5,8 +5,8 @@ const COLUMNS: int = 4
 const SWIPE: float = 70.0
 const PAGER_FLOOR: float = 54.0
 const HEADING_HEIGHT: float = 72.0
-## The least room between the pager and a banner, so no tap meant for a chevron lands on the ad.
-const BANNER_GAP: float = 32.0
+## The least room between the pager and a banner, so no tap meant for a chevron lands on the ad (Hud.BANNER_GAP).
+const BANNER_GAP: float = Hud.BANNER_GAP
 const GRID_GAP: float = 20.0
 const LIFT_TIME: float = 0.28
 

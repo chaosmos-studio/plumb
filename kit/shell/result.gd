@@ -28,7 +28,7 @@ static func won(host: Node, heading: String, earned: int, detail: PackedStringAr
 		on_next: Callable, on_replay: Callable, on_levels: Callable, moment: Moment = null) -> Sheet:
 	# The first time, the snapshot is caught before the sheet, which rises as the print flies above it.
 	var caught: bool = moment != null and moment.card == null and Snapshot.can_take()
-	var sheet: Sheet = Sheet.open(host, false, caught)
+	var sheet: Sheet = Sheet.open(host, false, caught, true)
 	sheet.on_back = on_levels
 	var c: VBoxContainer = sheet.content
 	if moment != null:
@@ -73,7 +73,7 @@ static func _awards(host: Node, sheet: Sheet, icons: Array[StarIcon], earned: in
 static func failed(host: Node, heading: String, line: String, retry_text: String, on_retry: Callable,
 		on_levels: Callable, on_undo: Callable = Callable(), more_text: String = "",
 		on_more: Callable = Callable()) -> Sheet:
-	var sheet: Sheet = Sheet.open(host, false)
+	var sheet: Sheet = Sheet.open(host, false, false, true)
 	sheet.on_back = on_levels
 	var c: VBoxContainer = sheet.content
 	c.add_child(UI.title(heading, 64))

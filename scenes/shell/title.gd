@@ -59,6 +59,7 @@ func _ready() -> void:
 	tally.add_child(StarIcon.new(30.0, true))
 	tally.add_child(UI.label("%d / %d" % [Save.total_stars(), Pack.count() * 3], 28, Brand.MUTED))
 	ui.add_child(tally)
+	Hud.title_banner(self, column, tally)
 
 	_seesaw = Seesaw.new()
 	add_child(_seesaw)

@@ -30,6 +30,13 @@ static var _open: Array[Sheet] = []
 
 var content: VBoxContainer
 var dismissable: bool = true
+## A result sheet keeps the banner that was already on screen: scrim and panel stop above a solid strip that
+## holds it, so the ad never sits over dimmed content, and the panel keeps Hud.BANNER_GAP under its last
+## button. Every other sheet hides the banner while it is open.
+var keeps_banner: bool = false
+var _strip: float = -1.0
+var _plate: ColorRect
+var _style: StyleBoxFlat
 ## What the back button does instead of closing, for a sheet with a way back of its own: the result sheets
 ## go to the level grid.
 var on_back: Callable = Callable()
@@ -50,7 +57,7 @@ var _motion: Tween
 var _closing: bool = false
 
 ## Opens over the layer `host` is drawn on if that is higher than LAYER, as for the ending.
-static func open(host: Node, can_dismiss: bool = true, hold: bool = false) -> Sheet:
+static func open(host: Node, can_dismiss: bool = true, hold: bool = false, keep_banner: bool = false) -> Sheet:
 	var canvas: CanvasLayer = CanvasLayer.new()
 	canvas.layer = LAYER
 	var above: Node = host
@@ -62,6 +69,7 @@ static func open(host: Node, can_dismiss: bool = true, hold: bool = false) -> Sh
 	var sheet: Sheet = Sheet.new()
 	sheet.dismissable = can_dismiss
 	sheet.held = hold
+	sheet.keeps_banner = keep_banner
 	canvas.add_child(sheet)
 	return sheet
 
@@ -95,6 +103,7 @@ func _init() -> void:
 	add_child(_slide)
 	_panel = PanelContainer.new()
 	var style: StyleBoxFlat = StyleBoxFlat.new()
+	_style = style
 	style.bg_color = Brand.SURFACE
 	style.corner_radius_top_left = RADIUS
 	style.corner_radius_top_right = RADIUS
@@ -121,19 +130,46 @@ func _init() -> void:
 
 func _enter_tree() -> void:
 	_open.append(self)
-	Ads.cover(true)
+	if not keeps_banner:
+		Ads.cover(true)
 
 func _exit_tree() -> void:
 	_open.erase(self)
-	Ads.cover(false)
+	if not keeps_banner:
+		Ads.cover(false)
 
 func _ready() -> void:
 	# Below the screen whatever the panel's height turns out to be, until the first step measures it.
 	_slide.position.y = get_viewport_rect().size.y
+	set_process(keeps_banner)
+	if keeps_banner:
+		_plate = ColorRect.new()
+		_plate.color = Brand.SURFACE
+		_plate.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+		_plate.offset_top = 0.0
+		add_child(_plate)
+		_fit_strip()
 	if held:
 		get_tree().create_timer(HOLD_MAX).timeout.connect(rise)
 		return
 	rise()
+
+func _process(_delta: float) -> void:
+	_fit_strip()
+
+## The banner can arrive, change height or go while the sheet is open (a house banner gives way to AdMob's).
+func _fit_strip() -> void:
+	var strip: float = Ads.banner_room()
+	if is_equal_approx(strip, _strip):
+		return
+	_strip = strip
+	var safe: float = float(UI.safe_margins(get_viewport())["bottom"]) if strip > 0.0 else 0.0
+	# The panel moves, not the holder that slides, whose offsets carry the slide itself.
+	_scrim.offset_bottom = -(strip + safe)
+	_panel.offset_bottom = -(strip + safe)
+	_plate.offset_top = -(strip + safe)
+	_plate.visible = strip > 0.0
+	_style.content_margin_bottom = 64.0 + (Hud.BANNER_GAP if strip > 0.0 else 0.0)
 
 func rise() -> void:
 	if _risen or _closing:

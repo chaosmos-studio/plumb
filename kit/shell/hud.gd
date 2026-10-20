@@ -5,8 +5,11 @@ const SIDE: float = 32.0
 const TOP: float = 40.0
 const BOTTOM_LIFT: float = 64.0
 ## The least room between the bottom row and a banner under it, so a tap meant for undo, the hint or
-## restart never lands on the ad.
-const BANNER_GAP: float = 48.0
+## restart never lands on the ad: about Android's 48 dp touch target, since Google asks for a buffer but
+## names no size, and accidental clicks are what it disables ad serving for.
+const BANNER_GAP: float = 90.0
+## The title's star tally, which takes no taps, sits this far above the banner.
+const TALLY_GAP: float = 24.0
 
 static func top(ui: Control, left: Control, centre: Control, right: Control) -> HBoxContainer:
 	var safe: Dictionary = UI.safe_margins(ui.get_viewport())
@@ -53,6 +56,24 @@ static func banner(host: Node, row: Control, caption: Control, on_lift: Callable
 		caption.offset_top = rest[2] - lift
 		caption.offset_bottom = rest[3] - lift
 		on_lift.call(lift)
+	var expected: float = Ads.expected_banner_height(host)
+	if expected > 0.0:
+		apply.call(expected)
+	host.tree_exiting.connect(Ads.hide_banner)
+	Ads.show_banner(host, apply)
+
+## The title's banner, under its star tally. The title is a playable toy and not a bare menu, which is what
+## lets it carry an ad. `column` is the full-screen column of name, toy and buttons, and shrinks to the room
+## above the banner and its gap, so no button sits next to the ad.
+static func title_banner(host: Node, column: Control, tally: Control) -> void:
+	var safe: Dictionary = UI.safe_margins(host.get_viewport())
+	var rest: PackedFloat32Array = PackedFloat32Array([column.offset_bottom, tally.offset_top, tally.offset_bottom])
+	var apply: Callable = func(height: float) -> void:
+		var room: float = height + float(safe["bottom"]) if height > 0.0 else 0.0
+		var tally_lift: float = maxf(0.0, room + TALLY_GAP + rest[2]) if height > 0.0 else 0.0
+		tally.offset_top = rest[1] - tally_lift
+		tally.offset_bottom = rest[2] - tally_lift
+		column.offset_bottom = minf(rest[0], -(room + BANNER_GAP)) if height > 0.0 else rest[0]
 	var expected: float = Ads.expected_banner_height(host)
 	if expected > 0.0:
 		apply.call(expected)
