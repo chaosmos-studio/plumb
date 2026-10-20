@@ -16,6 +16,12 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
+## 1.4.0 - 2026-10-20
+
+- More room between the buttons and the banner at the bottom, so a tap never lands on it by mistake.
+- A hint can come with a short video when one is ready, or with a quick game of one of our other puzzles as before.
+- Now and then an ad may come between levels again, never during one.
+
 ## 1.3.1 - 2026-10-18
 
 - No more ads between levels.
