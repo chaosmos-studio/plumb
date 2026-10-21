@@ -1,0 +1,20 @@
+{
+	"leaderboards": [
+		{"key": "daily", "name": "Daily puzzle", "order": "SMALLER_IS_BETTER", "format": "TIME_DURATION", "min": 3000, "max": 3600000},
+		{"key": "stars", "name": "Stars", "order": "LARGER_IS_BETTER", "format": "NUMERIC", "min": 1, "max": 1000000},
+		{"key": "streak", "name": "Longest daily streak", "order": "LARGER_IS_BETTER", "format": "NUMERIC", "min": 1, "max": 100000, "suffix": ["day", "days"]}
+	],
+	"achievements": [
+		{"key": "solved_1", "name": "First solve", "text": "Solve your first level.", "points": 5, "solved": 1},
+		{"key": "solved_25", "name": "Warming up", "text": "Solve 25 levels.", "points": 10, "solved": 25},
+		{"key": "solved_100", "name": "Hundred", "text": "Solve 100 levels.", "points": 25, "solved": 100},
+		{"key": "solved_250", "name": "Halfway there", "text": "Solve 250 levels.", "points": 50, "solved": 250},
+		{"key": "solved_400", "name": "Old hand", "text": "Solve 400 levels.", "points": 75, "solved": 400},
+		{"key": "three_25", "name": "Clean solver", "text": "Earn three stars on 25 levels.", "points": 20, "three": 25},
+		{"key": "three_100", "name": "Perfectionist", "text": "Earn three stars on 100 levels.", "points": 50, "three": 100},
+		{"key": "daily_1", "name": "Daily habit", "text": "Solve a daily puzzle.", "points": 10, "dailies": 1},
+		{"key": "streak_7", "name": "Full week", "text": "Keep a 7 day daily streak.", "points": 30, "streak": 7},
+		{"key": "streak_30", "name": "Full month", "text": "Keep a 30 day daily streak.", "points": 75, "streak": 30},
+		{"key": "streak_100", "name": "Hundred days", "text": "Keep a 100 day daily streak.", "points": 150, "streak": 100}
+	]
+}
