@@ -16,7 +16,7 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
-## 1.4.0 - 2026-10-20
+## 1.4.0 - 2026-10-22
 
 - A new daily puzzle opens after the first chapter: race the clock, keep a streak and catch up on missed days.
 - Sign in with Play Games for leaderboards, achievements and progress that follows you to a new phone.
