@@ -1,6 +1,6 @@
 {
 	"leaderboards": [
-		{"key": "daily", "name": "Daily puzzle", "order": "SMALLER_IS_BETTER", "format": "TIME_DURATION", "min": 3000, "max": 3600000},
+		{"key": "daily", "name": "Daily puzzle", "order": "SMALLER_IS_BETTER", "format": "TIME_DURATION", "min": 1000, "max": 3600000},
 		{"key": "stars", "name": "Stars", "order": "LARGER_IS_BETTER", "format": "NUMERIC", "min": 1, "max": 1000000},
 		{"key": "streak", "name": "Longest daily streak", "order": "LARGER_IS_BETTER", "format": "NUMERIC", "min": 1, "max": 100000, "suffix": ["day", "days"]}
 	],
