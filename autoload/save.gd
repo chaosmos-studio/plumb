@@ -41,6 +41,9 @@ var hints_used: int = 0
 ## The milestone RatePrompt last asked at, and whether the player chose to rate.
 var rate_asked: int = 0
 var rated: bool = false
+## The daily puzzles: the first time of each day solved, the days solved late, the days a video opened and the
+## time spent on days not solved yet (Daily).
+var daily: Dictionary = {}
 
 func _ready() -> void:
 	restore()
@@ -50,6 +53,7 @@ func _ready() -> void:
 	Ads.start()
 	Analytics.start()
 	PlayCore.start()
+	PlayGames.start()
 
 func best(level: int) -> int:
 	return stars[level] if level < stars.size() else 0
@@ -185,6 +189,10 @@ func set_rating(asked: int, did_rate: bool) -> void:
 	rated = rated or did_rate
 	store()
 
+func set_daily(record: Dictionary) -> void:
+	daily = record
+	store()
+
 func restore() -> void:
 	var file: ConfigFile = ConfigFile.new()
 	if file.load(path) != OK:
@@ -219,6 +227,9 @@ func restore() -> void:
 	palette = str(file.get_value("settings", "palette", ""))
 	rate_asked = maxi(int(file.get_value("rating", "asked", 0)), 0)
 	rated = bool(file.get_value("rating", "rated", false))
+	var record: Variant = file.get_value("daily", "record", {})
+	if record is Dictionary:
+		daily = record
 
 func store() -> void:
 	var file: ConfigFile = ConfigFile.new()
@@ -243,4 +254,5 @@ func store() -> void:
 	file.set_value("settings", "palette", palette)
 	file.set_value("rating", "asked", rate_asked)
 	file.set_value("rating", "rated", rated)
+	file.set_value("daily", "record", daily)
 	file.save(path)

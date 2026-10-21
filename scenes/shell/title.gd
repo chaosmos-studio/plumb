@@ -37,6 +37,8 @@ func _ready() -> void:
 	levels.custom_minimum_size.x = PILL_WIDTH
 	levels.pressed.connect(func() -> void: Screens.go(Brand.LEVELS_SCENE))
 	column.add_child(UI.centred(levels))
+	if Daily.available():
+		column.add_child(Daily.title_button(self, PILL_WIDTH))
 
 	var gear: IconButton = UI.icon_button(&"settings", "Settings")
 	gear.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)

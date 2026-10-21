@@ -49,11 +49,14 @@ var _won: Result.Moment
 var _earned: int = 0
 var _ending: bool = false
 var _replay: Replay
+## The daily puzzle (Daily): timed, no hint and no stars, and level is -1.
+var _daily: bool = false
 
 func _ready() -> void:
-	level = Pack.current
-	par = Pack.par(level)
-	start = Pack.board(level)
+	_daily = Daily.playing()
+	level = -1 if _daily else Pack.current
+	par = Daily.par() if _daily else Pack.par(level)
+	start = TiltBoard.from_dict(Daily.entry()) if _daily else Pack.board(level)
 	board = start.copy()
 	var kept: Variant = Appearance.take()
 	if kept is Dictionary:
@@ -72,6 +75,8 @@ func _ready() -> void:
 	_view.intro()
 	_refresh()
 	EventBus.settings_changed.connect(_dress_hint)
+	if _daily:
+		return
 	EventBus.level_started.emit(level)
 	if Coach.due(level):
 		_guide()
@@ -134,7 +139,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("hint"):
 		_on_hint()
 	elif event.is_action_pressed("back"):
-		Screens.go(Brand.LEVELS_SCENE)
+		_to_levels()
 
 ## Anything over the board holds the lean, and play picks up from however the phone is held when it is gone.
 func _process(_delta: float) -> void:
@@ -208,7 +213,7 @@ func _on_restart() -> void:
 ## Waits out a roll rather than ignoring the tap. A hint the board cannot give costs nothing, so the path is
 ## found before the hint gate.
 func _on_hint() -> void:
-	if finished or is_instance_valid(_prompt):
+	if finished or _daily or is_instance_valid(_prompt):
 		return
 	while _view.busy:
 		await get_tree().process_frame
@@ -243,13 +248,15 @@ func _hint_path() -> PackedInt32Array:
 	return _hint_route
 
 func _dress_hint() -> void:
-	HintGate.dress(_hint, level)
+	if _hint != null:
+		HintGate.dress(_hint, level)
 
 func _refresh() -> void:
 	_moves.set_value(str(history.size()))
-	_meter.set_stars(Stars.possible(history.size(), par, board.is_won()))
+	if _meter != null:
+		_meter.set_stars(Stars.possible(history.size(), par, board.is_won()))
 	_undo.disabled = history.is_empty()
-	_caption.text = "" if Coach.due(level) or finished else _tutorial()
+	_caption.text = "" if _daily or Coach.due(level) or finished else _tutorial()
 
 ## The captions rely on the opening's slots (TiltShowcase.SLOTS): the second level is the first to share a
 ## hole, the third turns a corner off a wall, and the fourth tempts with a tilt that costs par.
@@ -346,6 +353,9 @@ static func _button_light(button: Control) -> Vector3:
 
 func _show_won() -> void:
 	finished = true
+	if _daily:
+		_sheet = await Daily.solved_now(self)
+		return
 	if is_instance_valid(_coach):
 		_coach.finish()
 	var moves: int = history.size()
@@ -432,16 +442,22 @@ func _advance() -> void:
 	Screens.go(Brand.GAME_SCENE)
 
 func _to_levels() -> void:
-	Screens.go(Brand.LEVELS_SCENE)
+	if _daily:
+		Daily.leave()
+	else:
+		Screens.go(Brand.LEVELS_SCENE)
 
 func _build_ui() -> void:
 	_ui = UI.root(self)
-	var back: IconButton = UI.icon_button(&"back", "Levels")
+	var back: IconButton = UI.icon_button(&"back", "Daily" if _daily else "Levels")
 	back.pressed.connect(_to_levels)
-	_hint = UI.icon_button(&"hint", "Hint")
-	_hint.pressed.connect(_on_hint)
-	_dress_hint()
-	Hud.top(_ui, back, Hud.level_heading(level), _hint)
+	if _daily:
+		Hud.top(_ui, back, Daily.heading(), Hud.no_hint())
+	else:
+		_hint = UI.icon_button(&"hint", "Hint")
+		_hint.pressed.connect(_on_hint)
+		_dress_hint()
+		Hud.top(_ui, back, Hud.level_heading(level), _hint)
 
 	var stats: HBoxContainer = HBoxContainer.new()
 	stats.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
@@ -453,8 +469,11 @@ func _build_ui() -> void:
 	_ui.add_child(stats)
 	_moves = Stat.new("Moves", "0")
 	stats.add_child(_moves)
-	_meter = StarMeter.new()
-	stats.add_child(Stat.titled("Stars", _meter))
+	if _daily:
+		stats.add_child(Daily.clock())
+	else:
+		_meter = StarMeter.new()
+		stats.add_child(Stat.titled("Stars", _meter))
 
 	_caption = Hud.caption_line(_ui)
 	_undo = UI.icon_button(&"undo", "Undo")
