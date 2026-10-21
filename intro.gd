@@ -27,13 +27,12 @@ static func play(stage: Control, host: Node) -> float:
 		t.parallel().tween_property(marble, "modulate:a", 0.0, SINK).set_ease(Tween.EASE_IN)
 		stage.get_tree().create_timer(WAIT + ROLL + NOTE_GAP * k).timeout.connect(func() -> void: Audio.sink(k))
 	stage.get_tree().create_timer(WAIT + ROLL).timeout.connect(func() -> void: Audio.buzz(12))
+	# On the stage's own tween, which dies with it, so the pour never fires after the player has left the
+	# title, where a timer would call in with the stage and the title already freed.
 	if pours:
-		stage.get_tree().create_timer(WAIT + ROLL + SINK * 0.6).timeout.connect(func() -> void:
-			# The player may already have left the title.
-			if not is_instance_valid(stage) or not is_instance_valid(host) or not host.is_inside_tree():
-				return
+		stage.create_tween().tween_callback(func() -> void:
 			var points: Array[Vector2] = []
 			for k: int in range(3):
 				points.append(stage.get_global_transform_with_canvas() * Intro.centre(stage, "hole_%d" % k))
-			host.call("drop_marbles", SEESAW, points))
+			host.call("drop_marbles", SEESAW, points)).set_delay(WAIT + ROLL + SINK * 0.6)
 	return WAIT + ROLL + SINK
