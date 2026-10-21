@@ -240,6 +240,7 @@ static func solved_now(host: Node) -> Sheet:
 		"late": not bool(result["on_time"])})
 	if bool(result["first"]) and bool(result["on_time"]):
 		PlayGames.submit(&"daily", ms)
+	PlayGames.solved(0, 0, ms / 1000.0, true)
 	PlayGames.progressed()
 	await host.get_tree().create_timer(0.3).timeout
 	if not is_instance_valid(host) or not host.is_inside_tree():

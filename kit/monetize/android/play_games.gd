@@ -13,10 +13,12 @@ var signed_in: bool = false
 var _plugin: Object
 ## Scores made before sign-in, by leaderboard id, sent once it comes.
 var _pending: Dictionary = {}
-## Achievements already sent this session, by key.
+## Achievement steps already sent this session, by key.
 var _sent: Dictionary = {}
 var _last_stars: int = -1
 var _last_streak: int = -1
+## Game Stats wants the player's progress at the start of each session and whenever it changes.
+var _last_progress: int = -1
 ## The cloud copy is read and folded in once a session, before anything is written over it.
 var _synced: bool = false
 var _after_sign_in: Callable = Callable()
@@ -62,14 +64,34 @@ func show_achievements() -> void:
 	else:
 		sign_in(func() -> void: _plugin.call("showAchievements"))
 
+## Records a Game Stats event and asks for it to go up. Only a signed-in player has stats to add to.
+func record_event(name: String, properties: Dictionary) -> void:
+	if not signed_in:
+		return
+	_plugin.call("recordGameEvent", name, properties)
+	_plugin.call("uploadGameEvents")
+
 func progressed() -> void:
 	if not signed_in:
 		return
-	for key: String in PlayGames.earned(Ads.solved(), PlayGames.three_star_levels(), Daily.solves(), Daily.best()):
+	var steps: Dictionary = PlayGames.progress(Ads.solved(), PlayGames.three_star_levels(), Daily.solves(),
+		Daily.best())
+	for entry: Variant in PlayGames.catalog().get("achievements", []):
+		var a: Dictionary = entry
+		var key: String = String(a["key"])
 		var id: String = PlayGames.id_of("achievements", StringName(key))
-		if id != "" and not _sent.has(key):
-			_sent[key] = true
+		var done: int = int(steps.get(key, 0))
+		if id == "" or done <= int(_sent.get(key, 0)):
+			continue
+		_sent[key] = done
+		if PlayGames.goal(a) > 1:
+			_plugin.call("setAchievementSteps", id, done)
+		else:
 			_plugin.call("unlockAchievement", id)
+	var levels: int = Ads.solved()
+	if levels != _last_progress:
+		_last_progress = levels
+		record_event("progressUpdate", {"currentProgress": levels})
 	var stars: int = Save.total_stars()
 	if stars > 0 and stars != _last_stars and PlayGames.id_of("leaderboards", &"stars") != "":
 		_last_stars = stars

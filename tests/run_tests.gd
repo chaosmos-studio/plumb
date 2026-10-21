@@ -63,6 +63,7 @@ func _initialize() -> void:
 	_test_daily_result_lines()
 	_test_cloud_save()
 	_test_play_games()
+	_test_game_stats()
 	# The root takes new children only once _initialize has handed control back to the engine.
 	await process_frame
 	_test_daily_records()
@@ -1354,6 +1355,15 @@ func _test_play_games() -> void:
 	_check("nothing is earned at the start", (games.call("earned", 0, 0, 0, 0) as PackedStringArray).is_empty())
 	_check("each threshold earns its achievement", games.call("earned", 25, 0, 1, 7)
 		== PackedStringArray(["solved_1", "solved_25", "daily_1", "streak_7"]))
+	var steps_fit: bool = true
+	for entry: Variant in achievements:
+		var a: Dictionary = entry
+		var goal: int = games.call("goal", a)
+		steps_fit = steps_fit and (goal == 1 or (goal >= 2 and goal <= 10000))
+	_check("an achievement is one step or an incremental 2 to 10,000", steps_fit)
+	var steps: Dictionary = games.call("progress", 30, 0, 0, 0)
+	_check("progress counts up to each goal and stops there", int(steps["solved_1"]) == 1
+		and int(steps["solved_25"]) == 25 and int(steps["solved_100"]) == 30 and int(steps["streak_7"]) == 0)
 	var has_ids: bool = FileAccess.file_exists("res://play_games.json")
 	_check("Play Games is on only once the game has its project", (String(games.call("app_id")) != "") == has_ids)
 	if has_ids:
@@ -1370,6 +1380,65 @@ func _test_play_games() -> void:
 		var aar: String = "res://addons/play_games/bin/GodotPlayGameServices-%s.aar" % build
 		_check("the %s library is in place, with no uncaught exception handler" % build,
 			FileAccess.file_exists(aar) and _aar_has(aar, "GodotAndroidPlugin") and not _aar_has(aar, "setDefaultUncaughtExceptionHandler"))
+		_check("and it has Game Stats and achievement steps", _aar_has(aar, "recordGameEvent")
+			and _aar_has(aar, "uploadGameEvents") and _aar_has(aar, "setAchievementSteps"))
+	_check("the build asks for the Play Games SDK with Game Stats", plugin.contains("play-services-games-v2:22.1.0"))
+
+## Game Stats, held to Play Console's import rules so the files it is given never bounce.
+func _test_game_stats() -> void:
+	var games: GDScript = load("res://kit/play_games/play_games.gd")
+	var catalog: Dictionary = games.call("catalog")
+	var events: Dictionary = catalog.get("events", {})
+	var name_ok: RegEx = RegEx.create_from_string("^[A-Za-z0-9_]{1,50}$")
+	var reserved: PackedStringArray = ["id", "count", "key", "value", "where", "from", "and", "or", "true", "false"]
+	var schema_ok: bool = events.size() >= 1 and events.size() <= 20
+	for event: String in events:
+		var props: Dictionary = events[event]
+		schema_ok = schema_ok and name_ok.search(event) != null and props.size() >= 1 and props.size() <= 20
+		for prop: String in props:
+			schema_ok = schema_ok and name_ok.search(prop) != null and not reserved.has(prop.to_lower()) \
+				and ["INT64", "DOUBLE", "STRING", "BOOL"].has(String(props[prop]))
+	_check("every event and property name and type is one Play Console takes", schema_ok)
+	_check("progress goes up as progressUpdate's whole-number currentProgress",
+		events.has("progressUpdate") and (events["progressUpdate"] as Dictionary).get("currentProgress") == "INT64")
+	var stats: Array = catalog.get("stats", [])
+	var progression: Dictionary = catalog.get("progression", {})
+	var id_ok: RegEx = RegEx.create_from_string("^[A-Za-z0-9_]{1,100}$")
+	var units: PackedStringArray = ["", "UNITLESS", "NONE", "SECOND", "MINUTE", "HOUR", "DAY", "WEEK", "MONTH", "YEAR"]
+	var keys: Dictionary = {progression.get("key", ""): true}
+	var names: Dictionary = {progression.get("name", ""): true}
+	var stats_ok: bool = true
+	var competitive: int = 0
+	for entry: Variant in stats:
+		var s: Dictionary = entry
+		var props: Dictionary = events.get(s["event"], {})
+		stats_ok = stats_ok and id_ok.search(s["key"]) != null and not keys.has(s["key"]) and s["event"] != "progressUpdate" \
+			and props.has(s["property"]) and ["SUM", "MAX", "MIN", "COUNT"].has(s["aggregation"]) \
+			and String(s["name"]).length() <= 50 and not names.has(s["name"]) and String(s["text"]).length() <= 500 \
+			and String(s["text"]).ends_with(".") and units.has(String(s.get("unit", "")))
+		if s.has("filter"):
+			var f: Array = s["filter"]
+			stats_ok = stats_ok and props.has(f[0]) and ["=", "!=", ">", "<", ">=", "<="].has(f[1])
+		if s.has("competitive"):
+			competitive += 1
+			stats_ok = stats_ok and (s["competitive"] as Array).size() == 2 and int(s["competitive"][0]) < int(s["competitive"][1])
+		keys[s["key"]] = true
+		names[s["name"]] = true
+	_check("each stat names a real event and property, with a unique id and name", stats_ok)
+	_check("five repetitive stats, one of them competitive, as Play's guidelines ask",
+		stats.size() >= 5 and stats.size() <= 49 and competitive >= 1)
+	_check("the progression stat reads currentProgress and its text fits in 50",
+		progression.get("property") == "currentProgress" and id_ok.search(progression.get("key", "")) != null
+		and String(progression.get("text", "")).length() <= 50 and String(progression.get("name", "")).length() <= 50)
+	var solve: Dictionary = games.call("solve_event", 12, 3, 1, 5000.0, false)
+	var levels: Dictionary = events.get("levelCompleted", {})
+	var typed: bool = solve.size() == levels.size()
+	for prop: String in levels:
+		var want: int = {"INT64": TYPE_INT, "DOUBLE": TYPE_FLOAT, "BOOL": TYPE_BOOL, "STRING": TYPE_STRING}[levels[prop]]
+		typed = typed and solve.has(prop) and typeof(solve[prop]) == want
+	_check("a solve sends every levelCompleted property, each in its declared type", typed)
+	_check("and one solve adds an hour at most to the time spent", float(solve["seconds"]) == 3600.0
+		and typeof(games.call("solve_event", 0, 0, 0, 12.0, true)["seconds"]) == TYPE_FLOAT)
 
 ## Whether any class in an Android library's classes.jar names `text`.
 func _aar_has(path: String, text: String) -> bool:

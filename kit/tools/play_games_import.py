@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
-"""Writes build/play_games/achievements.zip, the file Play Console's Import achievements takes: every achievement
-in kit/play_games/catalog.json with a 512 px icon drawn in the game's own colours (brand.gd's native palette).
-Also an icon for each leaderboard, leaderboard_<key>.png, since leaderboards have no import and are made by hand.
+"""Writes what Play Console's imports take for a game's Play Games project, from kit/play_games/catalog.json,
+with every icon drawn at 512 px in the game's own colours (brand.gd's native palette):
+
+- build/play_games/achievements.zip: Achievements, Import achievements, then Save as draft. An achievement with
+  a goal past one is incremental, with its goal as the steps, so Play Games shows how far along it is.
+- leaderboard_<key>.png: an icon for each leaderboard, since leaderboards have no import and are made by hand.
+- PlayerGameEvent.csv: Game Stats, Add an event, Import via CSV.
+- game_stats.zip: Game Stats, Add a stat, Import via ZIP, after the events.
 
 Run from the game's folder: python3 kit/tools/play_games_import.py
-Then Play Console: Play Games Services, Achievements, Import achievements, upload the zip, Save as draft.
 
-The CSVs have no header row and no commas in a name or description, as the import requires. Play Games shows an
-icon inside a circle and makes the locked one grey by itself, so each icon is one bold glyph on a full-bleed fill.
+The achievement CSVs have no header row and no commas in a name or description, as that import requires. The
+Game Stats CSVs have a header row. Play Games shows an achievement's icon inside a circle and greys the locked
+one by itself, so each is one bold glyph on a full-bleed fill. A stat's icon sits on a transparent ground.
 """
 
 import csv
@@ -95,6 +100,121 @@ def calendar(draw: ImageDraw.ImageDraw, cx: float, cy: float, r: float, fill: st
     draw.rounded_rectangle((cx - r * 0.18, cy + r * 0.2, cx + r * 0.18, cy + r * 0.56), radius=r * 0.06, fill=fill)
 
 
+def check(draw: ImageDraw.ImageDraw, cx: float, cy: float, r: float, fill: str) -> None:
+    pts = [(cx - r * 0.62, cy + r * 0.02), (cx - r * 0.18, cy + r * 0.46), (cx + r * 0.66, cy - r * 0.44)]
+    draw.line(pts, fill=fill, width=int(r * 0.26), joint="curve")
+    for x, y in (pts[0], pts[2]):
+        draw.ellipse((x - r * 0.13, y - r * 0.13, x + r * 0.13, y + r * 0.13), fill=fill)
+
+
+def bulb(draw: ImageDraw.ImageDraw, cx: float, cy: float, r: float, fill: str, hole: str) -> None:
+    """A light bulb struck through: solved without a hint."""
+    glass_r = r * 0.56
+    gy = cy - r * 0.28
+    draw.ellipse((cx - glass_r, gy - glass_r, cx + glass_r, gy + glass_r), fill=fill)
+    draw.polygon([(cx - r * 0.42, gy + r * 0.3), (cx + r * 0.42, gy + r * 0.3), (cx + r * 0.27, cy + r * 0.5),
+                  (cx - r * 0.27, cy + r * 0.5)], fill=fill)
+    for k in range(2):
+        y = cy + r * (0.6 + k * 0.22)
+        draw.rounded_rectangle((cx - r * 0.27, y, cx + r * 0.27, y + r * 0.13), radius=r * 0.065, fill=fill)
+    a, b = (cx - r * 0.78, cy - r * 0.78), (cx + r * 0.78, cy + r * 0.78)
+    w = int(r * 0.14)
+    draw.line([a, b], fill=hole, width=int(w * 2.6))
+    draw.line([a, b], fill=fill, width=w)
+    for x, y in (a, b):
+        draw.ellipse((x - w / 2, y - w / 2, x + w / 2, y + w / 2), fill=fill)
+
+
+def clock(draw: ImageDraw.ImageDraw, cx: float, cy: float, r: float, fill: str) -> None:
+    draw.ellipse((cx - r, cy - r, cx + r, cy + r), outline=fill, width=int(r * 0.18))
+    draw.line([(cx, cy), (cx, cy - r * 0.6)], fill=fill, width=int(r * 0.16))
+    draw.line([(cx, cy), (cx + r * 0.42, cy + r * 0.2)], fill=fill, width=int(r * 0.16))
+    draw.ellipse((cx - r * 0.12, cy - r * 0.12, cx + r * 0.12, cy + r * 0.12), fill=fill)
+
+
+def steps(draw: ImageDraw.ImageDraw, cx: float, cy: float, r: float, fill: str) -> None:
+    """Rising bars: levels climbed."""
+    for k in range(3):
+        x = cx - r * 0.9 + k * r * 0.64
+        top = cy + r * 0.7 - (k + 1) * r * 0.5
+        draw.rounded_rectangle((x, top, x + r * 0.5, cy + r * 0.7), radius=r * 0.08, fill=fill)
+
+
+def stat_icon(key: str, colours: dict) -> Image.Image:
+    """A Game Stats icon: one glyph on a disc in the accent, on a transparent ground."""
+    s = SIZE * SCALE
+    img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    ink, fill = colours["accent_ink"], colours["accent"]
+    c = s / 2
+    draw.ellipse((s * 0.04, s * 0.04, s * 0.96, s * 0.96), fill=fill)
+    if key == "puzzles_solved":
+        check(draw, c, c, s * 0.3, ink)
+    elif key == "stars_collected":
+        star(draw, c, c + s * 0.02, s * 0.3, star_colour(colours))
+    elif key == "three_star_solves":
+        for k, dx in enumerate((-0.2, 0.0, 0.2)):
+            star(draw, c + dx * s, c + s * 0.02 - (0.06 * s if k == 1 else 0), s * 0.12, star_colour(colours))
+    elif key == "hint_free_solves":
+        bulb(draw, c, c, s * 0.28, ink, fill)
+    elif key == "time_solving":
+        clock(draw, c, c, s * 0.27, ink)
+    elif key == "levels_solved":
+        steps(draw, c, c, s * 0.32, ink)
+    else:
+        raise SystemExit(f"{key}: no stat icon is drawn for it")
+    return img.resize((SIZE, SIZE), Image.LANCZOS)
+
+
+def write_game_stats(catalog: dict, colours: dict) -> None:
+    events = io.StringIO()
+    out = csv.writer(events, lineterminator="\n")
+    out.writerow(["Event Name", "Property Name", "Property Type"])
+    for event, props in catalog["events"].items():
+        for prop, kind in props.items():
+            out.writerow([event, prop, kind])
+    (OUT / "PlayerGameEvent.csv").write_text(events.getvalue())
+
+    repetitive = io.StringIO()
+    out = csv.writer(repetitive, lineterminator="\n")
+    out.writerow(["Stat Id", "Event Name", "Event Property Name", "Aggregation Type", "Stat Display Name",
+                  "Stat Description", "Filter Property", "Filter Operator", "Filter Value", "Is Competitive",
+                  "Min limit", "Max limit", "Icon File Name", "Good value direction", "Unit"])
+    files = {}
+    for s in catalog["stats"]:
+        f = s.get("filter", ["", "", ""])
+        lo, hi = s.get("competitive", ["", ""])
+        png = f"stat_{s['key']}.png"
+        out.writerow([s["key"], s["event"], s["property"], s["aggregation"], s["name"], s["text"], f[0], f[1], f[2],
+                      "true" if "competitive" in s else "false", lo, hi, png, "INCREASING", s.get("unit", "")])
+        files[png] = stat_icon(s["key"], colours)
+    p = catalog["progression"]
+    progression = io.StringIO()
+    out = csv.writer(progression, lineterminator="\n")
+    out.writerow(["Stat Id", "Event Property Name", "Stat Display Name", "Stat Description", "Icon File Name",
+                  "Good value direction", "Unit"])
+    png = f"stat_{p['key']}.png"
+    out.writerow([p["key"], p["property"], p["name"], p["text"], png, "INCREASING", p.get("unit", "")])
+    files[png] = stat_icon(p["key"], colours)
+    with zipfile.ZipFile(OUT / "game_stats.zip", "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("RepetitiveStatsConfig.csv", repetitive.getvalue())
+        z.writestr("ProgressionStatConfig.csv", progression.getvalue())
+        for png, image in files.items():
+            buffer = io.BytesIO()
+            image.save(buffer, "PNG")
+            image.save(OUT / png)
+            z.writestr(png, buffer.getvalue())
+    print(f"wrote {OUT / 'PlayerGameEvent.csv'} and {OUT / 'game_stats.zip'}: {len(files)} stats")
+
+
+def goal(entry: dict) -> int:
+    """The kit's PlayGames.goal: an achievement's threshold, and so its steps."""
+    for measure in ("solved", "three", "dailies", "streak"):
+        if measure in entry:
+            return int(entry[measure])
+    return 1
+
+
 def icon(entry: dict, colours: dict) -> Image.Image:
     s = SIZE * SCALE
     img = Image.new("RGB", (s, s), colours["accent"])
@@ -139,7 +259,9 @@ def main() -> None:
         name, text = entry["name"], entry["text"]
         if "," in name or "," in text:
             raise SystemExit(f"{entry['key']}: the import forbids commas in a name or description")
-        meta.writerow([name, text, "False", "", "Revealed", entry["points"], order])
+        steps_needed = goal(entry)
+        meta.writerow([name, text, "True" if steps_needed > 1 else "False", steps_needed if steps_needed > 1 else "",
+                       "Revealed", entry["points"], order])
         png = f"{entry['key']}.png"
         maps.writerow([name, png])
         buffer = io.BytesIO()
@@ -156,6 +278,7 @@ def main() -> None:
         for png, data in files.items():
             z.writestr(png, data)
     print(f"wrote {zip_path}: {len(files)} achievements, icons in {OUT}")
+    write_game_stats(catalog, colours)
 
 
 if __name__ == "__main__":

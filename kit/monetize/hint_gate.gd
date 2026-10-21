@@ -18,6 +18,7 @@ static func today() -> String:
 
 ## Returns the sheet that asks, or null, so the play screen can hold its input while it is open.
 static func request(host: Node, level: int, give: Callable) -> Sheet:
+	give = _counted(give)
 	var price: AdPacing.Hint = cost(level)
 	Analytics.event(&"hint", {"level": level + 1, "cost": String(AdPacing.Hint.keys()[price]).to_lower()})
 	match price:
@@ -58,6 +59,13 @@ static func ask(host: Node, give: Callable) -> Sheet:
 	later.pressed.connect(sheet.close)
 	c.add_child(later)
 	return sheet
+
+## Game Stats counts the hints a solve took, so only one actually given is counted.
+static func _counted(give: Callable) -> Callable:
+	return func() -> void:
+		if give.is_valid():
+			PlayGames.hinted()
+			give.call()
 
 static func dress(button: IconButton, level: int) -> void:
 	match cost(level):
