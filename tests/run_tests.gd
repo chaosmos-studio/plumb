@@ -24,6 +24,7 @@ func _initialize() -> void:
 	_test_input_map_is_wired()
 	_test_orientation_is_an_int()
 	_test_screen_lock()
+	_test_shrink_rules()
 	_test_tilt_rules()
 	_test_phone_tilt()
 	_test_chapter_tiles()
@@ -129,6 +130,38 @@ func _test_screen_lock() -> void:
 		and lock.call("orientation_for", Vector2i(1600, 2560), 320) == DisplayServer.SCREEN_SENSOR
 		and lock.call("orientation_for", Vector2i(2208, 1840), 420) == DisplayServer.SCREEN_SENSOR)
 	_check("Save starts the screen lock", FileAccess.get_file_as_string("res://autoload/save.gd").contains("ScreenLock.start()"))
+
+# R8 strips and renames what nothing calls, and the kit reaches some Java classes only by name, through
+# JavaClassWrapper, so each one outside Android's own must have a keep rule or it fails only on a phone.
+func _test_shrink_rules() -> void:
+	var rules: String = FileAccess.get_file_as_string("res://addons/shrink_build/plugin.gd")
+	var named: Array[String] = [String(load("res://kit/shell/play_core.gd").get_script_constant_map()["HELPER"])]
+	var wrap: RegEx = RegEx.create_from_string("JavaClassWrapper\\.wrap\\(\"([^\"]+)\"\\)")
+	for path: String in _scripts("res://kit"):
+		for found: RegExMatch in wrap.search_all(FileAccess.get_file_as_string(path)):
+			named.append(found.get_string(1))
+	var kept: Array[String] = []
+	for found: RegExMatch in RegEx.create_from_string("-keep class ([\\w.$*]+) \\{").search_all(rules):
+		kept.append(found.get_string(1))
+	var missing: Array[String] = []
+	for java: String in named:
+		if java.begins_with("android.") or java.begins_with("java."):
+			continue
+		var covered: bool = false
+		for rule: String in kept:
+			covered = covered or rule == java or (rule.ends_with(".**") and java.begins_with(rule.trim_suffix("**")))
+		if not covered:
+			missing.append(java)
+	_check("every Java class the kit names has a keep rule %s" % [missing], named.size() > 1 and missing.is_empty())
+
+func _scripts(folder: String) -> Array[String]:
+	var found: Array[String] = []
+	for file: String in DirAccess.get_files_at(folder):
+		if file.ends_with(".gd"):
+			found.append(folder.path_join(file))
+	for sub: String in DirAccess.get_directories_at(folder):
+		found.append_array(_scripts(folder.path_join(sub)))
+	return found
 
 static func _board(rows: Array, marbles: Array) -> TiltBoard:
 	return TiltBoard.from_dict({"rows": rows, "marbles": marbles})
@@ -878,6 +911,7 @@ func _test_presets_and_plugins() -> void:
 		and enabled.has("res://addons/firebase_build/plugin.cfg"))
 	_check("the Play Core plugin is enabled, with the Java helper it builds in",
 		enabled.has("res://addons/play_core/plugin.cfg") and FileAccess.file_exists("res://addons/play_core/PlayCore.java"))
+	_check("the shrink plugin is enabled, so release builds run R8", enabled.has("res://addons/shrink_build/plugin.cfg"))
 	_check("the Play Games plugin is enabled", enabled.has("res://addons/play_games/plugin.cfg"))
 	for module: String in ["firebase_core", "firebase_analytics"]:
 		for build: String in ["release", "debug"]:
@@ -909,6 +943,7 @@ func _test_presets_and_plugins() -> void:
 			_check("%s leaves the editor-only Firebase scripts out" % preset_name,
 				exclude.contains("addons/godotx_firebase/*") and exclude.contains("addons/firebase_build/*"))
 			_check("%s leaves the Play Core plugin's own files out" % preset_name, exclude.contains("addons/play_core/*"))
+			_check("%s leaves the shrink plugin out" % preset_name, exclude.contains("addons/shrink_build/*"))
 			_check("%s leaves the Play Games plugin's own files out" % preset_name, exclude.contains("addons/play_games/*"))
 		elif presets.get_value(section, "platform") == "Web":
 			_check("the web build leaves the plugins out", exclude.contains("addons/*")
