@@ -6,10 +6,12 @@ extends SceneTree
 #
 # Run: godot --headless --path . -s res://tools/configure_project.gd -- portrait|landscape [name=My Game]
 
+# Sensor rather than portrait, since Play counts a locked orientation against large screens: the kit's
+# ScreenLock holds a phone in portrait at runtime and lets a tablet or an open foldable turn.
 const PORTRAIT: Dictionary = {
 	"viewport": Vector2i(720, 1280),
 	"window": Vector2i(405, 720),
-	"orientation": DisplayServer.SCREEN_PORTRAIT,
+	"orientation": DisplayServer.SCREEN_SENSOR,
 }
 
 # Sensor landscape so the phone can be held either way round.

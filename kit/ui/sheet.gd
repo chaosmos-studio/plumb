@@ -14,6 +14,9 @@ const SETTLE_TIME: float = 0.2
 const RADIUS: int = 52
 ## The margin on each side of the content.
 const SIDE: int = 56
+## The widest the panel grows: on a turned tablet it keeps to a centred column rather than stretching its
+## rows and buttons across the screen. A portrait screen is narrower than this, so it fills the width.
+const MAX_WIDTH: float = 840.0
 const SCRIM_ALPHA: float = 0.42
 const LAYER: int = 60
 ## A drag down past this share of the panel's height closes the sheet on release, as does a flick faster
@@ -141,6 +144,8 @@ func _exit_tree() -> void:
 func _ready() -> void:
 	# Below the screen whatever the panel's height turns out to be, until the first step measures it.
 	_slide.position.y = get_viewport_rect().size.y
+	_fit_width()
+	resized.connect(_fit_width)
 	set_process(keeps_banner)
 	if keeps_banner:
 		_plate = ColorRect.new()
@@ -156,6 +161,11 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	_fit_strip()
+
+func _fit_width() -> void:
+	var spare: float = maxf(get_viewport_rect().size.x - MAX_WIDTH, 0.0) * 0.5
+	_panel.offset_left = spare
+	_panel.offset_right = -spare
 
 ## The banner can arrive, change height or go while the sheet is open (a house banner gives way to AdMob's).
 func _fit_strip() -> void:

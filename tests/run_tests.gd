@@ -23,6 +23,7 @@ var _opened: Control
 func _initialize() -> void:
 	_test_input_map_is_wired()
 	_test_orientation_is_an_int()
+	_test_screen_lock()
 	_test_tilt_rules()
 	_test_phone_tilt()
 	_test_chapter_tiles()
@@ -116,6 +117,18 @@ func _test_orientation_is_an_int() -> void:
 	var value: Variant = ProjectSettings.get_setting("display/window/handheld/orientation")
 	_check("handheld orientation is stored as an int, re-run tools/configure_project.gd",
 		typeof(value) == TYPE_INT)
+
+# Play counts a locked orientation against large screens, so the manifest locks nothing and ScreenLock keeps
+# a phone in portrait at runtime while a tablet or an open foldable turns.
+func _test_screen_lock() -> void:
+	_check("the manifest leaves the orientation free",
+		ProjectSettings.get_setting("display/window/handheld/orientation") == DisplayServer.SCREEN_SENSOR)
+	var lock: GDScript = load("res://kit/ui/screen_lock.gd")
+	_check("a phone stays in portrait, and a tablet and an open foldable turn",
+		lock.call("orientation_for", Vector2i(1080, 2400), 420) == DisplayServer.SCREEN_PORTRAIT
+		and lock.call("orientation_for", Vector2i(1600, 2560), 320) == DisplayServer.SCREEN_SENSOR
+		and lock.call("orientation_for", Vector2i(2208, 1840), 420) == DisplayServer.SCREEN_SENSOR)
+	_check("Save starts the screen lock", FileAccess.get_file_as_string("res://autoload/save.gd").contains("ScreenLock.start()"))
 
 static func _board(rows: Array, marbles: Array) -> TiltBoard:
 	return TiltBoard.from_dict({"rows": rows, "marbles": marbles})

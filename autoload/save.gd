@@ -46,6 +46,7 @@ var rated: bool = false
 var daily: Dictionary = {}
 
 func _ready() -> void:
+	ScreenLock.start()
 	restore()
 	Looks.use_saved()
 	Appearance.apply(theme)

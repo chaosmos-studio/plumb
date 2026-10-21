@@ -78,6 +78,7 @@ func _ready() -> void:
 	_grid.add_theme_constant_override("h_separation", 20)
 	_grid.add_theme_constant_override("v_separation", 20)
 	centre.add_child(_grid)
+	centre.resized.connect(_fit_grid)
 
 	var pager: HBoxContainer = HBoxContainer.new()
 	_pager = pager
@@ -120,6 +121,18 @@ func _place(from_bottom: float) -> void:
 	_pager.offset_bottom = -from_bottom
 	_pager.offset_top = _pager.offset_bottom - IconButton.SIZE
 	_centre.offset_bottom = _pager.offset_top - GRID_GAP
+	_fit_grid.call_deferred()
+
+## Where the room between the heading and the pager is shorter than the grid, as on a turned tablet with a
+## banner, the grid shrinks to fit rather than run under the pager. The box round it is what scales, from its
+## top, since a container puts its children's scale back whenever it lays them out, and the box itself never
+## gets shorter than the grid, so the room is measured from its offsets.
+func _fit_grid() -> void:
+	var room: float = _centre.get_parent_area_size().y - _centre.offset_top + _centre.offset_bottom
+	var need: float = _grid.get_combined_minimum_size().y
+	var k: float = clampf(room / need, 0.0, 1.0) if need > 0.0 else 1.0
+	_centre.pivot_offset = Vector2(_centre.size.x * 0.5, 0.0)
+	_centre.scale = Vector2(k, k)
 
 ## A banner already loaded when the screen opens is in place from the first frame.
 func _lift(height: float) -> void:
