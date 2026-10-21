@@ -2,9 +2,10 @@
 extends EditorPlugin
 
 ## Puts Google Play Games into Android builds once the game has its Play Games project (play_games.json): the
-## GodotPlayGameServices library, built without its uncaught exception handler (the Play Games plugin
-## workflow in game-making-skills), the SDK it needs, and the project id the SDK reads from the manifest.
-## Without the file a build carries none of it, since the SDK stops an app whose manifest names no project.
+## GodotPlayGameServices library, built without its uncaught exception handler and with Game Stats (the Play
+## Games plugin workflow in game-making-skills), the SDK it needs, and the project id the SDK reads from the
+## manifest. Without the file a build carries none of it, since the SDK stops an app whose manifest names no
+## project.
 
 var _export: _PlayGamesBuild
 
@@ -22,7 +23,7 @@ class _PlayGamesBuild extends EditorExportPlugin:
 	const LIBRARY: String = "GodotPlayGameServices"
 	const DEPENDENCIES: PackedStringArray = [
 		"com.google.code.gson:gson:2.11.0",
-		"com.google.android.gms:play-services-games-v2:21.0.0",
+		"com.google.android.gms:play-services-games-v2:22.1.0",
 	]
 	const TEMPLATE: String = "res://android/build/build.gradle"
 	## A file of its own, so the template's strings.xml stays as it is.
