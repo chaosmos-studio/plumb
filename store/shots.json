@@ -15,6 +15,8 @@
 		{"name": "theme_c", "size": [1080, 1920], "action": "themed:rose:77:candy"},
 		{"name": "sets", "size": [2000, 400], "action": "sets"},
 		{"name": "phone_title", "size": [1080, 1920], "action": "title"},
+		{"name": "daily_screen", "size": [1080, 1920], "action": "daily"},
+		{"name": "daily_won", "size": [1080, 1920], "action": "daily:won"},
 		{"name": "tablet_play", "size": [1200, 1920], "action": "moves:77:2"},
 		{"name": "tablet_hint", "size": [1200, 1920], "action": "hint:75:3"},
 		{"name": "tablet_won", "size": [1200, 1920], "action": "snapshot:72"},
@@ -22,6 +24,8 @@
 		{"name": "tablet_theme_b", "size": [1200, 1920], "action": "dark/themed:dracula:77:gems"},
 		{"name": "tablet_theme_c", "size": [1200, 1920], "action": "themed:rose:77:candy"},
 		{"name": "tablet_title", "size": [1200, 1920], "action": "title"},
+		{"name": "tablet_daily_screen", "size": [1200, 1920], "action": "daily"},
+		{"name": "tablet_daily_won", "size": [1200, 1920], "action": "daily:won"},
 		{"name": "hero", "size": [2160, 3840], "action": "hero:116"}
 	]
 }
