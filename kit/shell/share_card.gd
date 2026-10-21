@@ -3,9 +3,10 @@ extends Control
 
 ## The QR code is for anyone who sees the card in a story or a chat, where a link cannot be tapped.
 ##
-## The kit expects from the game: `GameShare.stage(holder, level, centre, room)`, which puts the level's
-## board, as it starts, in `holder` (a Node2D already in the card), centred on `centre` and fitted to
-## `room`. Also `GameShare.LINK`, the game's web address, and `GameShare.GET`, its get link.
+## The kit expects from the game: `GameShare.stage(holder, data, centre, room)`, which puts the board of a
+## level, given as its entry in the level file (a daily's comes from the daily bank), as it starts in
+## `holder` (a Node2D already in the card), centred on `centre` and fitted to `room`. Also `GameShare.LINK`,
+## the game's web address, and `GameShare.GET`, its get link.
 
 ## A portrait size that suits chats and stories.
 const SIZE: Vector2i = Vector2i(1080, 1350)
@@ -21,14 +22,33 @@ const QR_INK: Color = Color("1d2030")
 var moment: Result.Moment
 var earned: int = 0
 var heading: String = ""
+## A daily puzzle's card: its day, the time and the streak. A level's card leaves `day` at -1.
+var day: int = -1
+var time_ms: int = 0
+var streak: int = 0
 var _qr: PackedStringArray = PackedStringArray()
 
 static func send(host: Node, image: Image, moment_won: Result.Moment) -> void:
 	var said: String = moment_won.summary.left(1).to_lower() + moment_won.summary.substr(1)
 	var text: String = "%s, level %d: %s. Can you match it? %s?from=share" % [Brand.NAME, moment_won.level + 1, said,
 		GameShare.GET]
+	_send(host, image, text, _file_name(moment_won))
+
+## The card for a daily solve with `text` as its message. With no card to draw, the words go alone.
+static func send_daily(host: Node, d: int, ms: int, text: String) -> void:
+	var image: Image = await render_daily(host, d, ms)
+	if not is_instance_valid(host):
+		return
+	if image == null:
+		send_text(host, text)
+		return
+	var at: Dictionary = DailyDays.date(d)
+	_send(host, image, text, "%s-daily-%d-%02d-%02d.png" % [Brand.NAME.to_lower(), int(at["year"]), int(at["month"]),
+		int(at["day"])])
+
+static func _send(host: Node, image: Image, text: String, file_name: String) -> void:
 	if OS.has_feature("web"):
-		_web(image.save_png_to_buffer(), _file_name(moment_won), text)
+		_web(image.save_png_to_buffer(), file_name, text)
 		return
 	# One file, written over at each share, so sharing never piles cards up on the phone.
 	var path: String = _write(image, "card.png")
@@ -40,7 +60,7 @@ static func send(host: Node, image: Image, moment_won: Result.Moment) -> void:
 	else:
 		Toast.say(host, "Card saved to %s" % ProjectSettings.globalize_path(path))
 
-## Words alone, for the daily's time. Where nothing can share them they are copied instead.
+## Words alone, where no card can be drawn. Where nothing can share them they are copied instead.
 static func send_text(host: Node, text: String) -> void:
 	if OS.has_feature("web") and bool(JavaScriptBridge.eval("!!navigator.share", true)):
 		JavaScriptBridge.eval("navigator.share({text: %s}).catch(function () {})" % JSON.stringify(text), true)
@@ -74,21 +94,33 @@ static func _write(image: Image, file_name: String) -> String:
 	return path if image.save_png(path) == OK else ""
 
 static func render(host: Node, moment_won: Result.Moment, stars: int, title: String) -> Image:
+	var card: ShareCard = ShareCard.new()
+	card.moment = moment_won
+	card.earned = stars
+	card.heading = title
+	return await _render(host, card, Pack.levels[moment_won.level])
+
+## Day `d`'s puzzle as it starts, solved in `ms`, with the streak as it stands.
+static func render_daily(host: Node, d: int, ms: int) -> Image:
+	var card: ShareCard = ShareCard.new()
+	card.day = d
+	card.time_ms = ms
+	card.streak = Daily.streak()
+	return await _render(host, card, Daily.entry_for(d))
+
+static func _render(host: Node, card: ShareCard, data: Dictionary) -> Image:
 	if DisplayServer.get_name() == "headless":
+		card.free()
 		return null
 	var view: SubViewport = SubViewport.new()
 	view.size = SIZE
 	view.transparent_bg = false
 	view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	var card: ShareCard = ShareCard.new()
-	card.moment = moment_won
-	card.earned = stars
-	card.heading = title
 	view.add_child(card)
 	host.add_child(view)
 	var holder: Node2D = Node2D.new()
 	card.add_child(holder)
-	GameShare.stage(holder, moment_won.level, BOARD.get_center(), BOARD.size)
+	GameShare.stage(holder, data, BOARD.get_center(), BOARD.size)
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
 	var image: Image = view.get_texture().get_image()
@@ -102,10 +134,12 @@ func _ready() -> void:
 	icon.position = Vector2(MARGIN, 66.0)
 	icon.size = Vector2(100.0, 100.0)
 	add_child(icon)
-	_qr = Qr.rows(GameShare.GET + "?from=card")
+	_qr = Qr.rows(GameShare.GET + ("?from=daily" if day >= 0 else "?from=card"))
 
 func _draw() -> void:
-	var chapter: int = maxi(Pack.chapter_of(moment.level), 0)
+	var daily: bool = day >= 0
+	# A daily puzzle keeps to the first chapter's rules, so its card wears that chapter's colour.
+	var chapter: int = 0 if daily else maxi(Pack.chapter_of(moment.level), 0)
 	var tint: Color = ChapterStyle.tint(chapter)
 	draw_rect(Rect2(Vector2.ZERO, size), Brand.BG)
 	var deep: float = size.y * 0.55
@@ -115,17 +149,26 @@ func _draw() -> void:
 	var display: Font = UI.display_font()
 	var ui: Font = UI.ui_font()
 	draw_string(display, Vector2(MARGIN + 124.0, 136.0), Brand.NAME, HORIZONTAL_ALIGNMENT_LEFT, -1, 64, Brand.INK)
-	var level_text: String = "LEVEL %d" % (moment.level + 1)
-	_right(UI.caption_font(), level_text, 112.0, 30, tint)
-	if not Pack.chapters.is_empty() and Pack.chapter_of(moment.level) >= 0:
-		_right(ui, Pack.chapter_name(chapter), 156.0, 28, Brand.MUTED)
-	for k: int in range(3):
-		var at: Vector2 = Vector2(size.x * 0.5 + (k - 1) * 104.0, 922.0)
-		_star(at, 40.0, Brand.GOLD if k < earned else Color(Brand.MUTED, 0.3))
-	_centre(display, heading, 1044.0, 84, Brand.INK)
-	_centre(ui, moment.summary, 1098.0, 36, Brand.MUTED)
+	if daily:
+		_right(UI.caption_font(), "DAILY PUZZLE", 112.0, 30, tint)
+		_right(ui, DailyDays.long(day), 156.0, 28, Brand.MUTED)
+		if streak > 1:
+			_streak(922.0, tint)
+		_centre(display, "Solved in %s" % DailyDays.clock(time_ms), 1044.0, 84, Brand.INK)
+		_centre(ui, "Everyone gets this puzzle today." if day == Daily.today() else "Everyone got this puzzle that day.",
+			1098.0, 36, Brand.MUTED)
+	else:
+		_right(UI.caption_font(), "LEVEL %d" % (moment.level + 1), 112.0, 30, tint)
+		if not Pack.chapters.is_empty() and Pack.chapter_of(moment.level) >= 0:
+			_right(ui, Pack.chapter_name(chapter), 156.0, 28, Brand.MUTED)
+		for k: int in range(3):
+			var at: Vector2 = Vector2(size.x * 0.5 + (k - 1) * 104.0, 922.0)
+			_star(at, 40.0, Brand.GOLD if k < earned else Color(Brand.MUTED, 0.3))
+		_centre(display, heading, 1044.0, 84, Brand.INK)
+		_centre(ui, moment.summary, 1098.0, 36, Brand.MUTED)
 	draw_rect(Rect2(MARGIN, 1136.0, size.x - MARGIN * 2.0, 2.0), Brand.LINE)
-	draw_string(display, Vector2(MARGIN, 1214.0), "Can you match it?", HORIZONTAL_ALIGNMENT_LEFT, -1, 48, Brand.INK)
+	draw_string(display, Vector2(MARGIN, 1214.0), "Can you beat it?" if daily else "Can you match it?",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 48, Brand.INK)
 	draw_string(UI.caption_font(), Vector2(MARGIN, 1258.0), "SCAN TO GET %s" % Brand.NAME.to_upper(), HORIZONTAL_ALIGNMENT_LEFT,
 		-1, 24, Brand.MUTED)
 	draw_string(ui, Vector2(MARGIN, 1300.0), GameShare.LINK.trim_prefix("https://").trim_suffix("/"), HORIZONTAL_ALIGNMENT_LEFT,
@@ -157,6 +200,17 @@ func _centre(font: Font, text: String, baseline: float, font_size: int, colour: 
 func _right(font: Font, text: String, baseline: float, font_size: int, colour: Color) -> void:
 	var w: float = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 	draw_string(font, Vector2(size.x - MARGIN - w, baseline), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, colour)
+
+## The flame and the streak, centred on the row the stars take on a level's card.
+func _streak(middle: float, colour: Color) -> void:
+	var font: Font = UI.ui_font()
+	var text: String = "%d day streak" % streak
+	var flame: float = 60.0
+	var gap: float = 14.0
+	var width: float = flame + gap + font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 44).x
+	var left: float = (size.x - width) * 0.5
+	Icons.draw(self, &"flame", Vector2(left + flame * 0.5, middle), flame, colour)
+	draw_string(font, Vector2(left + flame + gap, middle + 15.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 44, colour)
 
 func _star(c: Vector2, r: float, colour: Color) -> void:
 	var points: PackedVector2Array = PackedVector2Array()

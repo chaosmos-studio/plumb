@@ -13,8 +13,8 @@ const CHEERS: Array = [
 		"Right on the goal.", "The goal, exactly. Lovely."],
 ]
 
-static func stage(holder: Node2D, level: int, centre: Vector2, room: Vector2) -> void:
+static func stage(holder: Node2D, data: Dictionary, centre: Vector2, room: Vector2) -> void:
 	var view: BoardView = BoardView.new()
 	holder.add_child(view)
 	view.home = centre
-	view.show_board(Pack.board(level), room)
+	view.show_board(TiltBoard.from_dict(data), room)

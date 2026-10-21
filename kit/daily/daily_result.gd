@@ -27,7 +27,8 @@ static func open(host: Node, d: int, result: Dictionary) -> Sheet:
 	var row: HBoxContainer = HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 40)
-	row.add_child(UI.action(&"share", "Share", func() -> void: ShareCard.send_text(host, share_text(d, int(result["ms"])))))
+	row.add_child(UI.action(&"share", "Share", func() -> void:
+		ShareCard.send_daily(host, d, int(result["ms"]), share_text(d, int(result["ms"])))))
 	row.add_child(UI.action(&"restart", "Again", func() -> void: Daily.play(d)))
 	row.add_child(UI.action(&"calendar", "Daily", Daily.leave))
 	c.add_child(row)
