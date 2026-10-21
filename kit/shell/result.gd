@@ -94,7 +94,8 @@ static func failed(host: Node, heading: String, line: String, retry_text: String
 		var again: Button = UI.button(retry_text, UI.Style.GHOST)
 		again.pressed.connect(on_retry)
 		row.add_child(again)
-	var levels: Button = UI.button("Levels", UI.Style.GHOST)
+	# A daily's way back leads to the Daily screen.
+	var levels: Button = UI.button("Daily" if Daily.playing() else "Levels", UI.Style.GHOST)
 	levels.pressed.connect(on_levels)
 	row.add_child(levels)
 	c.add_child(row)
