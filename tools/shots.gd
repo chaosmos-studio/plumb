@@ -58,6 +58,10 @@ func _shoot_daily() -> void:
 	stars.resize(Daily.opens_after() + 12)
 	stars.fill(2)
 	Save.stars = stars
+	# A month on from the bank's first day, so the fortnight below is all playable.
+	Daily.skew = 30 * DailyDays.DAY
+	Supporter.on_play = true
+	Shop.prices = {GameMonetize.STREAK_ID: "₹20"}
 	var today: int = Daily.today()
 	var times: Dictionary = {}
 	for k: int in range(1, 15):
@@ -80,19 +84,21 @@ func _shoot_daily() -> void:
 	game.queue_free()
 	Daily.day = -1
 	await get_tree().process_frame
-	Supporter.on_play = true
-	Shop.prices = {GameMonetize.STREAK_ID: "$1.99"}
+	# Yesterday missed, so the screen offers to keep it.
+	times.erase(today - 1)
+	Save.daily = {"times": times, "late": [today - 7]}
 	var screen: Node = load(Daily.SCENE).instantiate()
 	add_child(screen)
 	await get_tree().create_timer(0.4).timeout
-	screen.call("_offer", today - 4)
+	await _save("daily_keep")
+	screen.call("_day_sheet", today - 4)
 	await get_tree().create_timer(0.7).timeout
-	await _save("daily_past_offer")
+	await _save("daily_day_sheet")
 	screen.queue_free()
 	await get_tree().process_frame
-	await _shoot_sheet(func(host: Node) -> void: Shop.offer(host, GameMonetize.STREAK_ID), "offer_streak_keeper")
 	Supporter.on_play = false
 	Shop.prices = {}
+	Daily.skew = 0
 
 func _shoot_sheet(open: Callable, name: String) -> void:
 	var node: Node = load("res://scenes/shell/title.tscn").instantiate()

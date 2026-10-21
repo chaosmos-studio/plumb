@@ -66,6 +66,7 @@ func _initialize() -> void:
 	# The root takes new children only once _initialize has handed control back to the engine.
 	await process_frame
 	_test_daily_records()
+	_test_streak_keeping()
 	_test_chapter_colours()
 	_test_unlocks()
 	_test_rate_prompt()
@@ -1156,9 +1157,6 @@ func _test_daily_records() -> void:
 	var late: Dictionary = daily.call("record", today - 1, 90000)
 	_check("a past day solved now is late", bool(late["first"]) and not bool(late["on_time"]) and daily.call("late", today - 1))
 	_check("and a late solve does not hold the streak", int(daily.call("streak")) == 1 and int(daily.call("solves")) == 2)
-	shop.call("grant", GameMonetize.STREAK_ID, true)
-	_check("with the Streak keeper it does", int(daily.call("streak")) == 2 and int(daily.call("best")) == 2)
-	shop.call("grant", GameMonetize.STREAK_ID, false)
 	save.call("restore")
 	_check("the record survives a restart", int(daily.call("time_of", today)) == 61000 and daily.call("late", today - 1))
 	daily.call("keep_time", today - 3, 12000)
@@ -1171,17 +1169,57 @@ func _test_daily_records() -> void:
 		and daily.call("plays_free", today) and daily.call("plays_free", today - 1))
 	daily.call("open_day", today - 5)
 	_check("a day a video opened stays open", daily.call("plays_free", today - 5))
-	shop.call("grant", GameMonetize.STREAK_ID, true)
-	_check("the Streak keeper opens every past day", daily.call("plays_free", today - 9))
-	shop.call("grant", GameMonetize.STREAK_ID, false)
 	save.set("supporter", true)
-	_check("so does the Supporter pack, with no ads", daily.call("plays_free", today - 9))
+	_check("the Supporter pack, with no ads, opens every past day", daily.call("plays_free", today - 9))
+	save.set("supporter", false)
 	ads.call("use", null)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_daily.cfg"))
 	save.set("path", old[0])
 	save.set("daily", old[1])
 	save.set("owned", old[2])
 	save.set("supporter", old[3])
+
+func _test_streak_keeping() -> void:
+	var daily: GDScript = load("res://kit/daily/daily.gd")
+	var shop: GDScript = load("res://kit/monetize/shop.gd")
+	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
+	var save: Node = root.get_node("Save")
+	var old: Array = [save.get("path"), save.get("daily"), supporter.get("on_play"), daily.get("skew")]
+	save.set("path", "user://test_keep.cfg")
+	# Well after the bank's first day, so a whole week back is there to keep.
+	daily.set("skew", 60 * DailyDays.DAY)
+	var today: int = daily.call("today")
+	save.set("daily", {"times": {today - 3: 50000, today - 2: 40000}})
+	_check("a missed day after a run can be kept, and none before the first day that counts",
+		daily.call("keepable") == PackedInt32Array([today - 1]) and int(daily.call("streak")) == 0)
+	daily.call("keep_day", today - 1, "video")
+	_check("a kept day joins the run", int(daily.call("streak")) == 3 and daily.call("kept", today - 1)
+		and (daily.call("keepable") as PackedInt32Array).is_empty())
+	save.set("daily", {"times": {today - 9: 50000, today - 5: 50000}})
+	_check("only the last week can be kept, newest first", daily.call("keepable")
+		== PackedInt32Array([today - 1, today - 2, today - 3, today - 4, today - 6, today - 7]))
+	daily.call("bought_keeper")
+	_check("a Streak keeper bought with no day waiting is kept for later", int(daily.call("keepers")) == 1)
+	daily.call("keep", today - 4, "keeper")
+	_check("using one keeps the day and spends it", daily.call("kept", today - 4) and int(daily.call("keepers")) == 0)
+	daily.call("keep", today - 3, "keeper")
+	_check("with none left nothing is kept", not daily.call("kept", today - 3))
+	daily.call("keep", today - 3, "buy")
+	daily.call("bought_keeper")
+	_check("one bought for a day keeps that day once Play confirms it", daily.call("kept", today - 3)
+		and int(daily.call("keepers")) == 0)
+	supporter.set("on_play", false)
+	_check("where there is neither a video nor Play, keeping is free", daily.call("keeps_free"))
+	supporter.set("on_play", true)
+	_check("on Google Play it takes a video or a Streak keeper", not daily.call("keeps_free"))
+	_check("the Streak keeper is bought again and again, and is no pack", shop.call("is_consumable", GameMonetize.STREAK_ID)
+		and shop.call("all_ids").has(GameMonetize.STREAK_ID) and not shop.call("one_time_ids").has(GameMonetize.STREAK_ID)
+		and not shop.call("parts").has(GameMonetize.STREAK_ID))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_keep.cfg"))
+	save.set("path", old[0])
+	save.set("daily", old[1])
+	supporter.set("on_play", old[2])
+	daily.set("skew", old[3])
 
 func _test_daily_bank() -> void:
 	var daily: GDScript = load("res://kit/daily/daily.gd")
@@ -1228,14 +1266,12 @@ func _test_daily_result_lines() -> void:
 	var replay: Dictionary = {"first": false, "on_time": true, "ms": 50000, "best_ms": 83000}
 	var today: Dictionary = {"first": true, "on_time": true, "ms": 83000, "best_ms": 83000}
 	var late: Dictionary = {"first": true, "on_time": false, "ms": 83000, "best_ms": 83000}
-	var lines: PackedStringArray = [result.call("line", replay, false, true, true), result.call("line", late, true, false, false),
-		result.call("line", late, false, false, false), result.call("line", today, false, true, true),
-		result.call("line", today, false, true, false), result.call("line", today, false, false, false)]
+	var lines: PackedStringArray = [result.call("line", replay, true, true), result.call("line", late, true, true),
+		result.call("line", today, true, true), result.call("line", today, true, false), result.call("line", today, false, false)]
 	_check("a replay names the time that counts", lines[0] == "Your first time was 1:23. Only that one counts.")
-	_check("a late solve says whether it holds the streak", lines[1].contains("counts for your streak")
-		and lines[2].contains("without it"))
-	_check("today's solve points to the leaderboard, or to signing in", lines[3].contains("on today's leaderboard")
-		and lines[4].contains("Sign in") and lines[5].contains("tomorrow"))
+	_check("a late solve says it holds neither the board nor the streak", lines[1].contains("not on the leaderboard or the streak"))
+	_check("today's solve points to the leaderboard, or to signing in", lines[2].contains("on today's leaderboard")
+		and lines[3].contains("Sign in") and lines[4].contains("tomorrow"))
 	var clean: bool = true
 	for line: String in lines:
 		clean = clean and not line.contains(";") and line.ends_with(".")
@@ -1255,6 +1291,9 @@ func _test_cloud_save() -> void:
 		and (cloud.call("join_daily", a, {}) as Dictionary)["late"] == [11])
 	_check("opened days join, and a clock goes once its day is solved",
 		(joined["open"] as Array).size() == 2 and joined["clock"] == {13: 9000})
+	var keeps: Dictionary = cloud.call("join_daily", {"kept": [5], "keepers": 1}, {"kept": [6, 5], "keepers": 2})
+	_check("kept days join, and unused Streak keepers are the most either phone had",
+		(keeps["kept"] as Array).size() == 2 and int(keeps["keepers"]) == 2)
 	var mine: ConfigFile = ConfigFile.new()
 	var theirs: ConfigFile = ConfigFile.new()
 	mine.set_value("progress", "stars", PackedByteArray([3, 1, 0]))
@@ -1591,7 +1630,7 @@ func _test_shop() -> void:
 	var sold: PackedStringArray = _labels(shop, "open")
 	_check("the shop lists the Complete pack, every pack, the tip jar and Restore", sold.has("Complete pack")
 		and sold.has("Supporter pack") and sold.has("Every level") and sold.has(GameLooks.PACK) and sold.has("Themes pack")
-		and sold.has("Streak keeper") and sold.has("Tip jar") and sold.has("Restore purchases"))
+		and sold.has("Tip jar") and sold.has("Restore purchases"))
 	var themes: GDScript = load("res://kit/ui/themes.gd")
 	_check("with nothing bought only the game's own colours and Sepia are open", not shop.call("themes_open")
 		and themes.call("is_open", "own") and themes.call("is_open", "sepia") and not themes.call("is_open", "nord"))
@@ -1609,9 +1648,8 @@ func _test_shop() -> void:
 	shop.call("grant", GameMonetize.LEVELS_ID, false)
 	_check("a refund locks the levels again", not save.call("unlocked", 150))
 	shop.call("grant", GameMonetize.COMPLETE_ID, true)
-	_check("the Complete pack holds every pack, the Streak keeper too", shop.call("ads_off") and shop.call("levels_open")
-		and shop.call("looks_open") and shop.call("themes_open") and shop.call("has", GameMonetize.STREAK_ID)
-		and shop.call("has_everything") and looks.call("is_open", "gems"))
+	_check("the Complete pack holds all four", shop.call("ads_off") and shop.call("levels_open") and shop.call("looks_open")
+		and shop.call("themes_open") and shop.call("has_everything") and looks.call("is_open", "gems"))
 	shop.call("grant", GameMonetize.COMPLETE_ID, false)
 	save.set("look", "gems")
 	_check("a look the pack no longer opens falls back to the free one", looks.call("current") == "classic")
