@@ -96,6 +96,13 @@ can never silently break the level set.
 - **The ending**, after the last level is solved for the first time: a note from Shravan, signed, and a
   support line under it: the Supporter pack in the Android build, GitHub Sponsors on the web, and a
   thank-you for a Supporter.
+- **Daily puzzle**, from the title once the first two chapters are solved: one board a day for everyone,
+  timed, turning over at midnight UTC-7 with Play Games' daily leaderboard. Its boards use only marbles,
+  walls and up to three colours, and grow from a 6 by 6, par 5 to 7 Monday to an 8 by 8, par 9 to 12
+  Sunday (`tools/generate_daily.gd`). A calendar plays past days, after a video unless the Streak keeper
+  or the Supporter pack is owned, and the streak counts days solved on the day.
+- **Play Games**: the Daily puzzle, Stars and Longest streak leaderboards, eleven achievements, and the
+  save kept in the player's Google account. On only once the game's Play Games project exists.
 
 Plumb is designed in its warm paper light; its dark theme is the same room at dusk, with walls lighter
 than the floor so walls, floor and pits still read as three heights.
