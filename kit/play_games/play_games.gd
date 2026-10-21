@@ -61,6 +61,13 @@ static func id_of(kind: String, key: StringName) -> String:
 static func ready() -> bool:
 	return is_instance_valid(_backend)
 
+## The capture and film tools stage the signed-in screens with a stand-in that records nothing. Null takes
+## it away again.
+static func use(backend: Node) -> void:
+	if is_instance_valid(_backend) and _backend != backend:
+		_backend.queue_free()
+	_backend = backend
+
 static func signed_in() -> bool:
 	return ready() and bool(_backend.get("signed_in"))
 
