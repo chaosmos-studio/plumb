@@ -10,7 +10,7 @@ Plumb: Marble Tilt Puzzle
 
 Tilt the board and roll every marble into the hole of its own colour.
 
-## Full description (1013 / 4000)
+## Full description (1229 / 4000)
 
 Plumb is a calm logic puzzle about gravity.
 
@@ -21,9 +21,11 @@ One gesture moves everything, which is what makes four directions surprisingly d
 - Every level has a solution, scored against the fewest moves possible, and none is easier than the one before
 - Three stars for the fewest moves, with a hint that shows where every marble would land
 - Chapters that each add a new rule: gates, portals, springs, magnets, glass and more
+- A daily puzzle, the same for everyone, with a clock, a streak to keep and a calendar of past days
+- Sign in with Play Games for achievements, leaderboards and progress that follows you to a new phone
 - Every win makes a card to share or save
 - Colour themes and marble sets, each in light and dark
-- Undo and restart any time. No timers, no lives, no energy
+- Undo and restart any time. No timers on the levels, no lives, no energy
 - A quiet, tactile look and an ambient soundtrack, with sound, music and vibration you can switch off
 - Plays offline
 
