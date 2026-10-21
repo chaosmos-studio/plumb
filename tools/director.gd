@@ -13,6 +13,8 @@ extends RefCounted
 ## unlock:N the sheet a locked level N opens on Google Play, replay:N:K level N's solve watched back K
 ## tenths of a second in, card:N the share card for level N, snapshot:N that card caught over the win
 ## sheet, and reel:N:K level N's reel K tenths of a second in (kit/tools/reel.tscn records one whole).
+## daily is the daily puzzle's screen and daily:won a daily puzzle just solved, both for a player some
+## weeks in and signed in to Play Games (DailyStage).
 ##
 ## The ads and the Supporter pack, as the Google Play build shows them unless the variant says web:
 ## levelsad (the grid with a stand-in banner of the real size), supporter[:web|:owned] (the support
@@ -52,6 +54,7 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 	Supporter.on_play = OS.has_feature("android")
 	Supporter.price = ""
 	Save.supporter = false
+	DailyStage.reset()
 	var parts: PackedStringArray = action.split(":")
 	var variant: String = parts[1] if parts.size() > 1 else ""
 	var verb: String = parts[0]
@@ -251,6 +254,16 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			var game4: Node = await _game(host, n)
 			await _solve(game4, 999)
 			await _wait(host, 0.1 * k if parts.size() > 2 else 1.9)
+		"daily":
+			DailyStage.seed(variant != "won")
+			if variant == "won":
+				Daily.day = Daily.today()
+				var solved: Node = await _game(host, 0)
+				await _solve(solved, 999)
+				await _wait(host, 1.9)
+			else:
+				host.add_child(load(Daily.SCENE).instantiate())
+				await _wait(host, 0.6)
 		"board":
 			var game6: Node = await _game(host, n)
 			if parts.size() > 2:
