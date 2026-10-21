@@ -14,12 +14,17 @@ const RELEASE_TIME: float = 0.22
 const PILL_HEIGHT: float = 104.0
 ## Big enough for the launch intro, the largest place the icon is drawn.
 const ICON_TEXTURE: int = 384
+const ICON: String = "res://assets/branding/icon.png"
+## A game whose icon has a light version shows it inside the app in a light look. The launcher and the
+## stores always show the one icon.
+const ICON_LIGHT: String = "res://assets/branding/icon_light.png"
 
 static var _theme: Theme
 static var _display: Font
 static var _ui: Font
 static var _caption: FontVariation
 static var _icon: ImageTexture
+static var _icon_light: ImageTexture
 
 static func display_font() -> Font:
 	if _display == null:
@@ -210,8 +215,12 @@ static func app_icon(px: float) -> TextureRect:
 	return rect
 
 static func icon_texture() -> Texture2D:
+	if not Appearance.dark and ResourceLoader.exists(ICON_LIGHT):
+		if _icon_light == null:
+			_icon_light = rounded(load(ICON_LIGHT) as Texture2D)
+		return _icon_light
 	if _icon == null:
-		_icon = rounded(load("res://assets/branding/icon.png") as Texture2D)
+		_icon = rounded(load(ICON) as Texture2D)
 	return _icon
 
 ## `texture` at ICON_TEXTURE pixels with the rounded corners a phone gives an app icon.
