@@ -18,8 +18,10 @@ To ship: add a new section at the top, push, then Actions > Release Android > Ru
 
 ## 1.4.0 - 2026-10-20
 
-- More room between the buttons and the banner at the bottom, so a tap never lands on it by mistake.
-- A hint can come with a short video when one is ready, or with a quick game of one of our other puzzles as before.
+- A new daily puzzle opens after the first chapter: race the clock, keep a streak and catch up on missed days.
+- Sign in with Play Games for leaderboards, achievements and progress that follows you to a new phone.
+- More room between the buttons and the bottom banner, so a tap never lands on it by mistake.
+- A hint can come with a short video, or with a quick game of one of our other puzzles as before.
 - Now and then an ad may come between levels again, never during one.
 
 ## 1.3.1 - 2026-10-18
