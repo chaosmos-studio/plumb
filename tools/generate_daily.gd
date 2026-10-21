@@ -5,15 +5,16 @@ extends SceneTree
 ## Each day is made from its own seed, so a day comes out the same whatever `workers` is and however many
 ## days are asked for, and more days can be added later without changing the ones already played.
 ##
-## The daily opens once the first two chapters are solved, so its boards use only what they teach: marbles,
-## up to three colours, walls. The week climbs from Monday to Sunday by board size and par, and every board
-## is measured by the solver like a campaign level, its par the fewest tilts that solve it.
+## The daily opens once the first chapter is solved, so its boards use only what it teaches: marbles rolling
+## until something stops them, walls, and holes that each take their own colour. More colours make a board
+## harder without a new rule. The week climbs from Monday to Sunday by board size and par, and every board is
+## measured by the solver like a campaign level, its par the fewest tilts that solve it.
 
 const OUT: String = "res://levels/daily.json"
 const CAMPAIGN: String = "res://levels/levels.json"
 ## The day the games went live on Google Play, so the calendar has a few weeks to look back on from the start.
 const FIRST: String = "2026-10-19"
-const OPENS_AFTER: int = 40
+const OPENS_AFTER: int = 20
 const SEED: int = 7031
 const DAYS: int = 400
 ## A phase as TiltGenerator reads it (count, width, height, colours, marbles, wall density, pits, par min,
