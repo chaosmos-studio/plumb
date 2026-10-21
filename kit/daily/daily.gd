@@ -2,20 +2,22 @@ class_name Daily
 extends RefCounted
 
 ## One puzzle a day, the same for every player, timed, with Play Games' daily leaderboard for the fastest.
-## Today's is free. A past day plays after a video, or free with the Streak keeper or the Supporter pack, and
-## a past day solved late counts for the streak only with the Streak keeper.
+## Today's is free, and a past day plays after a video, or free with the Supporter pack. The streak counts days
+## solved on the day, and a missed day of the last week can be kept for it with a video or a Streak keeper.
 ##
 ## The kit expects from the game:
 ## - levels/daily.json, written by the game's tools/generate_daily.gd: {"first": "YYYY-MM-DD", "opens_after":
 ##   levels solved before the daily opens, "levels": [...]}, each level in levels.json's form, with its "par".
 ## - In `Save`: `daily` and `set_daily(record)`.
-## - In `GameMonetize`: STREAK_ID, a one-time product in Play Console.
+## - In `GameMonetize`: STREAK_ID, a one-time product in Play Console that is consumed: each keeps one day.
 ## - A play screen that, while `playing()`, builds its board from `entry()`, shows `heading()` and `clock()`
 ##   in place of the level and its stars, offers no hint, calls `solved(self)` instead of recording stars on
 ##   a win, and leaves through `leave()`.
 
 const BANK: String = "res://levels/daily.json"
 const SCENE: String = "res://kit/daily/daily.tscn"
+## How many days back a missed day can still be kept.
+const KEEP_DAYS: int = 7
 
 ## Lets tests and captures move the clock.
 static var skew: int = 0
@@ -27,6 +29,8 @@ static var _first: int = 0
 static var _opens_after: int = 0
 static var _loaded: bool = false
 static var _clock: DailyClock
+## The day a Streak keeper being bought is for, kept once Play confirms the purchase.
+static var _keeping: int = -1
 
 static func now() -> int:
 	return int(Time.get_unix_time_from_system()) + skew
@@ -76,19 +80,83 @@ static func late(d: int) -> bool:
 static func opened(d: int) -> bool:
 	return _days("open").has(d)
 
-static func keeper() -> bool:
-	return Shop.has(GameMonetize.STREAK_ID)
+static func kept(d: int) -> bool:
+	return _days("kept").has(d)
 
-## The days that count for the streak: solved on the day, or later with the Streak keeper.
+## Streak keepers bought and not used yet.
+static func keepers() -> int:
+	return int(Save.daily.get("keepers", 0))
+
+## The days that count for the streak: solved on the day, or kept.
 static func counted() -> Dictionary:
 	var out: Dictionary = {}
 	var times: Dictionary = Save.daily.get("times", {})
 	var lates: PackedInt32Array = _days("late")
-	var any: bool = keeper()
 	for d: Variant in times:
-		if any or not lates.has(int(d)):
+		if not lates.has(int(d)):
 			out[int(d)] = true
+	for d: int in _days("kept"):
+		out[d] = true
 	return out
+
+## The missed days that can still be kept, newest first: within KEEP_DAYS, and after a day that counts, so
+## there is a streak to keep.
+static func keepable() -> PackedInt32Array:
+	var out: PackedInt32Array = PackedInt32Array()
+	var counts: Dictionary = counted()
+	var earliest: int = today()
+	for d: Variant in counts:
+		earliest = mini(earliest, int(d))
+	var t: int = today()
+	for d: int in range(t - 1, maxi(first(), t - KEEP_DAYS) - 1, -1):
+		if d > earliest and not counts.has(d):
+			out.append(d)
+	return out
+
+## Neither a video nor Play to pay through, as on the web, where keeping a day is a tap.
+static func keeps_free() -> bool:
+	return not Ads.rewards() and not Supporter.on_play
+
+static func keep_day(d: int, how: String) -> void:
+	var record: Dictionary = Save.daily.duplicate(true)
+	var days: Array = record.get("kept", [])
+	if not days.has(d):
+		days.append(d)
+	record["kept"] = days
+	if how == "keeper":
+		record["keepers"] = maxi(int(record.get("keepers", 0)) - 1, 0)
+	Save.set_daily(record)
+	Analytics.event(&"streak_kept", {"how": how, "days_ago": today() - d})
+	PlayGames.progressed()
+	Supporter.say("%s is kept. Your streak is %d %s" % [DailyDays.short(d), streak(), "day" if streak() == 1 else "days"])
+	EventBus.settings_changed.emit()
+
+## Keeps day `d` with a video, a keeper already bought, or a new one bought, whichever `how` says.
+static func keep(d: int, how: String) -> void:
+	match how:
+		"video":
+			Ads.rewarded(func() -> void: keep_day(d, "video"),
+				func() -> void: Supporter.say("No video right now. Try again in a moment"))
+		"keeper":
+			if keepers() > 0:
+				keep_day(d, "keeper")
+		"buy":
+			_keeping = d
+			Shop.buy(GameMonetize.STREAK_ID)
+		_:
+			keep_day(d, how)
+
+## Shop calls this once Play confirms a Streak keeper. It keeps the day it was bought for, or waits for one.
+static func bought_keeper() -> void:
+	var record: Dictionary = Save.daily.duplicate(true)
+	record["keepers"] = int(record.get("keepers", 0)) + 1
+	Save.set_daily(record)
+	if _keeping >= 0 and keepable().has(_keeping):
+		keep_day(_keeping, "keeper")
+	else:
+		Supporter.say("A Streak keeper is yours. Use it on a missed day")
+	_keeping = -1
+	EventBus.settings_changed.emit()
 
 static func streak() -> int:
 	return DailyDays.streak(counted(), today())
@@ -101,7 +169,7 @@ static func solves() -> int:
 
 ## Whether day `d` plays without a video first.
 static func plays_free(d: int) -> bool:
-	return d >= today() or solved(d) or opened(d) or keeper() or not Ads.rewards()
+	return d >= today() or solved(d) or opened(d) or not Ads.rewards()
 
 static func play(d: int) -> void:
 	day = d

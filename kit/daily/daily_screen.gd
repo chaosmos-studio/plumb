@@ -1,6 +1,7 @@
 extends Node2D
 
-## Today's puzzle, the streak, and a month's calendar of past days to play.
+## Today's puzzle, the streak and a way to keep it through a missed day, and a month's calendar of past days to
+## play.
 
 const WIDTH: float = 640.0
 const CELL: float = 82.0
@@ -13,6 +14,7 @@ const SLOP: float = 12.0
 var _today: int
 var _month: int
 var _scroll: ScrollContainer
+var _page: VBoxContainer
 var _calendar: VBoxContainer
 var _wait: Label
 var _safe_bottom: float = 0.0
@@ -45,20 +47,12 @@ func _ready() -> void:
 	_scroll.offset_top = top.offset_bottom + 20.0
 	_scroll.offset_bottom = -_safe_bottom
 	ui.add_child(_scroll)
-	var page: VBoxContainer = VBoxContainer.new()
-	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page.add_theme_constant_override("separation", 24)
-	page.mouse_filter = Control.MOUSE_FILTER_PASS
-	_scroll.add_child(page)
-	page.add_child(_centred(_today_card()))
-	page.add_child(_centred(_stats()))
-	_calendar = VBoxContainer.new()
-	_calendar.add_theme_constant_override("separation", GAP)
-	_calendar.mouse_filter = Control.MOUSE_FILTER_PASS
-	page.add_child(_centred(_calendar))
-	_fill_calendar()
-	page.add_child(_centred(_footer()))
-	page.add_child(UI.spacer(24))
+	_page = VBoxContainer.new()
+	_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_page.add_theme_constant_override("separation", 24)
+	_page.mouse_filter = Control.MOUSE_FILTER_PASS
+	_scroll.add_child(_page)
+	_build()
 
 	var tick: Timer = Timer.new()
 	tick.wait_time = 20.0
@@ -66,9 +60,27 @@ func _ready() -> void:
 	add_child(tick)
 	tick.start()
 	Ads.show_banner(self, _lift)
+	# A kept day, a purchase or a cloud save changes the streak, so the page is built again where it stands.
 	EventBus.settings_changed.connect(func() -> void:
 		if is_inside_tree():
-			_fill_calendar())
+			_build())
+
+func _build() -> void:
+	for child: Node in _page.get_children():
+		_page.remove_child(child)
+		child.queue_free()
+	_page.add_child(_centred(_today_card()))
+	_page.add_child(_centred(_stats()))
+	var missed: PackedInt32Array = Daily.keepable()
+	if not missed.is_empty():
+		_page.add_child(_centred(_keep_card(missed[0])))
+	_calendar = VBoxContainer.new()
+	_calendar.add_theme_constant_override("separation", GAP)
+	_calendar.mouse_filter = Control.MOUSE_FILTER_PASS
+	_page.add_child(_centred(_calendar))
+	_fill_calendar()
+	_page.add_child(_centred(_footer()))
+	_page.add_child(UI.spacer(24))
 
 func _exit_tree() -> void:
 	Ads.hide_banner()
@@ -172,22 +184,30 @@ func _turn(by: int) -> void:
 func _on_day(d: int) -> void:
 	if d > _today or d < Daily.first():
 		return
-	if Daily.plays_free(d):
-		Daily.play(d)
+	if Daily.keepable().has(d) or not Daily.plays_free(d):
+		_day_sheet(d)
 	else:
-		_offer(d)
+		Daily.play(d)
 
-## A past day not yet played, which a video opens for good.
-func _offer(d: int) -> void:
+## A missed day of the last week, which can be kept for the streak, and a past day not played yet, which a video
+## opens for good.
+func _day_sheet(d: int) -> void:
 	var sheet: Sheet = Sheet.open(self)
 	var c: VBoxContainer = sheet.content
 	c.add_child(UI.title(DailyDays.long(d), 48))
-	var said: Label = UI.label("Play this day's puzzle %s. Its time is yours to keep, and the leaderboard is for each day's own puzzle." % Ads.with_one(),
-		28, Brand.MUTED)
-	said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	c.add_child(said)
-	c.add_child(UI.spacer(6))
-	var watch: Button = UI.button(Ads.watch(), UI.Style.PRIMARY)
+	if Daily.keepable().has(d):
+		c.add_child(_said("Missed it? Keep the day and your streak carries on."))
+		_keep_buttons(c, d, sheet.close)
+		c.add_child(UI.spacer(10))
+	if Daily.plays_free(d):
+		var play: Button = UI.button("Play this day's puzzle", UI.Style.GHOST)
+		play.pressed.connect(func() -> void:
+			sheet.close()
+			Daily.play(d))
+		c.add_child(play)
+		return
+	c.add_child(_said("Or play its puzzle %s. Its time is yours to keep, and the leaderboard is for each day's own puzzle." % Ads.with_one()))
+	var watch: Button = UI.button(Ads.watch(), UI.Style.GHOST if Daily.keepable().has(d) else UI.Style.PRIMARY)
 	watch.pressed.connect(func() -> void:
 		sheet.close()
 		Ads.rewarded(func() -> void:
@@ -195,27 +215,55 @@ func _offer(d: int) -> void:
 			Daily.play(d),
 			func() -> void: Toast.say(self, "No video right now. Try again in a moment")))
 	c.add_child(watch)
-	if Supporter.on_play and not Daily.keeper():
-		var keep: Button = UI.button("Get the Streak keeper", UI.Style.GHOST)
-		keep.pressed.connect(func() -> void:
-			sheet.close()
-			Shop.offer(self, GameMonetize.STREAK_ID))
-		c.add_child(keep)
+
+## The newest missed day, kept with a video, a Streak keeper bought before, or one bought now.
+func _keep_card(d: int) -> PanelContainer:
+	var card: PanelContainer = _panel(Brand.SURFACE.lerp(Brand.ACCENT, 0.08))
+	var box: VBoxContainer = VBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
+	box.mouse_filter = Control.MOUSE_FILTER_PASS
+	card.add_child(box)
+	box.add_child(UI.label("Keep your streak", 36))
+	box.add_child(_said("You missed %s. Keep the day and your streak carries on." % DailyDays.long(d)))
+	_keep_buttons(box, d, Callable())
+	return card
+
+func _keep_buttons(box: VBoxContainer, d: int, then: Callable) -> void:
+	var options: Array[Array] = []
+	if Daily.keeps_free():
+		options.append(["Keep the day", "free"])
+	elif Daily.keepers() > 0:
+		options.append(["Use a Streak keeper (%d left)" % Daily.keepers(), "keeper"])
+	else:
+		if Ads.rewards():
+			options.append([Ads.watch(), "video"])
+		if Supporter.on_play:
+			var price: String = Shop.price(GameMonetize.STREAK_ID)
+			options.append(["Keep it for %s" % price if price != "" else "Buy a Streak keeper", "buy"])
+	for k: int in range(options.size()):
+		var option: Array = options[k]
+		var button: Button = UI.button(String(option[0]), UI.Style.PRIMARY if k == 0 else UI.Style.SECONDARY)
+		button.mouse_filter = Control.MOUSE_FILTER_PASS
+		button.pressed.connect(func() -> void:
+			if then.is_valid():
+				then.call()
+			Daily.keep(d, String(option[1])))
+		box.add_child(button)
+
+func _said(text: String) -> Label:
+	var l: Label = UI.label(text, 28, Brand.MUTED)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return l
 
 func _footer() -> VBoxContainer:
 	var box: VBoxContainer = VBoxContainer.new()
 	box.add_theme_constant_override("separation", 14)
 	box.custom_minimum_size.x = WIDTH
 	box.mouse_filter = Control.MOUSE_FILTER_PASS
-	var how: Label = UI.label("Tap a past day to play it. A day counts for your streak when it is solved on the day.",
+	var how: Label = UI.label("Tap a past day to play it. A day counts for your streak when it is solved on the day, and a missed day of the last week can be kept.",
 		24, Brand.MUTED)
 	how.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(how)
-	if Supporter.on_play and not Daily.keeper():
-		var keep: Button = UI.button("Missed a day? See the Streak keeper", UI.Style.GHOST)
-		keep.mouse_filter = Control.MOUSE_FILTER_PASS
-		keep.pressed.connect(func() -> void: Shop.offer(self, GameMonetize.STREAK_ID))
-		box.add_child(keep)
 	if PlayGames.ready():
 		var row: HBoxContainer = HBoxContainer.new()
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -278,18 +326,20 @@ class _DayCell extends Button:
 		var c: Vector2 = size * 0.5
 		var r: float = minf(size.x, size.y) * 0.42
 		var counts: bool = _counted.has(_d)
+		# A kept day holds the streak but was not played on the day, so it is filled more lightly.
+		var kept: bool = counts and Daily.kept(_d) and not Daily.solved(_d)
 		if counts:
 			var band: Color = Color(Brand.ACCENT, 0.22)
 			if _column > 0 and _counted.has(_d - 1):
 				draw_rect(Rect2(Vector2(-GAP, c.y - r * 0.62), Vector2(c.x + GAP, r * 1.24)), band)
 			if _column < 6 and _counted.has(_d + 1):
 				draw_rect(Rect2(Vector2(c.x, c.y - r * 0.62), Vector2(size.x - c.x, r * 1.24)), band)
-			draw_circle(c, r, Brand.ACCENT, true, -1.0, true)
+			draw_circle(c, r, Color(Brand.ACCENT, 0.45) if kept else Brand.ACCENT, true, -1.0, true)
 		elif Daily.solved(_d):
 			draw_circle(c, r, Color(Brand.ACCENT, 0.14), true, -1.0, true)
 		if _d == _today and not counts:
 			draw_arc(c, r - 2.0, 0.0, TAU, 48, Brand.ACCENT, 4.0, true)
-		var ink: Color = Brand.ACCENT_INK if counts else Brand.INK
+		var ink: Color = Brand.ACCENT_INK if counts and not kept else Brand.INK
 		if disabled:
 			ink = Color(Brand.MUTED, 0.4)
 		var font: Font = UI.ui_font()

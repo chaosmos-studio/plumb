@@ -2,9 +2,9 @@ class_name Shop
 extends RefCounted
 
 ## The kit expects from the game:
-## - In `GameMonetize`: SUPPORTER_ID, LEVELS_ID, LOOKS_ID, THEMES_ID, STREAK_ID, COMPLETE_ID, KEY_IDS with
-##   KEY_COUNTS, and TIP_IDS, each a one-time product in Play Console (keys and tips are consumed after each
-##   purchase).
+## - In `GameMonetize`: SUPPORTER_ID, LEVELS_ID, LOOKS_ID, THEMES_ID, COMPLETE_ID, KEY_IDS with KEY_COUNTS,
+##   TIP_IDS and STREAK_ID, each a one-time product in Play Console (keys, tips and Streak keepers are consumed
+##   after each purchase).
 ## - In `Save`: `supporter`, `owned`, `keys` and `tips`, with `set_supporter`, `set_owned`, `add_keys` and
 ##   `add_tip`.
 ## - In `GameLooks`: PACK, PACK_LINE and PACK_ROW.
@@ -15,7 +15,6 @@ const THEMES_PACK: String = "Themes pack"
 const THEMES_LINE: String = "Nord, Dracula, Rosé Pine and twelve more"
 const THEMES_ROW: String = "Fifteen more colour themes"
 const KEEP_ROW: String = "Yours to keep after one purchase"
-const STREAK_PACK: String = "Streak keeper"
 
 ## Play's formatted prices in the player's currency, by product id.
 static var prices: Dictionary = {}
@@ -33,10 +32,10 @@ static func start() -> void:
 ## In the order the shop lists them.
 static func one_time_ids() -> PackedStringArray:
 	return PackedStringArray([GameMonetize.COMPLETE_ID, GameMonetize.SUPPORTER_ID, GameMonetize.LEVELS_ID,
-		GameMonetize.LOOKS_ID, GameMonetize.THEMES_ID, GameMonetize.STREAK_ID])
+		GameMonetize.LOOKS_ID, GameMonetize.THEMES_ID])
 
 static func all_ids() -> PackedStringArray:
-	return one_time_ids() + GameMonetize.KEY_IDS + GameMonetize.TIP_IDS
+	return one_time_ids() + GameMonetize.KEY_IDS + GameMonetize.TIP_IDS + PackedStringArray([GameMonetize.STREAK_ID])
 
 static func is_tip(id: String) -> bool:
 	return GameMonetize.TIP_IDS.has(id)
@@ -45,7 +44,7 @@ static func is_key(id: String) -> bool:
 	return GameMonetize.KEY_IDS.has(id)
 
 static func is_consumable(id: String) -> bool:
-	return is_key(id) or is_tip(id)
+	return is_key(id) or is_tip(id) or id == GameMonetize.STREAK_ID
 
 static func keys_in(id: String) -> int:
 	var at: int = GameMonetize.KEY_IDS.find(id)
@@ -57,7 +56,7 @@ static func owns(id: String) -> bool:
 ## What the Complete pack holds.
 static func parts() -> PackedStringArray:
 	return PackedStringArray([GameMonetize.SUPPORTER_ID, GameMonetize.LEVELS_ID, GameMonetize.LOOKS_ID,
-		GameMonetize.THEMES_ID, GameMonetize.STREAK_ID])
+		GameMonetize.THEMES_ID])
 
 static func has(id: String) -> bool:
 	return owns(id) or (parts().has(id) and owns(GameMonetize.COMPLETE_ID))
@@ -127,6 +126,9 @@ static func keyed(id: String) -> void:
 	Save.add_keys(keys_in(id))
 	Unlocks.delivered(keys_in(id))
 
+static func kept() -> void:
+	Daily.bought_keeper()
+
 static func title(id: String) -> String:
 	if id == GameMonetize.COMPLETE_ID:
 		return "Complete pack"
@@ -139,7 +141,7 @@ static func title(id: String) -> String:
 	if id == GameMonetize.THEMES_ID:
 		return THEMES_PACK
 	if id == GameMonetize.STREAK_ID:
-		return STREAK_PACK
+		return "Streak keeper"
 	if is_key(id):
 		return "1 level key" if keys_in(id) == 1 else "%d level keys" % keys_in(id)
 	return "Tip"
@@ -155,16 +157,13 @@ static func line(id: String) -> String:
 		return GameLooks.PACK_LINE
 	if id == GameMonetize.THEMES_ID:
 		return THEMES_LINE
-	if id == GameMonetize.STREAK_ID:
-		return "A missed daily puzzle, solved later, still counts"
 	return ""
 
 ## Each pack a video can lend, and the Complete pack, says that buying it is for good, so a player who has
 ## seen the six hour try does not read the price as six hours too.
 static func rows(id: String) -> PackedStringArray:
 	if id == GameMonetize.COMPLETE_ID:
-		return PackedStringArray(["No ads, every hint free", "Every level open", GameLooks.PACK_ROW, THEMES_ROW,
-			"The Streak keeper", KEEP_ROW])
+		return PackedStringArray(["No ads, every hint free", "Every level open", GameLooks.PACK_ROW, THEMES_ROW, KEEP_ROW])
 	if id == GameMonetize.SUPPORTER_ID:
 		return Supporter.SHEET_ROWS
 	if id == GameMonetize.LEVELS_ID:
@@ -173,9 +172,6 @@ static func rows(id: String) -> PackedStringArray:
 		return PackedStringArray([GameLooks.PACK_ROW, "Pick one any time in Settings", KEEP_ROW])
 	if id == GameMonetize.THEMES_ID:
 		return PackedStringArray([THEMES_ROW, "Light and dark, picked in Settings", KEEP_ROW])
-	if id == GameMonetize.STREAK_ID:
-		return PackedStringArray(["Late solves keep your streak", "Past days with no video", "Use it as often as you like",
-			KEEP_ROW])
 	return PackedStringArray()
 
 static func open(host: Node) -> Sheet:
@@ -190,8 +186,6 @@ static func open(host: Node) -> Sheet:
 	list.add_theme_constant_override("separation", 12)
 	for id: String in one_time_ids():
 		if id == GameMonetize.COMPLETE_ID and not offers_complete() and not owns(id):
-			continue
-		if id == GameMonetize.STREAK_ID and not Daily.available():
 			continue
 		list.add_child(_item(id, func() -> void:
 			sheet.close()

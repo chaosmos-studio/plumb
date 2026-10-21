@@ -71,7 +71,8 @@ static func join(rule: StringName, a: Variant, b: Variant) -> Variant:
 			return join_daily(a if a is Dictionary else {}, b if b is Dictionary else {})
 	return a
 
-## Each day keeps its faster first solve, which was late only if it was late on every phone that solved it.
+## Each day keeps its faster first solve, which was late only if it was late on every phone that solved it. Kept
+## days join, and unused Streak keepers are the most either phone had, since one bought on two phones is rare.
 static func join_daily(a: Dictionary, b: Dictionary) -> Dictionary:
 	var ta: Dictionary = a.get("times", {})
 	var tb: Dictionary = b.get("times", {})
@@ -89,9 +90,14 @@ static func join_daily(a: Dictionary, b: Dictionary) -> Dictionary:
 	for d: Variant in b.get("open", []):
 		if not opened.has(d):
 			opened.append(d)
+	var kept: Array = (a.get("kept", []) as Array).duplicate()
+	for d: Variant in b.get("kept", []):
+		if not kept.has(d):
+			kept.append(d)
 	var clock: Dictionary = (a.get("clock", {}) as Dictionary).duplicate()
 	for d: Variant in b.get("clock", {}):
 		clock[d] = maxi(int(clock.get(d, 0)), int((b["clock"] as Dictionary)[d]))
 	for d: Variant in times:
 		clock.erase(d)
-	return {"times": times, "late": late, "open": opened, "clock": clock}
+	return {"times": times, "late": late, "open": opened, "clock": clock, "kept": kept,
+		"keepers": maxi(int(a.get("keepers", 0)), int(b.get("keepers", 0)))}

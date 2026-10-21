@@ -136,7 +136,7 @@ func _take(purchases: Variant) -> Dictionary:
 				states[id] = PENDING
 	return states
 
-## Keys and tips count only once Play confirms they are consumed.
+## Keys, tips and Streak keepers count only once Play confirms they are consumed.
 func _on_consumed(response: Dictionary) -> void:
 	var token: String = String(response.get("purchase_token", ""))
 	var id: String = String(_consuming.get(token, ""))
@@ -145,6 +145,8 @@ func _on_consumed(response: Dictionary) -> void:
 		return
 	if Shop.is_key(id):
 		Shop.keyed(id)
+	elif id == GameMonetize.STREAK_ID:
+		Shop.kept()
 	else:
 		Shop.tipped()
 	changed.emit()

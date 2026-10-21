@@ -10,7 +10,7 @@ static func open(host: Node, d: int, result: Dictionary) -> Sheet:
 	var today: bool = d == Daily.today()
 	c.add_child(UI.caption("Today's puzzle" if today else DailyDays.long(d), 24))
 	c.add_child(UI.title(DailyDays.clock(int(result["ms"])), 104))
-	var said: Label = UI.label(line(result, Daily.keeper(), PlayGames.ready(), PlayGames.signed_in()), 30, Brand.MUTED)
+	var said: Label = UI.label(line(result, PlayGames.ready(), PlayGames.signed_in()), 30, Brand.MUTED)
 	said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	c.add_child(said)
 	if Daily.streak() > 0:
@@ -34,11 +34,11 @@ static func open(host: Node, d: int, result: Dictionary) -> Sheet:
 	return sheet
 
 ## What the time means, in one line.
-static func line(result: Dictionary, keeper: bool, games: bool, signed_in: bool) -> String:
+static func line(result: Dictionary, games: bool, signed_in: bool) -> String:
 	if not bool(result["first"]):
 		return "Your first time was %s. Only that one counts." % DailyDays.clock(int(result["best_ms"]))
 	if not bool(result["on_time"]):
-		return "Solved late, so it counts for your streak." if keeper else "Solved late, so your streak goes on without it."
+		return "Played late, so it is not on the leaderboard or the streak."
 	if games and signed_in:
 		return "Your time is on today's leaderboard."
 	if games:
