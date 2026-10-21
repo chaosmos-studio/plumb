@@ -6,7 +6,7 @@ extends RefCounted
 ## build of a game that has its Play Games project, and nothing waits on it.
 ##
 ## The kit expects from the game:
-## - play_games.json at the project's root, written by kit/tools/play_games_setup.py once the game has its
+## - play_games.json at the project's root, written by kit/tools/play_games_ids.py once the game has its
 ##   Play Games project: {"app": the project id, "leaderboards": {key: id}, "achievements": {key: id}}.
 ##   Without it the Android build leaves the plugin out (addons/play_games).
 ## - Save._ready calling `PlayGames.start()` after `Ads.start()`.
