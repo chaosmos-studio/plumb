@@ -85,6 +85,13 @@ static func settings(host: Node) -> IconButton:
 	gear.pressed.connect(func() -> void: Settings.open(host))
 	return gear
 
+## The hint's place in the top bar, kept empty where there is no hint (Daily), so the heading stays centred.
+static func no_hint() -> Control:
+	var room: Control = Control.new()
+	room.custom_minimum_size = Vector2(IconButton.SIZE, IconButton.SIZE)
+	room.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return room
+
 static func level_heading(level: int) -> Stat:
 	return Stat.new("Level", str(level + 1), 60)
 

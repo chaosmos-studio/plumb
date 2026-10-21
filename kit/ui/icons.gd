@@ -7,7 +7,7 @@ extends RefCounted
 const NAMES: Array[StringName] = [&"back", &"close", &"next", &"undo", &"restart", &"hint", &"settings",
 	&"sound", &"sound_off", &"music", &"music_off", &"haptics", &"haptics_off", &"theme", &"play", &"levels",
 	&"lock", &"check", &"heart", &"shop", &"share", &"watch", &"key", &"palette", &"help", &"info", &"looks", &"people",
-	&"save", &"tilt"]
+	&"save", &"tilt", &"flame", &"calendar", &"trophy"]
 
 static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour: Color, w: float = -1.0) -> void:
 	if w < 0.0:
@@ -188,12 +188,54 @@ static func draw(ci: CanvasItem, icon: StringName, c: Vector2, s: float, colour:
 				var head: Vector2 = c + Vector2(side3 * 0.13, -0.12) * s
 				ci.draw_arc(head, 0.08 * s, 0.0, TAU, 20, colour, w, true)
 				ci.draw_arc(head + Vector2(0, 0.3) * s, 0.15 * s, PI * 1.08, PI * 1.92, 16, colour, w, true)
+		&"flame":
+			_stroke(ci, _flame(c, Vector2(0.06, -0.31) * s, Vector2(0, 0.08) * s, 0.18 * s), colour, w)
+			_stroke(ci, _flame(c, Vector2(0.03, -0.04) * s, Vector2(0, 0.15) * s, 0.075 * s), colour, w * 0.8)
+		&"calendar":
+			_round_rect(ci, Rect2(c + Vector2(-0.26, -0.2) * s, Vector2(0.52, 0.46) * s), 0.07 * s, colour, w)
+			_stroke(ci, [c + Vector2(-0.26, -0.06) * s, c + Vector2(0.26, -0.06) * s], colour, w)
+			for ring: float in [-0.12, 0.12]:
+				_stroke(ci, [c + Vector2(ring, -0.28) * s, c + Vector2(ring, -0.14) * s], colour, w)
+			for dot: Vector2 in [Vector2(-0.12, 0.05), Vector2(0.0, 0.05), Vector2(0.12, 0.05), Vector2(-0.12, 0.15),
+					Vector2(0.0, 0.15)]:
+				ci.draw_circle(c + dot * s, w * 0.6, colour, true, -1.0, true)
+		&"trophy":
+			var cup: Array[Vector2] = [c + Vector2(-0.17, -0.24) * s]
+			for k: int in range(13):
+				var a: float = PI - PI * k / 12.0
+				cup.append(c + Vector2(0, -0.08) * s + Vector2(cos(a) * 0.17, sin(a) * 0.15) * s)
+			cup.append(c + Vector2(0.17, -0.24) * s)
+			cup.append(c + Vector2(-0.17, -0.24) * s)
+			_stroke(ci, cup, colour, w)
+			for side4: float in [-1.0, 1.0]:
+				ci.draw_arc(c + Vector2(side4 * 0.19, -0.13) * s, 0.07 * s, -PI * 0.5 if side4 > 0.0 else PI * 0.5,
+					PI * 0.5 if side4 > 0.0 else PI * 1.5, 12, colour, w * 0.8, true)
+			_stroke(ci, [c + Vector2(0, 0.07) * s, c + Vector2(0, 0.18) * s], colour, w)
+			_stroke(ci, [c + Vector2(-0.13, 0.25) * s, c + Vector2(0.13, 0.25) * s], colour, w)
 
 ## A polyline with round caps and joins: a dot at every vertex covers the notches a thick line leaves.
 static func _stroke(ci: CanvasItem, points: Array[Vector2], colour: Color, w: float) -> void:
 	ci.draw_polyline(PackedVector2Array(points), colour, w, true)
 	for p: Vector2 in points:
 		ci.draw_circle(p, w * 0.5, colour, true, -1.0, true)
+
+## A flame's outline: two curves from the tip down into a round base of radius `r` centred at `base`.
+static func _flame(c: Vector2, tip: Vector2, base: Vector2, r: float) -> Array[Vector2]:
+	var pts: Array[Vector2] = []
+	var left: Vector2 = base + Vector2(-r, 0.0)
+	var right: Vector2 = base + Vector2(r, 0.0)
+	for k: int in range(9):
+		var t: float = k / 8.0
+		pts.append(c + tip.lerp(tip + Vector2(-r * 1.1, (base.y - tip.y) * 0.55), t).lerp(
+			(tip + Vector2(-r * 1.1, (base.y - tip.y) * 0.55)).lerp(left, t), t))
+	for k: int in range(1, 13):
+		var a: float = PI - PI * k / 12.0
+		pts.append(c + base + Vector2(cos(a), sin(a)) * r)
+	for k: int in range(1, 9):
+		var t2: float = k / 8.0
+		var bend: Vector2 = tip + Vector2(r * 0.95, (base.y - tip.y) * 0.5)
+		pts.append(c + right.lerp(bend, t2).lerp(bend.lerp(tip, t2), t2))
+	return pts
 
 ## A filled polygon with its edge traced antialiased, since filled polygons are not.
 static func _fill(ci: CanvasItem, points: PackedVector2Array, colour: Color) -> void:

@@ -40,6 +40,16 @@ static func send(host: Node, image: Image, moment_won: Result.Moment) -> void:
 	else:
 		Toast.say(host, "Card saved to %s" % ProjectSettings.globalize_path(path))
 
+## Words alone, for the daily's time. Where nothing can share them they are copied instead.
+static func send_text(host: Node, text: String) -> void:
+	if OS.has_feature("web") and bool(JavaScriptBridge.eval("!!navigator.share", true)):
+		JavaScriptBridge.eval("navigator.share({text: %s}).catch(function () {})" % JSON.stringify(text), true)
+		return
+	if OS.has_feature("android") and _android_text(text):
+		return
+	DisplayServer.clipboard_set(text)
+	Toast.say(host, "Copied to the clipboard")
+
 static func save(host: Node, image: Image, moment_won: Result.Moment) -> void:
 	var png: PackedByteArray = image.save_png_to_buffer()
 	if OS.has_feature("web"):
@@ -179,6 +189,24 @@ static func _android(path: String, text: String) -> bool:
 	send.call("putExtra", intents.get("EXTRA_TEXT"), text)
 	send.call("setClipData", clips.call("newRawUri", "", uri))
 	send.call("addFlags", intents.get("FLAG_GRANT_READ_URI_PERMISSION"))
+	var chooser: Object = intents.call("createChooser", send, "Share")
+	if chooser == null or JavaClassWrapper.get_exception() != null:
+		return false
+	activity.call("runOnUiThread", runtime.call("createRunnableFromGodotCallable", func() -> void:
+		activity.call("startActivity", chooser)))
+	return true
+
+static func _android_text(text: String) -> bool:
+	if not Engine.has_singleton("AndroidRuntime"):
+		return false
+	var runtime: Object = Engine.get_singleton("AndroidRuntime")
+	var activity: Object = runtime.call("getActivity")
+	var intents: Object = JavaClassWrapper.wrap("android.content.Intent")
+	if activity == null or intents == null:
+		return false
+	var send: Object = intents.call("Intent", intents.get("ACTION_SEND"))
+	send.call("setType", "text/plain")
+	send.call("putExtra", intents.get("EXTRA_TEXT"), text)
 	var chooser: Object = intents.call("createChooser", send, "Share")
 	if chooser == null or JavaClassWrapper.get_exception() != null:
 		return false
