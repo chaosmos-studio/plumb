@@ -121,10 +121,11 @@ static func earned(solved_levels: int, three: int, dailies: int, best_streak: in
 			out.append(String(a["key"]))
 	return out
 
-## Game Stats: one solve as a levelCompleted event. A daily puzzle is level 0 with no stars or hints.
+## Game Stats: one solve as a levelCompleted event. A daily puzzle is level 0 with no stars or hints. The plugin
+## sends {"seconds": n} as a duration.
 static func solve_event(level: int, stars: int, hints: int, seconds: float, daily: bool) -> Dictionary:
-	return {"level": level, "stars": stars, "hints": hints, "seconds": snappedf(minf(seconds, SOLVE_SECONDS_CAP), 0.1),
-		"daily": daily}
+	return {"level": level, "stars": stars, "hints": hints, "daily": daily,
+		"time": {"seconds": snappedf(minf(seconds, SOLVE_SECONDS_CAP), 0.1)}}
 
 ## A solve, from the level's win or the daily puzzle's.
 static func solved(level: int, stars: int, seconds: float, daily: bool) -> void:

@@ -1397,14 +1397,15 @@ func _test_game_stats() -> void:
 		schema_ok = schema_ok and name_ok.search(event) != null and props.size() >= 1 and props.size() <= 20
 		for prop: String in props:
 			schema_ok = schema_ok and name_ok.search(prop) != null and not reserved.has(prop.to_lower()) \
-				and ["INT64", "DOUBLE", "STRING", "BOOL"].has(String(props[prop]))
+				and ["INT64", "DOUBLE", "STRING", "BOOL", "DURATION"].has(String(props[prop]))
 	_check("every event and property name and type is one Play Console takes", schema_ok)
 	_check("progress goes up as progressUpdate's whole-number currentProgress",
 		events.has("progressUpdate") and (events["progressUpdate"] as Dictionary).get("currentProgress") == "INT64")
 	var stats: Array = catalog.get("stats", [])
 	var progression: Dictionary = catalog.get("progression", {})
 	var id_ok: RegEx = RegEx.create_from_string("^[A-Za-z0-9_]{1,100}$")
-	var units: PackedStringArray = ["", "UNITLESS", "NONE", "SECOND", "MINUTE", "HOUR", "DAY", "WEEK", "MONTH", "YEAR"]
+	var units: PackedStringArray = ["", "UNITLESS", "SECOND", "MINUTE", "HOUR", "SECONDS", "MINUTES", "HOURS"]
+	var formats: PackedStringArray = ["", "UNIT_BASED", "COMPONENT_NUMERIC", "COMPONENT_TEXT"]
 	var keys: Dictionary = {progression.get("key", ""): true}
 	var names: Dictionary = {progression.get("name", ""): true}
 	var stats_ok: bool = true
@@ -1415,7 +1416,8 @@ func _test_game_stats() -> void:
 		stats_ok = stats_ok and id_ok.search(s["key"]) != null and not keys.has(s["key"]) and s["event"] != "progressUpdate" \
 			and props.has(s["property"]) and ["SUM", "MAX", "MIN", "COUNT"].has(s["aggregation"]) \
 			and String(s["name"]).length() <= 50 and not names.has(s["name"]) and String(s["text"]).length() <= 500 \
-			and String(s["text"]).ends_with(".") and units.has(String(s.get("unit", "")))
+			and String(s["text"]).ends_with(".") and units.has(String(s.get("unit", ""))) \
+			and formats.has(String(s.get("format", ""))) and (props[s["property"]] == "DURATION") == s.has("format")
 		if s.has("filter"):
 			var f: Array = s["filter"]
 			stats_ok = stats_ok and props.has(f[0]) and ["=", "!=", ">", "<", ">=", "<="].has(f[1])
@@ -1434,11 +1436,15 @@ func _test_game_stats() -> void:
 	var levels: Dictionary = events.get("levelCompleted", {})
 	var typed: bool = solve.size() == levels.size()
 	for prop: String in levels:
-		var want: int = {"INT64": TYPE_INT, "DOUBLE": TYPE_FLOAT, "BOOL": TYPE_BOOL, "STRING": TYPE_STRING}[levels[prop]]
+		var want: int = {"INT64": TYPE_INT, "DOUBLE": TYPE_FLOAT, "BOOL": TYPE_BOOL, "STRING": TYPE_STRING,
+			"DURATION": TYPE_DICTIONARY}[levels[prop]]
 		typed = typed and solve.has(prop) and typeof(solve[prop]) == want
+		if levels[prop] == "DURATION":
+			typed = typed and typeof((solve[prop] as Dictionary).get("seconds")) == TYPE_FLOAT
 	_check("a solve sends every levelCompleted property, each in its declared type", typed)
-	_check("and one solve adds an hour at most to the time spent", float(solve["seconds"]) == 3600.0
-		and typeof(games.call("solve_event", 0, 0, 0, 12.0, true)["seconds"]) == TYPE_FLOAT)
+	var daily: Dictionary = games.call("solve_event", 0, 0, 0, 12.0, true)
+	_check("and one solve adds an hour at most to the time spent", float(solve["time"]["seconds"]) == 3600.0
+		and float(daily["time"]["seconds"]) == 12.0)
 
 ## Whether any class in an Android library's classes.jar names `text`.
 func _aar_has(path: String, text: String) -> bool:

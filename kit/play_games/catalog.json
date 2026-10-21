@@ -18,7 +18,7 @@
 		{"key": "streak_100", "name": "Hundred days", "text": "Keep a 100 day daily streak.", "points": 150, "streak": 100}
 	],
 	"events": {
-		"levelCompleted": {"level": "INT64", "stars": "INT64", "hints": "INT64", "seconds": "DOUBLE", "daily": "BOOL"},
+		"levelCompleted": {"level": "INT64", "stars": "INT64", "hints": "INT64", "daily": "BOOL", "time": "DURATION"},
 		"progressUpdate": {"currentProgress": "INT64"}
 	},
 	"stats": [
@@ -26,7 +26,7 @@
 		{"key": "stars_collected", "event": "levelCompleted", "property": "stars", "aggregation": "SUM", "name": "Stars collected", "text": "Stars from every level you solve, replays included."},
 		{"key": "three_star_solves", "event": "levelCompleted", "property": "stars", "aggregation": "COUNT", "filter": ["stars", "=", 3], "name": "Three-star solves", "text": "Levels solved with all three stars."},
 		{"key": "hint_free_solves", "event": "levelCompleted", "property": "hints", "aggregation": "COUNT", "filter": ["hints", "=", 0], "name": "Solved without a hint", "text": "Puzzles solved without taking a single hint."},
-		{"key": "time_solving", "event": "levelCompleted", "property": "seconds", "aggregation": "SUM", "unit": "MINUTE", "name": "Time spent solving", "text": "Time spent on the puzzles you solved."}
+		{"key": "time_solving", "event": "levelCompleted", "property": "time", "aggregation": "SUM", "format": "COMPONENT_TEXT", "unit": "MINUTES", "name": "Time spent solving", "text": "Time spent on the puzzles you solved."}
 	],
 	"progression": {"key": "levels_solved", "property": "currentProgress", "name": "Levels solved", "text": "Different levels you have solved."}
 }

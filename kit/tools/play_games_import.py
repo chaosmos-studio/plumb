@@ -177,16 +177,19 @@ def write_game_stats(catalog: dict, colours: dict) -> None:
 
     repetitive = io.StringIO()
     out = csv.writer(repetitive, lineterminator="\n")
+    # Format is not in Google's documented header, but the import asks for it on a DURATION stat: UNIT_BASED,
+    # COMPONENT_NUMERIC or COMPONENT_TEXT, whose Unit is then the smallest part shown (MINUTES gives "3h 25m").
     out.writerow(["Stat Id", "Event Name", "Event Property Name", "Aggregation Type", "Stat Display Name",
                   "Stat Description", "Filter Property", "Filter Operator", "Filter Value", "Is Competitive",
-                  "Min limit", "Max limit", "Icon File Name", "Good value direction", "Unit"])
+                  "Min limit", "Max limit", "Icon File Name", "Good value direction", "Unit", "Format"])
     files = {}
     for s in catalog["stats"]:
         f = s.get("filter", ["", "", ""])
         lo, hi = s.get("competitive", ["", ""])
         png = f"stat_{s['key']}.png"
         out.writerow([s["key"], s["event"], s["property"], s["aggregation"], s["name"], s["text"], f[0], f[1], f[2],
-                      "true" if "competitive" in s else "false", lo, hi, png, "INCREASING", s.get("unit", "")])
+                      "true" if "competitive" in s else "false", lo, hi, png, "INCREASING", s.get("unit", ""),
+                      s.get("format", "")])
         files[png] = stat_icon(s["key"], colours)
     p = catalog["progression"]
     progression = io.StringIO()
