@@ -1140,7 +1140,6 @@ func _test_daily_calendar() -> void:
 
 func _test_daily_records() -> void:
 	var daily: GDScript = load("res://kit/daily/daily.gd")
-	var shop: GDScript = load("res://kit/monetize/shop.gd")
 	var ads: GDScript = load("res://kit/monetize/ads.gd")
 	var save: Node = root.get_node("Save")
 	var old: Array = [save.get("path"), save.get("daily"), save.get("owned"), save.get("supporter")]
