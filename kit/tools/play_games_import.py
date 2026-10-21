@@ -34,6 +34,21 @@ def palette() -> dict:
     return {k: "#" + v for k, v in re.findall(r'"(\w+)": Color\("([0-9a-fA-F]{6})"\)', block)}
 
 
+def luminance(hex_colour: str) -> float:
+    def channel(c: int) -> float:
+        c = c / 255
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = (int(hex_colour[i:i + 2], 16) for i in (1, 3, 5))
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+
+
+def star_colour(colours: dict) -> str:
+    """Gold where it stands out from the fill, as the game's stars do, and the ink where it would not."""
+    gold, fill = colours.get("gold", colours["accent_ink"]), colours["accent"]
+    hi, lo = sorted((luminance(gold), luminance(fill)), reverse=True)
+    return gold if (hi + 0.05) / (lo + 0.05) >= 2.0 else colours["accent_ink"]
+
+
 def star(draw: ImageDraw.ImageDraw, cx: float, cy: float, r: float, fill: str) -> None:
     import math
     points = []
@@ -97,7 +112,7 @@ def icon(entry: dict, colours: dict) -> Image.Image:
         number(str(entry["solved"]), c + s * 0.01, font_big if entry["solved"] < 100 else font_small)
     elif "three" in entry:
         for k, dx in enumerate((-0.2, 0.0, 0.2)):
-            star(draw, c + dx * s, c - s * 0.1 - (0.04 * s if k == 1 else 0), s * 0.11, colours.get("gold", ink))
+            star(draw, c + dx * s, c - s * 0.1 - (0.04 * s if k == 1 else 0), s * 0.11, star_colour(colours))
         number(str(entry["three"]), c + s * 0.2, font_small)
     elif "dailies" in entry or entry.get("key") == "daily":
         calendar(draw, c, c, s * 0.3, ink, colours["accent"])
@@ -105,7 +120,7 @@ def icon(entry: dict, colours: dict) -> Image.Image:
         flame(draw, c, c - s * 0.08, s * 0.24, ink, colours["accent"])
         number(str(entry["streak"]), c + s * 0.27, font_small)
     elif entry.get("key") == "stars":
-        star(draw, c, c + s * 0.02, s * 0.3, colours.get("gold", ink))
+        star(draw, c, c + s * 0.02, s * 0.3, star_colour(colours))
     elif entry.get("key") == "streak":
         flame(draw, c, c, s * 0.3, ink, colours["accent"])
     return img.resize((SIZE, SIZE), Image.LANCZOS)
