@@ -1,13 +1,21 @@
 extends Node
 
 ## Screenshots of every screen and state worth looking at, in one run, for reviewing the look.
-## Run: DISPLAY=:0 godot --path . --resolution 720x1280 res://tools/shots.tscn
-## Saves user://shots/<name>.png and prints each path. Uses a throwaway save file.
+## Run: DISPLAY=:0 godot --path . --resolution 720x1280 res://tools/shots.tscn [-- daily]
+## Saves user://shots/<name>.png and prints each path. Uses a throwaway save file. `daily` shoots only the daily
+## puzzle's screens.
 
 func _ready() -> void:
 	Save.path = "user://shots.cfg"
 	Save.stars = PackedByteArray([3, 3, 2, 1, 3])
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://shots"))
+	await _shoot_daily()
+	if OS.get_cmdline_user_args().has("daily"):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path("user://shots.cfg"))
+		get_tree().quit()
+		return
+	Save.stars = PackedByteArray([3, 3, 2, 1, 3])
+	Save.daily = {}
 	await _shoot_scene("res://scenes/shell/title.tscn", "title", 70)
 	await _shoot_scene("res://kit/shell/levels.tscn", "levels", 20)
 	await _shoot_settings()
@@ -42,6 +50,49 @@ func _shoot_shop() -> void:
 	GameLooks.use("classic")
 	Appearance.apply(Save.theme)
 	Supporter.on_play = false
+
+## A player some weeks in: every day of the last fortnight solved but one missed and one solved late, so the
+## calendar shows each kind of day, then today's puzzle part played, solved, and a past day's offer.
+func _shoot_daily() -> void:
+	var stars: PackedByteArray = PackedByteArray()
+	stars.resize(Daily.opens_after() + 12)
+	stars.fill(2)
+	Save.stars = stars
+	var today: int = Daily.today()
+	var times: Dictionary = {}
+	for k: int in range(1, 15):
+		if k != 4:
+			times[today - k] = 40000 + 9000 * (k % 5)
+	Save.daily = {"times": times, "late": [today - 7]}
+	await _shoot_scene("res://scenes/shell/title.tscn", "daily_title", 70)
+	await _shoot_scene(Daily.SCENE, "daily_screen", 30)
+	Daily.day = today
+	var game: Node = load("res://scenes/game/game.tscn").instantiate()
+	add_child(game)
+	await get_tree().create_timer(1.6).timeout
+	await _save("daily_play")
+	for dir: int in TiltSolver.new().solve(game.board):
+		game.call("_tilt", dir)
+		while game.get("_view").busy:
+			await get_tree().process_frame
+	await get_tree().create_timer(1.6).timeout
+	await _save("daily_won")
+	game.queue_free()
+	Daily.day = -1
+	await get_tree().process_frame
+	Supporter.on_play = true
+	Shop.prices = {GameMonetize.STREAK_ID: "$1.99"}
+	var screen: Node = load(Daily.SCENE).instantiate()
+	add_child(screen)
+	await get_tree().create_timer(0.4).timeout
+	screen.call("_offer", today - 4)
+	await get_tree().create_timer(0.7).timeout
+	await _save("daily_past_offer")
+	screen.queue_free()
+	await get_tree().process_frame
+	await _shoot_sheet(func(host: Node) -> void: Shop.offer(host, GameMonetize.STREAK_ID), "offer_streak_keeper")
+	Supporter.on_play = false
+	Shop.prices = {}
 
 func _shoot_sheet(open: Callable, name: String) -> void:
 	var node: Node = load("res://scenes/shell/title.tscn").instantiate()

@@ -29,6 +29,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 	failures += await _guide()
 	failures += await _ending()
+	failures += await _daily()
 	for dark: bool in [false, true]:
 		Appearance.apply(Appearance.Choice.DARK if dark else Appearance.Choice.LIGHT)
 		for scene: String in ["res://scenes/shell/title.tscn", "res://kit/shell/levels.tscn", "res://scenes/game/game.tscn"]:
@@ -103,6 +104,47 @@ func _ending() -> int:
 	game.queue_free()
 	await get_tree().process_frame
 	return 0 if shown else 1
+
+## The Daily screen's calendar, then today's puzzle played through to its sheet, with the clock running.
+func _daily() -> int:
+	var stars: PackedByteArray = PackedByteArray()
+	stars.resize(Pack.count())
+	for i: int in range(Daily.opens_after()):
+		stars[i] = 1
+	Save.stars = stars
+	Save.daily = {}
+	var failures: int = _report(Daily.is_open(), "the daily opens once its levels are solved")
+	var screen: Node = load(Daily.SCENE).instantiate()
+	add_child(screen)
+	await _wait(0.4)
+	var today: int = Daily.today()
+	var month: int = DailyDays.month_start(today)
+	var grid: GridContainer = screen.find_children("*", "GridContainer", true, false)[0]
+	failures += _report(grid.get_child_count() == 7 + int(DailyDays.date(month)["weekday"]) + DailyDays.month_length(month),
+		"the calendar lays out this month under its weekday letters")
+	screen.queue_free()
+	await get_tree().process_frame
+	Daily.day = today
+	var game: Node = load(Brand.GAME_SCENE).instantiate()
+	add_child(game)
+	await _wait(1.3)
+	var clocks: Array[Node] = game.find_children("*", "DailyClock", true, false)
+	failures += _report(clocks.size() == 1 and (clocks[0] as DailyClock).ms() >= 1000, "the daily's clock runs")
+	var hints: bool = false
+	for node: Node in game.find_children("*", "IconButton", true, false):
+		hints = hints or (node as IconButton).tooltip_text == "Hint"
+	failures += _report(not hints, "the daily offers no hint")
+	await _solve(game)
+	await _wait(0.4)
+	var sheet: Array[Node] = game.find_children("*", "Sheet", true, false)
+	failures += _report(Daily.solved(today) and Daily.time_of(today) >= 1000 and Daily.streak() == 1
+		and not sheet.is_empty(), "today's daily is solved, timed and on the streak, with its sheet up")
+	failures += _report(Save.best(0) == 1 and Save.stars.size() == Pack.count(), "and the campaign's stars are untouched")
+	Daily.day = -1
+	game.queue_free()
+	await get_tree().process_frame
+	Save.daily = {}
+	return failures
 
 func _report(ok: bool, what: String) -> int:
 	print("%s %s" % ["PASS" if ok else "FAIL", what])

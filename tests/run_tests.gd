@@ -58,8 +58,14 @@ func _initialize() -> void:
 	_test_supporter_entry_points()
 	_test_shop()
 	_test_analytics()
+	_test_daily_calendar()
+	_test_daily_bank()
+	_test_daily_result_lines()
+	_test_cloud_save()
+	_test_play_games()
 	# The root takes new children only once _initialize has handed control back to the engine.
 	await process_frame
+	_test_daily_records()
 	_test_chapter_colours()
 	_test_unlocks()
 	_test_rate_prompt()
@@ -857,6 +863,7 @@ func _test_presets_and_plugins() -> void:
 		and enabled.has("res://addons/firebase_build/plugin.cfg"))
 	_check("the Play Core plugin is enabled, with the Java helper it builds in",
 		enabled.has("res://addons/play_core/plugin.cfg") and FileAccess.file_exists("res://addons/play_core/PlayCore.java"))
+	_check("the Play Games plugin is enabled", enabled.has("res://addons/play_games/plugin.cfg"))
 	for module: String in ["firebase_core", "firebase_analytics"]:
 		for build: String in ["release", "debug"]:
 			var aar: String = "res://android/%s/%s.%s.aar" % [module, module, build]
@@ -887,6 +894,7 @@ func _test_presets_and_plugins() -> void:
 			_check("%s leaves the editor-only Firebase scripts out" % preset_name,
 				exclude.contains("addons/godotx_firebase/*") and exclude.contains("addons/firebase_build/*"))
 			_check("%s leaves the Play Core plugin's own files out" % preset_name, exclude.contains("addons/play_core/*"))
+			_check("%s leaves the Play Games plugin's own files out" % preset_name, exclude.contains("addons/play_games/*"))
 		elif presets.get_value(section, "platform") == "Web":
 			_check("the web build leaves the plugins out", exclude.contains("addons/*")
 				and exclude.contains("kit/monetize/android/*"))
@@ -905,6 +913,9 @@ func _test_changelog() -> void:
 		if presets.has_section_key(section, "include_filter"):
 			_check("%s ships CHANGELOG.md" % presets.get_value(section, "name"),
 				String(presets.get_value(section, "include_filter")).contains("CHANGELOG.md"))
+			_check("%s ships the Play Games catalog and ids" % presets.get_value(section, "name"),
+				String(presets.get_value(section, "include_filter")).contains("play_games.json")
+				and String(presets.get_value(section, "include_filter")).contains("kit/play_games/catalog.json"))
 	var dated: Changelog.Entry = Changelog.parse("<!--\n## 9.9.9\n-->\n# Changelog\n\n## 1.2.3 - 2026-10-01\n\n- One\n- Two\n\n## 1.2.2\n\n- Old\n")
 	_check("a dated heading reads as its version, past a heading in a comment", dated.error == "" and dated.version == "1.2.3")
 	_check("the section ends at the next heading", dated.notes == PackedStringArray(["One", "Two"]))
@@ -1105,6 +1116,244 @@ func _test_ending_line_and_milestones() -> void:
 	analytics.set("sink", old_sink)
 	pack.set("levels", old_levels)
 	save.set("stars", old_stars)
+
+func _test_daily_calendar() -> void:
+	var edge: int = int(Time.get_unix_time_from_datetime_string("2026-10-21T06:59:59"))
+	_check("the daily turns over at midnight UTC-7, with Play Games' daily leaderboards",
+		DailyDays.index(edge + 1) == DailyDays.index(edge) + 1 and DailyDays.left(edge) == 1)
+	var day: int = DailyDays.from_date("2026-10-21")
+	_check("a day's number and its date agree", day == DailyDays.index(edge + 1) and DailyDays.short(day) == "21 October"
+		and DailyDays.long(day) == "Wednesday, 21 October")
+	var leap: int = DailyDays.from_date("2028-02-10")
+	_check("months start and end on the right days", DailyDays.month_start(leap) == DailyDays.from_date("2028-02-01")
+		and DailyDays.month_length(leap) == 29 and DailyDays.month_length(DailyDays.from_date("2026-12-31")) == 31
+		and DailyDays.month_name(day) == "October 2026")
+	_check("times read as a clock", DailyDays.clock(83000) == "1:23" and DailyDays.clock(3723000) == "1:02:03"
+		and DailyDays.clock(999) == "0:00")
+	_check("a wait reads in hours and minutes", DailyDays.wait(11520) == "3 h 12 min" and DailyDays.wait(30) == "1 min")
+	var run: Dictionary = {10: true, 11: true, 12: true, 14: true}
+	_check("a streak runs back from today, or from yesterday while today is open",
+		DailyDays.streak(run, 14) == 1 and DailyDays.streak(run, 13) == 3 and DailyDays.streak(run, 15) == 1)
+	_check("and ends once a whole day goes by unsolved", DailyDays.streak(run, 16) == 0)
+	_check("the longest run is found anywhere", DailyDays.longest(run) == 3 and DailyDays.longest({}) == 0)
+
+func _test_daily_records() -> void:
+	var daily: GDScript = load("res://kit/daily/daily.gd")
+	var shop: GDScript = load("res://kit/monetize/shop.gd")
+	var ads: GDScript = load("res://kit/monetize/ads.gd")
+	var save: Node = root.get_node("Save")
+	var old: Array = [save.get("path"), save.get("daily"), save.get("owned"), save.get("supporter")]
+	save.set("path", "user://test_daily.cfg")
+	save.set("daily", {})
+	save.set("owned", PackedStringArray())
+	save.set("supporter", false)
+	var today: int = daily.call("today")
+	var first: Dictionary = daily.call("record", today, 61000)
+	_check("today's first solve is on time and kept", bool(first["first"]) and bool(first["on_time"])
+		and int(daily.call("time_of", today)) == 61000)
+	var again: Dictionary = daily.call("record", today, 30000)
+	_check("a replay keeps the first time", not bool(again["first"]) and int(again["best_ms"]) == 61000)
+	var late: Dictionary = daily.call("record", today - 1, 90000)
+	_check("a past day solved now is late", bool(late["first"]) and not bool(late["on_time"]) and daily.call("late", today - 1))
+	_check("and a late solve does not hold the streak", int(daily.call("streak")) == 1 and int(daily.call("solves")) == 2)
+	shop.call("grant", GameMonetize.STREAK_ID, true)
+	_check("with the Streak keeper it does", int(daily.call("streak")) == 2 and int(daily.call("best")) == 2)
+	shop.call("grant", GameMonetize.STREAK_ID, false)
+	save.call("restore")
+	_check("the record survives a restart", int(daily.call("time_of", today)) == 61000 and daily.call("late", today - 1))
+	daily.call("keep_time", today - 3, 12000)
+	_check("time spent on an unsolved day is kept", int(daily.call("spent", today - 3)) == 12000)
+	daily.call("record", today - 3, 20000)
+	_check("and dropped once it is solved", int(daily.call("spent", today - 3)) == 0)
+	_check("with no ads to show, every past day plays free", daily.call("plays_free", today - 5))
+	ads.call("use", _VideoAds.new())
+	_check("with ads a past day waits for a video, and today never does", not daily.call("plays_free", today - 5)
+		and daily.call("plays_free", today) and daily.call("plays_free", today - 1))
+	daily.call("open_day", today - 5)
+	_check("a day a video opened stays open", daily.call("plays_free", today - 5))
+	shop.call("grant", GameMonetize.STREAK_ID, true)
+	_check("the Streak keeper opens every past day", daily.call("plays_free", today - 9))
+	shop.call("grant", GameMonetize.STREAK_ID, false)
+	save.set("supporter", true)
+	_check("so does the Supporter pack, with no ads", daily.call("plays_free", today - 9))
+	ads.call("use", null)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_daily.cfg"))
+	save.set("path", old[0])
+	save.set("daily", old[1])
+	save.set("owned", old[2])
+	save.set("supporter", old[3])
+
+func _test_daily_bank() -> void:
+	var daily: GDScript = load("res://kit/daily/daily.gd")
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://levels/daily.json"))
+	_check("daily.json parses", data is Dictionary)
+	if not data is Dictionary:
+		return
+	var levels: Array = (data as Dictionary)["levels"]
+	var campaign_levels: Array = (JSON.parse_string(FileAccess.get_file_as_string("res://levels/levels.json")) as Dictionary)["levels"]
+	var count: int = campaign_levels.size()
+	_check("the daily bank holds more than a year", levels.size() >= 366)
+	_check("its first day is a real date", DailyDays.from_date(String(data["first"])) > DailyDays.from_date("2026-01-01"))
+	_check("it opens after a chapter or two", int(data["opens_after"]) > 0 and int(data["opens_after"]) < count)
+	var start: int = daily.call("first")
+	_check("each day takes the next level, and the bank repeats once it runs out",
+		daily.call("entry_for", start) == levels[0] and daily.call("entry_for", start + 1) == levels[1]
+		and daily.call("entry_for", start + levels.size()) == levels[0])
+	var campaign: Dictionary = {}
+	for level: Variant in campaign_levels:
+		campaign[_shape(level)] = true
+	var repeats: Array[int] = []
+	var seen: Dictionary = {}
+	for i: int in range(levels.size()):
+		var shape: String = _shape(levels[i])
+		if campaign.has(shape) or seen.has(shape):
+			repeats.append(i)
+		seen[shape] = true
+	_check("no day repeats a campaign level or another day (%s)" % str(repeats), repeats.is_empty())
+	var checked: int = levels.size() if not OS.get_cmdline_user_args().has("quick") else 14
+	var wrong: Array[int] = []
+	var solver: TiltSolver = TiltSolver.new()
+	for i: int in range(checked):
+		if solver.solve(TiltBoard.from_dict(levels[i]), 100000).size() != int((levels[i] as Dictionary)["par"]):
+			wrong.append(i)
+	_check("every day solves in exactly its par (wrong: %s)" % str(wrong), wrong.is_empty())
+
+static func _shape(level: Variant) -> String:
+	var copy: Dictionary = (level as Dictionary).duplicate()
+	copy.erase("par")
+	return JSON.stringify(copy, "", true)
+
+func _test_daily_result_lines() -> void:
+	var result: GDScript = load("res://kit/daily/daily_result.gd")
+	var replay: Dictionary = {"first": false, "on_time": true, "ms": 50000, "best_ms": 83000}
+	var today: Dictionary = {"first": true, "on_time": true, "ms": 83000, "best_ms": 83000}
+	var late: Dictionary = {"first": true, "on_time": false, "ms": 83000, "best_ms": 83000}
+	var lines: PackedStringArray = [result.call("line", replay, false, true, true), result.call("line", late, true, false, false),
+		result.call("line", late, false, false, false), result.call("line", today, false, true, true),
+		result.call("line", today, false, true, false), result.call("line", today, false, false, false)]
+	_check("a replay names the time that counts", lines[0] == "Your first time was 1:23. Only that one counts.")
+	_check("a late solve says whether it holds the streak", lines[1].contains("counts for your streak")
+		and lines[2].contains("without it"))
+	_check("today's solve points to the leaderboard, or to signing in", lines[3].contains("on today's leaderboard")
+		and lines[4].contains("Sign in") and lines[5].contains("tomorrow"))
+	var clean: bool = true
+	for line: String in lines:
+		clean = clean and not line.contains(";") and line.ends_with(".")
+	_check("every line is a plain sentence", clean)
+	var said: String = result.call("share_text", DailyDays.from_date("2026-10-21"), 83000)
+	var link: String = (load("res://share.gd") as GDScript).get_script_constant_map()["GET"]
+	_check("the share names the game, the day, the time and the link", said.begins_with(Brand.NAME)
+		and said.contains("21 October") and said.contains("1:23") and said.contains(link + "?from=daily"))
+
+func _test_cloud_save() -> void:
+	var cloud: GDScript = load("res://kit/play_games/cloud_save.gd")
+	var a: Dictionary = {"times": {10: 50000, 11: 70000}, "late": [11], "open": [3], "clock": {12: 4000}}
+	var b: Dictionary = {"times": {11: 65000, 12: 30000}, "late": [], "open": [4, 3], "clock": {13: 9000}}
+	var joined: Dictionary = cloud.call("join_daily", a, b)
+	_check("each day keeps its faster first solve", joined["times"] == {10: 50000, 11: 65000, 12: 30000})
+	_check("a day is late only where every phone that solved it was late", (joined["late"] as Array).is_empty()
+		and (cloud.call("join_daily", a, {}) as Dictionary)["late"] == [11])
+	_check("opened days join, and a clock goes once its day is solved",
+		(joined["open"] as Array).size() == 2 and joined["clock"] == {13: 9000})
+	var mine: ConfigFile = ConfigFile.new()
+	var theirs: ConfigFile = ConfigFile.new()
+	mine.set_value("progress", "stars", PackedByteArray([3, 1, 0]))
+	theirs.set_value("progress", "stars", PackedByteArray([1, 2, 2, 3]))
+	mine.set_value("progress", "opened", PackedInt32Array([150]))
+	theirs.set_value("progress", "opened", PackedInt32Array([151, 150]))
+	mine.set_value("monetize", "keys", 1)
+	theirs.set_value("monetize", "keys", 4)
+	mine.set_value("settings", "theme", 1)
+	theirs.set_value("settings", "theme", 2)
+	theirs.set_value("monetize", "supporter", true)
+	cloud.call("merge", mine, theirs)
+	_check("stars keep the best of each level", mine.get_value("progress", "stars") == PackedByteArray([3, 2, 2, 3]))
+	_check("opened levels and level keys join", (mine.get_value("progress", "opened") as PackedInt32Array).size() == 2
+		and int(mine.get_value("monetize", "keys")) == 4)
+	_check("settings and purchases stay this phone's own", int(mine.get_value("settings", "theme")) == 1
+		and not mine.has_section_key("monetize", "supporter"))
+	var save: Node = root.get_node("Save")
+	var old: Array = [save.get("path"), save.get("stars"), save.get("daily")]
+	save.set("path", "user://test_cloud.cfg")
+	save.set("stars", PackedByteArray([1]))
+	save.set("daily", {})
+	save.call("store")
+	var other: ConfigFile = ConfigFile.new()
+	other.set_value("progress", "stars", PackedByteArray([2, 3]))
+	other.set_value("daily", "record", {"times": {20000: 40000}})
+	cloud.call("absorb", other.encode_to_text())
+	_check("a copy from the cloud lands in the save", save.get("stars") == PackedByteArray([2, 3])
+		and int(((save.get("daily") as Dictionary)["times"] as Dictionary)[20000]) == 40000)
+	cloud.call("absorb", "not a save")
+	_check("and anything unreadable changes nothing", save.get("stars") == PackedByteArray([2, 3]))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_cloud.cfg"))
+	save.set("path", old[0])
+	save.set("stars", old[1])
+	save.set("daily", old[2])
+
+func _test_play_games() -> void:
+	var games: GDScript = load("res://kit/play_games/play_games.gd")
+	var catalog: Dictionary = games.call("catalog")
+	var achievements: Array = catalog.get("achievements", [])
+	var points: int = 0
+	var fair: bool = true
+	var keys: Dictionary = {}
+	for entry: Variant in achievements:
+		var a: Dictionary = entry
+		points += int(a["points"])
+		var measured: bool = a.has("solved") or a.has("three") or a.has("dailies") or a.has("streak")
+		fair = fair and int(a["points"]) % 5 == 0 and int(a["points"]) <= 200 and measured \
+			and String(a["name"]).length() <= 100 and String(a["text"]).ends_with(".") and not keys.has(a["key"])
+		keys[a["key"]] = true
+	_check("Play Games gets the five achievements it needs to publish", achievements.size() >= 5)
+	_check("each achievement is measured and worth points in fives, 1000 at most in all", fair and points <= 1000)
+	var boards: Dictionary = {}
+	for entry: Variant in catalog.get("leaderboards", []):
+		boards[(entry as Dictionary)["key"]] = entry
+	_check("the daily board ranks the fastest time", boards.has("daily")
+		and boards["daily"]["order"] == "SMALLER_IS_BETTER" and boards["daily"]["format"] == "TIME_DURATION")
+	_check("and the all-time boards are stars and the longest streak", boards.has("stars") and boards.has("streak"))
+	_check("nothing is earned at the start", (games.call("earned", 0, 0, 0, 0) as PackedStringArray).is_empty())
+	_check("each threshold earns its achievement", games.call("earned", 25, 0, 1, 7)
+		== PackedStringArray(["solved_1", "solved_25", "daily_1", "streak_7"]))
+	var has_ids: bool = FileAccess.file_exists("res://play_games.json")
+	_check("Play Games is on only once the game has its project", (String(games.call("app_id")) != "") == has_ids)
+	if has_ids:
+		var missing: PackedStringArray = PackedStringArray()
+		for kind: String in ["achievements", "leaderboards"]:
+			for entry: Variant in catalog.get(kind, []):
+				if String(games.call("id_of", kind, StringName((entry as Dictionary)["key"]))) == "":
+					missing.append(String((entry as Dictionary)["key"]))
+		_check("play_games.json has an id for everything in the catalog (%s)" % ", ".join(missing), missing.is_empty())
+	var plugin: String = FileAccess.get_file_as_string("res://addons/play_games/plugin.gd")
+	_check("the build adds the library and SDK only with a project id", plugin.contains("play_games/bin/%s-%s.aar")
+		and plugin.contains("play-services-games-v2") and plugin.contains('if app() == ""'))
+	for build: String in ["release", "debug"]:
+		var aar: String = "res://addons/play_games/bin/GodotPlayGameServices-%s.aar" % build
+		_check("the %s library is in place, with no uncaught exception handler" % build,
+			FileAccess.file_exists(aar) and _aar_has(aar, "GodotAndroidPlugin") and not _aar_has(aar, "setDefaultUncaughtExceptionHandler"))
+
+## Whether any class in an Android library's classes.jar names `text`.
+func _aar_has(path: String, text: String) -> bool:
+	var aar: ZIPReader = ZIPReader.new()
+	if aar.open(path) != OK:
+		return false
+	var jar_path: String = "user://test_classes.jar"
+	var jar_file: FileAccess = FileAccess.open(jar_path, FileAccess.WRITE)
+	jar_file.store_buffer(aar.read_file("classes.jar"))
+	jar_file.close()
+	aar.close()
+	var jar: ZIPReader = ZIPReader.new()
+	var found: bool = false
+	if jar.open(jar_path) == OK:
+		var needle: String = text.to_utf8_buffer().hex_encode()
+		for name: String in jar.get_files():
+			if name.ends_with(".class") and (name.contains(text) or jar.read_file(name).hex_encode().contains(needle)):
+				found = true
+				break
+		jar.close()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(jar_path))
+	return found
 
 func _test_finale_variants() -> void:
 	var supporter: GDScript = load("res://kit/monetize/supporter.gd")
@@ -1342,7 +1591,7 @@ func _test_shop() -> void:
 	var sold: PackedStringArray = _labels(shop, "open")
 	_check("the shop lists the Complete pack, every pack, the tip jar and Restore", sold.has("Complete pack")
 		and sold.has("Supporter pack") and sold.has("Every level") and sold.has(GameLooks.PACK) and sold.has("Themes pack")
-		and sold.has("Tip jar") and sold.has("Restore purchases"))
+		and sold.has("Streak keeper") and sold.has("Tip jar") and sold.has("Restore purchases"))
 	var themes: GDScript = load("res://kit/ui/themes.gd")
 	_check("with nothing bought only the game's own colours and Sepia are open", not shop.call("themes_open")
 		and themes.call("is_open", "own") and themes.call("is_open", "sepia") and not themes.call("is_open", "nord"))
@@ -1360,8 +1609,9 @@ func _test_shop() -> void:
 	shop.call("grant", GameMonetize.LEVELS_ID, false)
 	_check("a refund locks the levels again", not save.call("unlocked", 150))
 	shop.call("grant", GameMonetize.COMPLETE_ID, true)
-	_check("the Complete pack holds all four", shop.call("ads_off") and shop.call("levels_open") and shop.call("looks_open")
-		and shop.call("themes_open") and shop.call("has_everything") and looks.call("is_open", "gems"))
+	_check("the Complete pack holds every pack, the Streak keeper too", shop.call("ads_off") and shop.call("levels_open")
+		and shop.call("looks_open") and shop.call("themes_open") and shop.call("has", GameMonetize.STREAK_ID)
+		and shop.call("has_everything") and looks.call("is_open", "gems"))
 	shop.call("grant", GameMonetize.COMPLETE_ID, false)
 	save.set("look", "gems")
 	_check("a look the pack no longer opens falls back to the free one", looks.call("current") == "classic")
