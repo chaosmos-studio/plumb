@@ -17,7 +17,8 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    # The org variable RUNNER moves the build onto a self-hosted runner, to save the plan's minutes.
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     env:
       GODOT_RELEASE: "4.7-stable"
       GODOT_VERSION: "4.7.stable"
