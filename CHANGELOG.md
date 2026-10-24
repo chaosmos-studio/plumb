@@ -16,7 +16,7 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
-## 1.4.1 - 2026-10-22
+## 1.4.1 - 2026-10-24
 
 - Share your daily puzzle time as a picture, with that day's board and a code to scan.
 - Turn a tablet or an open foldable sideways and the game turns with it.
