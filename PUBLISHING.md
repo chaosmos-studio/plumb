@@ -1,7 +1,7 @@
 # Publishing Plumb on Google Play
 
 Plumb's own values and progress. The account setup done once, and every answer that is the same for
-every Chaosmos game, are in `STUDIO_PLAY_SETUP.md` in the Games folder (`~/Work/Weekend-Projects/Games/`).
+every Chaosmos game, are in `docs/STUDIO_PLAY_SETUP.md` in the Games workspace (`~/Work/Weekend-Projects/Games/`).
 Section numbers below point there.
 
 ## The app
@@ -14,11 +14,11 @@ Section numbers below point there.
 | Website (Store settings) | https://chaosmos.studio/plumb/support/ |
 | Listing text | `assets/store/listing.md` |
 | Graphics | `assets/store/` |
-| Latest build | [v1.2.1](https://github.com/chaosmos-studio/plumb/releases/tag/v1.2.1) |
+| Latest build | [v1.4.1](https://github.com/chaosmos-studio/plumb/releases/tag/v1.4.1), on production |
 | AdMob app id | `ca-app-pub-3135321730568420~4276024954` |
 | AdMob units | banner `.../4401816337`, interstitial `.../1199928764`, rewarded `.../9789874380` (all in `monetize.gd`) |
 | Firebase | Android app in project `chaosmos-studio`, in `google-services.json` |
-| Upload key | `release-keys/plumb-release.jks`, alias `plumb` (password in `plumb-key.properties`) |
+| Upload key | `studio/release-keys/plumb-release.jks`, alias `plumb` (password in `plumb-key.properties`) |
 | Upload key SHA-1 | `95:E9:15:AA:36:6D:9E:D9:66:B2:D0:3C:5A:EA:02:EB:F2:3F:01:6F` |
 | Upload key SHA-256 | `2D:B4:C0:F5:8A:CA:DC:CE:73:B6:98:ED:60:66:5B:B8:C9:D1:CD:D3:4B:E0:40:18:69:5E:04:65:09:F1:E0:EB` |
 | What makes it unique (2.9) | One swipe tilts the board and moves every marble at once. |
