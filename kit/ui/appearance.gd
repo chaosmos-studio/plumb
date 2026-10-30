@@ -84,6 +84,9 @@ class _Watcher extends Node:
 
 	func _exit_tree() -> void:
 		DisplayServer.set_system_theme_change_callback(Callable())
+		# A lambda left in a static variable is freed at exit after its script, which aborts the app on a
+		# phone: let go of the banner's.
+		Ads.hide_banner()
 
 	func _changed() -> void:
 		Appearance._on_system_change.call_deferred()

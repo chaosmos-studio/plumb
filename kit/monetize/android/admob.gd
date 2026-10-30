@@ -37,17 +37,27 @@ func _ready() -> void:
 		if not _banner_loaded:
 			banner_changed.emit(height))
 	var request: ConsentRequestParameters = ConsentRequestParameters.new()
-	UserMessagingPlatform.consent_information.update(request, _on_consent_info, func(_error: FormError) -> void: _start_sdk())
+	# Named methods, never lambdas: the plugin keeps these callbacks in static variables, and a lambda freed
+	# with them at exit, after its script, aborts the app (Consent.forget).
+	UserMessagingPlatform.consent_information.update(request, _on_consent_info, _on_form_error)
 	EventBus.settings_changed.connect(_match_sound)
+
+## Lets go of every callback the plugin keeps statically, before the engine frees its statics.
+func _exit_tree() -> void:
+	Consent.forget()
 
 func _on_consent_info() -> void:
 	var info: ConsentInformation = UserMessagingPlatform.consent_information
 	if info.get_consent_status() == ConsentInformation.ConsentStatus.REQUIRED and info.get_is_consent_form_available():
-		UserMessagingPlatform.load_consent_form(
-			func(form: ConsentForm) -> void: form.show(func(_error: FormError) -> void: _start_sdk()),
-			func(_error: FormError) -> void: _start_sdk())
+		UserMessagingPlatform.load_consent_form(_on_form_loaded, _on_form_error)
 	else:
 		_start_sdk()
+
+func _on_form_loaded(form: ConsentForm) -> void:
+	form.show(_on_form_error)
+
+func _on_form_error(_error: FormError) -> void:
+	_start_sdk()
 
 ## UMP's canRequestAds(). After a failed update this is the choice kept from the last session.
 func _can_request() -> bool:
@@ -60,8 +70,11 @@ func _start_sdk() -> void:
 	if _sdk_ready or _stopped or not _can_request():
 		return
 	var listener: OnInitializationCompleteListener = OnInitializationCompleteListener.new()
-	listener.on_initialization_complete = func(_status: InitializationStatus) -> void: _on_sdk_ready()
+	listener.on_initialization_complete = _on_initialized
 	MobileAds.initialize(listener)
+
+func _on_initialized(_status: InitializationStatus) -> void:
+	_on_sdk_ready()
 
 func _on_sdk_ready() -> void:
 	if _sdk_ready:
@@ -236,7 +249,7 @@ func privacy_required() -> bool:
 		== ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
 
 func open_privacy() -> void:
-	UserMessagingPlatform.show_privacy_options_form(func(_error: FormError) -> void: _start_sdk())
+	UserMessagingPlatform.show_privacy_options_form(_on_form_error)
 
 func stop() -> void:
 	_stopped = true
