@@ -65,7 +65,9 @@ func _make_banner() -> void:
 	add_child(_layer)
 	_banner = HouseBanner.new()
 	_banner.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	_banner.offset_top = -_height
+	# Clear of the system navigation and its gesture area, where a swipe home would otherwise land on it.
+	_banner.offset_bottom = -Ads.banner_bottom(self)
+	_banner.offset_top = _banner.offset_bottom - _height
 	_layer.add_child(_banner)
 	_banner.show_game(next_game())
 	banner_changed.emit(_height)

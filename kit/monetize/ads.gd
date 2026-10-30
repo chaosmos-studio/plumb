@@ -18,6 +18,10 @@ extends RefCounted
 
 ## Any phone in portrait gets about the same adaptive banner, so the stand-in assumes one width.
 const PREVIEW_WIDTH_DP: float = 360.0
+## Clear space between the banner and the system navigation (the gesture bar or the buttons), in dp, so a
+## swipe home or back never starts on the ad: with Android's 24 dp gesture bar that keeps the ad 48 dp, a
+## full touch target, from the screen's edge. AdMob counts a tap made while leaving the app as invalid.
+const EDGE_DP: float = 24.0
 
 ## Desktop captures only: shows a stand-in banner at the real adaptive size.
 static var preview: bool = false
@@ -101,16 +105,31 @@ static func show_banner(host: Node, on_height: Callable) -> void:
 		_show_stand_in(host)
 		return
 	if _height > 0.0:
-		on_height.call(_height)
+		on_height.call(_height + clearance())
 	_backend.set_banner(_covers == 0)
 
-## A play screen reserves this from its first frame, so its board never jumps when the ad arrives.
+## A play screen reserves this from its first frame, so its board never jumps when the ad arrives. Like every
+## height Ads reports, it is the banner and its clear space above the system navigation.
 static func expected_banner_height(host: Node) -> float:
 	if not AdPacing.banner_due(solved(), Supporter.active()) or not (preview or live()):
 		return 0.0
 	if _height > 0.0:
-		return _height
-	return banner_height(host)
+		return _height + clearance()
+	return banner_height(host) + clearance()
+
+## EDGE_DP in design pixels: the gap kept between the banner and the system navigation inset below it.
+static func clearance() -> float:
+	var root: Viewport = (Engine.get_main_loop() as SceneTree).root
+	var view: Vector2 = root.get_visible_rect().size
+	var window: Vector2 = Vector2(DisplayServer.window_get_size())
+	var dpi: float = float(DisplayServer.screen_get_dpi())
+	var width_dp: float = window.x * 160.0 / dpi if dpi > 0.0 and window.x > 0.0 else PREVIEW_WIDTH_DP
+	return EDGE_DP * view.x / width_dp
+
+## Where a banner the game draws stands, bottom edge up, in design pixels: above the system navigation inset
+## and the clear space.
+static func banner_bottom(host: Node) -> float:
+	return float(UI.safe_margins(host.get_viewport())["bottom"]) + clearance()
 
 ## The height a phone's adaptive banner takes, in design pixels.
 static func banner_height(host: Node) -> float:
@@ -132,7 +151,7 @@ static func hide_banner() -> void:
 
 ## The banner's height while it is on screen, else 0: what a Sheet that keeps the banner leaves clear below it.
 static func banner_room() -> float:
-	return _height if _wanted and _covers == 0 and (preview or live()) else 0.0
+	return _height + clearance() if _height > 0.0 and _wanted and _covers == 0 and (preview or live()) else 0.0
 
 ## A Sheet calls this as it opens and closes, so the banner is never on screen with one, except one that keeps
 ## it in a strip of its own below the panel (Sheet.keeps_banner).
@@ -216,7 +235,7 @@ static func _attach(backend: AdBackend, deferred: bool) -> void:
 static func _on_banner(height: float) -> void:
 	_height = height
 	if _wanted and _on_height.is_valid():
-		_on_height.call(height)
+		_on_height.call(height + clearance() if height > 0.0 else 0.0)
 
 static func _on_solved(_level: int, _count: int, _stars: int) -> void:
 	_since += 1
@@ -232,7 +251,8 @@ static func _show_stand_in(host: Node) -> void:
 	# With AdMob off the stand-in is the house banner itself, as a phone would show it.
 	var box: Control = _StandIn.new() if GameMonetize.ADMOB or Studio.others().is_empty() else HouseBanner.new()
 	box.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	box.offset_top = -height
+	box.offset_bottom = -banner_bottom(host)
+	box.offset_top = box.offset_bottom - height
 	_stand_in.add_child(box)
 	if box is HouseBanner:
 		(box as HouseBanner).show_game(HouseAds.next_game())

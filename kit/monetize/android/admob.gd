@@ -209,7 +209,7 @@ func _make_banner() -> void:
 	if not _sdk_ready or _banner != null:
 		return
 	var size: AdSize = AdSize.get_current_orientation_anchored_adaptive_banner_ad_size(AdSize.FULL_WIDTH)
-	_banner = AdView.new(_unit(&"banner"), size, AdPosition.BOTTOM)
+	_banner = AdView.new(_unit(&"banner"), size, _clear_position(float(size.height)))
 	_banner.hide()
 	var listener: AdListener = AdListener.new()
 	listener.on_ad_loaded = _on_banner_loaded
@@ -221,6 +221,7 @@ func _on_banner_loaded() -> void:
 	_retry[&"banner"] = RETRY_FIRST
 	var first: bool = not _banner_loaded
 	_banner_loaded = true
+	_banner.set_position(_clear_position(float(_banner.get_height())))
 	set_banner(_banner_on)
 	if first:
 		banner_changed.emit(_design_height())
@@ -235,6 +236,20 @@ func _on_banner_failed() -> void:
 	get_tree().create_timer(wait).timeout.connect(func() -> void:
 		if _banner_on:
 			_make_banner())
+
+## The banner `height_dp` tall, sitting Ads.EDGE_DP above the system navigation inset. The plugin's
+## AdPosition.BOTTOM stands flush on that inset, where a swipe home lands on the ad, and its custom position
+## is dp from the top left of the full-screen view, with no inset added (its Banner.kt).
+func _clear_position(height_dp: float) -> AdPosition:
+	var density: float = DisplayServer.screen_get_dpi() / 160.0
+	var screen_px: float = float(DisplayServer.window_get_size().y)
+	var safe: Rect2i = DisplayServer.get_display_safe_area()
+	var screen: Vector2i = DisplayServer.screen_get_size()
+	var inset_px: float = maxf(0.0, float(screen.y - safe.end.y))
+	if density <= 0.0 or screen_px <= 0.0:
+		return AdPosition.BOTTOM
+	var top_dp: float = (screen_px - inset_px) / density - Ads.EDGE_DP - maxf(height_dp, 50.0)
+	return AdPosition.custom(0, int(floorf(top_dp)))
 
 ## In design pixels. The laid-out view wins if it is taller than the dp size, so it is never underestimated.
 func _design_height() -> float:
