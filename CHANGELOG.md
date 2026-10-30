@@ -16,6 +16,11 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
+## 1.4.2
+
+- Fixed a rare crash when closing the game.
+- The banner now sits further from the navigation bar, so it's harder to tap by mistake.
+
 ## 1.4.1 - 2026-10-24
 
 - Share your daily puzzle time as a picture, with that day's board and a code to scan.
