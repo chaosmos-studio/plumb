@@ -4,6 +4,9 @@ const PILL_WIDTH: float = 460.0
 
 var _seesaw: Seesaw
 var _stage: Control
+var _level_gap: Control
+var _level_line: Label
+var _tally_count: Label
 
 func _ready() -> void:
 	var ui: Control = UI.root(self)
@@ -23,16 +26,16 @@ func _ready() -> void:
 	_stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(_stage)
 
-	var frontier: int = Save.frontier(Pack.count())
 	var play: Button = UI.button("Play", UI.Style.PRIMARY)
 	play.custom_minimum_size.x = PILL_WIDTH
 	play.pressed.connect(func() -> void:
-		Pack.current = frontier
+		Pack.current = Save.frontier(Pack.count())
 		Screens.go(Brand.GAME_SCENE))
 	column.add_child(UI.centred(play))
-	if Save.total_stars() > 0:
-		column.add_child(UI.spacer(8))
-		column.add_child(UI.caption("Level %d" % (frontier + 1), 20))
+	_level_gap = UI.spacer(8)
+	column.add_child(_level_gap)
+	_level_line = UI.caption("", 20)
+	column.add_child(_level_line)
 	var levels: Button = UI.button("Levels", UI.Style.GHOST)
 	levels.custom_minimum_size.x = PILL_WIDTH
 	levels.pressed.connect(func() -> void: Screens.go(Brand.LEVELS_SCENE))
@@ -59,9 +62,13 @@ func _ready() -> void:
 	tally.add_theme_constant_override("separation", 10)
 	tally.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tally.add_child(StarIcon.new(30.0, true))
-	tally.add_child(UI.label("%d / %d" % [Save.total_stars(), Pack.count() * 3], 28, Brand.MUTED))
+	_tally_count = UI.label("", 28, Brand.MUTED)
+	tally.add_child(_tally_count)
 	ui.add_child(tally)
 	Hud.title_banner(self, column, tally)
+	_show_progress()
+	# A cloud save restored a moment after launch announces itself this way, often while the title is open.
+	EventBus.settings_changed.connect(_show_progress)
 
 	_seesaw = Seesaw.new()
 	add_child(_seesaw)
@@ -69,6 +76,13 @@ func _ready() -> void:
 	_place()
 	# Last, so the seesaw is there for the intro to drop its marbles onto.
 	Intro.play(self)
+
+func _show_progress() -> void:
+	var stars: int = Save.total_stars()
+	_level_gap.visible = stars > 0
+	_level_line.visible = stars > 0
+	_level_line.text = "Level %d" % (Save.frontier(Pack.count()) + 1)
+	_tally_count.text = "%d / %d" % [stars, Pack.count() * 3]
 
 func _place() -> void:
 	_seesaw.position = _stage.get_global_rect().get_center() + Vector2(0, 16)

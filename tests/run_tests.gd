@@ -64,6 +64,7 @@ func _initialize() -> void:
 	_test_daily_bank()
 	_test_daily_result_lines()
 	_test_cloud_save()
+	await _test_title_follows_a_restore()
 	_test_play_games()
 	_test_game_stats()
 	# The root takes new children only once _initialize has handed control back to the engine.
@@ -1377,6 +1378,34 @@ func _test_cloud_save() -> void:
 	save.set("path", old[0])
 	save.set("stars", old[1])
 	save.set("daily", old[2])
+
+## Play Games hands back a fresh install's progress a moment after launch, while the title is already up.
+func _test_title_follows_a_restore() -> void:
+	var save: Node = root.get_node("Save")
+	var old: Array = [save.get("path"), save.get("stars")]
+	save.set("path", "user://test_title_restore.cfg")
+	save.set("stars", PackedByteArray())
+	save.call("store")
+	var canvas: CanvasLayer = CanvasLayer.new()
+	root.add_child(canvas)
+	var title: Node = (load(Brand.TITLE_SCENE) as PackedScene).instantiate()
+	canvas.add_child(title)
+	await process_frame
+	var count: Label = title.find_child("Tally", true, false).find_children("*", "Label", true, false)[0]
+	var levels: int = int(root.get_node("Pack").call("count"))
+	_check("a fresh title tallies no stars", count.text == "0 / %d" % (levels * 3))
+	var cloud: ConfigFile = ConfigFile.new()
+	cloud.set_value("progress", "stars", PackedByteArray([3, 2]))
+	(load("res://kit/play_games/cloud_save.gd") as GDScript).call("absorb", cloud.encode_to_text())
+	_check("the title tallies the stars a restore brings", count.text == "5 / %d" % (levels * 3))
+	var shown: Array = title.find_children("*", "Label", true, false).filter(func(n: Node) -> bool:
+		return (n as Label).text == "Level 3")
+	_check("and points Play at the level after them", shown.size() == 1 and (shown[0] as Label).is_visible_in_tree())
+	canvas.queue_free()
+	await process_frame
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_title_restore.cfg"))
+	save.set("path", old[0])
+	save.set("stars", old[1])
 
 func _test_play_games() -> void:
 	var games: GDScript = load("res://kit/play_games/play_games.gd")
