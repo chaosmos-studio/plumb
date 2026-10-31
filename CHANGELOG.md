@@ -16,6 +16,10 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
+## 1.4.3
+
+- Your stars show on the title right after your progress is restored.
+
 ## 1.4.2
 
 - Fixed a rare crash when closing the game.
