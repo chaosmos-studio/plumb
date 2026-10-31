@@ -22,6 +22,10 @@ const PREVIEW_WIDTH_DP: float = 360.0
 ## swipe home or back never starts on the ad: with Android's 24 dp gesture bar that keeps the ad 48 dp, a
 ## full touch target, from the screen's edge. AdMob counts a tap made while leaving the app as invalid.
 const EDGE_DP: float = 24.0
+## The least the banner's bottom ever sits above the screen's edge, in dp. A game runs full screen with the
+## navigation hidden, where the inset is 0 but Android still keeps a 32 dp strip at the bottom for the swipe home
+## (its mandatory system gestures, measured on a Nothing phone): 24 dp alone left the ad's lowest 8 dp in it.
+const FLOOR_DP: float = 48.0
 
 ## Desktop captures only: shows a stand-in banner at the real adaptive size.
 static var preview: bool = false
@@ -117,14 +121,21 @@ static func expected_banner_height(host: Node) -> float:
 		return _height + clearance()
 	return banner_height(host) + clearance()
 
-## EDGE_DP in design pixels: the gap kept between the banner and the system navigation inset below it.
+## The gap kept between the banner and the system navigation inset below it, in design pixels: EDGE_DP, or more
+## where that would leave the banner under FLOOR_DP from the screen's edge.
 static func clearance() -> float:
 	var root: Viewport = (Engine.get_main_loop() as SceneTree).root
 	var view: Vector2 = root.get_visible_rect().size
 	var window: Vector2 = Vector2(DisplayServer.window_get_size())
 	var dpi: float = float(DisplayServer.screen_get_dpi())
 	var width_dp: float = window.x * 160.0 / dpi if dpi > 0.0 and window.x > 0.0 else PREVIEW_WIDTH_DP
-	return EDGE_DP * view.x / width_dp
+	var per_dp: float = view.x / width_dp
+	var inset_dp: float = float(UI.safe_margins(root)["bottom"]) / per_dp
+	return gap_dp(inset_dp) * per_dp
+
+## The gap in dp above an inset `inset_dp` tall, which AdMob's own banner keeps too.
+static func gap_dp(inset_dp: float) -> float:
+	return maxf(EDGE_DP, FLOOR_DP - inset_dp)
 
 ## Where a banner the game draws stands, bottom edge up, in design pixels: above the system navigation inset
 ## and the clear space.

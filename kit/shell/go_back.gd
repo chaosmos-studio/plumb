@@ -6,7 +6,17 @@ extends RefCounted
 ## screen and the level grid go back a screen as Escape does, and on the title the player is asked before
 ## the game closes.
 
+## Android sends one press of a back key as two go-back requests about 50 ms apart (seen with adb's keyevent on a
+## Nothing phone), so the second would close the sheet the first opened. Requests closer than this are one.
+const ONE_PRESS_MS: int = 250
+
+static var _last_ms: int = -ONE_PRESS_MS
+
 static func request(tree: SceneTree) -> void:
+	var now: int = Time.get_ticks_msec()
+	if now - _last_ms < ONE_PRESS_MS:
+		return
+	_last_ms = now
 	if Sheet.back():
 		return
 	var scene: Node = tree.current_scene

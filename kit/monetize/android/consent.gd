@@ -17,8 +17,10 @@ func _exit_tree() -> void:
 ## The consent plugin keeps the callbacks it is given in static variables, which the engine frees at exit
 ## after the scripts that made them: a lambda among them then aborts the app on its way out ("pthread_mutex_lock
 ## called on a destroyed mutex"). Every user of the plugin passes named methods and calls this as it leaves the
-## tree. MobileAds keeps its initialization listener the same way.
+## tree. MobileAds keeps its listeners the same way, and a new listener already holds the plugin's own default
+## lambda, so those go too.
 static func forget() -> void:
+	MobileAds._current_on_ad_inspector_closed_listener = null
 	UserMessagingPlatform.consent_information._on_consent_info_updated_success_callback = null
 	UserMessagingPlatform.consent_information._on_consent_info_updated_failure_callback = null
 	UserMessagingPlatform._on_consent_form_load_success_listener_callback = null

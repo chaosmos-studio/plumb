@@ -237,7 +237,7 @@ func _on_banner_failed() -> void:
 		if _banner_on:
 			_make_banner())
 
-## The banner `height_dp` tall, sitting Ads.EDGE_DP above the system navigation inset. The plugin's
+## The banner `height_dp` tall, sitting Ads.gap_dp above the system navigation inset. The plugin's
 ## AdPosition.BOTTOM stands flush on that inset, where a swipe home lands on the ad, and its custom position
 ## is dp from the top left of the full-screen view, with no inset added (its Banner.kt).
 func _clear_position(height_dp: float) -> AdPosition:
@@ -248,7 +248,7 @@ func _clear_position(height_dp: float) -> AdPosition:
 	var inset_px: float = maxf(0.0, float(screen.y - safe.end.y))
 	if density <= 0.0 or screen_px <= 0.0:
 		return AdPosition.BOTTOM
-	var top_dp: float = (screen_px - inset_px) / density - Ads.EDGE_DP - maxf(height_dp, 50.0)
+	var top_dp: float = (screen_px - inset_px) / density - Ads.gap_dp(inset_px / density) - maxf(height_dp, 50.0)
 	return AdPosition.custom(0, int(floorf(top_dp)))
 
 ## In design pixels. The laid-out view wins if it is taller than the dp size, so it is never underestimated.
