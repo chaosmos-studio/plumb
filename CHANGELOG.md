@@ -20,6 +20,7 @@ To ship: add a new section at the top, push, then Actions > Release Android > Ru
 
 - Fixed a rare crash when closing the game.
 - The banner now sits further from the navigation bar, so it's harder to tap by mistake.
+- Pressing back on the title screen now keeps the "Leaving already?" question open.
 
 ## 1.4.1 - 2026-10-24
 
