@@ -52,3 +52,10 @@ jobs:
           smoke="$(timeout 300 "$GODOT_BIN" --headless res://tools/smoke.tscn 2>&1)"
           echo "$smoke"
           echo "$smoke" | grep -q "SMOKE_OK"
+
+      - name: Banner check
+        run: |
+          set -e
+          out="$(timeout 120 "$GODOT_BIN" --headless res://kit/tools/banner_check.tscn 2>&1)"
+          echo "$out"
+          echo "$out" | grep -q "BANNER CHECK: all passed"

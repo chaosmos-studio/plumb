@@ -82,15 +82,12 @@ func _build() -> void:
 	_page.add_child(_centred(_footer()))
 	_page.add_child(UI.spacer(24))
 
-func _exit_tree() -> void:
-	Ads.hide_banner()
-
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("back"):
 		_leave()
 
 func _leave() -> void:
-	Ads.hide_banner()
+	Ads.hide_banner(self)
 	Daily.day = -1
 	Screens.go(Brand.TITLE_SCENE)
 

@@ -59,7 +59,6 @@ static func banner(host: Node, row: Control, caption: Control, on_lift: Callable
 	var expected: float = Ads.expected_banner_height(host)
 	if expected > 0.0:
 		apply.call(expected)
-	host.tree_exiting.connect(Ads.hide_banner)
 	Ads.show_banner(host, apply)
 
 ## The title's banner, under its star tally. The title is a playable toy and not a bare menu, which is what
@@ -77,7 +76,6 @@ static func title_banner(host: Node, column: Control, tally: Control) -> void:
 	var expected: float = Ads.expected_banner_height(host)
 	if expected > 0.0:
 		apply.call(expected)
-	host.tree_exiting.connect(Ads.hide_banner)
 	Ads.show_banner(host, apply)
 
 static func settings(host: Node) -> IconButton:

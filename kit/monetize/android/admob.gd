@@ -36,6 +36,8 @@ func _ready() -> void:
 	_house.banner_changed.connect(func(height: float) -> void:
 		if not _banner_loaded:
 			banner_changed.emit(height))
+	if _banner_on:
+		_house.set_banner(true)
 	var request: ConsentRequestParameters = ConsentRequestParameters.new()
 	# Named methods, never lambdas: the plugin keeps these callbacks in static variables, and a lambda freed
 	# with them at exit, after its script, aborts the app (Consent.forget).
@@ -195,6 +197,9 @@ func _drop(kind: StringName) -> void:
 
 func set_banner(on: bool) -> void:
 	_banner_on = on and not _stopped
+	# Asked before _ready, as the title does in the frame before Ads attaches this node: _ready applies it.
+	if _house == null:
+		return
 	_house.set_banner(_banner_on and not _banner_loaded)
 	if _banner == null:
 		if _banner_on:

@@ -105,16 +105,13 @@ func _ready() -> void:
 	EventBus.settings_changed.connect(func() -> void: _show(_page, 0, true))
 	_settled = true
 
-func _exit_tree() -> void:
-	Ads.hide_banner()
-
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("back"):
 		_leave(Brand.TITLE_SCENE)
 
 ## The banner goes the moment the player leaves, not once the fade is over.
 func _leave(path: String) -> void:
-	Ads.hide_banner()
+	Ads.hide_banner(self)
 	Screens.go(path)
 
 func _place(from_bottom: float) -> void:

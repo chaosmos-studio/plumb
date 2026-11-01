@@ -73,7 +73,7 @@ static func next_game() -> Dictionary:
 func _make_banner() -> void:
 	_height = Ads.banner_height(self)
 	_layer = CanvasLayer.new()
-	_layer.layer = 55
+	_layer.layer = Ads.BANNER_LAYER
 	add_child(_layer)
 	_banner = HouseBanner.new()
 	_banner.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)

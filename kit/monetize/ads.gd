@@ -36,10 +36,18 @@ static var _backend: AdBackend
 static var _since: int = 0
 static var _last_fullscreen: float = -1.0
 static var _busy: bool = false
-static var _wanted: bool = false
 static var _covers: int = 0
+## A banner drawn by the game (the house banner, the capture's stand-in) sits above sheets, as AdMob's native
+## view does, so a result sheet's strip shows it rather than covering it. Every other sheet hides it.
+const BANNER_LAYER: int = Sheet.LAYER + 1
+## The banner's own height in design pixels while one is loaded, else 0.
 static var _height: float = 0.0
-static var _on_height: Callable = Callable()
+## Every screen that carries the banner, oldest first: {"id": instance id, "on_height": Callable}.
+static var _screens: Array[Dictionary] = []
+## Whether a screen that carries the banner is open and one is due, and whether it is on screen right now
+## (wanted, with no sheet over it). refresh() sets both.
+static var _wanted: bool = false
+static var _showing: bool = false
 static var _stand_in: CanvasLayer
 
 ## Supporter calls this again when Play says the pack is no longer owned.
@@ -50,6 +58,7 @@ static func start() -> void:
 		return
 	if is_instance_valid(_backend):
 		_backend.resume()
+		refresh()
 		return
 	if not OS.has_feature("android"):
 		return
@@ -99,18 +108,39 @@ static func solved() -> int:
 			n += 1
 	return n
 
-## `on_height` hears the banner height in design pixels on every change, and 0 when it goes.
+## A screen that carries the banner calls this once, as it opens. `on_height` hears the room the banner takes
+## (the ad and its clear space, in design pixels) on every change, and 0 when there is none. The newest screen
+## still in the tree owns the banner, and a screen drops out by itself as it leaves the tree, so the order in
+## which a screen change adds the new screen and frees the old one never matters.
 static func show_banner(host: Node, on_height: Callable) -> void:
-	_wanted = AdPacing.banner_due(solved(), Supporter.active()) and (preview or live())
-	_on_height = on_height
-	if not _wanted:
-		return
+	_drop(host.get_instance_id())
+	_screens.append({"id": host.get_instance_id(), "on_height": on_height})
+	if not host.has_meta(&"ads_banner"):
+		host.set_meta(&"ads_banner", true)
+		host.tree_exiting.connect(hide_banner.bind(host), CONNECT_ONE_SHOT)
+	refresh()
+
+## A screen lets the banner go the moment the player leaves it, before its fade is over. With no screen named,
+## every screen lets go, as the app does on its way out.
+static func hide_banner(host: Node = null) -> void:
+	if host == null:
+		_screens.clear()
+	else:
+		_drop(host.get_instance_id())
+	refresh()
+
+## Works out from scratch whether the banner is on screen, and tells the backend and the screen that owns it.
+## Everything that can change the answer calls this: a screen opening or leaving, a sheet opening or closing,
+## a banner loading, the backend arriving, the Supporter pack.
+static func refresh() -> void:
+	var owner: Dictionary = _owner()
+	_wanted = not owner.is_empty() and AdPacing.banner_due(solved(), Supporter.active()) and (preview or live())
+	_showing = _wanted and _covers == 0
 	if preview:
-		_show_stand_in(host)
-		return
-	if _height > 0.0:
-		on_height.call(_height + clearance())
-	_backend.set_banner(_covers == 0)
+		_place_stand_in(_wanted)
+	elif live() and _backend.is_inside_tree():
+		_backend.set_banner(_showing)
+	_tell(owner, _wanted)
 
 ## A play screen reserves this from its first frame, so its board never jumps when the ad arrives. Like every
 ## height Ads reports, it is the banner and its clear space above the system navigation.
@@ -145,7 +175,8 @@ static func banner_bottom(host: Node) -> float:
 ## The height a phone's adaptive banner takes, in design pixels.
 static func banner_height(host: Node) -> float:
 	# A node not yet in the tree has no viewport: the root's is the same screen. A release build does not stop
-	# at a call on null as a debug build does, it crashes.
+	# at a call on null as a debug build does, it crashes (puzzle-kit.md, Release builds crash where debug ones
+	# only complain).
 	var port: Viewport = host.get_viewport() if host.is_inside_tree() else (Engine.get_main_loop() as SceneTree).root
 	var view: Vector2 = port.get_visible_rect().size
 	var window: Vector2 = Vector2(DisplayServer.window_get_size())
@@ -154,27 +185,15 @@ static func banner_height(host: Node) -> float:
 	var per_dp: float = view.x / width_dp
 	return adaptive_height_dp(width_dp, view.y / per_dp) * per_dp
 
-static func hide_banner() -> void:
-	_wanted = false
-	_on_height = Callable()
-	if is_instance_valid(_stand_in):
-		_stand_in.queue_free()
-	_stand_in = null
-	if live():
-		_backend.set_banner(false)
-
-## The banner's height while it is on screen, else 0: what a Sheet that keeps the banner leaves clear below it.
+## The banner's room while it is on screen, else 0: what a Sheet that keeps the banner leaves clear below it.
 static func banner_room() -> float:
-	return _height + clearance() if _height > 0.0 and _wanted and _covers == 0 and (preview or live()) else 0.0
+	return _height + clearance() if _height > 0.0 and _showing else 0.0
 
 ## A Sheet calls this as it opens and closes, so the banner is never on screen with one, except one that keeps
 ## it in a strip of its own below the panel (Sheet.keeps_banner).
 static func cover(on: bool) -> void:
 	_covers = maxi(_covers + (1 if on else -1), 0)
-	if is_instance_valid(_stand_in):
-		_stand_in.visible = _covers == 0
-	if _wanted and live():
-		_backend.set_banner(_covers == 0)
+	refresh()
 
 ## Google's anchored adaptive banner height: in proportion to a 320 by 50 banner, never under 50 dp, and
 ## never over 90 dp or 15% of the screen.
@@ -234,12 +253,15 @@ static func stop() -> void:
 	if is_instance_valid(_stand_in):
 		_stand_in.queue_free()
 	_stand_in = null
-	_on_banner(0.0)
-	_wanted = false
+	_height = 0.0
+	refresh()
 
+## A backend is added to the tree a frame late, while the first screen is already asking for the banner: the
+## banner is applied once the backend is there to take it.
 static func _attach(backend: AdBackend, deferred: bool) -> void:
 	_backend = backend
 	backend.banner_changed.connect(_on_banner)
+	backend.ready.connect(refresh, CONNECT_ONE_SHOT)
 	var tree: SceneTree = Engine.get_main_loop() as SceneTree
 	if deferred:
 		tree.root.add_child.call_deferred(backend)
@@ -248,29 +270,62 @@ static func _attach(backend: AdBackend, deferred: bool) -> void:
 
 static func _on_banner(height: float) -> void:
 	_height = height
-	if _wanted and _on_height.is_valid():
-		_on_height.call(height + clearance() if height > 0.0 else 0.0)
+	_tell(_owner(), _wanted)
 
 static func _on_solved(_level: int, _count: int, _stars: int) -> void:
 	_since += 1
 
-static func _show_stand_in(host: Node) -> void:
-	var view: Vector2 = host.get_viewport().get_visible_rect().size
-	var per_dp: float = view.x / PREVIEW_WIDTH_DP
-	var height: float = adaptive_height_dp(PREVIEW_WIDTH_DP, view.y / per_dp) * per_dp
-	_stand_in = CanvasLayer.new()
-	_stand_in.layer = 55
-	_stand_in.visible = _covers == 0
-	host.add_child(_stand_in)
-	# With AdMob off the stand-in is the house banner itself, as a phone would show it.
-	var box: Control = _StandIn.new() if GameMonetize.ADMOB or Studio.others().is_empty() else HouseBanner.new()
-	box.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	box.offset_bottom = -banner_bottom(host)
-	box.offset_top = box.offset_bottom - height
-	_stand_in.add_child(box)
-	if box is HouseBanner:
-		(box as HouseBanner).show_game(HouseAds.next_game())
-	_on_banner(height)
+## The newest screen that asked for the banner and is still in the tree, or {}.
+static func _owner() -> Dictionary:
+	for i: int in range(_screens.size() - 1, -1, -1):
+		var node: Node = instance_from_id(int(_screens[i]["id"])) as Node
+		if node != null and node.is_inside_tree():
+			return _screens[i]
+	return {}
+
+static func _drop(id: int) -> void:
+	for i: int in range(_screens.size() - 1, -1, -1):
+		if int(_screens[i]["id"]) == id:
+			_screens.remove_at(i)
+
+## Tells the owning screen the banner's room. Until a banner has loaded it keeps the room the screen reserved
+## from its first frame (expected_banner_height), so nothing jumps when the ad arrives.
+static func _tell(owner: Dictionary, wanted: bool) -> void:
+	if owner.is_empty() or (wanted and _height <= 0.0):
+		return
+	var on_height: Callable = owner["on_height"]
+	if on_height.is_valid():
+		on_height.call(_height + clearance() if wanted else 0.0)
+
+## Desktop captures: a stand-in at the real adaptive size, drawn inside the owning screen so a capture's own
+## viewport shows it.
+static func _place_stand_in(wanted: bool) -> void:
+	var owner: Dictionary = _owner()
+	var host: Node = null if owner.is_empty() else instance_from_id(int(owner["id"])) as Node
+	if not wanted or host == null:
+		if is_instance_valid(_stand_in):
+			_stand_in.queue_free()
+		_stand_in = null
+		_height = 0.0
+		return
+	if not is_instance_valid(_stand_in) or _stand_in.get_parent() != host:
+		if is_instance_valid(_stand_in):
+			_stand_in.queue_free()
+		var view: Vector2 = host.get_viewport().get_visible_rect().size
+		var per_dp: float = view.x / PREVIEW_WIDTH_DP
+		_height = adaptive_height_dp(PREVIEW_WIDTH_DP, view.y / per_dp) * per_dp
+		_stand_in = CanvasLayer.new()
+		_stand_in.layer = BANNER_LAYER
+		host.add_child(_stand_in)
+		# With AdMob off the stand-in is the house banner itself, as a phone would show it.
+		var box: Control = _StandIn.new() if GameMonetize.ADMOB or Studio.others().is_empty() else HouseBanner.new()
+		box.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+		box.offset_bottom = -banner_bottom(host)
+		box.offset_top = box.offset_bottom - _height
+		_stand_in.add_child(box)
+		if box is HouseBanner:
+			(box as HouseBanner).show_game(HouseAds.next_game())
+	_stand_in.visible = _showing
 
 ## A real ad's neutral colours, whatever the theme.
 class _StandIn extends Control:
