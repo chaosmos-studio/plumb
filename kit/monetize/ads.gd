@@ -57,6 +57,9 @@ static var _stand_in: CanvasLayer
 static func start() -> void:
 	if not EventBus.level_won.is_connected(_on_solved):
 		EventBus.level_won.connect(_on_solved)
+	# A cloud save restored after launch can make the banner due on the screen already open.
+	if not EventBus.settings_changed.is_connected(refresh):
+		EventBus.settings_changed.connect(refresh)
 	if Supporter.active():
 		return
 	if is_instance_valid(_backend):
