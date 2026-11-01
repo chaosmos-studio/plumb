@@ -16,6 +16,7 @@ var consent: bool = true
 var _layer: CanvasLayer
 var _banner: HouseBanner
 var _height: float = 0.0
+var _pending: bool = false
 
 func _ready() -> void:
 	if consent and OS.has_feature("android") and Engine.has_singleton("PoingGodotAdMob"):
@@ -35,6 +36,13 @@ func present(kind: StringName) -> void:
 
 ## Each screen that shows the banner shows the next game.
 func set_banner(on: bool) -> void:
+	# Ads attaches the backend a frame late, and the title asks for its banner in that frame: the banner waits
+	# until this node is in the tree, where it has a screen to measure.
+	if not is_inside_tree():
+		_pending = on
+		if not tree_entered.is_connected(_enter_with_banner):
+			tree_entered.connect(_enter_with_banner, CONNECT_ONE_SHOT)
+		return
 	if Studio.others().is_empty() or (_layer == null and not on):
 		return
 	if _layer == null:
@@ -43,7 +51,11 @@ func set_banner(on: bool) -> void:
 		_banner.show_game(next_game())
 	_layer.visible = on
 
+func _enter_with_banner() -> void:
+	set_banner.call_deferred(_pending)
+
 func stop() -> void:
+	_pending = false
 	if _layer != null:
 		_layer.queue_free()
 	_layer = null

@@ -144,7 +144,10 @@ static func banner_bottom(host: Node) -> float:
 
 ## The height a phone's adaptive banner takes, in design pixels.
 static func banner_height(host: Node) -> float:
-	var view: Vector2 = host.get_viewport().get_visible_rect().size
+	# A node not yet in the tree has no viewport: the root's is the same screen. A release build does not stop
+	# at a call on null as a debug build does, it crashes.
+	var port: Viewport = host.get_viewport() if host.is_inside_tree() else (Engine.get_main_loop() as SceneTree).root
+	var view: Vector2 = port.get_visible_rect().size
 	var window: Vector2 = Vector2(DisplayServer.window_get_size())
 	var dpi: float = float(DisplayServer.screen_get_dpi())
 	var width_dp: float = window.x * 160.0 / dpi if dpi > 0.0 and window.x > 0.0 else PREVIEW_WIDTH_DP

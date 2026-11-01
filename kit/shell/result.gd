@@ -51,7 +51,10 @@ static func won(host: Node, heading: String, earned: int, detail: PackedStringAr
 		said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		c.add_child(said)
 	for line: String in detail:
-		c.add_child(UI.label(line, 28, Brand.MUTED))
+		# A long line wraps rather than widening the panel or trailing off.
+		var l: Label = UI.label(line, 28, Brand.MUTED)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		c.add_child(l)
 	c.add_child(UI.spacer(4))
 	var next: Button = UI.button(next_text, UI.Style.PRIMARY)
 	next.pressed.connect(on_next)
