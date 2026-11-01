@@ -48,6 +48,9 @@ static var _screens: Array[Dictionary] = []
 ## (wanted, with no sheet over it). refresh() sets both.
 static var _wanted: bool = false
 static var _showing: bool = false
+## The last room told, and to which screen.
+static var _told_id: int = 0
+static var _told_room: float = 0.0
 static var _stand_in: CanvasLayer
 
 ## Supporter calls this again when Play says the pack is no longer owned.
@@ -290,12 +293,19 @@ static func _drop(id: int) -> void:
 
 ## Tells the owning screen the banner's room. Until a banner has loaded it keeps the room the screen reserved
 ## from its first frame (expected_banner_height), so nothing jumps when the ad arrives.
+## Only a change is told: a screen lays itself out again when it hears, and a sheet opening or closing over it
+## changes nothing below.
 static func _tell(owner: Dictionary, wanted: bool) -> void:
 	if owner.is_empty() or (wanted and _height <= 0.0):
 		return
+	var room: float = _height + clearance() if wanted else 0.0
+	if int(owner["id"]) == _told_id and is_equal_approx(room, _told_room):
+		return
+	_told_id = int(owner["id"])
+	_told_room = room
 	var on_height: Callable = owner["on_height"]
 	if on_height.is_valid():
-		on_height.call(_height + clearance() if wanted else 0.0)
+		on_height.call(room)
 
 ## Desktop captures: a stand-in at the real adaptive size, drawn inside the owning screen so a capture's own
 ## viewport shows it.
