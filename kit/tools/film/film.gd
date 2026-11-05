@@ -300,11 +300,18 @@ func touch(kind: String, at: Vector2, to: Vector2 = Vector2.ZERO) -> void:
 	var xf: Transform2D = rect.get_global_transform()
 	var tint: Color = Color.WHITE if Brand.INK.get_luminance() > 0.5 else Brand.INK
 	var r: float = rect.size.x * rect.scale.x * 0.05
+	var from_px: Vector2 = xf * (at * k)
+	var to_px: Vector2 = xf * (to * k)
+	# A video that draws its own finger over the film turns the kit's marks off with style.marks = false.
+	if bool(spec.get("style", {}).get("marks", true)):
+		if kind == "swipe":
+			Touch.swipe(_fx, from_px, to_px, r, tint)
+		else:
+			Touch.tap(_fx, from_px, r, tint)
+	var where: Dictionary = {"kind": kind, "at": [roundi(from_px.x), roundi(from_px.y)]}
 	if kind == "swipe":
-		Touch.swipe(_fx, xf * (at * k), xf * (to * k), r, tint)
-	else:
-		Touch.tap(_fx, xf * (at * k), r, tint)
-	_cue("touch", {"kind": kind})
+		where["to"] = [roundi(to_px.x), roundi(to_px.y)]
+	_cue("touch", where)
 
 func _title(text: String, sub: String) -> void:
 	var box: VBoxContainer = _centre_box()
