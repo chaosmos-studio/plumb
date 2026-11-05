@@ -29,14 +29,12 @@ const GAMES: Array[Dictionary] = [
 		"store": "https://play.google.com/store/apps/details?id=com.shravangoswami.apsis",
 		"web": "https://chaosmos.studio/apsis/play/",
 	},
-	# Shown once it is out on Google Play: set "live" to true then.
 	{
 		"name": "Pyxis",
 		"line": "Pull the knots apart until no strands cross.",
 		"icon": "res://kit/shell/studio/pyxis.webp",
 		"store": "https://play.google.com/store/apps/details?id=com.shravangoswami.pyxis",
 		"web": "https://chaosmos.studio/pyxis/play/",
-		"live": false,
 	},
 ]
 
