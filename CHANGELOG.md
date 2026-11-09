@@ -16,6 +16,11 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
+## 1.4.6
+
+- Plumb now opens on a short Chaosmos intro, told with its own marbles. Tap to skip it.
+- It opens straight into the intro, with no icon screen first.
+
 ## 1.4.5
 
 - The banner stays at the bottom of every screen as you move around, from the moment the game opens, the win sheet included.
