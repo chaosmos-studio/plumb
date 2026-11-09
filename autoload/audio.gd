@@ -18,6 +18,8 @@ var _voices: Array[AudioStreamPlayer] = []
 var _next: int = 0
 var _music: AudioStreamPlayer
 var _fade: Tween
+## The studio's beat at launch plays alone: the music waits for it (kit/ui/intro.gd).
+var _held: bool = false
 
 func _ready() -> void:
 	for key: StringName in CLIPS:
@@ -42,11 +44,15 @@ func _ready() -> void:
 	EventBus.settings_changed.connect(_apply_music)
 	_apply_music()
 
+func hold_music(on: bool) -> void:
+	_held = on
+	_apply_music()
+
 ## Starting the music before any input is fine on the web: the browser holds it until the first tap.
 func _apply_music() -> void:
 	if _music.stream == null:
 		return
-	var want: bool = Save.music_on
+	var want: bool = Save.music_on and not _held
 	if want and not _music.playing:
 		_music.volume_db = -40.0
 		_music.play()

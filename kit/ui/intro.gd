@@ -1,13 +1,17 @@
 class_name Intro
 extends CanvasLayer
 
-## Never holds up input: a tap goes straight through to the title.
+## A game with a studio beat opens on it: the Chaosmos wordmark told in the game's own look (res://intro/, made
+## in studio/chaosmos-intro and installed by its tools/install.sh, which writes res://intro/beat.gd). It plays
+## straight over the title as the app starts, in the player's light or dark, with the game's music held until
+## it ends, and fades into the title, so nothing else stands between the launch and the title. A tap skips it.
 ##
-## The kit expects from the game: tools/make_icons.py writing the icon's parts to assets/branding/intro/,
-## each full frame and drawn where it sits in the icon (ground.png and whatever else), and res://intro.gd
-## with `static func play(stage: Control, host: Node) -> float`, which lays the parts on `stage` with
-## `part`, finds where they sit with `centre`, sets them moving and answers how long that takes. `host` is
-## the screen that started the intro. Without them the whole icon simply settles in.
+## A game without one opens on its icon instead, which never holds up input: a tap goes straight through to
+## the title. The kit expects from the game: tools/make_icons.py writing the icon's parts to
+## assets/branding/intro/, each full frame and drawn where it sits in the icon (ground.png and whatever else),
+## and res://intro.gd with `static func play(stage: Control, host: Node) -> float`, which lays the parts on
+## `stage` with `part`, finds where they sit with `centre`, sets them moving and answers how long that takes.
+## `host` is the screen that started the intro. Without them the whole icon simply settles in.
 
 const LAYER: int = 90
 ## The icon's side as a share of the screen's width, close to Android's launch icon.
@@ -15,6 +19,8 @@ const START_SHARE: float = 0.42
 const OUT_TIME: float = 0.42
 const PARTS: String = "res://assets/branding/intro/"
 const GAME: String = "res://intro.gd"
+const BEAT: String = "res://intro/beat.gd"
+const BEAT_PLAYER: String = "res://intro/chaosmos_intro.gd"
 ## A pixel at least this opaque counts as part of a piece when finding its centre, which leaves out the soft
 ## shadows and glows round it.
 const SOLID: float = 0.78
@@ -67,8 +73,37 @@ static func centre(stage: Control, name: String) -> Vector2:
 static func has_parts() -> bool:
 	return ResourceLoader.exists(GAME) and ResourceLoader.exists(PARTS + "ground.png")
 
+static func has_beat() -> bool:
+	return ResourceLoader.exists(BEAT) and ResourceLoader.exists(BEAT_PLAYER)
+
+## Loaded by path, so the kit runs the same in a game that has no res://intro/. False when the player cannot be
+## made (a script error, such as a name a game's own class hides), and the icon plays instead.
+func _play_beat() -> bool:
+	var player: GDScript = load(BEAT_PLAYER) as GDScript
+	if player == null or not player.can_instantiate():
+		return false
+	var beat: Control = player.new() as Control
+	beat.set("style_name", BEAT)
+	beat.set("dark", Appearance.dark)
+	beat.set("reveal", true)
+	beat.set("muted", not Save.sound_on)
+	add_child(beat)
+	beat.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_hold_music(true)
+	beat.connect("finished", func() -> void:
+		_hold_music(false)
+		queue_free())
+	return true
+
+## A game whose Audio has `hold_music(on)` keeps its music back while the beat plays.
+static func _hold_music(on: bool) -> void:
+	if Audio.has_method("hold_music"):
+		Audio.call("hold_music", on)
+
 func _ready() -> void:
 	layer = LAYER
+	if has_beat() and _play_beat():
+		return
 	var view: Vector2 = get_viewport().get_visible_rect().size
 	var veil: ColorRect = ColorRect.new()
 	veil.color = Brand.BG
