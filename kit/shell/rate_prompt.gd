@@ -10,8 +10,9 @@ extends RefCounted
 ## The kit expects from the game: in `Save`, `rate_asked` and `rated`, with `set_rating(asked, rated)`,
 ## and its Play page as `GameShare.STORE`.
 
-## How many levels solved before each ask.
-const MILESTONES: Array[int] = [20, 60, 120, 200, 300, 400]
+## How many levels solved before each ask. Most players who leave do so between 15 and 45 levels, so the first ask
+## comes at 10, while the game is new to them and before they go.
+const MILESTONES: Array[int] = [10, 30, 60, 120, 200, 300, 400]
 
 static var _asked_this_session: bool = false
 

@@ -871,6 +871,8 @@ func _test_hint_pacing() -> void:
 	_check("level 16 draws on the day's allowance", AdPacing.hint_cost(15, 0, false) == AdPacing.Hint.ALLOWANCE)
 	_check("the third free hint of the day is still free", AdPacing.hint_cost(40, 2, false) == AdPacing.Hint.ALLOWANCE)
 	_check("the fourth asks for a video", AdPacing.hint_cost(40, 3, false) == AdPacing.Hint.VIDEO)
+	_check("a video gives three hints: this one now and two more free today",
+		AdPacing.hints_left(AdPacing.used_after_video(3)) == 2 and AdPacing.hint_cost(40, AdPacing.used_after_video(3), false) == AdPacing.Hint.ALLOWANCE)
 	_check("a Supporter's hints are all free", AdPacing.hint_cost(40, 50, true) == AdPacing.Hint.FREE)
 	_check("hints left count down to none", AdPacing.hints_left(0) == 3 and AdPacing.hints_left(2) == 1
 		and AdPacing.hints_left(3) == 0 and AdPacing.hints_left(7) == 0)
@@ -1002,6 +1004,8 @@ func _test_analytics() -> void:
 	if heard.size() < 2:
 		return
 	_check("a start is level_start with the level's number", heard[0][0] == &"level_start" and heard[0][1]["level"] == 5)
+	_check("level and success reach GA as text, so their dimensions fill, and stars stay a number",
+		analytics.for_ga({"level": 5, "success": 1, "stars": 3}) == {"level": "5", "success": "1", "stars": 3})
 	var won: Dictionary = heard[1][1]
 	_check("a win is a successful level_end with its stars", heard[1][0] == &"level_end" and won["level"] == 5
 		and won["success"] == 1 and won["stars"] == 3 and won.has("seconds"))
@@ -1581,20 +1585,20 @@ func _test_rate_prompt() -> void:
 		for i: int in range(n):
 			stars[i] = 1
 		save.set("stars", stars)
-	solve.call(19)
+	solve.call(9)
 	_check("no rating ask before the first milestone", prompt.call("due") == 0)
-	solve.call(20)
-	_check("the first ask comes at the first milestone", prompt.call("due") == 20)
+	solve.call(10)
+	_check("the first ask comes at the first milestone", prompt.call("due") == 10)
 	var went: Array[bool] = [false]
 	prompt.call("or_ad", root, func() -> void: went[0] = true)
 	_check("at a milestone, Next level asks for Play's review card in place of an ad, then goes on",
-		went[0] and int(save.get("rate_asked")) == 20)
+		went[0] and int(save.get("rate_asked")) == 10)
 	_check("once asked, it waits for the next milestone", prompt.call("due") == 0)
 	solve.call(60)
 	_check("the next milestone asks again, since Play never says whether a rating came", prompt.call("due") == 60)
 	solve.call(70)
 	prompt.call("at_end")
-	_check("the ending asks only when the session has not asked already", int(save.get("rate_asked")) == 20)
+	_check("the ending asks only when the session has not asked already", int(save.get("rate_asked")) == 10)
 	prompt.set("_asked_this_session", false)
 	prompt.call("at_end")
 	_check("and otherwise asks once more", int(save.get("rate_asked")) == 70)

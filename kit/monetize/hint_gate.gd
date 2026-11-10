@@ -35,15 +35,21 @@ static func ask(host: Node, give: Callable) -> Sheet:
 	# Broken by hand, so no line is left with one word on it. The words follow what would play right now: a video
 	# when AdMob has one ready, otherwise a quick game of the studio's.
 	var video: bool = Ads.video_ready()
-	c.add_child(UI.title("Watch a short video\nfor a hint?" if video else "Try a quick game\nfor a hint?", 50))
+	var hints: String = "for %d hints?" % AdPacing.VIDEO_HINTS
+	c.add_child(UI.title(("Watch a short video\n" if video else "Try a quick game\n") + hints, 50))
 	var why: Label = UI.label("Today's free hints are used.\nMore come at midnight.", 28, Brand.MUTED)
 	why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	c.add_child(why)
 	c.add_child(UI.spacer(6))
 	var watch: Button = UI.button("Watch" if video else "Play", UI.Style.PRIMARY)
+	# A watched video pays for this hint and gives the rest of its hints back as today's free ones.
+	var paid: Callable = func() -> void:
+		Save.set_hints(today(), AdPacing.used_after_video(used()))
+		if give.is_valid():
+			give.call()
 	watch.pressed.connect(func() -> void:
 		sheet.close()
-		Ads.rewarded(give, func() -> void:
+		Ads.rewarded(paid, func() -> void:
 			if is_instance_valid(host):
 				Toast.say(host, "No video right now, so this hint is free")
 			if give.is_valid():
@@ -68,6 +74,7 @@ static func _counted(give: Callable) -> Callable:
 			give.call()
 
 static func dress(button: IconButton, level: int) -> void:
+	HintNudge.attach(button)
 	match cost(level):
 		AdPacing.Hint.ALLOWANCE:
 			button.badge = str(AdPacing.hints_left(used()))

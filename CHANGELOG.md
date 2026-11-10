@@ -16,6 +16,12 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
+## 1.4.8
+
+- One short video now gives you three hints, not one.
+- Stuck on a level for a while? The hint button gives you a little nudge.
+- The intro now hands over to the home screen quicker.
+
 ## 1.4.7
 
 - No more blank screen at launch. Plumb opens on the Chaosmos mark, and the intro now settles gently into Home.

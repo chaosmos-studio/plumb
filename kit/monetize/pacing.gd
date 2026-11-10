@@ -15,6 +15,8 @@ const LAUNCH_GAP: float = 180.0
 const FREE_HINT_LEVELS: int = 15
 ## Free hints a day after those, counted by the phone's own calendar so they come back at local midnight.
 const DAILY_HINTS: int = 3
+## Hints one video gives: the one asked for now, and the rest given back as today's free hints.
+const VIDEO_HINTS: int = 3
 
 enum Hint { FREE, ALLOWANCE, VIDEO }
 
@@ -36,6 +38,10 @@ static func hint_cost(level: int, used: int, supporter: bool) -> Hint:
 
 static func hints_left(used: int) -> int:
 	return maxi(DAILY_HINTS - used, 0)
+
+## Today's used count once a video has paid for a hint: the video's other hints wait as free ones for today.
+static func used_after_video(used: int) -> int:
+	return maxi(mini(used, DAILY_HINTS) - (VIDEO_HINTS - 1), 0)
 
 static func used_today(saved_day: String, saved_used: int, today: String) -> int:
 	return maxi(saved_used, 0) if saved_day == today else 0
