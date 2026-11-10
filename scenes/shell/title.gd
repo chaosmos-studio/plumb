@@ -72,7 +72,8 @@ func _ready() -> void:
 
 	_seesaw = Seesaw.new()
 	add_child(_seesaw)
-	_stage.resized.connect(_place)
+	# item_rect_changed, not resized: a banner arriving after launch re-centres the column and moves the stage without resizing it.
+	_stage.item_rect_changed.connect(_place)
 	_place()
 	# Last, so the seesaw is there for the intro to drop its marbles onto.
 	Intro.play(self)

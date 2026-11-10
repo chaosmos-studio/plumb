@@ -16,6 +16,10 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
+## 1.4.7
+
+- The seesaw on the home screen stays in its place when the game starts, instead of slipping behind the Play button.
+
 ## 1.4.6
 
 - Plumb now opens on a short Chaosmos intro, told with its own marbles. Tap to skip it.
