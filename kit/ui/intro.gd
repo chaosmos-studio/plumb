@@ -87,6 +87,9 @@ func _play_beat() -> bool:
 	beat.set("dark", Appearance.dark)
 	beat.set("reveal", true)
 	beat.set("muted", not Save.sound_on)
+	# On Android it opens on the launch screen's mark, over the launch screen's colour (the boot splash's).
+	beat.set("launch", OS.has_feature("android"))
+	beat.set("launch_color", ProjectSettings.get_setting("application/boot_splash/bg_color", Color.WHITE))
 	add_child(beat)
 	beat.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_hold_music(true)

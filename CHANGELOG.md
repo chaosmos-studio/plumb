@@ -18,6 +18,7 @@ To ship: add a new section at the top, push, then Actions > Release Android > Ru
 
 ## 1.4.7
 
+- No more blank screen at launch. Plumb opens on the Chaosmos mark, and the intro now settles gently into Home.
 - The seesaw on the home screen stays in its place when the game starts, instead of slipping behind the Play button.
 
 ## 1.4.6
