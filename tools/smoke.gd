@@ -213,13 +213,18 @@ func _hint_gate() -> int:
 		and int(fake.shown.get(AdBackend.REWARDED, 0)) == 0, "the fourth asks for a video, and Not now gives nothing")
 	failures += _report(await _tap_hint(game) == "asked" and await _answer(game, "Watch")
 		and int(fake.shown.get(AdBackend.REWARDED, 0)) == 1, "a video watched through gives the hint")
+	var banked: bool = true
+	for k: int in range(AdPacing.VIDEO_HINTS - 1):
+		banked = banked and await _tap_hint(game) == "hint"
+	failures += _report(banked and int(fake.shown.get(AdBackend.REWARDED, 0)) == 1,
+		"the video's other hints come free, with no second video")
 	fake.watch_through = false
 	failures += _report(await _tap_hint(game) == "asked" and not await _answer(game, "Watch")
 		and int(fake.shown.get(AdBackend.REWARDED, 0)) == 2, "a video closed early gives nothing")
 	fake.watch_through = true
 	fake.has_video = false
-	failures += _report(await _tap_hint(game) == "asked" and await _answer(game, "Play")
-		and int(fake.shown.get(AdBackend.REWARDED, 0)) == 2, "with no video to show, the prompt offers a play and the hint comes anyway")
+	failures += _report(await _tap_hint(game) == "hint" and hint.badge_icon == &""
+		and int(fake.shown.get(AdBackend.REWARDED, 0)) == 2, "with no video to show, the hint is free without asking")
 	failures += _report(Ads.interstitial_due() == false and int(fake.shown.get(AdBackend.INTERSTITIAL, 0)) == 0,
 		"nothing between levels while playing one")
 	game.queue_free()

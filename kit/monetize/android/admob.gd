@@ -1,8 +1,8 @@
 extends AdBackend
 
 ## Debug builds always ask for Google's test units, so a phone under test never sees a real ad. Whenever AdMob
-## has no banner or video to give (before the account is approved, offline, no fill), the studio's house ads
-## fill in: the house banner holds the strip until a real one loads, and a quick game stands in for a video.
+## has no banner to give (before the account is approved, offline, no fill), the studio's house banner holds the
+## strip until a real one loads. With no video to give, Ads gives the reward anyway.
 
 const TEST_BANNER: String = "ca-app-pub-3940256099942544/9214589741"
 const TEST_INTERSTITIAL: String = "ca-app-pub-3940256099942544/1033173712"
@@ -139,7 +139,7 @@ func _on_failed(kind: StringName) -> void:
 	get_tree().create_timer(wait).timeout.connect(func() -> void: _load(kind))
 
 func ready_to_show(kind: StringName) -> bool:
-	return _admob_ready(kind) or (kind == REWARDED and _showing == &"" and _house.ready_to_show(kind))
+	return _admob_ready(kind)
 
 func video_ready() -> bool:
 	return _admob_ready(REWARDED)
@@ -156,14 +156,7 @@ func _admob_ready(kind: StringName) -> bool:
 
 func present(kind: StringName) -> void:
 	if not _admob_ready(kind):
-		if kind == REWARDED and _showing == &"" and _house.ready_to_show(kind):
-			_showing = kind
-			_house.present(kind)
-			var result: Array = await _house.finished
-			_showing = &""
-			finished.emit(result[0], result[1], result[2])
-		else:
-			finished.emit.call_deferred(kind, false, false)
+		finished.emit.call_deferred(kind, false, false)
 		return
 	_showing = kind
 	_shown = false

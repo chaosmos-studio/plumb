@@ -5,8 +5,8 @@ extends RefCounted
 ## Keep the project setting admob/general/android/app_id equal to APP_ID: the AdMob plugin writes that
 ## setting into the manifest, and a test checks the two agree.
 
-## AdMob's ads, with the studio's own house ads (banners and playable tastes of its other games) filling in
-## whenever AdMob has nothing to give, as before the account is approved. With false, house ads alone.
+## AdMob's ads, with the studio's own house banner filling the strip whenever AdMob has no banner to give, as
+## before the account is approved, and every reward free while it has no video. With false, the house banner alone.
 const ADMOB: bool = true
 const APP_ID: String = "ca-app-pub-3135321730568420~4276024954"
 const BANNER_ID: String = "ca-app-pub-3135321730568420/4401816337"

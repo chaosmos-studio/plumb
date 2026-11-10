@@ -2,7 +2,8 @@ class_name HouseBanner
 extends Control
 
 ## The house ads' banner: one of the studio's other games in its own colours, its icon, name and line, and a
-## little of it moving. A tap opens its store page. It moves on to the next game every so often.
+## little of it moving. A tap opens its store page. It moves on to the next game every so often. It wears that
+## game's light or dark look to match this game's, and changes with it.
 
 ## Seconds before the next game, while the banner stays on screen.
 const TURN: float = 24.0
@@ -11,6 +12,7 @@ const SLOP: float = 18.0
 
 var game: Dictionary = {}
 var _look: Dictionary = {}
+var _dark: bool = false
 var _icon: Texture2D
 var _clock: float = 0.0
 var _shown_at: float = 0.0
@@ -22,7 +24,8 @@ func _init() -> void:
 
 func show_game(next: Dictionary) -> void:
 	game = next
-	_look = HouseGames.style(String(next["name"]))
+	_dark = Appearance.dark
+	_look = HouseGames.style(String(next["name"]), _dark)
 	_icon = UI.rounded(load(String(next["icon"])) as Texture2D)
 	_shown_at = _clock
 	queue_redraw()
@@ -31,6 +34,9 @@ func _process(delta: float) -> void:
 	_clock += delta
 	if is_visible_in_tree() and _clock - _shown_at > TURN:
 		show_game(HouseAds.next_game())
+	elif not game.is_empty() and _dark != Appearance.dark:
+		_dark = Appearance.dark
+		_look = HouseGames.style(String(game["name"]), _dark)
 	queue_redraw()
 
 func _gui_input(event: InputEvent) -> void:

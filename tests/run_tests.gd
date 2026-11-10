@@ -1713,8 +1713,7 @@ func _test_support_and_hint_sheets() -> void:
 	for b: Node in host.find_children("*", "Button", true, false):
 		texts.append((b as Button).text)
 	host.free()
-	var watch: String = "Watch" if bool(load("res://kit/monetize/ads.gd").call("video_ready")) else "Play"
-	_check("the video prompt asks with %s and Not now" % watch, texts == PackedStringArray([watch, "Not now"]))
+	_check("the video prompt asks with Watch and Not now", texts == PackedStringArray(["Watch", "Not now"]))
 	supporter.set("on_play", old[0])
 	supporter.set("price", old[1])
 	save.set("supporter", old[2])
@@ -1733,7 +1732,7 @@ func _test_supporter_entry_points() -> void:
 		texts.append((b as Button).text)
 	host.free()
 	_check("on Google Play the video prompt also offers the pack",
-		texts == PackedStringArray(["Watch" if bool(load("res://kit/monetize/ads.gd").call("video_ready")) else "Play", "Remove ads, unlimited hints", "Not now"]))
+		texts == PackedStringArray(["Watch", "Remove ads, unlimited hints", "Not now"]))
 	# The tip jar is always there, so the title's shop button shows on Google Play always.
 	var old_owned: PackedStringArray = save.get("owned")
 	for case: Array in [[true, false, [], true], [false, false, [], false], [true, true, [], true],
@@ -2072,7 +2071,7 @@ func _test_passes() -> void:
 	await process_frame
 	_check("a pass for Every level opens every level", save.call("unlocked", last))
 	var keys: int = save.get("keys")
-	_check("the keys sheet offers a key for a video", _labels(shop, "keys").has("%s for a key" % ads.call("watch")))
+	_check("the keys sheet offers a key for a video", _labels(shop, "keys").has("Watch a video for a key"))
 	passes.call("give_key")
 	await process_frame
 	await process_frame
@@ -2180,16 +2179,16 @@ func _test_sheets_fit_a_phone() -> void:
 	shop.set("prices", prices)
 	supporter.set("on_play", old)
 
-# With AdMob off, the studio's house ads stand in: no interstitials, one of its games for every reward, and a
-# banner as tall as a phone's ad. Every playable board starts unsolved and its winning moves clear it.
+# With AdMob off, the studio's house banner stands in, as tall as a phone's ad: no interstitials and nothing in a
+# video's place. A reward with no video to play is simply given. The banner has a light and a dark look per game.
 func _test_house_ads() -> void:
 	var house: GDScript = load("res://kit/monetize/house_ads.gd")
-	var boards: GDScript = load("res://kit/monetize/house_games.gd")
+	var looks: GDScript = load("res://kit/monetize/house_games.gd")
 	var ads: GDScript = load("res://kit/monetize/ads.gd")
 	var backend: Node = house.new()
 	root.add_child(backend)
-	_check("house ads never show an interstitial, and always have a game to give a reward",
-		not backend.call("ready_to_show", &"interstitial") and backend.call("ready_to_show", &"rewarded"))
+	_check("house ads are a banner only: no interstitial and nothing in a video's place",
+		not backend.call("ready_to_show", &"interstitial") and not backend.call("ready_to_show", &"rewarded"))
 	var heights: Array[float] = []
 	backend.connect("banner_changed", func(h: float) -> void: heights.append(h))
 	backend.call("set_banner", true)
@@ -2197,21 +2196,24 @@ func _test_house_ads() -> void:
 	backend.call("stop")
 	_check("and gives the room back when ads stop", heights.size() == 2 and is_zero_approx(heights[1]))
 	backend.free()
-	_check("a reward is offered as a quick game while no video is ready", String(ads.call("watch")) == "Try a quick game")
+	ads.call("use", house.new())
+	var given: Array[bool] = [false]
+	ads.call("rewarded", func() -> void: given[0] = true)
+	_check("with no video to play, a reward is simply given", given[0])
+	_check("and the buttons that offer one say it is free", String(ads.call("with_one")) == "free")
 	ads.call("use", _VideoAds.new())
-	_check("and as a video once AdMob has one", String(ads.call("watch")) == "Watch a video")
+	_check("once AdMob has a video, they offer it", String(ads.call("with_one")) == "with a video")
 	ads.call("use", null)
-	var cleared: Array[String] = []
-	for name: String in ["Plumb", "Carillon", "Apsis", "Pyxis"]:
-		var board: Control = boards.call("make", name)
-		root.add_child(board)
-		var fresh: bool = not board.call("is_solved")
-		board.call("play_through")
-		if fresh and board.call("is_solved"):
-			cleared.append(name)
-		board.free()
-	_check("every playable starts unsolved and its winning moves clear it (%s)" % ", ".join(cleared),
-		cleared.size() == 4)
+	var styles: Dictionary = looks.get_script_constant_map()["STYLES"]
+	var both: Array[String] = []
+	for name: String in styles:
+		var light: Dictionary = looks.call("style", name, false)
+		var dark: Dictionary = looks.call("style", name, true)
+		if _contrast(light["ink"], light["bg"]) >= 4.5 and _contrast(dark["ink"], dark["bg"]) >= 4.5 \
+				and (light["bg"] as Color).get_luminance() > 0.7 and (dark["bg"] as Color).get_luminance() < 0.2:
+			both.append(name)
+	_check("every house game has a readable light banner and a readable dark one (%s)" % ", ".join(both),
+		both.size() == styles.size() and both.size() >= 4)
 
 # Android's back button goes back a screen and asks before the game closes, instead of quitting outright.
 func _test_go_back() -> void:

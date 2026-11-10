@@ -49,7 +49,7 @@ static func lend(id: String, on_lent: Callable = Callable()) -> void:
 		Supporter.say("Trying %s for %d hours" % [_called(id), HOURS])
 		if on_lent.is_valid():
 			on_lent.call()
-	Ads.rewarded(lent, _no_video)
+	Ads.rewarded(lent)
 
 static func give_key(on_given: Callable = Callable()) -> void:
 	var given: Callable = func() -> void:
@@ -57,7 +57,7 @@ static func give_key(on_given: Callable = Callable()) -> void:
 		Supporter.say("A key is yours. You have %d" % Save.keys)
 		if on_given.is_valid():
 			on_given.call()
-	Ads.rewarded(given, _no_video)
+	Ads.rewarded(given)
 
 static func say_left(id: String) -> String:
 	var minutes: int = maxi(1, ceili(left(id) / 60.0))
@@ -68,9 +68,6 @@ static func say_left(id: String) -> String:
 
 static func _called(id: String) -> String:
 	return Shop.title(id) if id == GameMonetize.LEVELS_ID else "the " + Shop.title(id)
-
-static func _no_video() -> void:
-	Supporter.say("No video right now. Try again in a moment")
 
 static func start() -> void:
 	_running = _now_running()

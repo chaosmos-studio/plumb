@@ -20,6 +20,8 @@ To ship: add a new section at the top, push, then Actions > Release Android > Ru
 
 - One short video now gives you three hints, not one.
 - Stuck on a level for a while? The hint button gives you a little nudge.
+- No video ready? Hints, locked levels and pack tries are simply free, with no quick-game ads in between.
+- The banner for our other games matches your light or dark look.
 - The intro now hands over to the home screen quicker.
 
 ## 1.4.7

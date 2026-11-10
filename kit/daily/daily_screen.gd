@@ -204,13 +204,12 @@ func _day_sheet(d: int) -> void:
 		c.add_child(play)
 		return
 	c.add_child(_said("Or play its puzzle %s. Its time is yours to keep, and the leaderboard is for each day's own puzzle." % Ads.with_one()))
-	var watch: Button = UI.button(Ads.watch(), UI.Style.GHOST if Daily.keepable().has(d) else UI.Style.PRIMARY)
+	var watch: Button = UI.button("Watch a video", UI.Style.GHOST if Daily.keepable().has(d) else UI.Style.PRIMARY)
 	watch.pressed.connect(func() -> void:
 		sheet.close()
 		Ads.rewarded(func() -> void:
 			Daily.open_day(d)
-			Daily.play(d),
-			func() -> void: Toast.say(self, "No video right now. Try again in a moment")))
+			Daily.play(d)))
 	c.add_child(watch)
 
 ## The newest missed day, kept with a video, a Streak keeper bought before, or one bought now.
@@ -232,8 +231,9 @@ func _keep_buttons(box: VBoxContainer, d: int, then: Callable) -> void:
 	elif Daily.keepers() > 0:
 		options.append(["Use a Streak keeper (%d left)" % Daily.keepers(), "keeper"])
 	else:
+		# With no video ready the day is simply kept: nothing would earn from the ask.
 		if Ads.rewards():
-			options.append([Ads.watch(), "video"])
+			options.append(["Watch a video", "video"] if Ads.video_ready() else ["Keep the day free", "free"])
 		if Supporter.on_play:
 			var price: String = Shop.price(GameMonetize.STREAK_ID)
 			options.append(["Keep it for %s" % price if price != "" else "Buy a Streak keeper", "buy"])

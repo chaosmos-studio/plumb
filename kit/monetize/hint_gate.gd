@@ -5,10 +5,15 @@ extends RefCounted
 ## `dress` whenever a hint is used or the settings change, and `Save.hint_day`, `Save.hints_used` and
 ## `Save.set_hints(day, used)`.
 
+## A hint that would ask for a video is free while none is ready to play: the house banner standing in for AdMob,
+## offline, no fill or an ad blocker. Nothing would earn from the ask.
 static func cost(level: int) -> AdPacing.Hint:
 	if not Ads.rewards():
 		return AdPacing.Hint.FREE
-	return AdPacing.hint_cost(level, used(), Supporter.active())
+	var price: AdPacing.Hint = AdPacing.hint_cost(level, used(), Supporter.active())
+	if price == AdPacing.Hint.VIDEO and not Ads.video_ready():
+		return AdPacing.Hint.FREE
+	return price
 
 static func used() -> int:
 	return AdPacing.used_today(Save.hint_day, Save.hints_used, today())
@@ -32,16 +37,13 @@ static func request(host: Node, level: int, give: Callable) -> Sheet:
 static func ask(host: Node, give: Callable) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
-	# Broken by hand, so no line is left with one word on it. The words follow what would play right now: a video
-	# when AdMob has one ready, otherwise a quick game of the studio's.
-	var video: bool = Ads.video_ready()
-	var hints: String = "for %d hints?" % AdPacing.VIDEO_HINTS
-	c.add_child(UI.title(("Watch a short video\n" if video else "Try a quick game\n") + hints, 50))
+	# Broken by hand, so no line is left with one word on it. Only asked while a video is ready (cost).
+	c.add_child(UI.title("Watch a short video\nfor %d hints?" % AdPacing.VIDEO_HINTS, 50))
 	var why: Label = UI.label("Today's free hints are used.\nMore come at midnight.", 28, Brand.MUTED)
 	why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	c.add_child(why)
 	c.add_child(UI.spacer(6))
-	var watch: Button = UI.button("Watch" if video else "Play", UI.Style.PRIMARY)
+	var watch: Button = UI.button("Watch", UI.Style.PRIMARY)
 	# A watched video pays for this hint and gives the rest of its hints back as today's free ones.
 	var paid: Callable = func() -> void:
 		Save.set_hints(today(), AdPacing.used_after_video(used()))
@@ -49,11 +51,7 @@ static func ask(host: Node, give: Callable) -> Sheet:
 			give.call()
 	watch.pressed.connect(func() -> void:
 		sheet.close()
-		Ads.rewarded(paid, func() -> void:
-			if is_instance_valid(host):
-				Toast.say(host, "No video right now, so this hint is free")
-			if give.is_valid():
-				give.call()))
+		Ads.rewarded(paid))
 	c.add_child(watch)
 	if Supporter.on_play and not Supporter.active():
 		var pack: Button = UI.button("Remove ads, unlimited hints", UI.Style.SECONDARY)

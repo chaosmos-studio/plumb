@@ -260,7 +260,7 @@ static func keys(host: Node) -> Sheet:
 		pack.pressed.connect(func() -> void: Unlocks.buy_key(id, -1))
 		c.add_child(pack)
 	if Ads.rewards():
-		var video: Button = UI.button("%s for a key" % Ads.watch(), UI.Style.GHOST)
+		var video: Button = UI.button("Watch a video for a key" if Ads.video_ready() else "Take a free key", UI.Style.GHOST)
 		video.pressed.connect(func() -> void:
 			sheet.close()
 			Passes.give_key(func() -> void:

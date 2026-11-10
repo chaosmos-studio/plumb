@@ -6,8 +6,8 @@ extends RefCounted
 ## The kit expects from the game:
 ## - `GameMonetize` (res://monetize.gd) with ADMOB, APP_ID, BANNER_ID, INTERSTITIAL_ID, REWARDED_ID and
 ##   SUPPORTER_ID. Debug builds use Google's test units whatever it says. With ADMOB false the studio's own
-##   house ads stand in (HouseAds), one line to switch back. With it on they still fill in, under AdMob,
-##   whenever AdMob has no banner or video to give.
+##   house banner stands in (HouseAds), one line to switch back. With it on the house banner still fills
+##   in, under AdMob, whenever AdMob has no banner to give.
 ## - The AdMob plugin in addons/admob, enabled, with the project setting admob/general/android/app_id
 ##   equal to GameMonetize.APP_ID, since the plugin writes that setting into the manifest.
 ## - Save._ready calling `Supporter.start()` and then `Ads.start()` once progress is restored.
@@ -76,13 +76,11 @@ static func start() -> void:
 	var admob: GDScript = load("res://kit/monetize/android/admob.gd")
 	_attach(admob.new(), true)
 
-## How a reward is earned, for the buttons that offer one: a video when AdMob has one ready, and otherwise a
-## game of the studio's.
-static func watch() -> String:
-	return "Watch a video" if video_ready() else "Try a quick game"
-
+## How a reward is earned, for the buttons that offer one: a video when AdMob has one ready, and otherwise it is
+## free, while the house ads stand in and whenever AdMob has none (offline, no fill, an ad blocker). Nothing earns
+## then anyway, so the player gets the good feeling instead.
 static func with_one() -> String:
-	return "with a video" if video_ready() else "with a quick game"
+	return "with a video" if video_ready() else "free"
 
 static func video_ready() -> bool:
 	return live() and _backend.video_ready()
@@ -225,11 +223,14 @@ static func maybe_interstitial(on_done: Callable, after_guide: bool = false) -> 
 static func interstitial_due() -> bool:
 	return AdPacing.interstitial_due(solved(), _since, now(), _last_fullscreen, Supporter.active())
 
-## `on_unavailable` runs when no video can play (offline, no fill, consent refused). A video closed early
-## runs neither callback.
-static func rewarded(on_reward: Callable, on_unavailable: Callable) -> void:
-	if _busy or not live() or not _backend.ready_to_show(AdBackend.REWARDED):
-		on_unavailable.call()
+## Plays a video and gives the reward once it is watched through. With no video to play (house ads standing in,
+## offline, no fill, consent refused) the reward is simply given. A video closed early gives nothing.
+static func rewarded(on_reward: Callable) -> void:
+	if _busy:
+		return
+	if not live() or not _backend.ready_to_show(AdBackend.REWARDED):
+		if on_reward.is_valid():
+			on_reward.call()
 		return
 	_busy = true
 	_backend.present(AdBackend.REWARDED)
@@ -238,11 +239,9 @@ static func rewarded(on_reward: Callable, on_unavailable: Callable) -> void:
 	var shown: bool = result[1]
 	if shown:
 		_last_fullscreen = now()
-	if bool(result[2]):
-		if on_reward.is_valid():
-			on_reward.call()
-	elif not shown and on_unavailable.is_valid():
-		on_unavailable.call()
+	# Watched through, or never shown at all: either way the reward is the player's.
+	if (bool(result[2]) or not shown) and on_reward.is_valid():
+		on_reward.call()
 
 ## UMP says whether the player must be able to change their consent. Settings shows Privacy choices only
 ## then.

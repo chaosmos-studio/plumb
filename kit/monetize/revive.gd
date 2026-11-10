@@ -8,23 +8,20 @@ extends RefCounted
 
 static var _waiting: bool = false
 
+## Only a video ready to play is asked for. With none, the extra try is simply given.
 static func asks_video() -> bool:
-	return Ads.rewards() and not Supporter.active()
+	return Ads.rewards() and Ads.video_ready() and not Supporter.active()
 
 static func label(what: String) -> String:
-	return ("%s for one more %s" % [Ads.watch(), what]) if asks_video() else "One more %s" % what
+	return ("Watch a video for one more %s" % what) if asks_video() else "One more %s" % what
 
 ## A video closed early gives nothing and leaves the failure sheet as it was, so the player can choose again.
-static func request(host: Node, what: String, give: Callable) -> void:
+static func request(_host: Node, _what: String, give: Callable) -> void:
 	if _waiting:
 		return
 	if not asks_video():
 		give.call()
 		return
 	_waiting = true
-	await Ads.rewarded(give, func() -> void:
-		if is_instance_valid(host):
-			Toast.say(host, "No video right now, so this %s is free" % what)
-		if give.is_valid():
-			give.call())
+	await Ads.rewarded(give)
 	_waiting = false

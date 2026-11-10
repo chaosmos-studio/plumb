@@ -135,8 +135,7 @@ static func keep_day(d: int, how: String) -> void:
 static func keep(d: int, how: String) -> void:
 	match how:
 		"video":
-			Ads.rewarded(func() -> void: keep_day(d, "video"),
-				func() -> void: Supporter.say("No video right now. Try again in a moment"))
+			Ads.rewarded(func() -> void: keep_day(d, "video"))
 		"keeper":
 			if keepers() > 0:
 				keep_day(d, "keeper")
@@ -167,9 +166,9 @@ static func best() -> int:
 static func solves() -> int:
 	return (Save.daily.get("times", {}) as Dictionary).size()
 
-## Whether day `d` plays without a video first.
+## Whether day `d` plays without a video first: always, when no video is ready to ask for.
 static func plays_free(d: int) -> bool:
-	return d >= today() or solved(d) or opened(d) or not Ads.rewards()
+	return d >= today() or solved(d) or opened(d) or not Ads.rewards() or not Ads.video_ready()
 
 static func play(d: int) -> void:
 	day = d
