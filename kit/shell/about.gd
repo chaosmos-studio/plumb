@@ -11,7 +11,10 @@ static func open(host: Node) -> Sheet:
 	c.add_child(UI.centred(UI.app_icon(128)))
 	c.add_child(UI.title(Brand.NAME, 60))
 	var version: String = Changelog.version()
-	c.add_child(UI.caption("%s   version %s" % [Brand.TAGLINE, version] if version != "" else Brand.TAGLINE, 20))
+	# Wraps, so a longer tagline or a two-digit patch number never pushes the sheet past a phone's width.
+	var line: Label = UI.caption("%s   version %s" % [Brand.TAGLINE, version] if version != "" else Brand.TAGLINE, 20)
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	c.add_child(line)
 	c.add_child(UI.spacer(8))
 	c.add_child(UI.caption("Made by", 20))
 	for person: Dictionary in GameCredits.TEAM:
