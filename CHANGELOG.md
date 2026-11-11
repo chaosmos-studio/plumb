@@ -16,6 +16,10 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
+## 1.4.10
+
+- Fixed the intro, which showed a big dot over the first letter o.
+
 ## 1.4.9
 
 - The intro now folds itself into a dot and opens onto your home screen.
