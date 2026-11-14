@@ -8,6 +8,8 @@ const TOP_SPACE: float = 300.0
 const BOTTOM_SPACE: float = 260.0
 const SIDE_MARGIN: float = 30.0
 const HINT_SEARCH: int = 30000
+## With faces on, a fall takes this long before its memorial: the marble's scream and shrink.
+const FALL_TIME: float = 0.5
 ## Seconds from the winning tilt to the result sheet: the last marble's slow drop, and with three stars and
 ## faces on, the party after it.
 const WIN_PAUSE: float = 0.7
@@ -55,6 +57,7 @@ var _ending: bool = false
 var _replay: Replay
 ## The daily puzzle (Daily): timed, no hint and no stars, and level is -1.
 var _daily: bool = false
+var _memorial: Memorial
 
 func _ready() -> void:
 	_daily = Daily.playing()
@@ -78,6 +81,8 @@ func _ready() -> void:
 	_view.show_board(board, _fit())
 	_view.intro()
 	_refresh()
+	if Save.faces:
+		Memorial.warm(self)
 	EventBus.settings_changed.connect(_dress_hint)
 	if _daily:
 		return
@@ -107,6 +112,15 @@ func _layout() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if (is_instance_valid(_coach) and _coach.blocks_input) or is_instance_valid(_prompt) or is_instance_valid(_replay):
+		return
+	if is_instance_valid(_memorial):
+		# Any key ends the memorial, and undo or restart go straight on to do their own work.
+		if event.is_pressed() and not event.is_echo() and not event is InputEventMouseMotion:
+			_memorial.skip()
+			if event.is_action_pressed("undo"):
+				_on_undo()
+			elif event.is_action_pressed("retry"):
+				_on_restart()
 		return
 	if is_instance_valid(_sheet):
 		if event.is_action_pressed("retry"):
@@ -428,8 +442,21 @@ func _watch() -> void:
 	replay.finish()
 	_show_result()
 
+## With faces on, the marble that fell gets its memorial first. An undo or a restart during it skips the
+## banner, since the board is no longer lost.
 func _show_lost() -> void:
-	await get_tree().create_timer(0.35).timeout
+	var fell: int = _view.fallen()
+	if Save.faces and fell >= 0 and not _daily:
+		await get_tree().create_timer(FALL_TIME).timeout
+		if not board.lost:
+			return
+		var xf: Transform2D = _view.get_global_transform_with_canvas()
+		_memorial = Memorial.open(self, board.marble_colour[fell], _view.marble(fell).colour, xf * _view.bounds().get_center())
+		await _memorial.done
+		if not board.lost or finished:
+			return
+	else:
+		await get_tree().create_timer(0.35).timeout
 	_sheet = Result.failed(self, "Down the pit", "Undo that tilt and try another way", "Restart",
 		_on_restart, _to_levels, _on_undo)
 
