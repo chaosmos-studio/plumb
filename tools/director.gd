@@ -145,23 +145,23 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 		"replay":
 			var watched: Node = await _game(host, n)
 			await _solve(watched, 999)
-			await _wait(host, 1.9)
+			await _wait(host, _after_win(1.9))
 			watched.call("_watch")
 			await _wait(host, 0.1 * k)
 		"snapshot":
 			var caught: Node = await _game(host, n)
 			await _solve(caught, 999)
-			await _wait(host, 2.8)
+			await _wait(host, _after_win(2.8))
 		"reel":
 			var reeled: Node = await _game(host, n)
 			await _solve(reeled, 999)
-			await _wait(host, 1.9)
+			await _wait(host, _after_win(1.9))
 			reeled.call("_watch", true)
 			await _wait(host, 0.1 * k)
 		"card":
 			var shared: Node = await _game(host, n)
 			await _solve(shared, 999)
-			await _wait(host, 1.9)
+			await _wait(host, _after_win(1.9))
 			var moment: Result.Moment = shared.get("_won")
 			var image: Image = await ShareCard.render(host, moment, int(shared.get("_earned")), moment.words[0])
 			var layer: CanvasLayer = CanvasLayer.new()
@@ -253,7 +253,7 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			# won:N:K stops K tenths of a second after the last tilt, to catch the snapshot on its way.
 			var game4: Node = await _game(host, n)
 			await _solve(game4, 999)
-			await _wait(host, 0.1 * k if parts.size() > 2 else 1.9)
+			await _wait(host, 0.1 * k if parts.size() > 2 else _after_win(1.9))
 		"daily":
 			DailyStage.seed(variant != "won")
 			if variant == "won":
@@ -420,6 +420,14 @@ func _seed_progress(solved: int = 14) -> void:
 	for i: int in range(solved):
 		stars.append(3 if i % 5 != 3 else 2)
 	Save.stars = stars
+
+## A solved level's sheet rises after the last marble's slow drop and, with faces on, the three-star party
+## (game.gd WIN_PAUSE and PARTY_TIME). The waits after a solve were set when it rose 0.3 s after the last tilt,
+## and every staged solve is a three-star one.
+func _after_win(seconds: float) -> float:
+	var game: Dictionary = (load("res://scenes/game/game.gd") as GDScript).get_script_constant_map()
+	var party: float = float(game["PARTY_TIME"]) if Save.faces else 0.0
+	return seconds + float(game["WIN_PAUSE"]) - 0.3 + party
 
 func _wait(host: Node, seconds: float) -> void:
 	await host.get_tree().create_timer(seconds).timeout

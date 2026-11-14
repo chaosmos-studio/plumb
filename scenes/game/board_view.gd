@@ -11,6 +11,27 @@ const TIP_DEGREES: float = 2.4
 const TIP_SHIFT: float = 12.0
 const TRAY_PAD: float = 0.32
 const TILE_GAP: float = 0.06
+## The win (MATH.md section 18): the last marble's final cells play at these shares of normal speed, the step
+## before it and its own, and the chord rings as it drops.
+const SLOW_LAST: Vector2 = Vector2(0.65, 0.32)
+const CHORD_DB: float = -7.0
+## A marble going home hops this high, in cells, before it drops in, with faces on.
+const HOP: float = 0.2
+const HOP_TIME: float = 0.09
+## How many cells before a pit a falling marble starts to worry.
+const WORRY_STEPS: int = 3
+## A marble at full speed rolls a cell in STEP_TIME: the rolling bed is set by the board's speed against one
+## such marble, under a square root, so four marbles sound twice as loud as one rather than four times.
+const ROLLING_REF: float = 1.0 / STEP_TIME
+const KNOCK_DB: float = -9.0
+const CLINK_DB: float = -11.0
+const PLOP_DB: float = -6.0
+const NOOO_DB: float = -12.0
+## A marble going home ticks the phone this softly, and the last one a little longer.
+const HOME_TICK: int = 10
+const HOME_TICK_STRENGTH: float = 0.35
+## On three stars the marbles pop back out of their holes this far apart.
+const PARTY_STAGGER: float = 0.08
 
 var board: TiltBoard
 var cell: float = 80.0
@@ -39,9 +60,11 @@ var _hatches: PackedByteArray = PackedByteArray()
 var _up: PackedByteArray = PackedByteArray()
 ## The side the lock is drawn on: where it was for the tilt being played, which turns it once it ends.
 var _locked: int = -1
+## The marble the last tilt dropped down a pit, or -1.
+var _fell: int = -1
 
-func _ready() -> void:
-	set_process(false)
+func _exit_tree() -> void:
+	Audio.rolling(0.0)
 
 func show_board(b: TiltBoard, fit: Vector2) -> void:
 	board = b
@@ -56,6 +79,7 @@ func show_board(b: TiltBoard, fit: Vector2) -> void:
 		marble.radius = cell * (0.38 if b.is_stone(i) else 0.36)
 		marble.stone = b.is_stone(i)
 		marble.colour = Palette.marble(b.marble_colour[i])
+		marble.who = b.marble_colour[i]
 		add_child(marble)
 		_marbles.append(marble)
 	sync(b, false)
@@ -80,10 +104,13 @@ func sync(b: TiltBoard, pop_in: bool = true) -> void:
 	_hatches = b.held_open()
 	_up = b.raised()
 	_locked = b.locked
+	_fell = -1
 	for i: int in range(_marbles.size()):
 		var marble: Marble = _marbles[i]
 		marble.colour = Palette.marble(b.marble_colour[i])
+		marble.who = b.marble_colour[i]
 		marble.number = b.marble_number[i]
+		marble.calm()
 		var gone: bool = b.marble_cell[i] == TiltBoard.GONE
 		var was_hidden: bool = not marble.visible or marble.scale.x < 0.5
 		marble.visible = not gone
@@ -97,6 +124,22 @@ func sync(b: TiltBoard, pop_in: bool = true) -> void:
 			create_tween().tween_property(marble, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		else:
 			marble.scale = Vector2.ONE
+	_aim_homes()
+
+## Each marble now and then looks over at the nearest hole of its own colour.
+func _aim_homes() -> void:
+	for i: int in range(_marbles.size()):
+		var at: int = board.marble_cell[i]
+		if at == TiltBoard.GONE:
+			continue
+		var best: Vector2 = Vector2.ZERO
+		for h: int in range(board.holes.size()):
+			if board.holes[h] != board.marble_colour[i]:
+				continue
+			var d: Vector2 = centre(h) - centre(at)
+			if best == Vector2.ZERO or d.length() < best.length():
+				best = d
+		_marbles[i].mood.home_at(best / _marbles[i].radius)
 
 func centre(i: int) -> Vector2:
 	var at: Vector2i = board.coords(i)
@@ -416,6 +459,21 @@ func play(move: TiltMove, after: TiltBoard = null) -> void:
 	_clear_hint()
 	if after != null:
 		board = after
+	_fell = -1
+	var faces: bool = Save.faces
+	# Who falls, and on which step, so they can worry on the way. Who goes home last, if this tilt wins.
+	var falls: Dictionary = {}
+	var last_sink: int = -1
+	for event: Dictionary in move.events:
+		if event["kind"] == &"pit":
+			falls[int(event["marble"])] = int(event["step"])
+		elif event["kind"] == &"sink":
+			last_sink = maxi(last_sink, int(event["step"]))
+	var winning: bool = after != null and after.is_won() and last_sink >= 0
+	var d: Vector2 = Vector2(TiltBoard.DIRS[move.dir])
+	for m: int in range(_marbles.size()):
+		if faces and _marbles[m].visible and not move.moved(m):
+			_marbles[m].mood.glance(d * 0.85, 0.6)
 	for event: Dictionary in move.events:
 		match event["kind"]:
 			&"crack":
@@ -433,11 +491,18 @@ func play(move: TiltMove, after: TiltBoard = null) -> void:
 	if not _pending.is_empty():
 		queue_redraw()
 	_tip(move.dir)
-	if move.length() > 0:
-		Audio.play(&"roll", -9.0, randf_range(0.95, 1.05))
 	for step: int in range(move.steps.size() + 1):
 		if step < move.steps.size():
-			await _roll(move, step)
+			if faces:
+				for m: int in falls:
+					if int(falls[m]) - step <= WORRY_STEPS:
+						_marbles[m].mood.worry(true)
+			var pace: float = 1.0
+			if winning and step == last_sink:
+				pace = SLOW_LAST.y
+			elif winning and step == last_sink - 1:
+				pace = SLOW_LAST.x
+			await _roll(move, step, pace)
 		for event: Dictionary in move.events:
 			if int(event["step"]) != step:
 				continue
@@ -456,7 +521,8 @@ func play(move: TiltMove, after: TiltBoard = null) -> void:
 				&"jump":
 					Audio.play(&"tap", -8.0, 0.8)
 				&"sink", &"pit", &"fill":
-					_drop(int(event["marble"]), event["kind"])
+					var last: bool = winning and event["kind"] == &"sink" and step == last_sink
+					_drop(int(event["marble"]), event["kind"], last)
 					if event["kind"] == &"fill":
 						_pending.erase(int(event["cell"]))
 						queue_redraw()
@@ -464,7 +530,7 @@ func play(move: TiltMove, after: TiltBoard = null) -> void:
 					_repaint(int(event["marble"]), int(event["colour"]))
 				&"bounce":
 					_bump([int(event["marble"])] as Array[int], Vector2i(1, 1))
-					Audio.play(&"clack", -12.0, 1.4)
+					Audio.play(&"knock", KNOCK_DB - 2.0, 1.3)
 				&"portal":
 					Audio.play(&"tap", -8.0, 1.6)
 				&"key":
@@ -480,16 +546,38 @@ func play(move: TiltMove, after: TiltBoard = null) -> void:
 						Audio.play(&"pit", -14.0, 1.35)
 	if not move.stopped.is_empty():
 		_bump(move.stopped, TiltBoard.DIRS[move.dir])
-		Audio.play(&"clack", -4.0, randf_range(0.94, 1.06))
+		_knocks(move.stopped, TiltBoard.DIRS[move.dir])
 		Audio.buzz(8)
+	for m: int in falls:
+		_marbles[m].mood.worry(false)
 	_hatches = board.held_open()
 	_up = board.raised()
 	_locked = board.locked
+	_aim_homes()
 	queue_redraw()
 	busy = false
 
-func _roll(move: TiltMove, step: int) -> void:
+## A soft knock for each marble that stopped against a wall and a glassy clink for one that stopped against
+## another marble, a few milliseconds apart, so a line coming to rest sounds like one.
+func _knocks(ids: Array[int], d: Vector2i) -> void:
+	var played: int = 0
+	for id: int in ids:
+		if played >= 3 or board.marble_cell[id] == TiltBoard.GONE:
+			continue
+		var ahead: Vector2i = board.coords(board.marble_cell[id]) + d
+		var against_marble: bool = board.inside(ahead) and board.marble_cell.has(board.index(ahead))
+		var pitch: float = randf_range(0.94, 1.06) * (1.15 if board.is_stone(id) else 1.0)
+		if played > 0:
+			await get_tree().create_timer(0.012 * played).timeout
+		if against_marble:
+			Audio.play(&"clink", CLINK_DB - played * 2.0, pitch)
+		else:
+			Audio.play(&"knock", KNOCK_DB - played * 2.0, pitch * (0.85 if board.is_stone(id) else 1.0))
+		played += 1
+
+func _roll(move: TiltMove, step: int, pace: float = 1.0) -> void:
 	var tween: Tween = create_tween().set_parallel(true)
+	tween.set_speed_scale(pace)
 	var through: Dictionary = {}
 	for event: Dictionary in move.events:
 		if int(event["step"]) == step and event["kind"] in [&"portal", &"jump", &"wrap"]:
@@ -554,11 +642,13 @@ func _bump(ids: Array[int], d: Vector2i) -> void:
 	var squash: Vector2 = Vector2(0.84, 1.14) if d.x != 0 else Vector2(1.14, 0.84)
 	for id: int in ids:
 		var marble: Marble = _marbles[id]
+		marble.mood.bump()
 		var t: Tween = create_tween()
 		t.tween_property(marble, "scale", squash, 0.05)
 		t.tween_property(marble, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
-func _drop(id: int, kind: StringName) -> void:
+## `last` is the marble whose drop wins the level: it falls slower, and the bells resolve into the chord.
+func _drop(id: int, kind: StringName, last: bool = false) -> void:
 	var marble: Marble = _marbles[id]
 	var t: Tween = create_tween().set_parallel(true)
 	if kind == &"fill":
@@ -568,17 +658,23 @@ func _drop(id: int, kind: StringName) -> void:
 		Audio.play(&"pit", -10.0, 0.7)
 		Audio.buzz(20)
 	elif kind == &"sink":
-		t.tween_property(marble, "scale", Vector2(0.15, 0.15), 0.18).set_ease(Tween.EASE_IN)
-		t.tween_property(marble, "modulate", Color(0.5, 0.5, 0.5, 0.0), 0.18)
-		var ring: Ripple = Ripple.new()
-		ring.colour = marble.colour
-		ring.start_radius = cell * 0.3
-		ring.end_radius = cell * 0.78
-		ring.position = marble.position
-		add_child(ring)
+		_home(marble, t, last)
 		Audio.sink(board.marble_colour[id])
-		Audio.buzz(14)
+		Audio.play(&"plop", PLOP_DB, randf_range(0.96, 1.04))
+		Audio.buzz(HOME_TICK * (2 if last else 1), HOME_TICK_STRENGTH)
+	elif marble.faced():
+		# Wide eyes and a scream as it goes, and no spin, so the face can be seen.
+		_fell = id
+		marble.mood.fall()
+		t.tween_property(marble, "scale", Vector2(1.12, 1.12), 0.08).set_ease(Tween.EASE_OUT)
+		t.chain().tween_property(marble, "scale", Vector2(0.05, 0.05), 0.46).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+		t.parallel().tween_property(marble, "rotation", 0.35, 0.46)
+		t.parallel().tween_property(marble, "modulate", Color(0.15, 0.15, 0.15, 0.0), 0.46).set_ease(Tween.EASE_IN)
+		Audio.play(&"nooo", NOOO_DB, Cast.of(marble.who).voice)
+		Audio.play(&"pit", -6.0)
+		Audio.buzz(40)
 	else:
+		_fell = id
 		t.tween_property(marble, "scale", Vector2(0.05, 0.05), 0.42).set_ease(Tween.EASE_IN)
 		t.tween_property(marble, "rotation", TAU * 1.5, 0.42)
 		t.tween_property(marble, "modulate", Color(0.1, 0.1, 0.1, 0.0), 0.42)
@@ -587,9 +683,48 @@ func _drop(id: int, kind: StringName) -> void:
 		_shake()
 	t.chain().tween_callback(func() -> void: marble.visible = false)
 
+## A marble going home: with faces on it hops for joy before it drops in. Sparkles in its colour and a ripple
+## either way, and for the last marble a slower drop and the chord.
+func _home(marble: Marble, t: Tween, last: bool) -> void:
+	var slow: float = 1.8 if last else 1.0
+	if marble.faced():
+		marble.mood.home()
+		t.tween_property(marble, "position:y", marble.position.y - cell * HOP, HOP_TIME * slow).set_ease(Tween.EASE_OUT) \
+			.set_trans(Tween.TRANS_QUAD)
+		t.tween_property(marble, "scale", Vector2(1.12, 1.12), HOP_TIME * slow)
+		t.chain().tween_property(marble, "position:y", marble.position.y, HOP_TIME * slow).set_ease(Tween.EASE_IN) \
+			.set_trans(Tween.TRANS_QUAD)
+		t.chain().tween_property(marble, "scale", Vector2(0.15, 0.15), 0.18 * slow).set_ease(Tween.EASE_IN)
+		t.parallel().tween_property(marble, "modulate", Color(0.5, 0.5, 0.5, 0.0), 0.18 * slow)
+	else:
+		t.tween_property(marble, "scale", Vector2(0.15, 0.15), 0.18 * slow).set_ease(Tween.EASE_IN)
+		t.tween_property(marble, "modulate", Color(0.5, 0.5, 0.5, 0.0), 0.18 * slow)
+	var at: Vector2 = marble.position
+	var ring: Ripple = Ripple.new()
+	ring.colour = marble.colour
+	ring.start_radius = cell * 0.3
+	ring.end_radius = cell * (1.1 if last else 0.78)
+	ring.position = at
+	add_child(ring)
+	var sparks: Sparkle = Sparkle.new()
+	sparks.colours = [marble.colour, marble.colour.lightened(0.4), Color.WHITE]
+	sparks.cell = cell
+	sparks.position = at
+	add_child(sparks)
+	if last:
+		t.chain().tween_callback(func() -> void:
+			Audio.play(&"chord", CHORD_DB)
+			var wave: Ripple = Ripple.new()
+			wave.colour = marble.colour.lightened(0.2)
+			wave.start_radius = cell * 0.4
+			wave.end_radius = cell * 1.8
+			wave.position = at
+			add_child(wave))
+
 func _repaint(id: int, colour: int) -> void:
 	var marble: Marble = _marbles[id]
 	marble.colour = Palette.marble(colour)
+	marble.who = colour
 	var ring: Ripple = Ripple.new()
 	ring.colour = marble.colour
 	ring.start_radius = cell * 0.2
@@ -626,7 +761,6 @@ func show_hint(dir: int, from: TiltBoard) -> void:
 		_hint_paths.append([_route(move, m, start_cell, jumps), kind, from.marble_colour[m]])
 	_hint_dir = dir
 	_hint_t = 0.0
-	set_process(true)
 	_hint_nudge = create_tween().set_loops()
 	_hint_nudge.tween_interval(0.5)
 	_hint_nudge.tween_callback(func() -> void: _tip(dir, 0.55))
@@ -652,12 +786,64 @@ func _clear_hint() -> void:
 	_hint_nudge = null
 	_hint_dir = -1
 	_hint_paths.clear()
-	set_process(false)
 	queue_redraw()
 
 func _process(delta: float) -> void:
-	_hint_t += delta
-	queue_redraw()
+	if _hint_dir >= 0:
+		_hint_t += delta
+		queue_redraw()
+	var rolling: float = 0.0
+	for m: Marble in _marbles:
+		if m.visible:
+			rolling += m.speed / cell
+	Audio.rolling(sqrt(rolling / ROLLING_REF))
+
+## The eyes follow a finger dragging across the board, before it has swiped far enough to tilt.
+func glance(toward: Vector2) -> void:
+	for m: Marble in _marbles:
+		if m.visible:
+			m.mood.glance(toward, 0.3)
+
+## The marble the last tilt dropped down a pit, or -1.
+func fallen() -> int:
+	return _fell
+
+func marble(id: int) -> Marble:
+	return _marbles[id]
+
+## Three stars: one marble from each hole pops back out in a party hat, one hole after another, with confetti.
+func party() -> void:
+	var seen: Dictionary = {}
+	var k: int = 0
+	for id: int in range(_marbles.size()):
+		var marble: Marble = _marbles[id]
+		if board.marble_cell[id] != TiltBoard.GONE or board.is_stone(id) or id == _fell:
+			continue
+		var key: Vector2i = Vector2i(marble.position.round())
+		if seen.has(key):
+			continue
+		seen[key] = true
+		var at: Vector2 = marble.position
+		var t: Tween = create_tween()
+		t.tween_interval(0.01 + k * PARTY_STAGGER)
+		t.tween_callback(func() -> void:
+			marble.visible = true
+			marble.rotation = 0.0
+			marble.scale = Vector2.ZERO
+			marble.modulate = Color.WHITE
+			marble.mood.party()
+			var confetti: Sparkle = Sparkle.new()
+			confetti.confetti = true
+			confetti.cell = cell
+			confetti.colours.assign(Palette.MARBLES)
+			confetti.position = at
+			add_child(confetti)
+			Audio.play(&"clink", CLINK_DB, 1.2 + 0.1 * k))
+		t.tween_property(marble, "scale", Vector2(0.86, 0.86), 0.24).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		t.parallel().tween_property(marble, "position:y", at.y - cell * 0.12, 0.24).set_trans(Tween.TRANS_BACK) \
+			.set_ease(Tween.EASE_OUT)
+		t.tween_property(marble, "hat", 1.0, 0.3).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+		k += 1
 
 func _draw_hint() -> void:
 	if _hint_dir < 0:

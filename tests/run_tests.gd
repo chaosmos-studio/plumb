@@ -46,6 +46,7 @@ func _initialize() -> void:
 	_test_mood()
 	_test_spin()
 	_test_cast()
+	_test_star_notes()
 	_test_saved_settings()
 	_test_guide_and_ending()
 	_test_banner_pacing()
@@ -854,6 +855,15 @@ func _test_cast() -> void:
 	_check("the teal marble is Steve", Cast.of(1).name == "Steve" and Palette.LIGHT["marbles"][1] == Color("22b5a6"))
 	_check("a stone is a rock with no name", Cast.of(TiltBoard.STONE).mark == Cast.Mark.ROCK and Cast.of(TiltBoard.STONE).name == "")
 	_check("a colour past the fourth wraps round to a character", Cast.of(5) == Cast.of(1))
+
+func _test_star_notes() -> void:
+	var audio: GDScript = load("res://autoload/audio.gd")
+	var notes: Array[float] = []
+	for k: int in range(3):
+		notes.append(audio.call("star_pitch", 1.0 + 0.08 * k))
+	_check("the three stars climb the chord: E, G, then C", is_equal_approx(notes[0], 0.8409) and is_equal_approx(notes[1], 1.0)
+		and is_equal_approx(notes[2], 1.3348))
+	_check("any other pitch for a star is kept", is_equal_approx(audio.call("star_pitch", 0.9), 0.9))
 
 ## The view draws the board the tilt led to, so a cracked cell shows as the pit it became.
 func _test_board_follows_tilt() -> void:

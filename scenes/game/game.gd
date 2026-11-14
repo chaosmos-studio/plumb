@@ -8,6 +8,10 @@ const TOP_SPACE: float = 300.0
 const BOTTOM_SPACE: float = 260.0
 const SIDE_MARGIN: float = 30.0
 const HINT_SEARCH: int = 30000
+## Seconds from the winning tilt to the result sheet: the last marble's slow drop, and with three stars and
+## faces on, the party after it.
+const WIN_PAUSE: float = 0.7
+const PARTY_TIME: float = 0.9
 const DIRECTION_NAMES: PackedStringArray = ["left", "right", "up", "down"]
 
 var level: int = 0
@@ -118,6 +122,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag and _touching and not _swiped:
 		var drag: InputEventScreenDrag = event
 		var delta: Vector2 = drag.position - _touch_from
+		if Save.faces and not finished and not board.lost:
+			_view.glance(delta / SWIPE_MIN)
 		if delta.length() >= SWIPE_MIN:
 			_swiped = true
 			if absf(delta.x) > absf(delta.y):
@@ -369,8 +375,17 @@ func _show_won() -> void:
 	_won.watch = _watch
 	Save.record(level, _earned)
 	EventBus.level_won.emit(level, moves, _earned)
-	await get_tree().create_timer(0.3).timeout
-	Audio.play(&"win", -3.0)
+	# The last marble's slow drop rings the chord (BoardView), so the sheet waits for it and makes no sound of its
+	# own. Three stars with faces on throw a party first.
+	# An undo or a restart in the meantime takes the win back, and no sheet comes.
+	await get_tree().create_timer(WIN_PAUSE).timeout
+	if not finished:
+		return
+	if _earned == 3 and Save.faces:
+		_view.party()
+		await get_tree().create_timer(PARTY_TIME).timeout
+		if not finished:
+			return
 	_show_result()
 
 func _score() -> String:
