@@ -54,6 +54,8 @@ static func sample(id: String, colour: Color, radius: float) -> Node2D:
 	marble.radius = radius
 	marble.colour = colour
 	marble.finish = SETS.get(id, SETS["classic"])[1]
+	# The cards show each set's colours in order, so a colour's place is its character.
+	marble.who = maxi(swatch(id).find(colour), 0)
 	return marble
 
 static func preview(_id: String) -> void:

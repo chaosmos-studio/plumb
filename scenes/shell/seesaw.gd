@@ -11,6 +11,8 @@ const GRAVITY: float = 1500.0
 const DAMPING: float = 0.35
 const RADIUS: float = 26.0
 const DROP_TIME: float = 0.5
+## Marbles that meet faster than this, in pixels a second, squint.
+const SQUINT_SPEED: float = 160.0
 
 var _t: float = 0.0
 var _marbles: Array[Marble] = []
@@ -25,6 +27,8 @@ func _ready() -> void:
 		var m: Marble = Marble.new()
 		m.radius = RADIUS
 		m.colour = Palette.marble(k)
+		m.who = k
+		m.side_view = true
 		add_child(m)
 		_marbles.append(m)
 		_s.append(-LENGTH * 0.3 + k * RADIUS * 2.4)
@@ -72,6 +76,10 @@ func _process(delta: float) -> void:
 			_s[k] -= push
 			_s[k + 1] += push
 			var a: float = _v[k]
+			# A knock hard enough to hear makes both squint.
+			if absf(a - _v[k + 1]) > SQUINT_SPEED:
+				_marbles[k].mood.bump()
+				_marbles[k + 1].mood.bump()
 			_v[k] = _v[k + 1] * 0.9
 			_v[k + 1] = a * 0.9
 	var along: Vector2 = Vector2(cos(angle), sin(angle))
@@ -89,8 +97,9 @@ func _process(delta: float) -> void:
 				_v[k] = -60.0
 				Audio.play(&"clack", -4.0, 0.9 + 0.08 * k)
 			continue
+		# The marble turns as it rolls (Marble.side_view), and its face looks down the slope.
 		_marbles[k].position = rest
-		_marbles[k].rotation = _s[k] / RADIUS
+		_marbles[k].mood.glance(Vector2(signf(angle) * clampf(absf(angle) / ROCK, 0.0, 1.0) * 0.7, 0.15), 0.2)
 	rotation = 0.0
 	_angle = angle
 	queue_redraw()

@@ -18,6 +18,11 @@ var sound_volume: float = 1.0
 var music_volume: float = 1.0
 var haptics_on: bool = true
 var phone_tilt: bool = false
+## The marbles' faces, on for everyone until turned off.
+var faces: bool = true:
+	set(value):
+		faces = value
+		Cast.showing = value
 ## An Appearance.Choice.
 var theme: int = Appearance.native()
 var tutorial_seen: bool = false
@@ -128,6 +133,11 @@ func set_phone_tilt(on: bool) -> void:
 	store()
 	EventBus.settings_changed.emit()
 
+func set_faces(on: bool) -> void:
+	faces = on
+	store()
+	EventBus.settings_changed.emit()
+
 func set_theme(choice: int) -> void:
 	theme = choice
 	store()
@@ -208,6 +218,7 @@ func restore() -> void:
 	hear_music_volume(float(file.get_value("settings", "music_volume", 1.0 if music_on else 0.0)))
 	haptics_on = bool(file.get_value("settings", "haptics_on", true))
 	phone_tilt = bool(file.get_value("settings", "phone_tilt", false))
+	faces = bool(file.get_value("settings", "faces", true))
 	theme = clampi(int(file.get_value("settings", "theme", Appearance.native())), 0, Appearance.Choice.size() - 1)
 	tutorial_seen = bool(file.get_value("progress", "tutorial_seen", false))
 	supporter = bool(file.get_value("monetize", "supporter", false))
@@ -241,6 +252,7 @@ func store() -> void:
 	file.set_value("settings", "music_volume", music_volume)
 	file.set_value("settings", "haptics_on", haptics_on)
 	file.set_value("settings", "phone_tilt", phone_tilt)
+	file.set_value("settings", "faces", faces)
 	file.set_value("settings", "theme", theme)
 	file.set_value("progress", "tutorial_seen", tutorial_seen)
 	file.set_value("monetize", "supporter", supporter)

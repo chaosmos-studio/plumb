@@ -42,6 +42,10 @@ func _initialize() -> void:
 	_test_contrast()
 	_test_themes()
 	_test_marble_sets()
+	_test_gaze()
+	_test_mood()
+	_test_spin()
+	_test_cast()
 	_test_saved_settings()
 	_test_guide_and_ending()
 	_test_banner_pacing()
@@ -740,6 +744,117 @@ func _test_marble_sets() -> void:
 		named = named and GameLooks.PACK_LINE.to_lower().contains(set_name) == (k >= given)
 	_check("the Marble pack counts and names the sets it opens, and none of the free ones", named)
 
+func _test_gaze() -> void:
+	var white: Vector2 = Vector2(0.22, 0.26)
+	var pupil: float = 0.1
+	var outside: int = 0
+	for k: int in range(32):
+		var at: Vector2 = Gaze.inside(white, pupil, Vector2.from_angle(TAU * k / 32.0) * 3.0)
+		if pow(at.x / (white.x - pupil), 2.0) + pow(at.y / (white.y - pupil), 2.0) > 1.0001:
+			outside += 1
+	_check("a pupil never leaves its eye, however far it looks (%d out)" % outside, outside == 0)
+	_check("a pupil looking nowhere sits in the middle", Gaze.inside(white, pupil, Vector2.ZERO) == Vector2.ZERO)
+	var target: Vector2 = Vector2(0.0, 0.25)
+	var left: Vector2 = Gaze.pupil_for_point(Vector2(-0.27, -0.1), white, pupil, target) - Vector2(-0.27, -0.1)
+	var right: Vector2 = Gaze.pupil_for_point(Vector2(0.27, -0.1), white, pupil, target) - Vector2(0.27, -0.1)
+	_check("eyes on something close turn toward each other", left.x > 0.0 and right.x < 0.0)
+	_check("a far look reaches further than a near one", Gaze.toward(Vector2(5, 0)).x > Gaze.toward(Vector2(0.5, 0)).x)
+	for dt: float in [1.0 / 60.0, 0.5]:
+		var g: Gaze = Gaze.new()
+		var most: float = 0.0
+		for i: int in range(int(1.0 / dt) + 1):
+			g.step(Vector2(1, 0), dt)
+			most = maxf(most, g.at.x)
+		_check("a look settles without overshooting at %d ms a frame (peak %.4f)" % [int(dt * 1000.0), most],
+			most <= 1.0001 and g.at.x > 0.99)
+	var quick: Gaze = Gaze.new()
+	for i: int in range(12):
+		quick.step(Vector2(1, 0), 1.0 / 60.0)
+	_check("a glance is most of the way there in a fifth of a second", quick.at.x > 0.9)
+
+func _test_mood() -> void:
+	var m: Mood = Mood.new(3)
+	m.bump()
+	m.worry(true)
+	m.moving(Vector2(60, 0), 0.5)
+	m.fall()
+	_check("a fall shows over worry, a bump and rolling", m.resolve() == Mood.Feel.FALL)
+	m.reset()
+	m.worry(true)
+	m.bump()
+	_check("worry shows over a bump", m.resolve() == Mood.Feel.WORRY)
+	m.reset()
+	for i: int in range(18):
+		m.moving(Vector2(50, 0), 1.0 / 60.0)
+		m.step(1.0 / 60.0)
+	_check("rolling widens the eyes and looks ahead", m.feel == Mood.Feel.ROLL and m.wide > 1.1 and m.look.x > 0.5)
+	for i: int in range(40):
+		m.moving(Vector2.ZERO, 1.0 / 60.0)
+		m.step(1.0 / 60.0)
+	_check("and at rest the face settles", m.feel == Mood.Feel.IDLE and m.wide < 1.03)
+	var squint: Mood = Mood.new(5)
+	squint.bump()
+	for i: int in range(4):
+		squint.step(1.0 / 60.0)
+	var shut: float = squint.open
+	for i: int in range(40):
+		squint.step(1.0 / 60.0)
+	_check("a bump squints and the eyes open again (%.2f then %.2f)" % [shut, squint.open], shut < 0.4 and squint.open > 0.9)
+	var blinks: int = 0
+	var idle: Mood = Mood.new(7)
+	var was_open: bool = true
+	for i: int in range(60 * 30):
+		idle.step(1.0 / 60.0)
+		if was_open and idle.open < 0.2:
+			blinks += 1
+		was_open = idle.open >= 0.2
+	_check("a face at rest blinks every few seconds (%d in 30 s)" % blinks, blinks >= 6 and blinks <= 16)
+	var home: Mood = Mood.new(1)
+	home.home()
+	for i: int in range(12):
+		home.step(1.0 / 60.0)
+	_check("going home shuts the eyes happily and smiles", home.happy > 0.9 and home.smile > 0.8)
+	var lengths: Array[float] = []
+	for shown: int in range(5):
+		lengths.append(Mood.memorial_length(shown))
+	_check("the first memorials of a session play in full, and later ones shorter", lengths[0] == lengths[2]
+		and lengths[3] < lengths[2] and lengths[4] == lengths[3] and lengths[0] <= 1.2)
+
+func _test_spin() -> void:
+	var top: Vector3 = Vector3(0, 0, 1)
+	_check("rolling right turns the top of the ball right", (Spin.roll(Basis.IDENTITY, Vector2(5, 0), 10.0, 1.0) * top).x > 0.4)
+	_check("rolling down the screen turns it down", (Spin.roll(Basis.IDENTITY, Vector2(0, 5), 10.0, 1.0) * top).y > 0.4)
+	var quarter: Vector3 = Spin.roll(Basis.IDENTITY, Vector2(PI * 0.5 * 10.0, 0), 10.0, 1.0) * top
+	_check("rolling a quarter of the way round brings the top to the edge", quarter.distance_to(Vector3(1, 0, 0)) < 0.001)
+	var turned: Basis = Basis.IDENTITY
+	for i: int in range(500):
+		turned = Spin.roll(turned, Vector2(3, 2), 10.0)
+	_check("a long roll stays a rotation", absf(turned.determinant() - 1.0) < 0.001
+		and absf((turned * top).length() - 1.0) < 0.001)
+	_check("rolling right along a bar seen from the side turns clockwise",
+		(Spin.roll_side(Basis.IDENTITY, 2.0, 10.0) * Vector3(1, 0, 0)).y > 0.0)
+	var img: Image = Spin.light(64)
+	var middle: Color = img.get_pixel(32, 32)
+	var near: Color = img.get_pixel(18, 16)
+	var far: Color = img.get_pixel(46, 47)
+	_check("the light leaves a ball's middle near its own colour", middle.a < 0.08)
+	_check("and lightens the side facing the light", near.r > 0.9 and near.a > 0.1)
+	_check("and darkens the far side", far.r < 0.1 and far.a > 0.2)
+	_check("and nothing outside the ball", img.get_pixel(1, 1).a == 0.0 and img.get_pixel(62, 2).a == 0.0)
+
+func _test_cast() -> void:
+	var names: Dictionary = {}
+	var short: bool = true
+	for k: int in range(Cast.CAST.size()):
+		var who: Cast.Who = Cast.of(k)
+		names[who.name] = true
+		short = short and who.name.length() <= 5 and who.name.length() >= 3 and not who.name.contains(";")
+	_check("four characters, one for each colour, with short names of their own", Cast.CAST.size() == 4
+		and names.size() == 4 and short)
+	_check("the teal marble is Steve", Cast.of(1).name == "Steve" and Palette.LIGHT["marbles"][1] == Color("22b5a6"))
+	_check("a stone is a rock with no name", Cast.of(TiltBoard.STONE).mark == Cast.Mark.ROCK and Cast.of(TiltBoard.STONE).name == "")
+	_check("a colour past the fourth wraps round to a character", Cast.of(5) == Cast.of(1))
+
 ## The view draws the board the tilt led to, so a cracked cell shows as the pit it became.
 func _test_board_follows_tilt() -> void:
 	var b: TiltBoard = TiltBoard.create(4, 1)
@@ -817,6 +932,18 @@ func _test_saved_settings() -> void:
 	save.call("restore")
 	_check("the theme is saved", int(save.get("theme")) == 2)
 	_check("a seen guide stays seen", bool(save.get("tutorial_seen")))
+	var old_faces: bool = save.get("faces")
+	save.set("faces", false)
+	save.call("store")
+	save.set("faces", true)
+	save.call("restore")
+	_check("faces turned off stay off", not bool(save.get("faces")))
+	var older: ConfigFile = ConfigFile.new()
+	older.set_value("settings", "theme", 1)
+	older.save("user://test_settings.cfg")
+	save.call("restore")
+	_check("a player from before faces gets them", bool(save.get("faces")))
+	save.set("faces", old_faces)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_settings.cfg"))
 	save.set("path", real)
 	save.set("theme", old_theme)
