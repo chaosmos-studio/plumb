@@ -32,6 +32,8 @@ const HOME_TICK: int = 10
 const HOME_TICK_STRENGTH: float = 0.35
 ## On three stars the marbles pop back out of their holes this far apart.
 const PARTY_STAGGER: float = 0.08
+## The chance, on each tilt, that an animal on the side the board tips toward stirs.
+const STIR_CHANCE: float = 0.4
 
 var board: TiltBoard
 var cell: float = 80.0
@@ -62,15 +64,53 @@ var _up: PackedByteArray = PackedByteArray()
 var _locked: int = -1
 ## The marble the last tilt dropped down a pit, or -1.
 var _fell: int = -1
+## With faces on, the walls are animals (Loaf): which family, and a number that picks their coats, both set
+## by the game for its level.
+var family: Litter.Family = Litter.Family.CAT
+var litter: int = 0
+## Cell to Loaf.
+var _loaves: Dictionary = {}
+
+func _ready() -> void:
+	EventBus.settings_changed.connect(_on_settings)
 
 func _exit_tree() -> void:
 	Audio.rolling(0.0)
+
+func _on_settings() -> void:
+	var shown: bool = not _loaves.is_empty()
+	if board != null and Save.faces != shown:
+		_build_loaves()
+		queue_redraw()
+
+## A loaf for every wall, under the marbles, or none with faces off.
+func _build_loaves() -> void:
+	for loaf: Loaf in _loaves.values():
+		loaf.queue_free()
+	_loaves.clear()
+	if not Save.faces:
+		return
+	for i: int in range(board.cells.size()):
+		if board.cells[i] != TiltBoard.Cell.WALL:
+			continue
+		var loaf: Loaf = Loaf.new()
+		loaf.family = family
+		loaf.coat = Litter.coat_for(i, litter)
+		loaf.half = cell * (0.5 - TILE_GAP)
+		loaf.wall = Palette.WALL
+		loaf.lip = Palette.WALL_LIP
+		loaf.floor = Palette.TILE
+		loaf.position = centre(i)
+		add_child(loaf)
+		move_child(loaf, 0)
+		_loaves[i] = loaf
 
 func show_board(b: TiltBoard, fit: Vector2) -> void:
 	board = b
 	var c: float = minf(fit.x / (b.width + TRAY_PAD * 2.0), fit.y / (b.height + TRAY_PAD * 2.0))
 	cell = floorf(minf(c, MAX_CELL))
 	_origin = -Vector2(b.width, b.height) * cell * 0.5
+	_build_loaves()
 	for m: Marble in _marbles:
 		m.queue_free()
 	_marbles.clear()
@@ -199,7 +239,8 @@ func _draw() -> void:
 					continue
 		match board.cells[i]:
 			TiltBoard.Cell.WALL:
-				draw_style_box(wall, rect)
+				if not _loaves.has(i):
+					draw_style_box(wall, rect)
 			TiltBoard.Cell.PIT:
 				# Holes are round and pits square, so the two never read alike, whatever colours a player can
 				# tell apart.
@@ -491,6 +532,7 @@ func play(move: TiltMove, after: TiltBoard = null) -> void:
 	if not _pending.is_empty():
 		queue_redraw()
 	_tip(move.dir)
+	_stir(move.dir)
 	for step: int in range(move.steps.size() + 1):
 		if step < move.steps.size():
 			if faces:
@@ -557,6 +599,22 @@ func play(move: TiltMove, after: TiltBoard = null) -> void:
 	queue_redraw()
 	busy = false
 
+## Now and then one animal on the side the board tips toward stirs in its sleep.
+func _stir(dir: int) -> void:
+	if _loaves.is_empty() or randf() > STIR_CHANCE:
+		return
+	var d: Vector2i = TiltBoard.DIRS[dir]
+	var far: int = -1000
+	for i: int in _loaves:
+		var at: Vector2i = board.coords(i)
+		far = maxi(far, at.x * d.x + at.y * d.y)
+	var near_edge: Array[int] = []
+	for i: int in _loaves:
+		var at: Vector2i = board.coords(i)
+		if at.x * d.x + at.y * d.y >= far - 1:
+			near_edge.append(i)
+	(_loaves[near_edge[randi() % near_edge.size()]] as Loaf).stir()
+
 ## A soft knock for each marble that stopped against a wall and a glassy clink for one that stopped against
 ## another marble, a few milliseconds apart, so a line coming to rest sounds like one.
 func _knocks(ids: Array[int], d: Vector2i) -> void:
@@ -566,6 +624,8 @@ func _knocks(ids: Array[int], d: Vector2i) -> void:
 			continue
 		var ahead: Vector2i = board.coords(board.marble_cell[id]) + d
 		var against_marble: bool = board.inside(ahead) and board.marble_cell.has(board.index(ahead))
+		if board.inside(ahead) and _loaves.has(board.index(ahead)) and played < 2:
+			(_loaves[board.index(ahead)] as Loaf).wake()
 		var pitch: float = randf_range(0.94, 1.06) * (1.15 if board.is_stone(id) else 1.0)
 		if played > 0:
 			await get_tree().create_timer(0.012 * played).timeout

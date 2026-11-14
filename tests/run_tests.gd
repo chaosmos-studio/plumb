@@ -47,6 +47,7 @@ func _initialize() -> void:
 	_test_spin()
 	_test_cast()
 	_test_star_notes()
+	_test_wall_animals()
 	_test_saved_settings()
 	_test_guide_and_ending()
 	_test_banner_pacing()
@@ -864,6 +865,34 @@ func _test_star_notes() -> void:
 	_check("the three stars climb the chord: E, G, then C", is_equal_approx(notes[0], 0.8409) and is_equal_approx(notes[1], 1.0)
 		and is_equal_approx(notes[2], 1.3348))
 	_check("any other pitch for a star is kept", is_equal_approx(audio.call("star_pitch", 0.9), 0.9))
+
+func _test_wall_animals() -> void:
+	var themes: GDScript = load("res://kit/ui/themes.gd")
+	var short: PackedStringArray = PackedStringArray()
+	var palettes: Array[Dictionary] = [{}]
+	for id: String in themes.call("ids"):
+		palettes.append({"id": id})
+	for entry: Dictionary in palettes:
+		for dark: bool in [false, true]:
+			var t: Dictionary = {} if entry.is_empty() else themes.call("colours", entry["id"], dark)
+			if entry.is_empty() or t.is_empty():
+				Brand.use(dark)
+			else:
+				Brand.use_theme(t, dark)
+			for family: int in range(Litter.Family.size()):
+				for coat: int in range(Litter.Coat.size()):
+					var fur: Color = Litter.fur(coat as Litter.Coat, family as Litter.Family, Palette.WALL, Palette.TILE)
+					var ratio: float = _contrast(fur, Palette.TILE)
+					if ratio < 2.0:
+						short.append("%s %s %d %d: %.1f" % [entry.get("id", "plumb"), "dark" if dark else "light", family, coat, ratio])
+	Brand.use(Brand.NATIVE_DARK)
+	_check("every animal's coat reads as a wall on the floor, in every theme (short: %s)" % ", ".join(short), short.is_empty())
+	_check("cats and dogs take turns level by level", Litter.family_for(0) == Litter.Family.CAT
+		and Litter.family_for(1) == Litter.Family.DOG and Litter.family_for(2) == Litter.Family.CAT)
+	var coats: Dictionary = {}
+	for cell: int in range(36):
+		coats[Litter.coat_for(cell, 7)] = true
+	_check("a board's walls wear a mix of coats (%d of %d)" % [coats.size(), Litter.Coat.size()], coats.size() >= 4)
 
 ## The view draws the board the tilt led to, so a cracked cell shows as the pit it became.
 func _test_board_follows_tilt() -> void:

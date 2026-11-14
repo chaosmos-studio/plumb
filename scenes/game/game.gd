@@ -74,6 +74,9 @@ func _ready() -> void:
 			route = state["route"]
 			board = state["board"]
 	_view = BoardView.new()
+	var seed_level: int = Daily.day if _daily else level
+	_view.family = Litter.family_for(seed_level)
+	_view.litter = seed_level
 	add_child(_view)
 	_build_ui()
 	get_viewport().size_changed.connect(_layout)
