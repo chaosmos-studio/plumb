@@ -70,6 +70,7 @@ func _initialize() -> void:
 	# The root takes new children only once _initialize has handed control back to the engine.
 	await process_frame
 	_test_daily_records()
+	await _test_board_follows_tilt()
 	_test_streak_keeping()
 	_test_chapter_colours()
 	_test_unlocks()
@@ -738,6 +739,23 @@ func _test_marble_sets() -> void:
 		var set_name: String = String(GameLooks.LOOKS[k]["name"]).to_lower()
 		named = named and GameLooks.PACK_LINE.to_lower().contains(set_name) == (k >= given)
 	_check("the Marble pack counts and names the sets it opens, and none of the free ones", named)
+
+## The view draws the board the tilt led to, so a cracked cell shows as the pit it became.
+func _test_board_follows_tilt() -> void:
+	var b: TiltBoard = TiltBoard.create(4, 1)
+	b.set_tile(Vector2i(1, 0), TiltBoard.Tile.CRACK)
+	b.add_marble(Vector2i(0, 0), 0)
+	# Loaded, not named: the view uses autoloads, which a test script cannot name when it compiles.
+	var view: Node2D = (load("res://scenes/game/board_view.gd") as GDScript).new()
+	root.add_child(view)
+	view.call("show_board", b, Vector2(400, 200))
+	var next: TiltBoard = b.copy()
+	var move: TiltMove = next.tilt(TiltBoard.RIGHT)
+	await view.call("play", move, next)
+	var shown: TiltBoard = view.get("board")
+	_check("after a tilt the view draws the board it led to", shown == next and shown.cells[1] == TiltBoard.Cell.PIT)
+	view.queue_free()
+	await process_frame
 
 static func _hue_gap(a: Color, b: Color) -> float:
 	var d: float = absf(a.h - b.h)

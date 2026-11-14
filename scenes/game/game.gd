@@ -169,7 +169,7 @@ func _tilt(dir: int) -> void:
 	route.append(dir)
 	board = next
 	_refresh()
-	await _view.play(move)
+	await _view.play(move, next)
 	if board.lost:
 		_queued = -1
 		_show_lost()
@@ -402,7 +402,7 @@ func _watch() -> void:
 		var next: TiltBoard = board.copy()
 		var move: TiltMove = next.tilt(dir)
 		board = next
-		await _view.play(move)
+		await _view.play(move, next)
 		replay.beat()
 		await get_tree().create_timer(0.1).timeout
 	if not is_inside_tree():

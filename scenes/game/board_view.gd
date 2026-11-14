@@ -410,9 +410,12 @@ func _draw_crack(c: Vector2) -> void:
 		branch.append(c + p * cell)
 	draw_polyline(branch, ink, w, true)
 
-func play(move: TiltMove) -> void:
+## `after` is the board the tilt leads to, which the view draws from then on.
+func play(move: TiltMove, after: TiltBoard = null) -> void:
 	busy = true
 	_clear_hint()
+	if after != null:
+		board = after
 	for event: Dictionary in move.events:
 		match event["kind"]:
 			&"crack":
