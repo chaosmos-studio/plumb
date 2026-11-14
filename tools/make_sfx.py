@@ -1,13 +1,15 @@
 """Nothing is recorded or downloaded, so there is nothing to license.
 
-Run from the project root: python3 tools/make_sfx.py   (needs numpy and ffmpeg with libvorbis)
+Run from the project root: python3 tools/make_sfx.py [name ...]   (needs numpy and ffmpeg with libvorbis)
+With names, only those sounds are written: python3 tools/make_sfx.py plop knock
 
-The noise generator is seeded, so re-running makes the same sounds. The Ogg container gets a new random
+The noise generators are seeded, so re-running makes the same sounds. The Ogg container gets a new random
 stream serial each run, so the bytes differ. Commit only the sounds you changed.
 """
 
 import os
 import subprocess
+import sys
 import wave
 
 import numpy as np
@@ -15,6 +17,8 @@ import numpy as np
 RATE = 44100
 OUT = "assets/audio/sfx"
 RNG = np.random.default_rng(7)
+# The feel sounds draw from their own generator, so adding them changed none of the sounds before them.
+FEEL_RNG = np.random.default_rng(46)
 # C major pentatonic from C5: every pair is consonant, so a board cleared in any order sounds like a chord.
 SINK_NOTES = [523.25, 659.25, 783.99, 880.00]
 
@@ -185,15 +189,225 @@ def hint():
     return normalise(out, 0.5)
 
 
+def resonate(x, freq, q):
+    """A two-pole resonator: the signal rings at `freq`, for about q cycles."""
+    r = np.exp(-np.pi * freq / (q * RATE))
+    a1 = 2 * r * np.cos(2 * np.pi * freq / RATE)
+    a2 = -r * r
+    y = np.zeros_like(x)
+    y1 = y2 = 0.0
+    gain = 1 - r
+    for i, v in enumerate(x):
+        y0 = gain * v + a1 * y1 + a2 * y2
+        y[i] = y0
+        y2, y1 = y1, y0
+    return y
+
+
+def partials(seconds, parts):
+    """A struck thing as (frequency, amplitude, decay seconds) partials, with a 1 ms attack so it never clicks."""
+    t = t_axis(seconds)
+    out = np.zeros(t.size)
+    for f, a, d in parts:
+        out += a * np.sin(2 * np.pi * f * t) * decay(t.size, d)
+    return out * np.clip(np.arange(t.size) / (RATE * 0.001), 0, 1)
+
+
+def plop():
+    """A marble landing in its hole: a glassy tick on the rim, then a short round drop whose pitch rises as a
+    bubble's does."""
+    seconds = 0.16
+    n = int(RATE * seconds)
+    out = 0.3 * partials(seconds, [(2350, 1.0, 0.006), (3710, 0.6, 0.004)])
+    drop_n = int(RATE * 0.09)
+    k = np.arange(drop_n) / drop_n
+    freq = 480 + 420 * k ** 0.6
+    drop = np.sin(2 * np.pi * np.cumsum(freq) / RATE) * decay(drop_n, 0.028)
+    drop *= np.clip(np.arange(drop_n) / (RATE * 0.003), 0, 1)
+    at = int(RATE * 0.012)
+    out[at:at + drop_n] += drop
+    out += 0.25 * partials(seconds, [(150, 1.0, 0.02)])
+    return normalise(out[:n], 0.5)
+
+
+def knock():
+    """A marble against a wooden wall: a low knock with two quicker overtones and a soft click."""
+    seconds = 0.12
+    body = partials(seconds, [(310, 1.0, 0.03), (760, 0.55, 0.014), (1620, 0.25, 0.006)])
+    click = lowpass(FEEL_RNG.standard_normal(body.size), 2400) * decay(body.size, 0.0025)
+    return normalise(body + 0.5 * click, 0.5)
+
+
+def clink():
+    """Glass against glass: high, short partials that are not in tune with each other."""
+    seconds = 0.1
+    ring = partials(seconds, [(2780, 1.0, 0.02), (4530, 0.6, 0.011), (6900, 0.3, 0.005)])
+    click = FEEL_RNG.standard_normal(ring.size) * decay(ring.size, 0.0012)
+    return normalise(ring + 0.25 * click, 0.4)
+
+
+def rolling():
+    """A marble rolling on wood, as a seamless loop: band-limited noise rings in two of the tray's wooden
+    resonances, small knocks of grain come at random, and the whole flutters a little. The tail is folded back
+    onto the start, as the music's is."""
+    seconds = 2.0
+    tail = 0.25
+    n = int(RATE * (seconds + tail))
+    noise = FEEL_RNG.standard_normal(n)
+    body = lowpass(noise, 700) - lowpass(noise, 90)
+    wood = resonate(body, 230, 16) + 0.6 * resonate(body, 470, 12)
+    body /= np.max(np.abs(body))
+    wood /= np.max(np.abs(wood))
+    grain = np.zeros(n)
+    tick = partials(0.02, [(1100, 1.0, 0.003), (1900, 0.4, 0.002)])
+    for at in np.cumsum(FEEL_RNG.exponential(1 / 40.0, int(seconds * 60))):
+        i = int(at * RATE)
+        if i + tick.size < n:
+            grain[i:i + tick.size] += tick * FEEL_RNG.uniform(0.05, 0.18)
+    t = np.arange(n) / RATE
+    flutter = 1 + 0.15 * np.sin(2 * np.pi * 9 * t + 0.8 * np.sin(2 * np.pi * 1.3 * t))
+    out = (0.55 * body + 0.45 * wood + grain) * flutter
+    loop = int(RATE * seconds)
+    wrapped = out[:loop].copy()
+    fade = np.linspace(0, 1, n - loop)
+    wrapped[:n - loop] = wrapped[:n - loop] * fade + out[loop:] * (1 - fade)
+    return normalise(wrapped, 0.45)
+
+
+def chord_bell(freq, seconds, bright):
+    """A bell that rings on, for a chord to sit in: a slower fundamental than bell()'s."""
+    t = t_axis(seconds)
+    n = t.size
+    tone = np.sin(2 * np.pi * freq * t) * decay(n, 0.9)
+    tone += 0.3 * bright * np.sin(2 * np.pi * freq * 2.76 * t) * decay(n, 0.18)
+    tone += 0.12 * bright * np.sin(2 * np.pi * freq * 5.40 * t) * decay(n, 0.06)
+    return tone * np.clip(np.arange(n) / (RATE * 0.004), 0, 1)
+
+
+def chord():
+    """The last marble home resolves the bells into C major (MATH.md section 18): C4 and G4 open at the bottom,
+    then E5, A5 and D6, the sixth and the ninth on top, rolled upward like a strum. Every sink bell (C5, E5, G5,
+    A5) is a note of this chord, so it follows any of them."""
+    notes = [(261.63, 0.55, 0.3), (392.00, 0.45, 0.4), (659.25, 0.42, 0.5), (880.00, 0.34, 0.5), (1174.66, 0.26, 0.6)]
+    strum = 0.045
+    seconds = 2.8
+    out = np.zeros(int(RATE * (strum * len(notes) + seconds)))
+    for k, (f, gain, bright) in enumerate(notes):
+        b = chord_bell(f, seconds, bright) * gain
+        at = int(RATE * k * strum)
+        out[at:at + b.size] += b
+    shimmer = bell(2093.0, 1.4, 0.3) * 0.07
+    at = int(RATE * 0.3)
+    out[at:at + shimmer.size] += shimmer
+    return normalise(out, 0.6)
+
+
+def glide_resonate(x, freqs, q):
+    """resonate() with a frequency that moves sample by sample, for a formant that glides between sounds."""
+    y = np.zeros_like(x)
+    y1 = y2 = 0.0
+    for i, v in enumerate(x):
+        f = freqs[i]
+        r = np.exp(-np.pi * f / (q * RATE))
+        y0 = (1 - r) * v + 2 * r * np.cos(2 * np.pi * f / RATE) * y1 - r * r * y2
+        y[i] = y0
+        y2, y1 = y1, y0
+    return y
+
+
+def voice_source(f0):
+    """A buzz at the pitch `f0` (an array, one value a sample): the first harmonics, each softer than the last."""
+    phase = 2 * np.pi * np.cumsum(f0) / RATE
+    source = np.zeros(f0.size)
+    for h in range(1, 13):
+        source += np.sin(h * phase) / h
+    return source
+
+
+def ramp(n, points):
+    """A value through the (seconds, value) points, straight between them."""
+    t = np.arange(n) / RATE
+    return np.interp(t, [p[0] for p in points], [p[1] for p in points])
+
+
+def nooo():
+    """A tiny cartoon "nooo": the hum of an n with the mouth shut, then the formants glide from where an n leaves
+    the tongue (the second formant near 1.7 kHz) into the vowel of "no", while the pitch slides down."""
+    seconds = 0.62
+    n = int(RATE * seconds)
+    t = np.arange(n) / RATE
+    f0 = 560 * (330 / 560) ** (t / seconds) * (1 + 0.03 * np.sin(2 * np.pi * 6.5 * t))
+    source = voice_source(f0)
+    f1 = ramp(n, [(0, 260), (0.09, 260), (0.15, 470), (seconds, 430)])
+    f2 = ramp(n, [(0, 1700), (0.09, 1700), (0.17, 880), (seconds, 780)])
+    vowel = glide_resonate(source, f1, 6) + 0.6 * glide_resonate(source, f2, 9) + 0.12 * resonate(source, 2600, 10)
+    nasal = resonate(source, 260, 4)
+    open_ = np.clip((t - 0.08) / 0.05, 0, 1)
+    out = nasal / np.max(np.abs(nasal)) * (1 - open_) * 0.45 + vowel / np.max(np.abs(vowel)) * open_
+    env = np.clip(t / 0.02, 0, 1) * np.clip((seconds - t) / 0.18, 0, 1)
+    return normalise(out * env, 0.35)
+
+
+def mrrp():
+    """A sleepy cat's trill: an m with the mouth shut, then a chirp that rises and falls through a low r (its third
+    formant pulled down), rolled about 26 times a second."""
+    seconds = 0.3
+    n = int(RATE * seconds)
+    t = np.arange(n) / RATE
+    f0 = 430 + 250 * np.sin(np.pi * t / seconds) ** 0.8 - 70 * t / seconds
+    source = voice_source(f0)
+    f1 = ramp(n, [(0, 280), (0.05, 280), (0.1, 620), (seconds, 560)])
+    voice = glide_resonate(source, f1, 5) + 0.6 * resonate(source, 1250, 7) + 0.2 * resonate(source, 1700, 9)
+    hum = resonate(source, 280, 4)
+    open_ = np.clip((t - 0.045) / 0.04, 0, 1)
+    roll = 1 - open_ * (0.4 - 0.4 * np.sin(2 * np.pi * 26 * t))
+    out = hum / np.max(np.abs(hum)) * (1 - open_) * 0.5 + voice / np.max(np.abs(voice)) * open_ * roll
+    env = np.clip(t / 0.015, 0, 1) * np.clip((seconds - t) / 0.08, 0, 1)
+    return normalise(out * env, 0.35)
+
+
+def huff():
+    """A sleepy dog's huff: a breath out through the nose that swells and fades, with a little of the throat under
+    it and no hard start."""
+    seconds = 0.3
+    n = int(RATE * seconds)
+    t = np.arange(n) / RATE
+    noise = FEEL_RNG.standard_normal(n)
+    breath = lowpass(noise, 3200) - lowpass(noise, 350)
+    swell = np.sin(np.pi * np.clip(t / 0.26, 0, 1)) ** 1.6
+    throat = 0.18 * np.sin(2 * np.pi * 150 * t) * swell
+    return normalise(breath / np.max(np.abs(breath)) * swell + throat, 0.35)
+
+
+SOUNDS = {
+    "tap": tap,
+    "roll": roll,
+    "clack": clack,
+    **{"sink_%d" % k: (lambda f=f: sink(f)) for k, f in enumerate(SINK_NOTES)},
+    "pit": pit,
+    "win": win,
+    "star": star,
+    "undo": undo,
+    "hint": hint,
+    "music": music,
+    "plop": plop,
+    "knock": knock,
+    "clink": clink,
+    "rolling": rolling,
+    "chord": chord,
+    "nooo": nooo,
+    "mrrp": mrrp,
+    "huff": huff,
+}
+
+
 if __name__ == "__main__":
-    write("tap", tap())
-    write("roll", roll())
-    write("clack", clack())
-    for k, f in enumerate(SINK_NOTES):
-        write("sink_%d" % k, sink(f))
-    write("pit", pit())
-    write("win", win())
-    write("star", star())
-    write("undo", undo())
-    write("hint", hint())
-    write("music", music())
+    wanted = sys.argv[1:]
+    unknown = [name for name in wanted if name not in SOUNDS]
+    if unknown:
+        sys.exit("no such sound: " + ", ".join(unknown))
+    # Every sound is made in order, so each draws the same noise whichever are written.
+    for name, make in SOUNDS.items():
+        samples = make()
+        if not wanted or name in wanted:
+            write(name, samples)
