@@ -1,10 +1,10 @@
 class_name HardShelf
 extends RefCounted
 
-## Brings a save made before the Hard levels to the levels as they are now (MATH.md section 16). The old levels from
-## FIRST on are the Hard levels, so the stars won on them and the keys spent on them go with them. The main path's
-## boards from FIRST on are new, so its stars there start again, and the first level of every chapter up to the
-## furthest the player had reached opens, so no chapter they could play before is shut.
+## Brings a save made before the Hard levels to the levels as they are now (MATH.md sections 16 and 22). The old
+## levels from FIRST on are the Hard levels, so the stars won on them and the keys spent on them go with them. The
+## main path's boards from FIRST on are new, so its stars there start again, and the first level of every chapter up
+## to the furthest the player had reached opens, so no chapter they could play before is shut.
 
 ## The save layout since the Hard levels. A save without one is older.
 const LAYOUT: int = 2
@@ -12,6 +12,9 @@ const LAYOUT: int = 2
 const FIRST: int = 180
 const CHAPTER: int = 20
 const COUNT: int = 500
+## Chapters the main path has gained at FIRST since (Bouncy blocks): every old chapter from FIRST on now comes this
+## many chapters later there.
+const ADDED: int = 1
 
 ## Moves `file` on to LAYOUT in place, if it is older. True when it was.
 static func migrate(file: ConfigFile, gate: float) -> bool:
@@ -44,11 +47,14 @@ static func split(stars: PackedByteArray, opened: PackedInt32Array, gate: float)
 			hard_opened.append(level)
 		else:
 			kept.append(level)
+	# On the main path today: the chapters added at FIRST, then each old chapter reached, ADDED chapters on.
 	var furthest: int = furthest_chapter(stars, opened, gate)
 	@warning_ignore("integer_division")
-	for c: int in range(FIRST / CHAPTER, furthest + 1):
-		if not kept.has(c * CHAPTER):
-			kept.append(c * CHAPTER)
+	var from: int = FIRST / CHAPTER
+	if furthest >= from:
+		for c: int in range(from, furthest + ADDED + 1):
+			if not kept.has(c * CHAPTER):
+				kept.append(c * CHAPTER)
 	return {"stars": main, "opened": kept, "hard": hard, "hard_opened": hard_opened}
 
 ## The furthest chapter, 0-based, with any level open under the rules the save was made with (Unlocks). -1 for none

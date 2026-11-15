@@ -10,7 +10,8 @@ const SECTION_NAMES: PackedStringArray = ["Main", "Hard"]
 ## The section being shown and played, by index. Hard keeps each level's number: its levels before `hard_from` are
 ## the main path's, which it shares and never shows.
 var levels: Array[Dictionary] = []
-## Each {"name", "line", "count"}, the same in both sections. Empty for a level file without chapters.
+## Each {"name", "line", "count"}, for the section being shown. Empty for a level file without chapters. Hard's
+## leave out the main path's chapters marked "after_hard", added after its levels were shelved (MATH.md section 22).
 var chapters: Array[Dictionary] = []
 var current: int = 0
 var section: Section = Section.MAIN
@@ -18,6 +19,8 @@ var section: Section = Section.MAIN
 var hard_from: int = 0
 var _main: Array[Dictionary] = []
 var _hard: Array[Dictionary] = []
+var _main_chapters: Array[Dictionary] = []
+var _hard_chapters: Array[Dictionary] = []
 
 func _ready() -> void:
 	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(PATH))
@@ -27,7 +30,10 @@ func _ready() -> void:
 	for entry: Variant in (data as Dictionary)["levels"]:
 		_main.append(entry as Dictionary)
 	for entry: Variant in (data as Dictionary).get("chapters", []):
-		chapters.append(entry as Dictionary)
+		var chapter: Dictionary = entry
+		_main_chapters.append(chapter)
+		if not chapter.get("after_hard", false):
+			_hard_chapters.append(chapter)
 	_hard.assign(_main)
 	var hard: Variant = JSON.parse_string(FileAccess.get_file_as_string(HARD_PATH)) if FileAccess.file_exists(HARD_PATH) \
 		else null
@@ -45,6 +51,7 @@ func sections() -> PackedStringArray:
 func use(which: int) -> void:
 	section = which as Section
 	levels = _hard if section == Section.HARD else _main
+	chapters = _hard_chapters if section == Section.HARD else _main_chapters
 
 func count() -> int:
 	return levels.size()
