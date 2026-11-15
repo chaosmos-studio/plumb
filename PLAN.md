@@ -231,7 +231,8 @@ generator are Plumb's own.
   shading that makes every set read as a ball, a pattern that turns as it rolls, a rolling sound that
   follows the board's speed, soft knocks and clinks, a glass plop with every bell, the last marble slowing
   into its hole as the bells resolve into a chord, stars on the chord's notes, sparkles and soft vibration
-  ticks (`MATH.md` sections 17 to 21). Still to do: a tray light that follows the tilt.
+  ticks (`MATH.md` sections 17 to 21). Every win is now a party: confetti, slamming stars, a count-up and a
+  chapter's own moment, skipped by a tap (`MATH.md` section 23). Still to do: a tray light that follows the tilt.
 - **M3 - Content**: 500 levels in 25 chapters, one new rule each (`CHAPTERS.md`), shipped in waves. 1.1,
   chapters 1 to 10 with stop pads, one-way gates, plugs, colour gates, paint and cracked floor: built.
   1.2 to 1.4, chapters 11 to 25: designed. Daily puzzles from a date seed may follow. Since the plateau the

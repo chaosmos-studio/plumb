@@ -1132,3 +1132,40 @@ them in par.
 - In `TiltBoard.tilt`, take the `bounced` check off: two blocks facing each other pass a marble back and forth
   until section 9's loop guard stops it, on the first cell it reaches again heading the same way.
 - `Mood.SURPRISE_TIME` to 0.2: the startled look is gone before the marble stops rolling back.
+
+---
+
+## 23. A party for every win
+
+A solved board was quiet: the last marble's chord, then the sheet. Now every win is a small party
+(`scenes/celebrate/celebration.gd`, its pieces in `flourish.gd`), all drawn in code with tweens and short-lived
+nodes, so it costs nothing until it plays:
+
+- **The board.** As the chord rings, two confetti cannons fire up from the tray's lower corners, the board hops
+  and lands with a bounce, and one word of praise pops over it with a wobble: Perfect, Flawless or Brilliant for
+  three stars, Great, Nice or Smooth for two, Solved or Done for one. It is also the sheet's heading. With faces
+  on, three stars bring the marbles back out of their holes in party hats, and they jump twice. 1.6 s in all.
+- **The sheet.** Each star slams in from 2.4 times its size with a burst of confetti and a shake of the row, on
+  the win chord's notes (section 19), the phone ticking harder each time. The star total counts up under them, the
+  chapter's bar fills in its colour, and Next wiggles every 1.7 s until it is pressed. The kit lands
+  the stars through `Result.award`, so another game can do the same its own way.
+- **A finished chapter.** The board dims, a dot for each of the chapter's levels lights round a ring, one every 45
+  ms, and the number in the middle runs through those levels' numbers as a player sees them (`Shown`: 181 to 200,
+  or Hard's own 1 to 20), then lands on the chapter's number, with a pop and the word CHAPTER over it, as the
+  cannons fire again and the bells play a ta-da. Counting through the levels says what was finished, and the word
+  says what the last number means, so it can never be read as a level.
+- **Never in the way.** A tap anywhere during the party or the chapter's moment skips straight to the sheet, and
+  an undo or a restart takes the win back. Every sound plays at or under the old win jingle (section 19).
+- **Around it.** On Levels a newly opened level pops open with confetti, solved levels shine now and then, and
+  the next one breathes in a gold ring. Screens change under a red circle that grows from the middle and shrinks
+  away. On Home, Play wiggles and confetti puffs up from the seesaw every five seconds.
+
+**Tried.** Three directions were built side by side and recorded the same way: this one, Party; Glow, a calm
+luxury where a band of light swept the board, the holes bloomed in their colours and the stars opened with halos
+over a warm chord; and Toybox, where tiles lifted in a ripple from the last hole, stars dropped in like marbles
+into cups and screens slid like drawers. Shravan picked Party, for the confetti, and the other two were taken out.
+
+### Things to try
+
+- `Celebration.BOARD_TIME` to 0.8: the sheet comes up while the confetti is still falling.
+- In `chapter_moment`, set `fill` to 2.0: the count through the levels slows enough to read every number.
