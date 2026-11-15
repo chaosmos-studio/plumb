@@ -1,6 +1,6 @@
 # Plumb to 500 levels: chapters
 
-The plan for Plumb's 500 levels, all 25 chapters built. How the chapters are generated, and why every level
+The plan for Plumb's 500 levels, all 25 chapters built, and a 26th on the main path since (Bouncy blocks). How the chapters are generated, and why every level
 needs its rule, is in `MATH.md` sections 8 to 10. As built, a switch holds its hatch open for a whole tilt if
 something rests on it as the tilt starts, a portal whose twin is taken is shut, and conveyors, ice holes and
 glass act once the board has stopped.
@@ -21,6 +21,11 @@ tilts), on boards no larger than 7x8 with five marbles. Every
 chapter still brings its rule, with its card and caption on its first level, and every level still needs
 it. The old levels 181 to 500 are kept as they were, as the Hard levels, open from the start. Levels 1 to
 180 did not change.
+
+**Bouncy blocks (2026-11-15).** Shravan's idea: a marble that rolls into a bouncy block goes straight back the
+way it came, until something stops it, once a tilt (`MATH.md` section 22). It became chapter 10 on the main path,
+where players meet it just after level 180, and the plateau's other chapters moved on one, boards unchanged, to
+11 to 26. The main path has 520 levels in 26 chapters. The Hard levels did not change.
 
 **The opening (2026-10-04).** Levels 1 to 5 are picked for what they show as well as how hard they are
 (`MATH.md` section 12): a long roll home, two marbles dropping on one tilt, a bank off a wall, a tempting tilt
@@ -86,6 +91,7 @@ grows); L changes how a tilt resolves.
 | 30 | Gravity cells | A marble that stops on a gravity cell rolls on downward | One cell with its own tilt | Kula World, VVVVVV | M |
 | 31 | Sticky floor | A marble that stops on glue stays there until another marble knocks it free | Marbles as tools | Lemmings blockers | L |
 | 32 | Fragile marbles | A cracked marble breaks if it hits a wall at full roll | Gentle stops only | egg puzzles | M |
+| 33 | Bouncy blocks | A marble that rolls into a bouncy block goes straight back the way it came, once a tilt | Turning a marble round where nothing stops it | Shravan's idea, pinball bumpers | built |
 
 ## The 25 chapters
 
@@ -104,22 +110,26 @@ chapters can follow it in later updates.
 | 7 | 121-140 | Plugs | colours |
 | 8 | 141-160 | Colour gates | plugs |
 | 9 | 161-180 | Paint pads | colour gates |
-| 10 | 181-200 | Cracked floor | pits, stop pads |
-| 11 | 201-220 | Stones | pits, cracked floor |
-| 12 | 221-240 | Portals | one-way gates |
-| 13 | 241-260 | Bumpers | portals |
-| 14 | 261-280 | Switches and doors | stones |
-| 15 | 281-300 | Keys and locks | colour gates |
-| 16 | 301-320 | Blinking walls | switches |
-| 17 | 321-340 | Conveyors | bumpers |
-| 18 | 341-360 | Springs | pits, cracked floor |
-| 19 | 361-380 | Wrap edges | portals |
-| 20 | 381-400 | Magnets | conveyors |
-| 21 | 401-420 | Numbered marbles | plugs |
-| 22 | 421-440 | Glass posts | stones |
-| 23 | 441-460 | Ice holes | stop pads |
-| 24 | 461-480 | Turning lock | springs |
-| 25 | 481-500 | Every rule so far, mixed | all |
+| 10 | 181-200 | Bouncy blocks | pits, stop pads |
+| 11 | 201-220 | Cracked floor | pits, stop pads |
+| 12 | 221-240 | Stones | pits, cracked floor |
+| 13 | 241-260 | Portals | one-way gates |
+| 14 | 261-280 | Bumpers | portals |
+| 15 | 281-300 | Switches and doors | stones |
+| 16 | 301-320 | Keys and locks | colour gates |
+| 17 | 321-340 | Blinking walls | switches |
+| 18 | 341-360 | Conveyors | bumpers |
+| 19 | 361-380 | Springs | pits, cracked floor |
+| 20 | 381-400 | Wrap edges | portals |
+| 21 | 401-420 | Magnets | conveyors |
+| 22 | 421-440 | Numbered marbles | plugs |
+| 23 | 441-460 | Glass posts | stones |
+| 24 | 461-480 | Ice holes | stop pads |
+| 25 | 481-500 | Turning lock | springs |
+| 26 | 501-520 | Every rule so far, mixed (the bouncy block aside) | all |
+
+The Hard levels keep the 25 chapters as they shipped, from chapter 10, Cracked floor, at levels 181 to 200, to
+chapter 25, Every rule so far, at 481 to 500.
 
 Held in reserve for later updates: colour mixing, moving holes, a lock that never turns, twin marbles, hole
 capacity, mirror halves, turnstiles, gravity cells, sticky floor, fragile marbles.

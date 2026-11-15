@@ -834,8 +834,8 @@ are drawn in flat shapes on top of every marble set, and the node is never turne
 is always upright.
 
 **What a marble feels** is decided in `Mood` from what the board reports: its speed every frame, and the
-events of a tilt. The strongest wins, in this order: a fall down a pit, going home, a party, worry, a bump,
-rolling, rest. Each feeling is a target for a handful of numbers (how open the lids are, the size of the eyes
+events of a tilt. The strongest wins, in this order: a fall down a pit, going home, a party, worry, the surprise
+of a bounce (section 22), a bump, rolling, rest. Each feeling is a target for a handful of numbers (how open the lids are, the size of the eyes
 and pupils, the brows, the smile, how open the mouth is, happy shut eyes, where the eyes look), and the drawn
 numbers ease toward the target every frame by `1 - e^(-k dt)`. That form gives the same motion at 30 or 120
 frames a second, which a fixed step per frame would not. Lids ease three times as fast as the rest, because a
@@ -1056,3 +1056,76 @@ before and makes no animals at all, and turning it on or off mid-level swaps the
 - `Litter.DARKER` to 0.5: dark cats on a light board come close to the pits.
 - `Litter.family_for` returning a family by chapter (`Pack.chapter_of`) instead of by level: twenty boards in a
   row of cats.
+
+---
+
+## 22. The bouncy block: back the way it came, once a tilt
+
+Shravan's idea: blocks a marble bounces off, going back to where it came from. The rule for players is one
+sentence: a marble that rolls into a bouncy block goes straight back the way it came, until something stops it.
+
+**In the step loop of section 1.** A bouncy block is a cell no marble ever enters (`TiltBoard.Tile.BOUNCE`). When
+the next cell along a marble's heading is a bouncy block, the marble turns to the opposite heading and, in the
+same pass, tries the cell behind it as any move would. So the step it bounces on is the step it moves away, and a
+marble already resting against a block when the tilt starts goes back too. Everything else is the old loop:
+front first, one cell a step, a marble stopping when its next cell is taken or shut.
+
+- **Once a tilt.** A marble that has bounced in this tilt meets every bouncy block as a wall (`bounced` in
+  `tilt`). A player can follow one bounce, and two blocks facing each other no longer pass a marble to and fro.
+  With section 9's loop guard it means every tilt ends. The bounce lives only inside a tilt, so the solver's key
+  needs nothing new, and its search never loops.
+- **Meeting other marbles.** The front marble moves first, so when it bounces, the marbles behind it have not
+  moved in this step yet. Its way back is the cell it came from: if the marble behind still sits there, it stops
+  against it, and the one behind stops against it in turn, so a train that runs into a block packs up against
+  it. One rolling behind with a gap meets it halfway: the bounced marble takes the free cell first, and the one
+  behind stops against it.
+- **The way back is any roll.** A marble going back drops into its own hole, falls into a pit, stops on a pad,
+  takes paint, is turned by a bumper, goes through a portal, is held by a one-way gate against its way, jumps
+  from a spring over the cell behind it, and a cracked cell it leaves gives way. A stone bounces as a marble does.
+- **No move.** A tilt where a marble bounces but nothing can move, a marble pressed between the block and a line
+  of others, changes nothing and does not count, like any tilt that moves nothing.
+- **Without the rule** (section 8), the blocks become floor. A level needs its blocks either way: to send a
+  marble back where nothing else would stop it, or to stop it where floor would let it run on.
+
+`tests/run_tests.gd` checks each case on a board of one row, and that a board the block turns from one tilt into
+three needs it.
+
+**How it looks and sounds.** A soft lime jelly filling its cell (`Jelly`, `Palette.JELLY`), rounder than a wall,
+with a gloss on top and no lip, so it never reads as a wall or a sleeping animal. The marble rolls up against it,
+the jelly gives along the hit and swells across it, ringing out over 0.6 seconds as a damped spring,
+`cos(2π f s) e^(-6.7 s)` after s seconds with f = 5 wobbles a second (`Jelly.WOBBLE_RATE`), and a soft boing plays: a note that springs down in pitch from 520 Hz to 190 Hz and wobbles
+as it settles, over a muffled thump. It draws on its own random stream in `tools/make_sfx.py`, so every other
+sound stayed byte for byte. With faces on, the marble looks startled: eyes wide, small pupils, brows up and a
+round mouth (`Mood.surprise`), above a bump and below worry. The tests hold the lime at 2.5:1 against the floor
+in every theme, light and dark, and a tenth of a turn of hue away from every marble of every look.
+
+**Where it goes: chapter 10, made last.** The new chapter sits at the start of the plateau (section 16), where
+players meet it just after level 180, and no player had stars there yet. Made there in the usual order, it would
+have changed every chapter after it, since the generator is one random stream and every level is checked against
+the ones before. So a chapter marked `after_hard` is made after all the others (`TiltGenerator.making_order`),
+from the random state the last of them left, and is written in its place. The chapters made before it keep their
+boards, their order and their saved random states, now a chapter later, and the tests pin all three. A full run
+from the seed still writes the same file. The level file keeps its random states in the order the chapters are
+made, and `resume` counts chapters made.
+
+- **Hard** has no bouncy chapter: `Pack` gives the Hard section the main path's chapters without the ones marked
+  `after_hard`, so Hard is exactly as it was, its 25 chapters and their colours included.
+- **Old saves** move on as in section 16, with every old chapter from 10 on one later: the bouncy blocks' first
+  level opens with every chapter up to the furthest reached (`HardShelf.ADDED`).
+- **Colours.** Section 13's stride for 26 chapters is 7, so every main chapter's colour moved a little. Hard
+  keeps 25 and its colours.
+- **The daily puzzle** keeps marbles, walls and colours only. A player can play it from chapter 1 on, long before
+  the block is taught.
+
+**Measured.** On 8 worker processes the chapter took 17 minutes of generator time: its first phase pooled 80
+boards from 10,008 proposals and its second 80 from 9,480. Its levels need par 12 (19 of them) or 13 (the last)
+at 18.87 to 19.75 bits, the first ten on 7x7 boards and the rest on 7x8, with one to three blocks each. Every
+one of the 20 shortest solutions bounces, one to six times. Neither naive player of section 16 clears any of
+them in par.
+
+### Things to try
+
+- `Jelly.GIVE` to 0.45 and `Jelly.WOBBLE_RATE` to 3: a slow, deep wobble, more water balloon than jelly.
+- In `TiltBoard.tilt`, take the `bounced` check off: two blocks facing each other pass a marble back and forth
+  until section 9's loop guard stops it, on the first cell it reaches again heading the same way.
+- `Mood.SURPRISE_TIME` to 0.2: the startled look is gone before the marble stops rolling back.

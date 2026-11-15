@@ -45,7 +45,8 @@ same rules. No timers, no lives, no energy. No hand-made levels.
 - **Tiles** from chapter 5 on, one new per chapter (`CHAPTERS.md`, `MATH.md` section 8): a stop pad halts a
   marble that rolls onto it; a one-way gate lets marbles through in its own direction only; a ringed
   hole, a plug, takes one marble and closes; a colour gate lets only its own colour through; paint turns a
-  marble its colour; cracked floor gives way into a pit once a marble rolls off it.
+  marble its colour; cracked floor gives way into a pit once a marble rolls off it. A bouncy block, chapter
+  10 on the main path, sends a marble straight back the way it came, once a tilt (`MATH.md` section 22).
 - **Undo** steps back one tilt and gives the move back. **Restart** returns to the start. **Hint**
   points the way the solver would tilt next, from wherever the board is now.
 - A tilt that moves nothing is not a move: the tray twitches and nothing is counted.
@@ -76,11 +77,15 @@ other boards have four, so its chapter's bits are measured against three. Each c
 with its new tile and climbs through half the band, so the only falls are at chapter starts, and never by
 more than the band. Level 181 is easier than 180 on purpose.
 
+The bouncy block came later, as chapter 10 at the plateau's start (`MATH.md` section 22). It is made after
+every other chapter, so the plateau built before it kept its boards and moved on a chapter, to 11 to 26: the
+main path is 520 levels in 26 chapters.
+
 The old climb from level 181 on is kept, board for board, as the Hard levels (`levels/hard.json`), open
-from the start through a Main and Hard switch on the Levels screen. Hard keeps chapters 10 to 25 with
+from the start through a Main and Hard switch on the Levels screen. Hard keeps its chapters 10 to 25 with
 their cards and captions, its levels keep their numbers, and its progress is kept apart. A save from
-before the plateau moves its stars on the old boards to Hard and opens on the main path the first level of
-every chapter the player had reached.
+before the plateau moves its stars on the old boards to Hard and opens on the main path the bouncy blocks
+and the first level of every chapter the player had reached.
 
 No level repeats another. Compared over the eight rotations and mirrors with colour ignored, two boards
 of one size must differ in 30% of their cells, or in half of them when one solution clears both
@@ -196,8 +201,8 @@ scripts/tilt board.gd (rules), tilt_move.gd, solver.gd (BFS), difficulty.gd (bit
 scripts/kit  palette, ui (code-built theme), stars (scoring), star_icon
 scripts/feel cast.gd (the characters), mood.gd (what a face shows), gaze.gd (where eyes look), spin.gd (the
              roll and the light on a ball), litter.gd (the wall animals' families and coats)
-scenes/game  game.gd (play screen), board_view.gd, marble, face, loaf (wall animals), memorial and its
-             grey.gdshader, sparkle, ripple, hint_arrow
+scenes/game  game.gd (play screen), board_view.gd, marble, face, loaf (wall animals), jelly (bouncy blocks),
+             memorial and its grey.gdshader, sparkle, ripple, hint_arrow
 scenes/shell title.gd, seesaw.gd, levels.gd
 levels/      levels.json (the main path) and hard.json (the Hard levels), written by
              tools/generate_levels.gd, never hand-edited
@@ -229,7 +234,8 @@ generator are Plumb's own.
   ticks (`MATH.md` sections 17 to 21). Still to do: a tray light that follows the tilt.
 - **M3 - Content**: 500 levels in 25 chapters, one new rule each (`CHAPTERS.md`), shipped in waves. 1.1,
   chapters 1 to 10 with stop pads, one-way gates, plugs, colour gates, paint and cracked floor: built.
-  1.2 to 1.4, chapters 11 to 25: designed. Daily puzzles from a date seed may follow.
+  1.2 to 1.4, chapters 11 to 25: designed. Daily puzzles from a date seed may follow. Since the plateau the
+  main path is 520 levels in 26 chapters, with bouncy blocks as chapter 10, and the old climb is the Hard levels.
 - **M4 - Monetization**: the Levels banner, paced interstitials on Next level, rewarded hints past the
   free ones, UMP consent, and the Supporter pack through Play Billing. Built and tested headless (unit
   tests and the smoke robot against a stand-in ad network); a CI dry run proves the Android build carries
