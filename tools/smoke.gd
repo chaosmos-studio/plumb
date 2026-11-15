@@ -4,7 +4,7 @@ extends Node
 ## against a stand-in ad network.
 ## Run: godot --headless --path . res://tools/smoke.tscn     Prints SMOKE_OK on success.
 
-const LEVELS: Array[int] = [0, 3, 12, 44, 90, 119, 180, 359, 499]
+const LEVELS: Array[int] = [0, 3, 12, 44, 90, 119, 180, 199, 379, 519]
 ## Hard levels played: the first, which opens chapter 10 with its card, and the last.
 const HARD_LEVELS: Array[int] = [180, 499]
 
@@ -32,6 +32,7 @@ func _ready() -> void:
 	failures += await _guide()
 	failures += await _ending()
 	failures += await _hard()
+	failures += await _bouncy()
 	failures += await _daily()
 	for dark: bool in [false, true]:
 		Appearance.apply(Appearance.Choice.DARK if dark else Appearance.Choice.LIGHT)
@@ -107,6 +108,42 @@ func _ending() -> int:
 	game.queue_free()
 	await get_tree().process_frame
 	return 0 if shown else 1
+
+## The first level of the bouncy blocks whose solution bounces: a jelly for every block, played with faces on until
+## a marble is caught startled.
+func _bouncy() -> int:
+	var first: int = TiltGenerator.chapter_start(TiltGenerator.PLATEAU_FROM)
+	var level: int = first
+	var bounces: int = 0
+	var path: PackedInt32Array = PackedInt32Array()
+	while bounces == 0 and level < first + TiltGenerator.chapter_size(TiltGenerator.PLATEAU_FROM):
+		var sim: TiltBoard = Pack.board(level)
+		path = TiltSolver.new().solve(sim)
+		for dir: int in path:
+			for event: Dictionary in sim.tilt(dir).events:
+				bounces += 1 if event["kind"] == &"rebound" else 0
+		level += 1 if bounces == 0 else 0
+	var faces: bool = Save.faces
+	Save.faces = true
+	var game: Node = await _open_game(level)
+	var view: BoardView = game.get("_view")
+	var start: TiltBoard = game.get("board")
+	var startled: bool = false
+	for dir: int in path:
+		game.call("_tilt", dir)
+		while view.busy:
+			for m: int in range(start.marble_cell.size()):
+				startled = startled or view.marble(m).mood.feel == Mood.Feel.SURPRISE
+			await get_tree().process_frame
+	await _wait(0.6)
+	var failures: int = _report(view.get("_jellies").size() == start.tiles.count(TiltBoard.Tile.BOUNCE)
+		and start.tiles.has(TiltBoard.Tile.BOUNCE), "level %d draws a jelly for every bouncy block" % (level + 1))
+	failures += _report(bounces > 0 and startled and game.get("board").is_won(),
+		"its solution bounces %d times, a marble looks startled, and it is solved" % bounces)
+	game.queue_free()
+	await get_tree().process_frame
+	Save.faces = faces
+	return failures
 
 ## Hard levels played from the start, their stars kept apart from the main path's, and no ending after the last one:
 ## the ending closes the main path.

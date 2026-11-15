@@ -5,7 +5,7 @@ extends Node
 ## out phone-shaped whatever the screen.
 ## Run: DISPLAY=:0 godot --path . --fixed-fps 60 --disable-vsync res://tools/feel_shots.tscn
 ##   [-- only=name,name]   saves user://feel/<name>.png and prints each path.
-## With Movie Maker, `clip=win`, `clip=fall`, `clip=walls` or `clip=title` plays that one scene through in the window
+## With Movie Maker, `clip=win`, `clip=fall`, `clip=walls`, `clip=title` or `clip=bounce` plays that one scene through in the window
 ## and quits. The window is the project's 405 by 720 (window_width_override), which --resolution does not change:
 ##   godot --path . --fixed-fps 60 --write-movie out.avi res://tools/feel_shots.tscn -- clip=win
 
@@ -81,6 +81,7 @@ func _shots() -> void:
 			if c < Pack.chapters.size():
 				await _rest(Pack.chapter_first(c) + 2 + c % 2, "tiles_ch%02d%s" % [c + 1, "_dark" if dark else ""])
 	Save.pets = false
+	await _bouncy()
 	_theme(false)
 	if Pack.chapters.size() > 20:
 		await _rest(Pack.chapter_first(20) + 1, "numbered")
@@ -235,6 +236,55 @@ func _home_and_party() -> void:
 		await _save("party")
 	await _drop_game(game)
 
+## The bouncy blocks (MATH.md section 22): the chapter card, its first level, two later ones, light and dark, then a
+## marble caught as it bounces.
+func _bouncy() -> void:
+	var first: int = Pack.chapter_first(TiltGenerator.PLATEAU_FROM)
+	for dark: bool in [false, true]:
+		var look: String = "dark" if dark else "light"
+		_theme(dark)
+		if _wants("bounce_card_%s" % look):
+			ChapterCard.enabled = true
+			var game: Node = await _game(first)
+			await _save("bounce_card_%s" % look)
+			ChapterCard.enabled = false
+			await _drop_game(game)
+		await _rest(first, "bounce_first_%s" % look)
+		await _rest(first + 9, "bounce_mid_%s" % look)
+		await _rest(first + 19, "bounce_last_%s" % look)
+	_theme(false)
+	if not _wants("bounce_hit"):
+		return
+	var found: Vector2i = _bouncing()
+	var game: Node = await _game(found.x)
+	var view: BoardView = game.get("_view")
+	var path: PackedInt32Array = TiltSolver.new().solve(game.get("board"))
+	for k: int in range(found.y):
+		game.call("_tilt", path[k])
+		while view.busy:
+			await get_tree().process_frame
+	game.call("_tilt", path[found.y])
+	for i: int in range(120):
+		await get_tree().process_frame
+		if _any_feel(view, Mood.Feel.SURPRISE):
+			break
+	await _frames(2)
+	await _save("bounce_hit")
+	await _drop_game(game)
+
+## The first bouncy level whose solution bounces a marble back across the board, as (level, which tilt).
+func _bouncing() -> Vector2i:
+	var first: int = Pack.chapter_first(TiltGenerator.PLATEAU_FROM)
+	for level: int in range(first, first + int(Pack.chapters[TiltGenerator.PLATEAU_FROM]["count"])):
+		var board: TiltBoard = Pack.board(level)
+		var path: PackedInt32Array = TiltSolver.new().solve(board)
+		for k: int in range(path.size()):
+			var move: TiltMove = board.tilt(path[k])
+			for event: Dictionary in move.events:
+				if event["kind"] == &"rebound" and move.steps.size() - int(event["step"]) >= 3:
+					return Vector2i(level, k)
+	return Vector2i(first, 0)
+
 func _any_feel(view: BoardView, feel: Mood.Feel) -> bool:
 	for child: Node in view.get_children():
 		if child is Marble and (child as Marble).visible and (child as Marble).mood.feel == feel:
@@ -338,6 +388,18 @@ func _clip(which: String) -> void:
 			var title: Node = load("res://scenes/shell/title.tscn").instantiate()
 			add_child(title)
 			await _wait(6.0)
+		"bounce":
+			var found: Vector2i = _bouncing()
+			var game: Node = await _game(found.x)
+			var view: BoardView = game.get("_view")
+			var path: PackedInt32Array = TiltSolver.new().solve(game.get("board"))
+			await _wait(0.4)
+			for k: int in range(mini(found.y + 2, path.size())):
+				game.call("_tilt", path[k])
+				while view.busy:
+					await get_tree().process_frame
+				await _wait(0.9 if k == found.y else 0.35)
+			await _wait(0.8)
 
 func _frames(n: int) -> void:
 	for i: int in range(n):

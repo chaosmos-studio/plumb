@@ -17,10 +17,17 @@ const CONTRAST: Array = [["ink", "bg", 7.0], ["ink", "surface", 7.0], ["muted", 
 ## Hard levels (MATH.md section 16). Neither may ever change: players' stars are on them.
 const KEPT_DIGEST: String = "0faf82c7eaf937b5e4f32d5f7246fd2cb0c46972c5affa87d819478145d66ca9"
 const HARD_DIGEST: String = "c9d1aea0c3a9b410689d76fc824533d7e5e043acf6215062b0434f8c9bc658ab"
+## The same for the plateau as it was built before the bouncy blocks, now a chapter later, and for the generator's
+## random state after each of the chapters made by then (MATH.md section 22).
+const SHIFTED_DIGEST: String = "d586c72a78dfdc57b7d5a4c2d07baa0fdb96a92dc807912b2f66927145e38861"
+const STATES_DIGEST: String = "c2e7b05a193561acd8990ed665a59351cdda0c9bad54c9fddea9eddf8a0a177c"
 ## Random players tried on each plateau level, and the share of levels, one in this many, that a naive player may
 ## clear in par before the plateau counts as too easy for thought.
 const NAIVE_TRIES: int = 40
 const NAIVE_SHARE: int = 10
+## A bouncy block's least contrast with the floor, and the least hue (a share of a turn) between it and a marble.
+const JELLY_CONTRAST: float = 2.5
+const JELLY_HUE_GAP: float = 0.1
 
 var _passed: int = 0
 var _failed: int = 0
@@ -39,6 +46,7 @@ func _initialize() -> void:
 	_test_chapter_tiles()
 	_test_wave_two_tiles()
 	_test_wave_three_tiles()
+	_test_bounce()
 	_test_solver()
 	_test_difficulty()
 	_test_novelty()
@@ -57,6 +65,7 @@ func _initialize() -> void:
 	_test_cast()
 	_test_star_notes()
 	_test_wall_animals()
+	_test_jelly_reads()
 	_test_saved_settings()
 	_test_guide_and_ending()
 	_test_banner_pacing()
@@ -239,6 +248,46 @@ func _test_tilt_rules() -> void:
 
 static func _tiled(rows: Array, marbles: Array, tiles: Array) -> TiltBoard:
 	return TiltBoard.from_dict({"rows": rows, "marbles": marbles, "tiles": tiles})
+
+## The bouncy block (MATH.md section 22): back the way it came, once a tilt.
+func _test_bounce() -> void:
+	var b: TiltBoard = _tiled(["....."], [[1, 0, 0]], [[4, 0, "bounce", 0]])
+	var m: TiltMove = b.tilt(TiltBoard.RIGHT)
+	_check("a marble that rolls into a bouncy block goes straight back until something stops it",
+		b.marble_cell[0] == 0 and m.length() == 5 and m.events.size() == 1 and m.events[0]["kind"] == &"rebound"
+		and int(m.events[0]["step"]) == 2 and m.cells[2][0] == 2)
+	b = _tiled(["...."], [[2, 0, 0]], [[3, 0, "bounce", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("one resting against it bounces too, on the same step it would have moved", b.marble_cell[0] == 0)
+	b = _tiled(["....."], [[2, 0, 0]], [[0, 0, "bounce", 0], [4, 0, "bounce", 0]])
+	m = b.tilt(TiltBoard.RIGHT)
+	_check("and only once a tilt: the second bouncy block stops it like a wall", b.marble_cell[0] == 1
+		and m.events.filter(func(e: Dictionary) -> bool: return e["kind"] == &"rebound").size() == 1)
+	b = _tiled(["....."], [[0, 0, 0], [1, 0, 0]], [[4, 0, "bounce", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("a marble that bounces into the one behind it stops against it", b.marble_cell[1] == 3 and b.marble_cell[0] == 2)
+	b = _tiled(["....."], [[0, 0, 0], [2, 0, 0]], [[4, 0, "bounce", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("and one rolling behind it meets it halfway, the front marble going first", b.marble_cell[1] == 2
+		and b.marble_cell[0] == 1)
+	b = _tiled(["x..."], [[1, 0, 0]], [[3, 0, "bounce", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("a bounce can carry a marble back into a pit", b.lost)
+	b = _tiled(["0..."], [[1, 0, 0]], [[3, 0, "bounce", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("or home", b.is_won())
+	b = _tiled(["...."], [[0, 0, 0]], [[1, 0, "gate", TiltBoard.RIGHT], [3, 0, "bounce", 0]])
+	b.tilt(TiltBoard.RIGHT)
+	_check("a one-way gate holds a marble bounced back against its way", b.marble_cell[0] == 2)
+	b = _tiled(["...."], [[0, 0, 0]], [[3, 0, "bounce", 0]])
+	_check("a bouncy block is no cell to land on, and a board that changes nothing is no move",
+		not b.enterable(3, 0, TiltBoard.RIGHT) and not _tiled(["...."], [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
+		[[3, 0, "bounce", 0]]).tilt(TiltBoard.RIGHT).changed())
+	_check("it is its own kind of cell to the likeness test", TiltNovelty.layout(b)[3] == TiltNovelty.Kind.BOUNCE
+		and TiltNovelty.canonical(b).contains("v"))
+	var needed: TiltBoard = _tiled(["0....", "....."], [[4, 0, 0]], [[2, 0, "bounce", 0]])
+	_check("a board the bouncy block turns from one tilt into three needs it", TiltSolver.new().solve(needed).size() == 3
+		and TiltGenerator.needs(needed, "bounce", 3))
 
 func _test_wave_two_tiles() -> void:
 	var s: int = TiltBoard.STONE
@@ -556,9 +605,18 @@ func _test_level_pack() -> void:
 	_check("the pack lists every chapter", _same_chapters((data as Dictionary).get("chapters", []), TiltGenerator.chapter_list()))
 	_check("levels 1 to %d are as they shipped before the plateau" % plateau,
 		JSON.stringify(levels.slice(0, plateau)).sha256_text() == KEPT_DIGEST)
-	_check("the Hard levels are the old levels %d to %d, in order and unchanged" % [plateau + 1, levels.size()],
+	_check("the Hard levels are the old levels %d to %d, in order and unchanged" % [plateau + 1, HardShelf.COUNT],
 		int((hard_data as Dictionary)["first"]) == plateau and HardShelf.FIRST == plateau
-		and hard.size() == levels.size() - plateau and JSON.stringify(hard).sha256_text() == HARD_DIGEST)
+		and hard.size() == HardShelf.COUNT - plateau and JSON.stringify(hard).sha256_text() == HARD_DIGEST)
+	# The bouncy blocks came in at the plateau's start after the rest of it was made, which moved on a chapter as it was.
+	var added: int = HardShelf.ADDED * HardShelf.CHAPTER
+	var states: Array = (data as Dictionary)["rng_states"]
+	_check("the plateau made before the bouncy blocks is a chapter later and otherwise unchanged",
+		JSON.stringify(levels.slice(plateau + added)).sha256_text() == SHIFTED_DIGEST)
+	_check("and the generator's state after each chapter made before them is kept, in the order they were made",
+		states.size() == TiltGenerator.CHAPTERS.size()
+		and JSON.stringify(states.slice(0, states.size() - HardShelf.ADDED)).sha256_text() == STATES_DIGEST
+		and TiltGenerator.CHAPTERS[TiltGenerator.making_order()[-1]].get("after_hard", false))
 	# Both sets as one list: the main path, then each Hard level by its index in the game's numbering and under its
 	# name, "h181" on.
 	var all: Array = levels.duplicate()
@@ -625,7 +683,11 @@ func _check_climb(at: Array[int], numbers: PackedInt32Array, names: PackedString
 	var easier: PackedStringArray = PackedStringArray()
 	var shorter: PackedStringArray = PackedStringArray()
 	var flat: PackedStringArray = PackedStringArray()
-	var by_par_from: int = TiltGenerator.chapter_start(TiltGenerator.BY_PAR_FROM)
+	# Where par-first order began on the climb, which has no chapter added after the Hard levels.
+	var by_par_from: int = 0
+	for c: int in range(TiltGenerator.BY_PAR_FROM):
+		if not TiltGenerator.CHAPTERS[c].get("after_hard", false):
+			by_par_from += TiltGenerator.chapter_size(c)
 	var run: int = 1
 	for k: int in range(1, at.size()):
 		var i: int = at[k]
@@ -908,6 +970,16 @@ func _test_mood() -> void:
 		m.moving(Vector2.ZERO, 1.0 / 60.0)
 		m.step(1.0 / 60.0)
 	_check("and at rest the face settles", m.feel == Mood.Feel.IDLE and m.wide < 1.03)
+	var startled: Mood = Mood.new(4)
+	startled.bump()
+	startled.surprise()
+	for i: int in range(12):
+		startled.step(1.0 / 60.0)
+	_check("a bounce startles a marble over its bump: eyes wide, brows up, mouth round",
+		startled.feel == Mood.Feel.SURPRISE and startled.wide > 1.2 and startled.brow > 0.5 and startled.gape > 0.4)
+	for i: int in range(60):
+		startled.step(1.0 / 60.0)
+	_check("and the surprise passes", startled.feel == Mood.Feel.IDLE)
 	var squint: Mood = Mood.new(5)
 	squint.bump()
 	for i: int in range(4):
@@ -1007,6 +1079,33 @@ func _test_wall_animals() -> void:
 	for cell: int in range(36):
 		coats[Litter.coat_for(cell, 7)] = true
 	_check("a board's walls wear a mix of coats (%d of %d)" % [coats.size(), Litter.Coat.size()], coats.size() >= 4)
+
+## A bouncy block reads on the floor in every theme, light and dark, and never as a marble of any look.
+func _test_jelly_reads() -> void:
+	var themes: GDScript = load("res://kit/ui/themes.gd")
+	var short: PackedStringArray = PackedStringArray()
+	var palettes: Array[Dictionary] = [{}]
+	for id: String in themes.call("ids"):
+		palettes.append({"id": id})
+	for entry: Dictionary in palettes:
+		for dark: bool in [false, true]:
+			var t: Dictionary = {} if entry.is_empty() else themes.call("colours", entry["id"], dark)
+			if entry.is_empty() or t.is_empty():
+				Brand.use(dark)
+			else:
+				Brand.use_theme(t, dark)
+			var ratio: float = _contrast(Palette.JELLY, Palette.TILE)
+			if ratio < JELLY_CONTRAST:
+				short.append("%s %s: %.1f" % [entry.get("id", "plumb"), "dark" if dark else "light", ratio])
+	Brand.use(Brand.NATIVE_DARK)
+	_check("a bouncy block reads on the floor in every theme (short: %s)" % ", ".join(short), short.is_empty())
+	var close: PackedStringArray = PackedStringArray()
+	for jelly: Color in [Palette.LIGHT["jelly"], Palette.DARK["jelly"]]:
+		for id: String in GameLooks.SETS:
+			for marble: Color in GameLooks.swatch(id):
+				if _hue_gap(jelly, marble) < JELLY_HUE_GAP:
+					close.append("%s %s" % [id, marble.to_html(false)])
+	_check("and its hue is no marble's, in any look (close: %s)" % ", ".join(close), close.is_empty())
 
 ## Walls are plain blocks unless Pets is on, and turning it on mid-level makes them animals at once.
 func _test_walls_follow_pets() -> void:
@@ -2387,18 +2486,26 @@ func _test_hard_shelf() -> void:
 		and hard[249] == 2 and hard.slice(0, first).count(0) == first)
 	_check("a key spent on an old board stays with it in Hard", hard_opened == PackedInt32Array([305])
 		and opened.has(40) and not opened.has(305))
+	# Old chapter 16 (index 15) was the furthest reached. On the main path it is chapter 17 now, after the bouncy blocks.
 	var starts: bool = true
-	for c: int in range(9, 16):
+	for c: int in range(9, 17):
 		starts = starts and opened.has(c * HardShelf.CHAPTER)
-	_check("the main path opens the first level of every chapter up to the furthest reached", starts
-		and not opened.has(320))
+	_check("the main path opens the bouncy blocks and every chapter up to the furthest reached, a chapter later now",
+		starts and not opened.has(340))
 	_check("and moving on twice changes nothing", not HardShelf.migrate(file, unlocks.GATE))
 	var gated: PackedByteArray = PackedByteArray()
 	gated.resize(234)
 	gated.fill(1)
 	var by_gate: Dictionary = HardShelf.split(gated, PackedInt32Array(), unlocks.GATE)
-	_check("a chapter its gate had opened stays open", (by_gate["opened"] as PackedInt32Array).has(240)
-		and not (by_gate["opened"] as PackedInt32Array).has(260))
+	_check("a chapter its gate had opened stays open", (by_gate["opened"] as PackedInt32Array).has(260)
+		and not (by_gate["opened"] as PackedInt32Array).has(280))
+	var before: Dictionary = HardShelf.split(PackedByteArray([2, 2, 2]), PackedInt32Array([150]), unlocks.GATE)
+	var paint: PackedByteArray = PackedByteArray()
+	paint.resize(170)
+	paint.fill(1)
+	_check("a player still short of chapter 10 gets nothing opened past it", not (HardShelf.split(paint,
+		PackedInt32Array(), unlocks.GATE)["opened"] as PackedInt32Array).has(180) and not (before["opened"] as
+		PackedInt32Array).has(180))
 	var early: Dictionary = HardShelf.split(PackedByteArray([3, 3, 1]), PackedInt32Array(), unlocks.GATE)
 	_check("a player who never reached the plateau has nothing to move", early["stars"] == PackedByteArray([3, 3, 1])
 		and (early["opened"] as PackedInt32Array).is_empty() and (early["hard"] as PackedByteArray).is_empty())
