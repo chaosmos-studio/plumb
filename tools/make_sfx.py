@@ -420,6 +420,51 @@ SOUNDS = {
 }
 
 
+# The party's sounds (scenes/celebrate), from a generator of their own.
+PARTY_RNG = np.random.default_rng(91)
+
+
+def pop():
+    """A soft cork pop: a quick falling note over a puff of bright noise."""
+    seconds = 0.12
+    n = int(RATE * seconds)
+    t = np.arange(n) / RATE
+    note = np.sin(2 * np.pi * np.cumsum(900 * (300 / 900) ** (t / 0.05)) / RATE) * decay(n, 0.02)
+    noise = PARTY_RNG.standard_normal(n)
+    puff = (lowpass(noise, 3000) - lowpass(noise, 700)) * decay(n, 0.012)
+    return normalise(note + 0.5 * puff / np.max(np.abs(puff)), 0.5)
+
+
+def cannon():
+    """A confetti cannon, kept soft: a low thump that drops in pitch, and the rustle of paper after it."""
+    seconds = 0.6
+    n = int(RATE * seconds)
+    t = np.arange(n) / RATE
+    thump = np.sin(2 * np.pi * np.cumsum(110 * (45 / 110) ** (t / 0.2)) / RATE) * decay(n, 0.07)
+    noise = PARTY_RNG.standard_normal(n)
+    rustle = (noise - lowpass(noise, 2500)) * (PARTY_RNG.random(n) < 0.08) * decay(n, 0.25) * 0.5
+    air = lowpass(noise, 600) * decay(n, 0.05)
+    return normalise(thump + 0.3 * air / np.max(np.abs(air)) + rustle, 0.55)
+
+
+def fanfare():
+    """A little ta-da in bells: G5, C6, E6, then G6 held."""
+    notes = [783.99, 1046.5, 1318.51, 1567.98]
+    gap = int(RATE * 0.07)
+    out = np.zeros(gap * len(notes) + int(RATE * 1.1))
+    for k, f in enumerate(notes):
+        b = bell(f, 1.1, 0.7) * (0.7 if k < 3 else 1.0)
+        out[k * gap:k * gap + b.size] += b
+    return normalise(out, 0.6)
+
+
+SOUNDS.update({
+    "pop": pop,
+    "cannon": cannon,
+    "fanfare": fanfare,
+})
+
+
 if __name__ == "__main__":
     wanted = sys.argv[1:]
     unknown = [name for name in wanted if name not in SOUNDS]
