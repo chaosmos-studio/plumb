@@ -5,7 +5,7 @@ extends RefCounted
 
 enum Cell { FLOOR, WALL, PIT }
 enum Tile { NONE, STOP, GATE, DOOR, PAINT, CRACK, PORTAL, BUMPER, SWITCH, HATCH, KEY, LOCK, BLINK, CONVEYOR, SPRING,
-	MAGNET, GLASS }
+	MAGNET, GLASS, BOUNCE }
 ## What a lasting change was, kept as cell * Change.size() + kind.
 enum Change { CRACK, PLUG, FILL, KEY, GLASS }
 
@@ -14,7 +14,7 @@ const GONE: int = -1
 const STONE: int = 9
 ## Tiles by the name the level file gives them, in Tile order.
 const TILE_NAMES: Array[String] = ["", "stop", "gate", "door", "paint", "crack", "portal", "bumper", "switch",
-	"hatch", "key", "lock", "blink", "conveyor", "spring", "magnet", "glass"]
+	"hatch", "key", "lock", "blink", "conveyor", "spring", "magnet", "glass", "bounce"]
 const PLUG_NAME: String = "plug"
 const ICE_NAME: String = "ice"
 const WRAP_X: int = 1
@@ -29,6 +29,8 @@ const LEFT: int = 0
 const RIGHT: int = 1
 const UP: int = 2
 const DOWN: int = 3
+## The way back from each direction, indexed like DIRS.
+const BACK: Array[int] = [RIGHT, LEFT, DOWN, UP]
 
 var width: int = 0
 var height: int = 0
@@ -136,7 +138,7 @@ func enterable(to: int, m: int, dir: int, open: PackedByteArray = PackedByteArra
 			return tile_value[to] == marble_colour[m]
 		Tile.HATCH:
 			return tile_value[to] < open.size() and open[tile_value[to]] == 1
-		Tile.LOCK, Tile.MAGNET, Tile.GLASS:
+		Tile.LOCK, Tile.MAGNET, Tile.GLASS, Tile.BOUNCE:
 			return false
 		Tile.BLINK:
 			return up.is_empty() or up[to] == 0
@@ -248,6 +250,9 @@ func tilt(dir: int) -> TiltMove:
 	heading.fill(dir)
 	var rolled: PackedByteArray = PackedByteArray()
 	rolled.resize(count)
+	# One bounce each a tilt, so every tilt ends (MATH.md section 22).
+	var bounced: PackedByteArray = PackedByteArray()
+	bounced.resize(count)
 	# Includes a marble back on a cell it crossed heading the same way, so loops end (MATH.md section 9).
 	var halted: PackedByteArray = PackedByteArray()
 	halted.resize(count)
@@ -277,6 +282,13 @@ func tilt(dir: int) -> TiltMove:
 				var h: Vector2i = DIRS[heading[m]]
 				var reach: int = 2 if tiles[from] == Tile.SPRING else 1
 				var to: int = cell_along(from, h, reach)
+				# A bouncy block turns a marble back the first time, in place of the cell it would have entered.
+				if to >= 0 and tiles[to] == Tile.BOUNCE and bounced[m] == 0:
+					bounced[m] = 1
+					move.events.append({"step": step, "marble": m, "kind": &"rebound", "cell": to})
+					heading[m] = BACK[heading[m]]
+					h = DIRS[heading[m]]
+					to = cell_along(from, h, reach)
 				if to < 0:
 					continue
 				if tiles[to] == Tile.GLASS:

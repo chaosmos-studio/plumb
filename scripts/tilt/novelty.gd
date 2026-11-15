@@ -11,11 +11,11 @@ const LAYOUT_SHARE: float = 0.3
 const ROUTE_SHARE: float = 0.5
 
 enum Kind { FLOOR, WALL, PIT, HOLE, MARBLE, MARBLE_ON_HOLE, PLUG, STOP, GATE, DOOR, PAINT, CRACK, PORTAL, BUMPER,
-	SWITCH, HATCH, KEY, LOCK, STONE, BLINK, CONVEYOR, SPRING, MAGNET, GLASS, ICE }
+	SWITCH, HATCH, KEY, LOCK, STONE, BLINK, CONVEYOR, SPRING, MAGNET, GLASS, ICE, BOUNCE }
 ## The layout kind of each TiltBoard.Tile, colour and direction aside.
 const TILE_KINDS: Array[int] = [Kind.FLOOR, Kind.STOP, Kind.GATE, Kind.DOOR, Kind.PAINT, Kind.CRACK, Kind.PORTAL,
 	Kind.BUMPER, Kind.SWITCH, Kind.HATCH, Kind.KEY, Kind.LOCK, Kind.BLINK, Kind.CONVEYOR, Kind.SPRING, Kind.MAGNET,
-	Kind.GLASS]
+	Kind.GLASS, Kind.BOUNCE]
 
 ## A board's eight views, each as the colour-blind kind of every cell, ready for fast comparison.
 class Views:
@@ -208,6 +208,8 @@ static func canonical(board: TiltBoard) -> String:
 					text += "m"
 				TiltBoard.Tile.GLASS:
 					text += "q"
+				TiltBoard.Tile.BOUNCE:
+					text += "v"
 			if t.ice[i] == 1:
 				text += "i"
 			if marble_at.has(i):
