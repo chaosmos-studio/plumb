@@ -8,8 +8,10 @@ const PATH: String = "user://plumb.cfg"
 ## Overridable so test robots never touch the player's real progress.
 var path: String = PATH
 
-## Best stars per level, 0 for not yet solved.
+## Best stars per level of the main path, 0 for not yet solved.
 var stars: PackedByteArray = PackedByteArray()
+## The same for the Hard levels, by their index in Pack's Hard section, so 0 before Pack.hard_from.
+var hard_stars: PackedByteArray = PackedByteArray()
 ## Set from the volumes, 0 being off.
 var sound_on: bool = true
 var music_on: bool = true
@@ -26,9 +28,10 @@ var supporter: bool = false
 ## The other one-time products owned, by GameMonetize id, kept the same way.
 var owned: PackedStringArray = PackedStringArray()
 var tips: int = 0
-## Level keys not yet used, and the levels opened with a key or a video (Unlocks).
+## Level keys not yet used, and the levels opened with a key or a video (Unlocks), on the main path and in Hard.
 var keys: int = 0
 var opened: PackedInt32Array = PackedInt32Array()
+var hard_opened: PackedInt32Array = PackedInt32Array()
 ## Packs lent by a video, by product id: [start, end] in Unix seconds (Passes).
 var passes: Dictionary = {}
 ## A GameLooks id, or "" for the game's own.
@@ -56,36 +59,64 @@ func _ready() -> void:
 	PlayCore.start()
 	PlayGames.start()
 
+## Of the level in Pack's section now.
 func best(level: int) -> int:
-	return stars[level] if level < stars.size() else 0
+	return best_in(Pack.is_hard(level), level)
+
+func best_in(hard: bool, level: int) -> int:
+	var of: PackedByteArray = hard_stars if hard else stars
+	return of[level] if level < of.size() else 0
 
 func unlocked(level: int) -> bool:
 	return Unlocks.is_open(level)
 
 func record(level: int, earned: int) -> bool:
-	if stars.size() <= level:
-		stars.resize(level + 1)
-	if earned <= stars[level]:
+	var hard: bool = Pack.is_hard(level)
+	var of: PackedByteArray = hard_stars if hard else stars
+	if of.size() <= level:
+		of.resize(level + 1)
+	if earned <= of[level]:
 		return false
-	stars[level] = earned
+	of[level] = earned
+	if hard:
+		hard_stars = of
+	else:
+		stars = of
 	store()
 	return true
 
+## The first level not yet solved in Pack's section now, from the first it shows.
 func frontier(count: int) -> int:
-	for i: int in range(count):
+	for i: int in range(Pack.first_level(), count):
 		if best(i) == 0:
 			return i
 	return count - 1
 
+## Where Play goes: the first level of the main path not yet solved, whichever section is shown.
+func main_frontier() -> int:
+	var count: int = Pack.main_count()
+	for i: int in range(count):
+		if best_in(false, i) == 0:
+			return i
+	return count - 1
+
+## Both sections'.
 func total_stars() -> int:
 	var n: int = 0
 	for s: int in stars:
 		n += s
+	for s: int in hard_stars:
+		n += s
 	return n
+
+## Unlocks asks this rather than reading `opened`, so each section has its own.
+func was_opened(level: int) -> bool:
+	return (hard_opened if Pack.is_hard(level) else opened).has(level)
 
 ## Forgets the stars only: settings, purchases, keys and the levels they opened stay.
 func reset() -> void:
 	stars = PackedByteArray()
+	hard_stars = PackedByteArray()
 	store()
 	EventBus.settings_changed.emit()
 
@@ -161,9 +192,12 @@ func add_keys(n: int) -> void:
 	EventBus.settings_changed.emit()
 
 func open_level(level: int) -> void:
-	if opened.has(level):
+	if was_opened(level):
 		return
-	opened.append(level)
+	if Pack.is_hard(level):
+		hard_opened.append(level)
+	else:
+		opened.append(level)
 	store()
 	EventBus.settings_changed.emit()
 
@@ -194,13 +228,22 @@ func set_daily(record: Dictionary) -> void:
 	daily = record
 	store()
 
+## A save from before the Hard levels moves on to them once, here, and so does a copy from the cloud (CloudSave).
+func upgrade(file: ConfigFile) -> bool:
+	return HardShelf.migrate(file, Unlocks.GATE)
+
 func restore() -> void:
 	var file: ConfigFile = ConfigFile.new()
 	if file.load(path) != OK:
 		return
+	if upgrade(file):
+		file.save(path)
 	var saved: Variant = file.get_value("progress", "stars", PackedByteArray())
 	if saved is PackedByteArray:
 		stars = saved
+	var hard_saved: Variant = file.get_value("progress", "hard", PackedByteArray())
+	if hard_saved is PackedByteArray:
+		hard_stars = hard_saved
 	sound_on = bool(file.get_value("settings", "sound_on", true))
 	music_on = bool(file.get_value("settings", "music_on", true))
 	# A save from before the sliders has only the switches: on is full volume.
@@ -221,6 +264,9 @@ func restore() -> void:
 	var opened_saved: Variant = file.get_value("progress", "opened", PackedInt32Array())
 	if opened_saved is PackedInt32Array:
 		opened = opened_saved
+	var hard_opened_saved: Variant = file.get_value("progress", "hard_opened", PackedInt32Array())
+	if hard_opened_saved is PackedInt32Array:
+		hard_opened = hard_opened_saved
 	var lent: Variant = file.get_value("monetize", "passes", {})
 	if lent is Dictionary:
 		passes = lent
@@ -234,7 +280,10 @@ func restore() -> void:
 
 func store() -> void:
 	var file: ConfigFile = ConfigFile.new()
+	file.set_value("progress", "layout", HardShelf.LAYOUT)
 	file.set_value("progress", "stars", stars)
+	file.set_value("progress", "hard", hard_stars)
+	file.set_value("progress", "hard_opened", hard_opened)
 	file.set_value("settings", "sound_on", sound_on)
 	file.set_value("settings", "music_on", music_on)
 	file.set_value("settings", "sound_volume", sound_volume)

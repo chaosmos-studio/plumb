@@ -1,25 +1,73 @@
 extends Node
 
 const PATH: String = "res://levels/levels.json"
+const HARD_PATH: String = "res://levels/hard.json"
 
+## The main path, and the Hard levels: the old climb from chapter 10 on, open from the start (MATH.md section 16).
+enum Section { MAIN, HARD }
+const SECTION_NAMES: PackedStringArray = ["Main", "Hard"]
+
+## The section being shown and played, by index. Hard keeps each level's number: its levels before `hard_from` are
+## the main path's, which it shares and never shows.
 var levels: Array[Dictionary] = []
-## Each {"name", "line", "count"}. Empty for a level file without chapters.
+## Each {"name", "line", "count"}, the same in both sections. Empty for a level file without chapters.
 var chapters: Array[Dictionary] = []
 var current: int = 0
+var section: Section = Section.MAIN
+## The index of the first Hard level.
+var hard_from: int = 0
+var _main: Array[Dictionary] = []
+var _hard: Array[Dictionary] = []
 
 func _ready() -> void:
-	var text: String = FileAccess.get_file_as_string(PATH)
-	var data: Variant = JSON.parse_string(text)
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(PATH))
 	if typeof(data) != TYPE_DICTIONARY:
 		push_error("pack: cannot read %s" % PATH)
 		return
 	for entry: Variant in (data as Dictionary)["levels"]:
-		levels.append(entry as Dictionary)
+		_main.append(entry as Dictionary)
 	for entry: Variant in (data as Dictionary).get("chapters", []):
 		chapters.append(entry as Dictionary)
+	_hard.assign(_main)
+	var hard: Variant = JSON.parse_string(FileAccess.get_file_as_string(HARD_PATH)) if FileAccess.file_exists(HARD_PATH) \
+		else null
+	if typeof(hard) == TYPE_DICTIONARY:
+		hard_from = int((hard as Dictionary)["first"])
+		_hard.resize(hard_from)
+		for entry: Variant in (hard as Dictionary)["levels"]:
+			_hard.append(entry as Dictionary)
+	use(section)
+
+## The Levels screen's switch, which the kit shows when this exists.
+func sections() -> PackedStringArray:
+	return SECTION_NAMES if hard_from > 0 else PackedStringArray()
+
+func use(which: int) -> void:
+	section = which as Section
+	levels = _hard if section == Section.HARD else _main
 
 func count() -> int:
 	return levels.size()
+
+func main_count() -> int:
+	return _main.size()
+
+## Levels in both sections, each counted once.
+func total() -> int:
+	return _main.size() + _hard.size() - hard_from
+
+## The first level the section shows.
+func first_level() -> int:
+	return hard_from if section == Section.HARD else 0
+
+## Whether `level` of the section in play is a Hard board, whose progress Save keeps apart.
+func is_hard(level: int) -> bool:
+	return section == Section.HARD and level >= hard_from
+
+## How analytics names a Hard level, by its number, so it never counts as the main path's level of that number.
+## "" for a level of the main path, which analytics names by its number alone.
+func level_tag(number: int) -> String:
+	return "h%d" % number if is_hard(number - 1) else ""
 
 func board(level: int) -> TiltBoard:
 	return TiltBoard.from_dict(levels[level])

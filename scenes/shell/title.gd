@@ -28,8 +28,10 @@ func _ready() -> void:
 
 	var play: Button = UI.button("Play", UI.Style.PRIMARY)
 	play.custom_minimum_size.x = PILL_WIDTH
+	# Play goes on along the main path, whichever set the Levels screen last showed.
 	play.pressed.connect(func() -> void:
-		Pack.current = Save.frontier(Pack.count())
+		Pack.use(Pack.Section.MAIN)
+		Pack.current = Save.main_frontier()
 		Screens.go(Brand.GAME_SCENE))
 	column.add_child(UI.centred(play))
 	_level_gap = UI.spacer(8)
@@ -82,8 +84,8 @@ func _show_progress() -> void:
 	var stars: int = Save.total_stars()
 	_level_gap.visible = stars > 0
 	_level_line.visible = stars > 0
-	_level_line.text = "Level %d" % (Save.frontier(Pack.count()) + 1)
-	_tally_count.text = "%d / %d" % [stars, Pack.count() * 3]
+	_level_line.text = "Level %d" % (Save.main_frontier() + 1)
+	_tally_count.text = "%d / %d" % [stars, Pack.total() * 3]
 
 func _place() -> void:
 	_seesaw.position = _stage.get_global_rect().get_center() + Vector2(0, 16)

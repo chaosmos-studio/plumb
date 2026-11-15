@@ -63,10 +63,23 @@ static func counting() -> bool:
 
 ## GA4 limits: a short snake_case name and a few numbers or short strings.
 static func event(name: StringName, params: Dictionary = {}) -> void:
+	var sent: Dictionary = tagged(params)
 	if sink.is_valid():
-		sink.call(name, params)
+		sink.call(name, sent)
 	if _counting:
-		_firebase.call("log_event", String(name), for_ga(params))
+		_firebase.call("log_event", String(name), for_ga(sent))
+
+## A game with a second set of levels names a level of that set its own way (Pack.level_tag, such as "h181" for
+## Hard), so two levels that share a number never count as one.
+static func tagged(params: Dictionary) -> Dictionary:
+	if not params.has("level") or not Pack.has_method("level_tag"):
+		return params
+	var tag: String = Pack.call("level_tag", int(params["level"]))
+	if tag == "":
+		return params
+	var out: Dictionary = params.duplicate()
+	out["level"] = tag
+	return out
 
 ## Parameters GA4 reports as custom dimensions, which it fills only from text: sent as numbers they arrive as
 ## "(not set)". Stars and seconds stay numbers, for their metrics.

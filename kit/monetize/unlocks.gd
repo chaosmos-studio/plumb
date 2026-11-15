@@ -3,7 +3,8 @@ extends RefCounted
 
 ## The kit expects from the game: in `Save`, `opened` (the levels opened one by one) and `keys`, with
 ## `open_level(level)` and `add_keys(n)`. In `GameMonetize`, KEY_IDS and KEY_COUNTS, the consumable
-## products that sell keys.
+## products that sell keys. A game with a second set of levels (Pack.sections) also gives `Save.was_opened(level)`,
+## since each set keeps its own opened levels, and `Pack.first_level()`, the level that set opens on.
 
 ## Of a chapter's levels, the share to solve before the next chapter opens, so one stubborn level never
 ## walls off the rest of the game.
@@ -17,7 +18,7 @@ static func is_open(level: int) -> bool:
 
 ## Ignores Every level, so the grid rings only the levels next to play.
 static func reached(level: int) -> bool:
-	if level <= 0 or Save.best(level - 1) > 0 or Save.opened.has(level):
+	if level <= _first() or Save.best(level - 1) > 0 or _opened(level):
 		return true
 	var chapter: int = Pack.chapter_of(level)
 	return chapter > 0 and Pack.chapter_first(chapter) == level and solved_in(chapter - 1) >= gate(chapter - 1)
@@ -38,9 +39,15 @@ static func gate_opened_by(level: int) -> int:
 	if chapter < 0 or chapter + 1 >= Pack.chapters.size() or Shop.levels_open():
 		return -1
 	var next_first: int = Pack.chapter_first(chapter + 1)
-	if solved_in(chapter) != gate(chapter) or Save.best(next_first - 1) > 0 or Save.opened.has(next_first):
+	if solved_in(chapter) != gate(chapter) or Save.best(next_first - 1) > 0 or _opened(next_first):
 		return -1
 	return chapter + 1
+
+static func _first() -> int:
+	return int(Pack.call("first_level")) if Pack.has_method("first_level") else 0
+
+static func _opened(level: int) -> bool:
+	return bool(Save.call("was_opened", level)) if Save.has_method("was_opened") else Save.opened.has(level)
 
 static func how(level: int) -> String:
 	var chapter: int = Pack.chapter_of(level)

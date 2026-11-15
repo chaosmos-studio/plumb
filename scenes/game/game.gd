@@ -360,7 +360,8 @@ func _show_won() -> void:
 		_coach.finish()
 	var moves: int = history.size()
 	_earned = Stars.earned(moves, par)
-	_ending = Finale.due(level)
+	# The ending closes the main path. Hard is for after, or for any time.
+	_ending = not Pack.is_hard(level) and Finale.due(level)
 	_won = Result.Moment.new()
 	_won.level = level
 	_won.summary = _score()
@@ -457,7 +458,9 @@ func _build_ui() -> void:
 		_hint = UI.icon_button(&"hint", "Hint")
 		_hint.pressed.connect(_on_hint)
 		_dress_hint()
-		Hud.top(_ui, back, Hud.level_heading(level), _hint)
+		var heading: Stat = Stat.new(Pack.SECTION_NAMES[Pack.Section.HARD], str(level + 1), 60) if Pack.is_hard(level) \
+			else Hud.level_heading(level)
+		Hud.top(_ui, back, heading, _hint)
 
 	var stats: HBoxContainer = HBoxContainer.new()
 	stats.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)

@@ -7,8 +7,11 @@ extends RefCounted
 
 ## "section/key" in Save's file, to how two values become one.
 const RULES: Dictionary = {
+	"progress/layout": &"most",
 	"progress/stars": &"best_each",
 	"progress/opened": &"union",
+	"progress/hard": &"best_each",
+	"progress/hard_opened": &"union",
 	"progress/tutorial_seen": &"either",
 	"monetize/keys": &"most",
 	"monetize/tips": &"most",
@@ -35,7 +38,12 @@ static func absorb(text: String) -> void:
 	Save.restore()
 	EventBus.settings_changed.emit()
 
+## A game whose levels have moved since a copy was made (Save.upgrade) brings both copies to its layout first, so
+## stars always join on the boards they were won on.
 static func merge(mine: ConfigFile, theirs: ConfigFile) -> void:
+	if Save.has_method("upgrade"):
+		Save.call("upgrade", mine)
+		Save.call("upgrade", theirs)
 	for at: String in RULES:
 		var section: String = at.get_slice("/", 0)
 		var key: String = at.get_slice("/", 1)
