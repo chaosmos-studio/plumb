@@ -82,8 +82,8 @@ every other chapter, so the plateau built before it kept its boards and moved on
 main path is 520 levels in 26 chapters.
 
 The old climb from level 181 on is kept, board for board, as the Hard levels (`levels/hard.json`), open
-from the start through a Main and Hard switch on the Levels screen. Hard keeps its chapters 10 to 25 with
-their cards and captions, its levels keep their numbers, and its progress is kept apart. A save from
+from the start through a Main and Hard switch on the Levels screen. Hard keeps those chapters' cards and
+captions but counts on its own, chapters 1 to 16 and levels 1 to 320, and its progress is kept apart. A save from
 before the plateau moves its stars on the old boards to Hard and opens on the main path the bouncy blocks
 and the first level of every chapter the player had reached.
 
@@ -106,7 +106,7 @@ change can never silently break the level set.
 - **Title**: the wordmark, a seesaw of marbles rolling back and forth, their faces looking down the slope and
   squinting when they knock together, Play (continues at the first unsolved level), Levels, the star total.
 - **Levels**: twenty tiles a page with the stars each has earned; the next level in the accent colour;
-  later levels locked. A Main and Hard switch in the title's place shows either set, Hard from chapter 10.
+  later levels locked. A Main and Hard switch in the title's place shows either set, Hard numbered from 1.
   Play on the title always goes on along the main path.
 - **Play**: level and par, the board, Undo and Restart, Hint, one line of guidance on the levels that
   introduce something, the result card (stars, moves against par, Next), and a pit banner (Undo).

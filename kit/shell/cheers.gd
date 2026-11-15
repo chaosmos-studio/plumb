@@ -50,15 +50,15 @@ static func _news(moment: Result.Moment, earned: int) -> String:
 	if first and Pack.chapter_of(moment.level) >= 0:
 		var opened: int = Unlocks.gate_opened_by(moment.level)
 		if opened >= 0:
-			return "Chapter %d is open: %s." % [opened + 1, Pack.chapter_name(opened)]
+			return "Chapter %d is open: %s." % [Shown.chapter(opened), Pack.chapter_name(opened)]
 	var chapter: int = Pack.chapter_of(moment.level)
 	if chapter >= 0 and earned > moment.before:
 		var standing: Vector2i = _chapter_standing(chapter)
 		var count: int = int(Pack.chapters[chapter]["count"])
 		if standing.y == count * 3 and earned == 3:
-			return "Chapter %d, every star." % (chapter + 1)
+			return "Chapter %d, every star." % Shown.chapter(chapter)
 		if standing.x == count and first:
-			return "Chapter %d, every level solved." % (chapter + 1)
+			return "Chapter %d, every level solved." % Shown.chapter(chapter)
 	if first:
 		var solved: int = Ads.solved()
 		if MILESTONES.has(solved):

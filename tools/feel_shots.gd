@@ -82,6 +82,7 @@ func _shots() -> void:
 				await _rest(Pack.chapter_first(c) + 2 + c % 2, "tiles_ch%02d%s" % [c + 1, "_dark" if dark else ""])
 	Save.pets = false
 	await _bouncy()
+	await _hard()
 	_theme(false)
 	if Pack.chapters.size() > 20:
 		await _rest(Pack.chapter_first(20) + 1, "numbered")
@@ -271,6 +272,22 @@ func _bouncy() -> void:
 	await _frames(2)
 	await _save("bounce_hit")
 	await _drop_game(game)
+
+## Hard, counted on its own from 1: its first page, light and dark, a few levels in, and one of its levels in play.
+func _hard() -> void:
+	var stars: PackedByteArray = PackedByteArray()
+	stars.resize(Pack.hard_from + 7)
+	for i: int in range(Pack.hard_from, Pack.hard_from + 7):
+		stars[i] = 3 if i % 3 != 0 else 2
+	Save.hard_stars = stars
+	Pack.use(Pack.Section.HARD)
+	for dark: bool in [false, true]:
+		_theme(dark)
+		await _scene(Brand.LEVELS_SCENE, "hard_levels_%s" % ("dark" if dark else "light"), 40)
+	_theme(false)
+	await _rest(Pack.hard_from + 7, "hard_play")
+	Pack.use(Pack.Section.MAIN)
+	Save.hard_stars = PackedByteArray()
 
 ## The first bouncy level whose solution bounces a marble back across the board, as (level, which tilt).
 func _bouncing() -> Vector2i:

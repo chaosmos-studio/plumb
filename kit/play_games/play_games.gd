@@ -38,7 +38,7 @@ static func start() -> void:
 		_hints = 0
 		_started_at = Time.get_ticks_msec())
 	EventBus.level_won.connect(func(level: int, _count: int, stars: int) -> void:
-		solved(level + 1, stars, (Time.get_ticks_msec() - _started_at) / 1000.0, false)
+		solved(Shown.stat(level), stars, (Time.get_ticks_msec() - _started_at) / 1000.0, false)
 		progressed())
 
 static func catalog() -> Dictionary:

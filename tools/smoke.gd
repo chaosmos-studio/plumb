@@ -155,11 +155,17 @@ func _hard() -> int:
 		"Hard's first level is open from the start, and the next waits for it")
 	for level: int in HARD_LEVELS:
 		var game: Node = await _open_game(level)
-		var cards: int = game.find_children("*", "ChapterCard", true, false).size()
+		var cards: Array[Node] = game.find_children("*", "ChapterCard", true, false)
+		var card_says: PackedStringArray = PackedStringArray()
+		for card: Node in cards:
+			for label: Node in card.find_children("*", "Label", true, false):
+				card_says.append((label as Label).text)
 		await _solve(game)
 		await _wait(0.6)
+		var first: bool = level == Pack.hard_from
 		failures += _report(Save.best(level) == 3 and Save.best_in(false, level) == 0 and not game.get("_ending")
-			and (cards == 1) == (level == Pack.hard_from), "Hard %d is solved in par, kept in Hard, with its card if it opens a chapter" % (level + 1))
+			and (cards.size() == 1) == first and (not first or card_says.has("CHAPTER 1")),
+			"Hard %d is solved in par, kept in Hard, with its card if it opens a chapter" % Pack.number(level))
 		game.queue_free()
 		await get_tree().process_frame
 	Pack.use(Pack.Section.MAIN)

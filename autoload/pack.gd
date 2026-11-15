@@ -71,10 +71,25 @@ func first_level() -> int:
 func is_hard(level: int) -> bool:
 	return section == Section.HARD and level >= hard_from
 
-## How analytics names a Hard level, by its number, so it never counts as the main path's level of that number.
-## "" for a level of the main path, which analytics names by its number alone.
-func level_tag(number: int) -> String:
-	return "h%d" % number if is_hard(number - 1) else ""
+## The number a player sees (Shown): Hard counts its own levels from 1, while its index stays the one its saves and
+## hard.json use.
+func number(level: int) -> int:
+	return level - hard_from + 1 if is_hard(level) else level + 1
+
+## Hard counts its own chapters from 1 too.
+func chapter_number(c: int) -> int:
+	if section == Section.HARD and hard_from > 0:
+		return c - chapter_of(hard_from) + 1
+	return c + 1
+
+## What a level is called before its number: a Hard level by the section's name.
+func level_word(level: int) -> String:
+	return SECTION_NAMES[Section.HARD] if is_hard(level) else "level"
+
+## How analytics names a Hard level, from the number the kit sends (index + 1): "h" and the number Hard shows, so it
+## never counts as the main path's level of that number. "" for a level of the main path, named by its number alone.
+func level_tag(sent: int) -> String:
+	return "h%d" % number(sent - 1) if is_hard(sent - 1) else ""
 
 func board(level: int) -> TiltBoard:
 	return TiltBoard.from_dict(levels[level])

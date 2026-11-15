@@ -617,15 +617,15 @@ func _test_level_pack() -> void:
 		states.size() == TiltGenerator.CHAPTERS.size()
 		and JSON.stringify(states.slice(0, states.size() - HardShelf.ADDED)).sha256_text() == STATES_DIGEST
 		and TiltGenerator.CHAPTERS[TiltGenerator.making_order()[-1]].get("after_hard", false))
-	# Both sets as one list: the main path, then each Hard level by its index in the game's numbering and under its
-	# name, "h181" on.
+	# Both sets as one list: the main path, then each Hard level by its index in the game's numbering and under the
+	# name analytics gives it, "h1" on.
 	var all: Array = levels.duplicate()
 	all.append_array(hard)
 	var numbers: PackedInt32Array = PackedInt32Array()
 	var names: PackedStringArray = PackedStringArray()
 	for i: int in range(all.size()):
 		numbers.append(i if i < levels.size() else i - levels.size() + plateau)
-		names.append(("%d" if i < levels.size() else "h%d") % (numbers[i] + 1))
+		names.append(str(i + 1) if i < levels.size() else "h%d" % (i - levels.size() + 1))
 	var solver: TiltSolver = TiltSolver.new()
 	var boards: Array[TiltBoard] = []
 	var measures: Array[TiltDifficulty] = []
@@ -2523,8 +2523,26 @@ func _test_hard_shelf() -> void:
 	var hard_from: int = int(pack.get("hard_from"))
 	_check("in Hard each old board has its stars and its place", hard_from == first and int(save.call("best", 200)) == 3
 		and save.call("unlocked", 250) and not save.call("unlocked", 251) and save.call("unlocked", 305))
-	_check("and analytics names its levels apart", (analytics.call("tagged", {"level": 201}) as Dictionary)["level"] == "h201")
+	# The old level 201 is Hard's 21st: Hard counts its own levels and chapters from 1, on screen and in analytics.
+	var shown: GDScript = load("res://kit/shell/shown.gd")
+	var share: GDScript = load("res://kit/shell/share_card.gd")
+	var moment: GDScript = (load("res://kit/shell/result.gd") as GDScript).get_script_constant_map()["Moment"]
+	var won: Object = moment.new()
+	won.set("level", 200)
+	_check("and analytics names its levels apart, as Hard counts them", (analytics.call("tagged", {"level": 201}) as
+		Dictionary)["level"] == "h21")
+	_check("Hard shows its own numbers from 1, its chapters too", int(shown.call("level", hard_from)) == 1
+		and int(shown.call("level", HardShelf.COUNT - 1)) == HardShelf.COUNT - first and int(shown.call("chapter", 9)) == 1
+		and int(shown.call("chapter", 24)) == 16 and String(shown.call("word", 200)) == "Hard"
+		and int(shown.call("stat", 200)) == 1021)
+	var heading: Node = (load("res://kit/shell/hud.gd") as GDScript).call("level_heading", 200)
+	_check("on the play screen, the share card and a locked level's sheet", (heading.get_child(0) as Label).text == "HARD"
+		and (heading.get_child(1) as Label).text == "21" and String(share.call("_file_name", won)) == "plumb-hard-21.png"
+		and String(unlocks.call("how", 201)).contains("Hard 21"))
+	heading.free()
 	pack.call("use", 0)
+	_check("while the main path counts as ever", int(shown.call("level", 200)) == 201 and int(shown.call("chapter", 9)) == 10
+		and String(share.call("_file_name", won)) == "plumb-level-201.png" and int(shown.call("stat", 200)) == 201)
 	_check("on the main path each reached chapter opens, and its new boards wait to be solved",
 		save.call("unlocked", 300) and save.call("unlocked", first) and not save.call("unlocked", first + 1)
 		and not save.call("unlocked", 305) and int(save.call("best", 200)) == 0)
@@ -2820,9 +2838,10 @@ func _test_levels_swipe() -> void:
 	if switch.size() == 1:
 		switch[0].emit_signal(&"chosen", 1)
 		var hard_page: int = int(levels.get("_page"))
-		_check("Hard opens on its own first chapter, and the pages before it are not there",
+		_check("Hard opens on its own first chapter, its chapter 1, and the pages before it are not there",
 			hard_page == TiltGenerator.PLATEAU_FROM and int(pack.get("section")) == 1
-			and bool((levels.get("_prev") as Node).get("disabled")))
+			and bool((levels.get("_prev") as Node).get("disabled"))
+			and (levels.get("_chapter_number") as Label).text.begins_with("CHAPTER 1 "))
 		_touch_drag(levels, mid, mid + Vector2(200.0, 10.0))
 		_check("so a swipe back from it stays", int(levels.get("_page")) == hard_page)
 		switch[0].emit_signal(&"chosen", 0)

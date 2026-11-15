@@ -128,8 +128,8 @@ chapters can follow it in later updates.
 | 25 | 481-500 | Turning lock | springs |
 | 26 | 501-520 | Every rule so far, mixed (the bouncy block aside) | all |
 
-The Hard levels keep the 25 chapters as they shipped, from chapter 10, Cracked floor, at levels 181 to 200, to
-chapter 25, Every rule so far, at 481 to 500.
+The Hard levels keep the boards of the old chapters 10 to 25 as they shipped, counted on their own: Hard chapters 1
+to 16 and levels 1 to 320, from Cracked floor at Hard 1 to 20 to Every rule so far at Hard 301 to 320.
 
 Held in reserve for later updates: colour mixing, moving holes, a lock that never turns, twin marbles, hole
 capacity, mirror halves, turnstiles, gravity cells, sticky floor, fragile marbles.
@@ -144,8 +144,8 @@ capacity, mirror halves, turnstiles, gravity cells, sticky floor, fragile marble
   and the first two new rules, chapters 5 and 6, so the schedule is one piece. Since the plateau they keep
   the Hard levels' stars apart, and a save from before it moves the stars won on old levels 181 to 500 to
   Hard (`MATH.md` section 16).
-- **A Main and Hard switch** on the Levels screen shows either set. Hard starts at chapter 10, its levels
-  keep their numbers, and Play on the title goes on along the main path.
+- **A Main and Hard switch** on the Levels screen shows either set. Hard counts its own chapters and levels
+  from 1, and Play on the title goes on along the main path.
 - **Generation** runs per chapter, so one chapter can be remade without touching the others. A full
   run grows from about 3 minutes to roughly half an hour.
 

@@ -30,8 +30,8 @@ var _qr: PackedStringArray = PackedStringArray()
 
 static func send(host: Node, image: Image, moment_won: Result.Moment) -> void:
 	var said: String = moment_won.summary.left(1).to_lower() + moment_won.summary.substr(1)
-	var text: String = "%s, level %d: %s. Can you match it? %s?from=share" % [Brand.NAME, moment_won.level + 1, said,
-		GameShare.GET]
+	var text: String = "%s, %s %d: %s. Can you match it? %s?from=share" % [Brand.NAME, Shown.word(moment_won.level),
+		Shown.level(moment_won.level), said, GameShare.GET]
 	_send(host, image, text, _file_name(moment_won))
 
 ## The card for a daily solve with `text` as its message. With no card to draw, the words go alone.
@@ -85,7 +85,7 @@ static func save(host: Node, image: Image, moment_won: Result.Moment) -> void:
 	Toast.say(host, "Card saved to %s" % ProjectSettings.globalize_path(path) if path != "" else "Could not save the card")
 
 static func _file_name(moment_won: Result.Moment) -> String:
-	return "%s-level-%d.png" % [Brand.NAME.to_lower(), moment_won.level + 1]
+	return "%s-%s-%d.png" % [Brand.NAME.to_lower(), Shown.word(moment_won.level).to_lower(), Shown.level(moment_won.level)]
 
 static func _write(image: Image, file_name: String) -> String:
 	var folder: String = "user://share"
@@ -158,7 +158,8 @@ func _draw() -> void:
 		_centre(ui, "Everyone gets this puzzle today." if day == Daily.today() else "Everyone got this puzzle that day.",
 			1098.0, 36, Brand.MUTED)
 	else:
-		_right(UI.caption_font(), "LEVEL %d" % (moment.level + 1), 112.0, 30, tint)
+		_right(UI.caption_font(), "%s %d" % [Shown.word(moment.level).to_upper(), Shown.level(moment.level)], 112.0, 30,
+			tint)
 		if not Pack.chapters.is_empty() and Pack.chapter_of(moment.level) >= 0:
 			_right(ui, Pack.chapter_name(chapter), 156.0, 28, Brand.MUTED)
 		for k: int in range(3):

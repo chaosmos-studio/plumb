@@ -52,7 +52,7 @@ func _ready() -> void:
 	column.add_theme_constant_override("separation", 6)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.add_child(column)
-	column.add_child(UI.caption("Chapter %d" % (chapter + 1), 20, tint))
+	column.add_child(UI.caption("Chapter %d" % Shown.chapter(chapter), 20, tint))
 	column.add_child(UI.title(Pack.chapter_name(chapter), 50))
 	var line: Label = UI.label(Pack.chapter_line(chapter), 28, Brand.MUTED)
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

@@ -792,12 +792,15 @@ than one plateau level in ten for each.
 **The Hard shelf.** Before the plateau was made, `tools/generate_levels.gd -- shelve` copied the old levels
 181 to 500 into `levels/hard.json`, exactly as they shipped, and the tests hold them to that, and levels 1 to
 180 too, with a SHA-256 of their JSON.
-`Pack` keeps them as a second section that shares levels 1 to 180 with the main path, so each Hard level
-keeps its number and each chapter its colour, card and caption, and the Levels screen shows only Hard's own
-chapters, from 10. Hard is open from the start: its first level, 181, is always open, and inside it levels
-open as on the main path, one after another, a chapter at seven in ten of the one before (section 14), or
-any one with a key or a video. Analytics names Hard levels "h181" to "h500", so a quit point in Hard never
-counts as the main path's level of that number.
+`Pack` keeps them as a second section that shares levels 1 to 180 with the main path, so inside, each Hard
+level keeps its old index, which its saves and `hard.json` use, and each chapter its colour, card and caption.
+The Levels screen shows only Hard's own chapters. A player sees Hard counted on its own, chapters 1 to 16 and
+levels 1 to 320 (`Pack.number`, `Pack.chapter_number`, read through the kit's `Shown`), since a Hard that opened
+on level 181 would feel like something was skipped, and its chapter 10 would clash with the main path's. Hard
+is open from the start: its first level is always open, and inside it levels open as on the main path, one
+after another, a chapter at seven in ten of the one before (section 14), or any one with a key or a video.
+Analytics names Hard levels "h1" to "h320", and Play Games' levelCompleted event, whose level is a number,
+gets 1001 to 1320, so a quit point in Hard never counts as the main path's level of that number.
 
 **Moving a save.** A save now carries a layout number (`HardShelf.LAYOUT`, 2), and one without it was made
 before the Hard levels. It moves on once, as it loads (`HardShelf.migrate`):

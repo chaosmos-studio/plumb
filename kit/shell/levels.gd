@@ -243,13 +243,13 @@ func _show(page: int, from: int, again: bool = false) -> void:
 		t.tween_property(_grid, "position:x", _grid.position.x - 60.0 * from, 0.26).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 func _standing(chapter: int) -> String:
-	var number: String = "Chapter %d" % (chapter + 1)
+	var number: String = "Chapter %d" % Shown.chapter(chapter)
 	var first: int = _page_first(chapter)
 	if not Save.unlocked(first) and chapter > 0:
 		if not Save.unlocked(_page_first(chapter - 1)):
-			return "%s   opens after chapter %d" % [number, chapter]
+			return "%s   opens after chapter %d" % [number, Shown.chapter(chapter - 1)]
 		var more: int = Unlocks.gate(chapter - 1) - Unlocks.solved_in(chapter - 1)
-		return "%s   %d more in chapter %d opens it" % [number, more, chapter]
+		return "%s   %d more in chapter %d opens it" % [number, more, Shown.chapter(chapter - 1)]
 	var solved: int = 0
 	for i: int in range(first, _page_end(chapter)):
 		solved += 1 if Save.best(i) > 0 else 0

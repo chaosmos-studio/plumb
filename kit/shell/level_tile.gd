@@ -90,7 +90,7 @@ func _night(rect: Rect2, box: StyleBoxFlat) -> void:
 
 func _number(rect: Rect2, ink: Color, raised: bool) -> void:
 	var font: Font = UI.display_font()
-	var text: String = str(level + 1)
+	var text: String = str(Shown.level(level))
 	var font_size: int = 50
 	var ts: Vector2 = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
 	var baseline: float = rect.position.y + rect.size.y * 0.5 + font_size * 0.32 - (8.0 if raised else 0.0)

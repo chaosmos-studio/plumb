@@ -503,9 +503,7 @@ func _build_ui() -> void:
 		_hint = UI.icon_button(&"hint", "Hint")
 		_hint.pressed.connect(_on_hint)
 		_dress_hint()
-		var heading: Stat = Stat.new(Pack.SECTION_NAMES[Pack.Section.HARD], str(level + 1), 60) if Pack.is_hard(level) \
-			else Hud.level_heading(level)
-		Hud.top(_ui, back, heading, _hint)
+		Hud.top(_ui, back, Hud.level_heading(level), _hint)
 
 	var stats: HBoxContainer = HBoxContainer.new()
 	stats.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)

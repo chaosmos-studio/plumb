@@ -53,8 +53,9 @@ static func how(level: int) -> String:
 	var chapter: int = Pack.chapter_of(level)
 	if chapter > 0 and Pack.chapter_first(chapter) == level:
 		var more: int = gate(chapter - 1) - solved_in(chapter - 1)
-		return "Solve %d more %s in chapter %d to open it." % [more, "level" if more == 1 else "levels", chapter]
-	return "Solve level %d to open it." % level
+		return "Solve %d more %s in chapter %d to open it." % [more, "level" if more == 1 else "levels",
+			Shown.chapter(chapter - 1)]
+	return "Solve %s %d to open it." % [Shown.word(level - 1), Shown.level(level - 1)]
 
 static func use_key(level: int) -> bool:
 	if Save.keys <= 0:
@@ -71,7 +72,7 @@ static func buy_key(id: String, level: int) -> void:
 
 static func delivered(count: int) -> void:
 	if _buying >= 0 and use_key(_buying):
-		Supporter.say("Level %d is open" % (_buying + 1))
+		Supporter.say("%s %d is open" % [Shown.word(_buying).capitalize(), Shown.level(_buying)])
 	else:
 		Supporter.say("%d %s added" % [count, "key" if count == 1 else "keys"])
 	_buying = -1
@@ -82,7 +83,7 @@ static func offer(host: Node, level: int) -> Sheet:
 		return null
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
-	c.add_child(UI.title("Level %d" % (level + 1), 56))
+	c.add_child(UI.title("%s %d" % [Shown.word(level).capitalize(), Shown.level(level)], 56))
 	var why: Label = UI.label(how(level) + " Or open it now, for good.", 28, Brand.MUTED)
 	why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	c.add_child(why)

@@ -91,7 +91,7 @@ static func no_hint() -> Control:
 	return room
 
 static func level_heading(level: int) -> Stat:
-	return Stat.new("Level", str(level + 1), 60)
+	return Stat.new(Shown.word(level).capitalize(), str(Shown.level(level)), 60)
 
 static func caption_line(ui: Control) -> Label:
 	var safe: Dictionary = UI.safe_margins(ui.get_viewport())
