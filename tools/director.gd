@@ -7,7 +7,8 @@ extends RefCounted
 ## won:N, failed:N (the shortest fall into a pit), hero:N (the board with the HUD hidden), and for the website board:N[:LRUD], boardsolve:N:K and
 ## boardhint:N:K, which also hide the HUD, guide:K (level 1's guide at step K, counting from 0) and ending
 ## (the note after the last level). Levels are 1-based here, as a player counts them. Any action takes a
-## "dark/" prefix to stage it in the dark theme. Without one it is in the game's own look. Also looks[:owned]
+## "dark/" prefix to stage it in the dark theme. Without one it is in the game's own look. A "hard/" prefix stages
+## it in the Hard section, its levels and pages counted as Hard counts them (hard/levels, hard/board:N). Also looks[:owned]
 ## (the marble sets sheet), colours (the colour themes sheet), themed:ID:K[:SET] (level K in colour theme
 ## ID, with marble set SET), sets (one marble of every set, named) and tiles[::K] (every mark from chapter 16 on, after K tilts). levels:K shows page K of the grid,
 ## unlock:N the sheet a locked level N opens on Google Play, replay:N:K level N's solve watched back K
@@ -43,6 +44,10 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 	_settle = SETTLE if settle else 0.02
 	var dark: bool = action.begins_with("dark/")
 	action = action.trim_prefix("dark/")
+	# "hard/" comes after any "dark/".
+	var hard: bool = action.begins_with("hard/")
+	action = action.trim_prefix("hard/")
+	Pack.use(Pack.Section.HARD if hard else Pack.Section.MAIN)
 	# Saved as well as applied, so a staged Settings sheet shows the theme the shot is in.
 	Save.theme = Appearance.Choice.DARK if dark else Appearance.native()
 	Save.palette = ""
@@ -62,6 +67,8 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 	var variant: String = parts[1] if parts.size() > 1 else ""
 	var verb: String = parts[0]
 	var n: int = int(parts[1]) - 1 if parts.size() > 1 else 0
+	if hard:
+		n += Pack.hard_from
 	var k: int = int(parts[2]) if parts.size() > 2 else 0
 	_seed_progress()
 	match verb:
@@ -131,7 +138,8 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			host.add_child(grid)
 			if parts.size() > 1:
 				await _wait(host, 0.1)
-				grid.call("_show", n, 0)
+				var page: int = int(parts[1]) - 1 + (Pack.chapter_of(Pack.hard_from) if hard else 0)
+				grid.call("_show", page, 0)
 			await _wait(host, 0.5)
 		"unlock":
 			Supporter.on_play = true
@@ -417,12 +425,18 @@ func _solve(game: Node, count: int) -> void:
 			await game.get_tree().process_frame
 		await game.get_tree().create_timer(0.05).timeout
 
-## Some progress, so the title and level grid look like a game someone is playing.
+## Some progress, so the title and level grid look like a game someone is playing. In the Hard section the same
+## number of Hard levels are solved too.
 func _seed_progress(solved: int = 14) -> void:
 	var stars: PackedByteArray = PackedByteArray()
 	for i: int in range(solved):
 		stars.append(3 if i % 5 != 3 else 2)
 	Save.stars = stars
+	var hard_stars: PackedByteArray = PackedByteArray()
+	if Pack.section == Pack.Section.HARD:
+		hard_stars.resize(Pack.hard_from)
+		hard_stars.append_array(stars)
+	Save.hard_stars = hard_stars
 
 ## A solved level's sheet rises after the last marble's slow drop and the board's party (game.gd WIN_PAUSE,
 ## Celebration.BOARD_TIME). The waits after a solve were set when it rose 0.3 s after the last tilt. A solve that
