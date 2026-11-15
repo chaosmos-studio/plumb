@@ -13,7 +13,6 @@ const GREY: Shader = preload("res://scenes/game/grey.gdshader")
 const FRAME: Vector2 = Vector2(232, 268)
 const PORTRAIT: float = 66.0
 const NAME_SIZE: int = 52
-const YEARS_SIZE: int = 26
 const FLASH: float = 0.12
 ## The whole card's size on the screen, in the 720 wide design.
 const SIZE: float = 1.25
@@ -79,7 +78,6 @@ func _build(who: int, colour: Color, centre: Vector2) -> void:
 	_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.position = centre
 	_card.who = Cast.of(who)
-	_card.year = Time.get_date_dict_from_system()["year"]
 	add_child(_card)
 	var portrait: Marble = Marble.new()
 	portrait.radius = PORTRAIT
@@ -97,7 +95,7 @@ func _build(who: int, colour: Color, centre: Vector2) -> void:
 	if full:
 		t.tween_property(_card, "scale", Vector2.ONE * SIZE, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		_card.words = 0.0
-		t.tween_property(_card, "words", 1.0, 0.4).set_delay(0.12)
+		t.tween_property(_card, "words", 1.0, 0.2).set_delay(0.12)
 	else:
 		_card.words = 1.0
 	get_tree().create_timer(length).timeout.connect(skip)
@@ -113,8 +111,7 @@ func skip() -> void:
 ## The photo in its frame, the candle, the flower and the name, all in greys.
 class _Card extends Control:
 	var who: Cast.Who
-	var year: int = 2026
-	## 0 to 1: the name, then the years, fade in.
+	## 0 to 1 as the name fades in.
 	var words: float = 1.0:
 		set(value):
 			words = value
@@ -129,14 +126,12 @@ class _Card extends Control:
 	var _points: PackedVector2Array = PackedVector2Array()
 
 	var _name: String = ""
-	var _years: String = ""
 
 	func _ready() -> void:
 		_outer.shadow_color = Color(0, 0, 0, 0.35)
 		_outer.shadow_size = 18
 		_outer.shadow_offset = Vector2(0, 8)
 		_name = who.name.to_lower()
-		_years = "%d to %d" % [year, year]
 
 	static func _box(colour: Color, corner: int) -> StyleBoxFlat:
 		var box: StyleBoxFlat = StyleBoxFlat.new()
@@ -151,7 +146,7 @@ class _Card extends Control:
 
 	func _draw() -> void:
 		var frame: Rect2 = Rect2(Vector2(-FRAME.x * 0.5, -FRAME.y * 0.5 - 40.0), FRAME)
-		draw_style_box(_plaque, Rect2(frame.position - Vector2(116.0, 34.0), frame.size + Vector2(232.0, 186.0)))
+		draw_style_box(_plaque, Rect2(frame.position - Vector2(116.0, 34.0), frame.size + Vector2(232.0, 144.0)))
 		draw_style_box(_outer, frame)
 		draw_style_box(_mat, frame.grow(-16.0))
 		# A black sash across the top right corner.
@@ -164,10 +159,7 @@ class _Card extends Control:
 		draw_colored_polygon(_points, Color(0.06, 0.06, 0.06))
 		_candle(Vector2(frame.position.x - 62.0, frame.end.y))
 		_flower(Vector2(frame.end.x + 58.0, frame.end.y))
-		var name_alpha: float = clampf(words * 2.0, 0.0, 1.0)
-		var years_alpha: float = clampf(words * 2.0 - 1.0, 0.0, 1.0)
-		_centred(_name, Vector2(0.0, frame.end.y + 62.0), NAME_SIZE, Color(0.95, 0.95, 0.95, name_alpha))
-		_centred(_years, Vector2(0.0, frame.end.y + 104.0), YEARS_SIZE, Color(0.78, 0.78, 0.78, years_alpha))
+		_centred(_name, Vector2(0.0, frame.end.y + 62.0), NAME_SIZE, Color(0.95, 0.95, 0.95, words))
 
 	func _centred(text: String, at: Vector2, size: int, colour: Color) -> void:
 		var w: float = _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
