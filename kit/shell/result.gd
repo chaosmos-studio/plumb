@@ -67,9 +67,16 @@ static func won(host: Node, heading: String, earned: int, detail: PackedStringAr
 	_awards(host, sheet, icons, earned)
 	return sheet
 
+## A game may land the stars its own way: called with the host, the sheet's three stars and how many were earned,
+## once the sheet has risen, in place of the pop each star makes here.
+static var award: Callable = Callable()
+
 static func _awards(host: Node, sheet: Sheet, icons: Array[StarIcon], earned: int) -> void:
 	if sheet.held:
 		await sheet.rising
+	if award.is_valid():
+		award.call(host, icons, earned)
+		return
 	for k: int in range(earned):
 		_award(host, icons[k], 0.4 + k * STAR_GAP, earned == 3 and k == 2)
 
