@@ -9,6 +9,7 @@ const HEADING_HEIGHT: float = 72.0
 const BANNER_GAP: float = Hud.BANNER_GAP
 const GRID_GAP: float = 20.0
 const LIFT_TIME: float = 0.28
+const SWITCH_WIDTH: float = 300.0
 
 var _page: int = 0
 var _ground: ChapterStyle.Ground
@@ -42,7 +43,13 @@ func _ready() -> void:
 	var back: IconButton = UI.icon_button(&"back", "Back")
 	back.pressed.connect(func() -> void: _leave(Brand.TITLE_SCENE))
 	top.add_child(back)
-	var title: Label = UI.title("Levels", 58)
+	# A game with a second set of levels (Pack.sections) shows a switch between them in the title's place.
+	var sections: PackedStringArray = Pack.call("sections") if Pack.has_method("sections") else PackedStringArray()
+	var title: Control = UI.title("Levels", 58)
+	if not sections.is_empty():
+		var switch: Segmented = Segmented.new(sections, int(Pack.get("section")), SWITCH_WIDTH)
+		switch.chosen.connect(_switch_section)
+		title = UI.centred(switch)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(title)
 	top.add_child(Hud.settings(self))
@@ -92,7 +99,7 @@ func _ready() -> void:
 	_prev.pressed.connect(func() -> void: _show(_page - 1, -1))
 	pager.add_child(_prev)
 	_dots = _PageDots.new()
-	_dots.count = _pages()
+	_dots.count = _pages() - _first_page()
 	pager.add_child(_dots)
 	_next = UI.icon_button(&"next", "Next page")
 	_next.pressed.connect(func() -> void: _show(_page + 1, 1))
@@ -153,6 +160,16 @@ func _pages() -> int:
 		return Pack.chapters.size()
 	return int(ceil(Pack.count() / float(PER_PAGE)))
 
+## A second set of levels may start part way through the chapters, on the level Pack.first_level names.
+func _first_page() -> int:
+	return _page_of(int(Pack.call("first_level"))) if Pack.has_method("first_level") else 0
+
+## The other set opens where its play stands, sliding in from the side its button is on.
+func _switch_section(index: int) -> void:
+	Pack.call("use", index)
+	_dots.count = _pages() - _first_page()
+	_show(_page_of(Save.frontier(Pack.count())), 1 if index > 0 else -1, true)
+
 func _page_first(page: int) -> int:
 	return Pack.chapter_first(page) if not Pack.chapters.is_empty() else page * PER_PAGE
 
@@ -188,7 +205,7 @@ func _input(event: InputEvent) -> void:
 
 ## `from` slides the grid in from the right (1), the left (-1) or not at all (0).
 func _show(page: int, from: int, again: bool = false) -> void:
-	var target: int = clampi(page, 0, _pages() - 1)
+	var target: int = clampi(page, _first_page(), _pages() - 1)
 	if target == _page and _grid.get_child_count() > 0 and not again:
 		return
 	_page = target
@@ -215,8 +232,8 @@ func _show(page: int, from: int, again: bool = false) -> void:
 			_leave(Brand.GAME_SCENE))
 		_grid.add_child(tile)
 	_dots.tint = tint
-	_dots.current = _page
-	_prev.disabled = _page == 0
+	_dots.current = _page - _first_page()
+	_prev.disabled = _page <= _first_page()
 	_next.disabled = _page >= _pages() - 1
 	if from != 0:
 		_grid.modulate.a = 0.0
