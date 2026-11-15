@@ -654,9 +654,11 @@ levels here, solves are, and each chapter teaches one rule that later chapters m
 the high end: a chapter is mostly played before the next rule arrives. Within a chapter difficulty climbs,
 so the last six levels are its hardest, and those are exactly the ones a player may leave for later.
 
-The gate never makes the game easier. Difficulty never falls across a chapter boundary (section 8), so the
-next chapter's first level is at least as hard as the last chapter's last. Stepping ahead trades a stuck
-level for a fresh rule, not for an easier board. A key or a short video opens any one level as well, for
+On the climb the gate never makes the game easier. Difficulty never falls across a chapter boundary there
+(section 8), so the next chapter's first level is at least as hard as the last chapter's last. Stepping
+ahead trades a stuck level for a fresh rule, not for an easier board. On the plateau (section 16) each
+chapter starts again at the floor, so the next chapter's first level may be up to the band easier than the
+last chapter's last. A key or a short video opens any one level as well, for
 a player who wants a particular one now.
 
 ### Things to try
@@ -703,3 +705,120 @@ to silence.
   slider seems to do nothing until near the end.
 - Give `Qr.rows` a link twice as long: it moves up to version 12, 65 modules a side, and its modules
   shrink on the end card.
+
+---
+
+## 16. The comfort ceiling and the Hard shelf
+
+Sections 6 to 10 built a ramp that never falls, and it kept that promise to the last level: par 1 to 12 over
+levels 1 to 160, 12 to 14 over 161 to 180, then 14 to 21 from chapter 10 on, on 8x8 boards from chapter 11,
+with a new tile every chapter. Shravan played it and found the game "extremely difficult, unplayable" from about level 180,
+while he loved the early levels for being easy and tricky. Two real players had gone past level 25 when this
+was written, too few to say where people stop, so his playtest placed the cut.
+
+**A ceiling, not a longer ramp.** A ramp climbs because each level should ask a little more than the last.
+But that has a top. Past it a level stops being a puzzle you read and becomes a search you cannot hold in
+your head, and a phone screen sets that top as much as the rules do. Call it the comfort ceiling. Below it
+the ramp does its job. At it, a new chapter should bring a new idea, its tile, and not more difficulty. So
+from chapter 10 the main path holds a plateau at level 160's difficulty, and the old climb is kept whole, as
+the Hard levels, for players who want it.
+
+**The floor and the band.** Level 160 measures par 12 and 18.85 bits: a player tilting at random clears it
+in 12 tilts about once in 470,000 tries. That is the floor. From level 181 no level has a lower par or fewer
+bits (`TiltGenerator.PLATEAU_LEVEL`). The band above it is one move of par and 1.5 bits, a factor of 2.8 in
+that chance (`PLATEAU_PARS`, `PLATEAU_BITS`). A plateau board is also no larger than level 160's 7x8 and
+holds no more than its five marbles (`phase_of`), since a bigger board is harder to read whatever it
+measures. Level 181 is easier than level 180 (par 14, 20.85 bits): that one step down is the point.
+
+**What the plateau does to the dynamic program.** Section 6's run picker keeps its pools, its cost and its
+`RUN` limit of five equal levels in a row. Six things change:
+
+- **Order holds within a chapter only.** A chapter has no level before it to stay above, so each chapter
+  starts again from the floor, which is where a new tile is best taught. Inside a chapter, par then bits
+  never fall (section 10's order), so the only falls on the main path are at chapter starts.
+- **One run per chapter.** Each phase still pools on its own, its boards to its own spec, but none is run
+  until the chapter's last phase: then one run is picked through all the pools at once, each level drawn
+  from its own phase's pool (`allowed` in `_run`). Picked phase by phase, a first phase could end high in
+  the band and leave the second too little room above it. In the first build, chapter 15's first phase
+  ended at par 13 and 19.7 bits, its second phase found 74 boards between that and the ceiling in 45,000
+  proposals, and no run of ten could be picked from them. Seen whole, the program ends the first phase
+  where the second can still climb.
+- **The pool's window is the band.** A candidate joins only between the floor and the floor plus the band,
+  so no fall can be larger than the band, and every search stops at par 13, the most the band allows.
+- **The aims climb half the band in each chapter** (`PLATEAU_RISE`), from the floor at a chapter's first
+  level to half a move and 0.75 bits above it at its last. The program pays the squared distance to those
+  aims as before, so a chapter climbs gently, the way the early game does, and then the next rule arrives.
+- **The turning lock is measured against three tilts.** With one way always locked, a random player has at
+  most three tilts on offer, so a tilt can ask at most log2(3) = 1.58 bits of luck instead of 2, and par 12
+  or 13 can barely reach 18.85 bits: the first try at chapter 24 found no board in the band in 19,000
+  proposals. The old lock levels show the same, about 1.14 bits a move against level 160's 1.57. So chapter
+  24's floor and band are scaled by log2(3) / log2(4) = 0.79 (`TiltGenerator.bits_scale`), 14.94 to 16.13
+  bits, with par still 12 or 13. The tests compare the falls into and out of it in the same scaled measure.
+  Chapter 25 mixes rules and keeps the plain floor, so a mixed board with a lock joins it only if it
+  reaches the four-way floor.
+- **No level may replay a Hard level.** The Hard levels are reserved (`TiltGenerator.reserve`) and every
+  candidate is checked against them as well as against the levels made, with section 4's rule. A route can
+  replay only a level of the same par, and every Hard level needs 14 moves or more, so the Hard levels are
+  compared by layout alone and never solved during the run.
+
+**Measured.** The main path around the cut, by section 5's measure:
+
+| Level | Par | Bits | Board |
+| --- | --- | --- | --- |
+| 160 | 12 | 18.85 | 7x8, 5 marbles |
+| 180 | 14 | 20.85 | 7x8, 5 marbles |
+| 181 | 12 | 18.85 | 7x7, 5 marbles |
+| 200 | 13 | 19.73 | 7x8, 5 marbles |
+| 300 | 13 | 19.85 | 7x8, 5 marbles |
+| 400 | 13 | 19.68 | 7x8, 5 marbles |
+| 500 | 13 | 19.62 | 7x8, 5 marbles |
+
+All 320 plateau levels need par 12 (205 of them) or 13 (115), and every one sits between 18.85 and 20.1
+bits, except the turning lock's, at 15.0 to 16.1 in its scaled measure. Chapter 10's first ten boards
+are 7x7, as its first phase always was, and the rest 7x8. The Hard levels they replace needed par 14 to 21.
+
+**What it costs to make.** One chapter at a time (`resume`), on 12 worker processes for chapters 10 to 13
+and 15 from 14 on, the plateau took 5.7 hours of generator time, from 5 minutes for chapter 19 to 50 for
+chapter 16. Chapter 10 searches each proposal up to 12,000 positions and ran about 180 proposals a second.
+From chapter 11 a chapter searches up to 30,000 or 40,000, and they ran 5 to 60 a second. Blinking walls
+were the slowest, since the beat doubles every search (section 10).
+
+**Naive players.** `TiltNaive` plays every plateau level twice without planning: greedily, always taking the
+tilt that drops the most marbles and then leaves the rest nearest their holes, and at random, 40 times. Greed
+clears 2 of the 320 in par, and no random player clears any. On chapter 1 greed clears 12 of 20 and random
+play 14, so the test does tell a level that needs thought from one that does not. The tests allow fewer
+than one plateau level in ten for each.
+
+**The Hard shelf.** Before the plateau was made, `tools/generate_levels.gd -- shelve` copied the old levels
+181 to 500 into `levels/hard.json`, exactly as they shipped, and the tests hold them to that, and levels 1 to
+180 too, with a SHA-256 of their JSON.
+`Pack` keeps them as a second section that shares levels 1 to 180 with the main path, so each Hard level
+keeps its number and each chapter its colour, card and caption, and the Levels screen shows only Hard's own
+chapters, from 10. Hard is open from the start: its first level, 181, is always open, and inside it levels
+open as on the main path, one after another, a chapter at seven in ten of the one before (section 14), or
+any one with a key or a video. Analytics names Hard levels "h181" to "h500", so a quit point in Hard never
+counts as the main path's level of that number.
+
+**Moving a save.** A save now carries a layout number (`HardShelf.LAYOUT`, 2), and one without it was made
+before the Hard levels. It moves on once, as it loads (`HardShelf.migrate`):
+
+- Stars on levels 1 to 180 stay where they are.
+- Stars won on old levels 181 to 500 move to Hard at the same number, since that is where those boards
+  went, and the main path's new boards there start with none.
+- A level from 181 on that a key or a video opened is opened in Hard, where its board is.
+- On the main path, the first level of every chapter from 10 up to the furthest one the player had reached
+  opens, so no one is shut out of a chapter they could play before. A chapter counts as reached when any of
+  its levels was open under the old rules of section 14. The rest of each chapter opens one level after
+  another, as always.
+
+A copy from the cloud made by an older version moves on the same way before it is joined (`CloudSave.merge`),
+so stars from an old phone can only ever land on the boards they were won on. The test suite builds an old
+save, loads it, plays both sections on it, and joins an old cloud copy into it.
+
+### Things to try
+
+- Set `PLATEAU_BITS` to 3.0 and make chapters 10 to 25 again (`resume=9`): the pools take boards from a
+  band twice as wide, and each chapter aims to climb twice as far from the floor before the next falls back.
+- Set `PLATEAU_RISE` to 0: every level aims at the floor, and only the `RUN` limit makes the levels move.
+- Set `PLATEAU_LEVEL` to 120: the floor drops to chapter 6's end, par 10, and the plateau gets easier still.
+- `climb` makes every chapter on the ramp again, the way the Hard levels were made.

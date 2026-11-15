@@ -66,25 +66,43 @@ Difficulty is measured, not guessed. The score is the bits of luck a player tilt
 clear the board in par (`scripts/tilt/difficulty.gd`, `MATH.md` section 5). Each phase pools candidates
 and keeps the run that follows a ramp in both par and bits, pinned to the 500 levels planned, so that
 neither ever falls from one level to the next, chapter starts included, and no more than five levels in a
-row share a score. The 200 levels of 1.1 run from par 1 and 1.0 bits to par 14 and 22.8 bits (`MATH.md`
-section 8).
+row share a score. Levels 1 to 180 climb that ramp from par 1 and 1.0 bits to par 14 and 20.9 bits.
+
+The ramp stops at a comfort ceiling (`MATH.md` section 16). Shravan's playtest found the climb unplayable
+from about level 180, so from chapter 10 the main path holds a plateau at level 160's difficulty, par 12 and
+18.85 bits: no level from 181 on measures less, none more than one move and 1.5 bits above, on boards no
+larger than level 160's 7x8 with no more than its five marbles. The turning lock leaves three tilts where
+other boards have four, so its chapter's bits are measured against three. Each chapter starts again from that floor
+with its new tile and climbs through half the band, so the only falls are at chapter starts, and never by
+more than the band. Level 181 is easier than 180 on purpose.
+
+The old climb from level 181 on is kept, board for board, as the Hard levels (`levels/hard.json`), open
+from the start through a Main and Hard switch on the Levels screen. Hard keeps chapters 10 to 25 with
+their cards and captions, its levels keep their numbers, and its progress is kept apart. A save from
+before the plateau moves its stars on the old boards to Hard and opens on the main path the first level of
+every chapter the player had reached.
 
 No level repeats another. Compared over the eight rotations and mirrors with colour ignored, two boards
 of one size must differ in 30% of their cells, or in half of them when one solution clears both
 (`scripts/tilt/novelty.gd`, `MATH.md` section 4).
 
 The fairness invariants, all checked from the boards by `tests/run_tests.gd` on every run: every shipped
-level solves in exactly its stated par under the current rules, no level replays another, none is easier
-than the one before, par never falls, no more than five in a row are equally hard, within a chapter no
-level takes away room, a colour, a marble or a pit, and every pit level has a pit in play. A rule change
-can never silently break the level set.
+level, main and Hard, solves in exactly its stated par under the current rules, and no level of either set
+replays another. Levels 1 to 180 and the Hard levels are exactly as they shipped before the plateau,
+and on that climb none is easier than the one before, par never falls and no more than five in a row are
+equally hard. From 181 the main path stays inside the band over level 160, never falls within a chapter,
+never falls by more than the band, has no more than five in a row equally hard, and every level needs its
+chapter's rule. Neither a random nor a greedy player clears one plateau level in ten in par. Within a
+chapter no level takes away room, a colour, a marble or a pit, and every pit level has a pit in play. A rule
+change can never silently break the level set.
 
 ## 4. Screens
 
 - **Title**: the wordmark, a seesaw of marbles rolling back and forth, Play (continues at the first
   unsolved level), Levels, the star total.
 - **Levels**: twenty tiles a page with the stars each has earned; the next level in the accent colour;
-  later levels locked.
+  later levels locked. A Main and Hard switch in the title's place shows either set, Hard from chapter 10.
+  Play on the title always goes on along the main path.
 - **Play**: level and par, the board, Undo and Restart, Hint, one line of guidance on the levels that
   introduce something, the result card (stars, moves against par, Next), and a pit banner (Undo).
 - **Settings**, a gear on every screen: sound, music, vibration, the theme (Auto, Light or Dark), How to
@@ -160,14 +178,17 @@ to the Play listing once it is live.
 ## 6. Project architecture
 
 ```
-autoload/    event_bus, save (progress, settings, the Supporter pack, today's hints), pack (the level set),
-             audio, screens (fades)
+autoload/    event_bus, save (progress on both sets, settings, the Supporter pack, today's hints), pack (the
+             main path and the Hard levels), audio, screens (fades)
+scripts/     hard_shelf.gd (moves a save from before the Hard levels on), stars, palette
 scripts/tilt board.gd (rules), tilt_move.gd, solver.gd (BFS), difficulty.gd (bits of luck),
-             novelty.gd (replays), generator.gd (phases and the ramp), showcase.gd (the opening)
+             novelty.gd (replays), generator.gd (phases, the ramp and the plateau), showcase.gd (the
+             opening), naive.gd (a random and a greedy player, for the tests)
 scripts/kit  palette, ui (code-built theme), stars (scoring), star_icon
 scenes/game  game.gd (play screen), board_view.gd, marble, ripple, hint_arrow
 scenes/shell title.gd, seesaw.gd, levels.gd
-levels/      levels.json, written by tools/generate_levels.gd, never hand-edited
+levels/      levels.json (the main path) and hard.json (the Hard levels), written by
+             tools/generate_levels.gd, never hand-edited
 kit/         the shared UI kit: ui/, shell/ (levels, settings, about, credits, finale), tools/ (capture,
              store, film), monetize/ (pacing, ads, supporter, hint gate; android/ holds the AdMob and
              Play Billing backends, loaded on Android only)

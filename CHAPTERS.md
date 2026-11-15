@@ -13,6 +13,15 @@ so it became a turning lock: one way is locked, and the lock turns a quarter clo
 And from chapter 11, levels are ordered by par first, then bits (`MATH.md` section 10): par never falls,
 bits never fall within one par, and bits may start lower when par steps up.
 
+**The plateau and the Hard levels (2026-11-15).** Shravan played the game and found it unplayable from
+about level 180, while he loved the early levels. So the main path stops climbing at a comfort ceiling
+(`MATH.md` section 16): chapters 10 to 25 were made again at level 160's difficulty, par 12 and 18.85 bits,
+each level at most one move and 1.5 bits above it (the turning lock's bits measured against its three
+tilts), on boards no larger than 7x8 with five marbles. Every
+chapter still brings its rule, with its card and caption on its first level, and every level still needs
+it. The old levels 181 to 500 are kept as they were, as the Hard levels, open from the start. Levels 1 to
+180 did not change.
+
 **The opening (2026-10-04).** Levels 1 to 5 are picked for what they show as well as how hard they are
 (`MATH.md` section 12): a long roll home, two marbles dropping on one tilt, a bank off a wall, a tempting tilt
 that costs par, and two marbles dropping together on the last tilt. They stay under level 6 in every measure,
@@ -25,11 +34,14 @@ Its first level makes that rule the thing to notice, with a one-line caption, an
 explores it and mixes it with rules the player already knows. A chapter is exactly one page of the Levels
 screen, so the page can carry its name.
 
-**Difficulty never drops, across all 500 levels.** Every level is at least as hard as the one before it,
-chapter starts included: the measured difficulty (par and bits, `MATH.md` section 5) rises steadily from
-level 1 to the last, the way it does in the 120 levels today. A chapter's first level is not an easier
-board. The new rule is simple on its own, and the rest of the board carries the difficulty the ramp asks
-for at that point, so the rule is learnt without the game getting easier.
+**Difficulty climbs to a ceiling, then holds.** Over levels 1 to 180 every level is at least as hard as the
+one before it, chapter starts included: the measured difficulty (par and bits, `MATH.md` section 5) rises
+steadily. A chapter's first level there is not an easier board: the new rule is simple on its own, and the
+rest of the board carries the difficulty the ramp asks for at that point. From level 181 the main path holds
+a plateau at level 160's difficulty, never below it and never more than a narrow band above it. Each
+chapter there starts again at the floor with its new rule and climbs gently through its levels, so the only
+falls are at chapter starts, and never by more than the band. The Hard levels keep the old climb for players
+who want it.
 
 Every rule must keep the two promises the game already makes: the solver proves every level and finds par,
 and no level repeats another. So each rule below is something the tilt solver can search and the generator
@@ -119,7 +131,11 @@ capacity, mirror halves, turnstiles, gravity cells, sticky floor, fragile marble
 - **A chapter card** opens the first level of each chapter: the rule's name and one line about it.
 - **Captions** teach each rule on its first level, as the game does now for colours and pits.
 - **Saves** keep stars for all 500 levels. The 120 levels of 1.0 are regenerated as chapters 1 to 4
-  and the first two new rules, chapters 5 and 6, so the schedule is one piece.
+  and the first two new rules, chapters 5 and 6, so the schedule is one piece. Since the plateau they keep
+  the Hard levels' stars apart, and a save from before it moves the stars won on old levels 181 to 500 to
+  Hard (`MATH.md` section 16).
+- **A Main and Hard switch** on the Levels screen shows either set. Hard starts at chapter 10, its levels
+  keep their numbers, and Play on the title goes on along the main path.
 - **Generation** runs per chapter, so one chapter can be remade without touching the others. A full
   run grows from about 3 minutes to roughly half an hour.
 
