@@ -3,9 +3,12 @@ extends SceneTree
 ## Writes levels/levels.json: the chapter list and every level of every chapter with its par.
 ## Run: godot --headless --path . -s res://tools/generate_levels.gd [-- seed=2026 out=user://try.json
 ##   chapters=6 resume=10 workers=8 opening shelve climb]
-## `chapters` stops after that many chapters, for trying a schedule out. `resume` keeps that many chapters
-## from the file already written and makes only the ones after them: the file keeps the generator's random
-## state at the end of every chapter, so the result is the same as a full run's. `workers` is how many
+## Chapters are made in TiltGenerator.making_order, which puts a chapter added after the Hard levels last, and
+## written in the game's order. `chapters` stops after that many chapters made, for trying a schedule out.
+## `resume` keeps that many chapters made from the file already written and makes only the ones after them: the
+## file keeps the generator's random state after every chapter made, so the result is the same as a full run's.
+## Resuming after every chapter (`resume=26 chapters=26`) makes nothing and writes the file again, which is how a
+## chapter's name or line changes. `workers` is how many
 ## worker processes the batched chapters (TiltGenerator.PARALLEL_FROM) spread over. GDScript threads gain
 ## little, separate processes scale with the cores. `opening` makes only the opening (TiltShowcase) again,
 ## in the file already written, and leaves every other byte of it as it was. The same seed always writes
@@ -130,8 +133,10 @@ func _initialize() -> void:
 	if workers > 1:
 		gen.farm = Workers.new(workers)
 	gen.plateau = not climb
+	# Chapters are made, kept and resumed in making order (TiltGenerator.making_order), and written in the game's.
+	var order: PackedInt32Array = TiltGenerator.making_order()
 	var hard: Variant = null
-	if gen.plateau and chapters > TiltGenerator.PLATEAU_FROM:
+	if gen.plateau and Array(order.slice(kept, chapters)).any(func(c: int) -> bool: return c >= TiltGenerator.PLATEAU_FROM):
 		hard = JSON.parse_string(FileAccess.get_file_as_string(HARD)) if FileAccess.file_exists(HARD) else null
 		if typeof(hard) != TYPE_DICTIONARY:
 			push_error("the plateau makes chapter %d on again: shelve the Hard levels first" % (TiltGenerator.PLATEAU_FROM + 1))
@@ -142,23 +147,29 @@ func _initialize() -> void:
 		var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(OUT))
 		var problem: String = _resumable(data, kept, seed_value)
 		if problem != "":
-			push_error("cannot resume after chapter %d: %s" % [kept, problem])
+			push_error("cannot resume after %d chapters: %s" % [kept, problem])
 			quit(1)
 			return
 		var shipped: Dictionary = data
-		var count: int = 0
-		for c: int in range(kept):
-			count += TiltGenerator.chapter_size(c)
-			states.append(String((shipped["rng_states"] as Array)[c]))
-		gen.resume((shipped["levels"] as Array).slice(0, count), String(states[kept - 1]).to_int())
-		print("kept %d levels in %d chapters" % [count, kept])
+		var made: Array = []
+		var places: PackedInt32Array = PackedInt32Array()
+		for step: int in range(kept):
+			var c: int = order[step]
+			var at: int = _offset(shipped["chapters"], String(TiltGenerator.CHAPTERS[c]["name"]))
+			made.append_array((shipped["levels"] as Array).slice(at, at + TiltGenerator.chapter_size(c)))
+			for k: int in range(TiltGenerator.chapter_size(c)):
+				places.append(TiltGenerator.chapter_start(c) + k)
+			states.append(String((shipped["rng_states"] as Array)[step]))
+		gen.resume(made, places, String(states[kept - 1]).to_int())
+		print("kept %d levels in %d chapters" % [made.size(), kept])
 	if hard != null:
 		var known: bool = gen.levels.size() >= TiltGenerator.PLATEAU_LEVEL
 		var deepest: int = int(gen.floor_level()["par"]) + TiltGenerator.PLATEAU_PARS if known else 1 << 30
 		gen.reserve((hard as Dictionary)["levels"], deepest)
 		print("kept clear of %d Hard levels" % ((hard as Dictionary)["levels"] as Array).size())
 	var started: int = Time.get_ticks_msec()
-	for c: int in range(kept, chapters):
+	for step: int in range(kept, chapters):
+		var c: int = order[step]
 		var phases: Array = TiltGenerator.CHAPTERS[c]["phases"]
 		for p: int in range(phases.size()):
 			var first: int = gen.levels.size()
@@ -166,8 +177,8 @@ func _initialize() -> void:
 				var whole: bool = gen.plateau and c >= TiltGenerator.PLATEAU_FROM
 				push_error("chapter %d phase %d: a pool of %d in %d attempts cannot fill a run of %d" % [c + 1, p,
 					gen.pooled, gen.attempts, TiltGenerator.chapter_size(c) if whole else int(phases[p][0])])
-				if c > 0:
-					print("the first %d chapters are in %s; resume=%d continues from there" % [c, out, c])
+				if step > 0:
+					print("the first %d chapters made are in %s; resume=%d continues from there" % [step, out, step])
 				quit(1)
 				return
 			var made: Array[TiltDifficulty] = gen.made()
@@ -181,8 +192,8 @@ func _initialize() -> void:
 				pars.append(str(made[i].par))
 				bits.append("%.1f" % made[i].bits)
 			print("chapter %d phase %d: levels %d-%d, pool %d from %d attempts, par %s, bits %s  (%.1fs)" % [c + 1,
-				p, first + 1, made.size(), gen.pooled, gen.attempts, " ".join(pars), " ".join(bits),
-				(Time.get_ticks_msec() - started) / 1000.0])
+				p, gen.placed[first] + 1, gen.placed[made.size() - 1] + 1, gen.pooled, gen.attempts, " ".join(pars),
+				" ".join(bits), (Time.get_ticks_msec() - started) / 1000.0])
 		if c == 0:
 			if not gen.open():
 				push_error("the showcase found no opening under level %d" % (TiltShowcase.SLOTS.size() + 1))
@@ -192,9 +203,21 @@ func _initialize() -> void:
 		states.append(str(gen.rng.state))
 		# Written after every chapter, with the random state at its end, so a run that stops for any reason,
 		# or fails on a chapter that needs retuning, resumes after the last chapter finished.
-		_write(out, seed_value, c + 1, states, gen.levels)
+		_write(out, seed_value, order.slice(0, step + 1), states, gen.shipped())
+	# Keeping every chapter made writes the file again as it is, with the chapters' names and lines as they are now.
+	if kept >= chapters:
+		_write(out, seed_value, order.slice(0, chapters), states, gen.shipped())
 	print("wrote %d levels in %d chapters to %s" % [gen.levels.size(), chapters, out])
 	quit(0)
+
+## Where chapter `name` starts in a level file's list of chapters, which holds only the chapters made so far.
+static func _offset(listed: Array, name: String) -> int:
+	var at: int = 0
+	for entry: Variant in listed:
+		if String((entry as Dictionary)["name"]) == name:
+			return at
+		at += int((entry as Dictionary)["count"])
+	return -1
 
 func _work(args: Dictionary, out: String) -> void:
 	var job: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(String(args["work"])))
@@ -219,7 +242,10 @@ func _reopen(seed_value: int, out: String) -> void:
 		return
 	var shipped: Dictionary = data
 	var gen: TiltGenerator = TiltGenerator.new(seed_value)
-	gen.resume(shipped["levels"], 0)
+	var places: PackedInt32Array = PackedInt32Array()
+	for k: int in range((shipped["levels"] as Array).size()):
+		places.append(k)
+	gen.resume(shipped["levels"], places, 0)
 	if not gen.open():
 		push_error("the showcase found no opening under level %d" % (TiltShowcase.SLOTS.size() + 1))
 		quit(1)
@@ -311,15 +337,21 @@ static func _kept(was: Dictionary, now: Variant, fresh: Array) -> bool:
 	return read["seed"] == was["seed"] and read["chapters"] == was["chapters"] \
 		and read["rng_states"] == was["rng_states"] and levels.slice(count) == (was["levels"] as Array).slice(count)
 
-static func _write(out: String, seed_value: int, chapters: int, states: PackedStringArray, levels: Array) -> void:
-	var listed: Array = TiltGenerator.chapter_list().slice(0, chapters)
+## `made` names the chapters made so far, which are listed in the game's order, and `states` holds the random
+## state after each, in the order they were made.
+static func _write(out: String, seed_value: int, made: PackedInt32Array, states: PackedStringArray, levels: Array) -> void:
+	var listed: Array = []
+	var all: Array = TiltGenerator.chapter_list()
+	for c: int in range(all.size()):
+		if made.has(c):
+			listed.append(all[c])
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out).get_base_dir())
 	var file: FileAccess = FileAccess.open(out, FileAccess.WRITE)
-	file.store_string(JSON.stringify({"seed": seed_value, "chapters": listed, "rng_states": states.slice(0, chapters),
+	file.store_string(JSON.stringify({"seed": seed_value, "chapters": listed, "rng_states": states.slice(0, made.size()),
 		"levels": levels}, "\t"))
 	file.close()
 
-## Why the file written before cannot be resumed after `kept` chapters, or "" if it can.
+## Why the file written before cannot be resumed after the first `kept` chapters made, or "" if it can.
 static func _resumable(data: Variant, kept: int, seed_value: int) -> String:
 	if typeof(data) != TYPE_DICTIONARY:
 		return "no level file"
@@ -328,12 +360,16 @@ static func _resumable(data: Variant, kept: int, seed_value: int) -> String:
 		return "it was made from another seed"
 	var listed: Array = shipped.get("chapters", [])
 	var states: Array = shipped.get("rng_states", [])
-	if listed.size() < kept or states.size() < kept:
-		return "it holds fewer chapters, or no random states"
-	var planned: Array = TiltGenerator.chapter_list()
-	for c: int in range(kept):
-		var a: Dictionary = listed[c]
-		var b: Dictionary = planned[c]
-		if a.get("name") != b["name"] or int(a.get("count", -1)) != int(b["count"]):
-			return "chapter %d has changed" % (c + 1)
+	if states.size() < kept:
+		return "it holds no random state after chapter %d made" % kept
+	var order: PackedInt32Array = TiltGenerator.making_order()
+	for step: int in range(kept):
+		var c: int = order[step]
+		var found: bool = false
+		for entry: Variant in listed:
+			var a: Dictionary = entry
+			found = found or (a.get("name") == TiltGenerator.CHAPTERS[c]["name"]
+				and int(a.get("count", -1)) == TiltGenerator.chapter_size(c))
+		if not found:
+			return "chapter %d is missing or has changed" % (c + 1)
 	return ""

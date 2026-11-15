@@ -11,7 +11,8 @@ extends RefCounted
 ## switch and its hatch for "switch", a key and its lock for "key"), "stone" for stones, "plug" true to make
 ## every hole a plug, with as many holes of a colour as it has marbles, "ice" for icy holes, "number" for
 ## numbered marbles, "wrap" 1 for one axis that wraps and 2 for both, "locked" for a turning lock, and "mix"
-## for that many rules drawn from MIX.
+## for that many rules drawn from MIX. A chapter with "after_hard" was added after the Hard levels were shelved:
+## it has no Hard counterpart, and it is made after every other chapter (making_order), so adding it moved none.
 const CHAPTERS: Array = [
 	{"name": "Roll home", "rule": "", "line": "Swipe to tilt the board", "phases": [
 		[1, 4, 4, 1, 1, 0.10, 0, 1, 1, {}],
@@ -50,6 +51,11 @@ const CHAPTERS: Array = [
 	{"name": "Paint", "rule": "paint", "line": "Rolling over paint changes a marble's colour", "phases": [
 		[10, 7, 7, 3, 5, 0.15, 1, 9, 13, {"paint": 2}],
 		[10, 7, 8, 3, 5, 0.15, 1, 9, 14, {"paint": 2, "door": 1}],
+	]},
+	{"name": "Bouncy blocks", "rule": "bounce", "line": "A marble bounces back the way it came",
+		"after_hard": true, "phases": [
+		[10, 7, 7, 3, 5, 0.15, 1, 12, 13, {"bounce": 2}],
+		[10, 7, 8, 3, 5, 0.15, 1, 12, 13, {"bounce": 3, "stop": 1}],
 	]},
 	{"name": "Cracked floor", "rule": "crack", "line": "Cracked floor gives way once a marble rolls off it", "phases": [
 		[10, 7, 7, 3, 5, 0.14, 1, 10, 14, {"crack": 3}],
@@ -137,7 +143,7 @@ const PAIRED: Array[String] = ["portal", "switch", "key"]
 ## The rule tiles that stand on one cell alone, which `prune` takes off a board where they change nothing.
 const SINGLE: Array[int] = [TiltBoard.Tile.STOP, TiltBoard.Tile.GATE, TiltBoard.Tile.DOOR, TiltBoard.Tile.PAINT,
 	TiltBoard.Tile.CRACK, TiltBoard.Tile.BUMPER, TiltBoard.Tile.BLINK, TiltBoard.Tile.CONVEYOR, TiltBoard.Tile.SPRING,
-	TiltBoard.Tile.MAGNET, TiltBoard.Tile.GLASS]
+	TiltBoard.Tile.MAGNET, TiltBoard.Tile.GLASS, TiltBoard.Tile.BOUNCE]
 ## The ramp runs over the whole game as planned, not the chapters made so far, so adding chapters later
 ## leaves the levels made now as they are (MATH.md sections 6 and 8).
 const RAMP_LEVELS: int = 500
@@ -170,10 +176,11 @@ const PARALLEL_FROM: int = 4
 const BATCH: int = 24
 ## Chapters from this one on ship in TiltDifficulty.before's order, par first, rather than with par and
 ## bits each never falling (MATH.md section 10). Every level before them keeps both, which also keeps this.
-const BY_PAR_FROM: int = 10
+## Stones, the chapter these were set at on the climb.
+const BY_PAR_FROM: int = 11
 ## From this chapter on a phase pools only boards at the last level's par or one more, and POOL_LATE per
 ## level rather than POOL, so par climbs slowly (MATH.md section 10).
-const CLOSE_FROM: int = 10
+const CLOSE_FROM: int = 11
 const POOL_LATE: int = 8
 ## From this chapter on the main path stops climbing: every level sits in a narrow band at level PLATEAU_LEVEL's
 ## difficulty, on a board no larger than that level's and with no more marbles. The climb these chapters had
@@ -222,8 +229,9 @@ var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var farm: Farm = Farm.new()
 ## False makes every chapter climb the ramp, as the Hard levels were made.
 var plateau: bool = true
-## Each a TiltBoard.to_dict() with its "par", in shipping order.
+## Each a TiltBoard.to_dict() with its "par", in the order made, and each one's place in the game (shipped()).
 var levels: Array[Dictionary] = []
+var placed: PackedInt32Array = PackedInt32Array()
 ## What the last phase measured, for reporting: pool size and attempts used.
 var pooled: int = 0
 var attempts: int = 0
@@ -252,7 +260,21 @@ static func chapter_size(c: int) -> int:
 static func chapter_list() -> Array:
 	var out: Array = []
 	for c: int in range(CHAPTERS.size()):
-		out.append({"name": CHAPTERS[c]["name"], "line": CHAPTERS[c]["line"], "count": chapter_size(c)})
+		var entry: Dictionary = {"name": CHAPTERS[c]["name"], "line": CHAPTERS[c]["line"], "count": chapter_size(c)}
+		if CHAPTERS[c].get("after_hard", false):
+			entry["after_hard"] = true
+		out.append(entry)
+	return out
+
+## The chapters in the order they are made: by number, then the ones added after the Hard levels were shelved,
+## from where the others leave the random stream, so adding a chapter never changes one made before it (MATH.md
+## section 22).
+static func making_order() -> PackedInt32Array:
+	var out: PackedInt32Array = PackedInt32Array()
+	for late: bool in [false, true]:
+		for c: int in range(CHAPTERS.size()):
+			if bool(CHAPTERS[c].get("after_hard", false)) == late:
+				out.append(c)
 	return out
 
 ## The first level (0-based) of chapter `c`.
@@ -294,16 +316,28 @@ static func target_par(i: int) -> float:
 static func target_bits(i: int) -> float:
 	return FIRST_BITS + (LAST_BITS - FIRST_BITS) * progress(i)
 
-## `state` is the RNG state saved once `made` was made, so the chapters after come out exactly as a full
-## run would make them (MATH.md section 9).
-func resume(made: Array, state: int) -> void:
-	for entry: Variant in made:
-		var level: Dictionary = entry
+## `made` in the order it was made, `places` each level's place in the game, and `state` the RNG state saved once
+## they were made, so the chapters after come out exactly as a full run would make them (MATH.md section 9).
+func resume(made: Array, places: PackedInt32Array, state: int) -> void:
+	for k: int in range(made.size()):
+		var level: Dictionary = made[k]
 		var board: TiltBoard = TiltBoard.from_dict(level)
 		var m: TiltDifficulty = TiltDifficulty.of(board, int(level["par"]), 200000)
 		levels.append(level)
+		placed.append(places[k])
 		_made.append(Candidate.new(board, m, TiltNovelty.views(board, m.path), _made.size()))
 	rng.state = state
+
+## The levels made so far in the game's order.
+func shipped() -> Array[Dictionary]:
+	var order: Array[int] = []
+	for k: int in range(levels.size()):
+		order.append(k)
+	order.sort_custom(func(a: int, b: int) -> bool: return placed[a] < placed[b])
+	var out: Array[Dictionary] = []
+	for k: int in order:
+		out.append(levels[k])
+	return out
 
 ## Levels this run must not replay though it does not make them, each a TiltBoard.to_dict() with its "par": the Hard
 ## levels. A route replays only a level of the same par (MATH.md section 4), so a level past `deepest`, the most par
@@ -348,7 +382,11 @@ func add_phase(chapter: int, p: int) -> bool:
 	var par_max: int = phase[8]
 	# Deeper chapters may search further, but the ones before keep the limit they were made with.
 	var limit: int = int(CHAPTERS[chapter].get("search", SEARCH_LIMIT))
-	var first: int = levels.size()
+	# Where this phase's levels go in the game, which a chapter made late is not where the making has got to.
+	var first: int = chapter_start(chapter)
+	for k: int in placed:
+		first += 1 if chapter_at(k) == chapter else 0
+	# The level made last, which for every chapter but a late one is also the one before it in the game.
 	var last: TiltDifficulty = null if _made.is_empty() else _made[-1].measure
 	var by_par: bool = flat or chapter >= BY_PAR_FROM
 	# On the plateau a chapter starts again from the floor, and its own order is the chapter's one run's to keep,
@@ -398,11 +436,12 @@ func add_phase(chapter: int, p: int) -> bool:
 	var run: Array[Candidate] = _run(pool, aim_par, aim_bits, last, _streak(by_par), by_par, allowed)
 	if run.is_empty():
 		return false
-	for c: Candidate in run:
-		var level: Dictionary = c.board.to_dict()
-		level["par"] = c.measure.par
+	for k: int in range(run.size()):
+		var level: Dictionary = run[k].board.to_dict()
+		level["par"] = run[k].measure.par
 		levels.append(level)
-		_made.append(c)
+		placed.append(first + k)
+		_made.append(run[k])
 	return true
 
 ## The plateau's floor and its most: level PLATEAU_LEVEL's par and bits, board size and marbles.
