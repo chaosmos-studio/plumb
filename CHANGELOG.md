@@ -16,6 +16,14 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
+## 1.5.0
+
+- Later levels are gentler now, and a new chapter brings bouncy blocks that send a marble straight back.
+- The old, tougher levels live on in a new Hard section, open from the start. Your stars come with you.
+- Marbles have faces and feelings. Switch them off in Settings, or switch on Pets for sleepy cat and dog walls.
+- Every win is a party, and finishing a chapter is a big one. Tap to skip it.
+- Fixed cracked floor that showed a move late.
+
 ## 1.4.10
 
 - Fixed the intro, which showed a big dot over the first letter o.
