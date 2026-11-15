@@ -13,6 +13,15 @@ const APP_ID_SETTING: String = "admob/general/android/app_id"
 const CONTRAST: Array = [["ink", "bg", 7.0], ["ink", "surface", 7.0], ["muted", "bg", 3.0],
 	["muted", "surface", 3.0], ["accent_ink", "accent", 3.0], ["danger", "surface", 3.0]]
 
+## SHA-256 of the JSON of levels 1 to 180, which the plateau kept, and of the old levels 181 to 500, which became the
+## Hard levels (MATH.md section 16). Neither may ever change: players' stars are on them.
+const KEPT_DIGEST: String = "0faf82c7eaf937b5e4f32d5f7246fd2cb0c46972c5affa87d819478145d66ca9"
+const HARD_DIGEST: String = "c9d1aea0c3a9b410689d76fc824533d7e5e043acf6215062b0434f8c9bc658ab"
+## Random players tried on each plateau level, and the share of levels, one in this many, that a naive player may
+## clear in par before the plateau counts as too easy for thought.
+const NAIVE_TRIES: int = 40
+const NAIVE_SHARE: int = 10
+
 var _passed: int = 0
 var _failed: int = 0
 ## Set by a test to open a sheet from _process, which runs just before process_frame: where a tap lands
@@ -73,6 +82,7 @@ func _initialize() -> void:
 	_test_streak_keeping()
 	_test_chapter_colours()
 	_test_unlocks()
+	_test_hard_shelf()
 	_test_rate_prompt()
 	_test_play_core()
 	_test_more_games()
@@ -523,89 +533,192 @@ func _test_stars() -> void:
 		Stars.possible(5, 5, false) == 2 and Stars.possible(5, 5, true) == 3)
 	_check("and another past the two-star leeway", Stars.possible(5 + Stars.leeway(5), 5, false) == 1)
 
-# Every shipped level is re-solved against the current rules, so a rule change that alters a par or makes
-# a level unsolvable fails before a build can ship it.
+# Every shipped level, on the main path and in Hard, is re-solved against the current rules, so a rule change that
+# alters a par or makes a level unsolvable fails before a build can ship it.
 func _test_level_pack() -> void:
 	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://levels/levels.json"))
-	_check("levels.json parses", typeof(data) == TYPE_DICTIONARY)
-	if typeof(data) != TYPE_DICTIONARY:
+	var hard_data: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://levels/hard.json"))
+	_check("levels.json and hard.json parse", typeof(data) == TYPE_DICTIONARY and typeof(hard_data) == TYPE_DICTIONARY)
+	if typeof(data) != TYPE_DICTIONARY or typeof(hard_data) != TYPE_DICTIONARY:
 		return
 	var levels: Array = (data as Dictionary)["levels"]
+	var hard: Array = (hard_data as Dictionary)["levels"]
+	var plateau: int = TiltGenerator.chapter_start(TiltGenerator.PLATEAU_FROM)
 	_check("the pack has every level", levels.size() == TiltGenerator.level_count())
 	_check("the pack lists every chapter", _same_chapters((data as Dictionary).get("chapters", []), TiltGenerator.chapter_list()))
-	var opens: Dictionary = {}
-	var at: int = 0
-	for chapter: Dictionary in TiltGenerator.chapter_list():
-		opens[at] = true
-		at += int(chapter["count"])
+	_check("levels 1 to %d are as they shipped before the plateau" % plateau,
+		JSON.stringify(levels.slice(0, plateau)).sha256_text() == KEPT_DIGEST)
+	_check("the Hard levels are the old levels %d to %d, in order and unchanged" % [plateau + 1, levels.size()],
+		int((hard_data as Dictionary)["first"]) == plateau and HardShelf.FIRST == plateau
+		and hard.size() == levels.size() - plateau and JSON.stringify(hard).sha256_text() == HARD_DIGEST)
+	# Both sets as one list: the main path, then each Hard level by its index in the game's numbering and under its
+	# name, "h181" on.
+	var all: Array = levels.duplicate()
+	all.append_array(hard)
+	var numbers: PackedInt32Array = PackedInt32Array()
+	var names: PackedStringArray = PackedStringArray()
+	for i: int in range(all.size()):
+		numbers.append(i if i < levels.size() else i - levels.size() + plateau)
+		names.append(("%d" if i < levels.size() else "h%d") % (numbers[i] + 1))
 	var solver: TiltSolver = TiltSolver.new()
 	var boards: Array[TiltBoard] = []
 	var measures: Array[TiltDifficulty] = []
 	var views: Array[TiltNovelty.Views] = []
-	var wrong: Array[int] = []
-	for i: int in range(levels.size()):
-		var level: Dictionary = levels[i]
+	var wrong: PackedStringArray = PackedStringArray()
+	for i: int in range(all.size()):
+		var level: Dictionary = all[i]
 		var board: TiltBoard = TiltBoard.from_dict(level)
 		var path: PackedInt32Array = solver.solve(board, 100000)
 		if path.size() != int(level["par"]):
-			wrong.append(i + 1)
+			wrong.append(names[i])
 		var measure: TiltDifficulty = TiltDifficulty.of(board)
 		boards.append(board)
 		measures.append(measure)
 		views.append(TiltNovelty.views(board, measure.path))
-	_check("every level solves in exactly its par (wrong: %s)" % str(wrong), wrong.is_empty())
+	_check("every level solves in exactly its par (wrong: %s)" % ", ".join(wrong), wrong.is_empty())
 
-	var same: Array[String] = []
-	var replays: Array[String] = []
+	var same: PackedStringArray = PackedStringArray()
+	var replays: PackedStringArray = PackedStringArray()
 	var seen: Dictionary = {}
-	for i: int in range(levels.size()):
+	for i: int in range(all.size()):
 		var key: String = TiltNovelty.canonical(boards[i])
 		if seen.has(key):
-			same.append("%d=%d" % [int(seen[key]) + 1, i + 1])
+			same.append("%s=%s" % [names[int(seen[key])], names[i]])
 		seen[key] = i
-		for j: int in range(i + 1, levels.size()):
+		for j: int in range(i + 1, all.size()):
 			var why: String = TiltNovelty.clash(views[i], views[j])
 			if why != "":
-				replays.append("%d-%d %s" % [i + 1, j + 1, why])
-	_check("no two levels are the same level (%s)" % ", ".join(same), same.is_empty())
-	_check("no level is a near replay of another (%s)" % ", ".join(replays), replays.is_empty())
+				replays.append("%s-%s %s" % [names[i], names[j], why])
+	_check("no two levels of either set are the same level (%s)" % ", ".join(same), same.is_empty())
+	_check("no level of either set is a near replay of another (%s)" % ", ".join(replays), replays.is_empty())
 
-	var easier: Array[int] = []
-	var shorter: Array[int] = []
-	var less: Array[int] = []
-	var tame: Array[int] = []
+	# The climb: levels 1 to 180, then the Hard levels after them, as they all shipped before the plateau.
+	var climb: Array[int] = []
+	climb.assign(range(plateau))
+	climb.append_array(range(levels.size(), all.size()))
+	_check_climb(climb, numbers, names, boards, measures)
+	# The main path from the plateau on.
 	var flat: Array[int] = []
+	flat.assign(range(plateau - 1, levels.size()))
+	_check_plateau(flat, numbers, names, boards, measures)
+	var not_needed: PackedStringArray = PackedStringArray()
+	for i: int in range(plateau, levels.size()):
+		var c: int = TiltGenerator.chapter_at(i)
+		if not TiltGenerator.needs(boards[i], TiltGenerator.CHAPTERS[c]["rule"], measures[i].par,
+				int(TiltGenerator.CHAPTERS[c].get("search", TiltGenerator.SEARCH_LIMIT))):
+			not_needed.append(names[i])
+	_check("every level of the plateau needs its chapter's rule (not: %s)" % ", ".join(not_needed), not_needed.is_empty())
+	_check_naive_players(boards.slice(plateau, levels.size()), measures.slice(plateau, levels.size()))
+
+## The rules of MATH.md sections 6, 8 and 10 over a run of levels, `at` indexing into the other arrays, and `numbers`
+## the index of each level in the game's numbering.
+func _check_climb(at: Array[int], numbers: PackedInt32Array, names: PackedStringArray, boards: Array[TiltBoard],
+		measures: Array[TiltDifficulty]) -> void:
+	var easier: PackedStringArray = PackedStringArray()
+	var shorter: PackedStringArray = PackedStringArray()
+	var flat: PackedStringArray = PackedStringArray()
+	var by_par_from: int = TiltGenerator.chapter_start(TiltGenerator.BY_PAR_FROM)
 	var run: int = 1
-	var by_par_from: int = 0
-	for c: int in range(TiltGenerator.BY_PAR_FROM):
-		by_par_from += TiltGenerator.chapter_size(c)
-	for i: int in range(levels.size()):
-		if _pits(boards[i]) > 0 and measures[i].risk <= 0.0:
-			tame.append(i + 1)
-		if i == 0:
-			continue
+	for k: int in range(1, at.size()):
+		var i: int = at[k]
+		var was: int = at[k - 1]
 		# From chapter 11 levels ship par first, so bits may start lower when par steps up.
-		var by_par: bool = i >= by_par_from
-		if measures[i].before(measures[i - 1]) if by_par else measures[i].easier_than(measures[i - 1]):
-			easier.append(i + 1)
-		if measures[i].par < measures[i - 1].par:
-			shorter.append(i + 1)
-		run = run + 1 if measures[i].same_as(measures[i - 1], by_par) else 1
+		var by_par: bool = k >= by_par_from
+		if measures[i].before(measures[was]) if by_par else measures[i].easier_than(measures[was]):
+			easier.append(names[i])
+		if measures[i].par < measures[was].par:
+			shorter.append(names[i])
+		run = run + 1 if measures[i].same_as(measures[was], by_par) else 1
 		if run > TiltGenerator.RUN:
-			flat.append(i + 1)
-		# A new chapter's tiles carry some of the load, so its first board may hold less than the last
-		# chapter's, as long as it measures no easier.
-		var a: TiltBoard = boards[i - 1]
+			flat.append(names[i])
+	_check("on the climb no level is easier than the one before (at: %s)" % ", ".join(easier), easier.is_empty())
+	_check("on the climb par never falls (at: %s)" % ", ".join(shorter), shorter.is_empty())
+	_check("on the climb no more than %d levels in a row are equally hard (at: %s)" % [TiltGenerator.RUN,
+		", ".join(flat)], flat.is_empty())
+	_check_chapters(at, numbers, names, boards, measures, "on the climb")
+
+## The plateau from the level before it: never below level 160's par and bits, never more than the band above them,
+## climbing within a chapter, and falling, at a chapter's first level, by no more than the band.
+func _check_plateau(at: Array[int], numbers: PackedInt32Array, names: PackedStringArray, boards: Array[TiltBoard],
+		measures: Array[TiltDifficulty]) -> void:
+	var floor: TiltDifficulty = measures[TiltGenerator.PLATEAU_LEVEL - 1]
+	var below: PackedStringArray = PackedStringArray()
+	var above: PackedStringArray = PackedStringArray()
+	var easier: PackedStringArray = PackedStringArray()
+	var falls: PackedStringArray = PackedStringArray()
+	var flat: PackedStringArray = PackedStringArray()
+	var run: int = 1
+	for k: int in range(1, at.size()):
+		var i: int = at[k]
+		var was: int = at[k - 1]
+		var m: TiltDifficulty = measures[i]
+		# Bits in the plateau's own measure, so a three-way board counts against three tilts (TiltGenerator.bits_scale).
+		var scale: float = TiltGenerator.bits_scale(TiltGenerator.chapter_at(numbers[i]))
+		var scale_was: float = TiltGenerator.bits_scale(TiltGenerator.chapter_at(numbers[was]))
+		if m.par < floor.par or m.bits < floor.bits * scale:
+			below.append(names[i])
+		if m.par > floor.par + TiltGenerator.PLATEAU_PARS \
+				or m.bits > floor.bits * scale + TiltGenerator.PLATEAU_BITS * scale:
+			above.append(names[i])
+		if k > 1 and not _opens_chapter(numbers[i]) and m.before(measures[was]):
+			easier.append(names[i])
+		if k > 1 and (measures[was].par - m.par > TiltGenerator.PLATEAU_PARS
+				or measures[was].bits / scale_was - m.bits / scale > TiltGenerator.PLATEAU_BITS):
+			falls.append(names[i])
+		run = run + 1 if m.same_as(measures[was], true) else 1
+		if run > TiltGenerator.RUN:
+			flat.append(names[i])
+	_check("no level of the plateau is easier than level %d (at: %s)" % [TiltGenerator.PLATEAU_LEVEL,
+		", ".join(below)], below.is_empty())
+	_check("no level of the plateau sits above its band of %d moves and %.1f bits (at: %s)" % [TiltGenerator.PLATEAU_PARS,
+		TiltGenerator.PLATEAU_BITS, ", ".join(above)], above.is_empty())
+	_check("within a chapter of the plateau no level is easier than the one before (at: %s)" % ", ".join(easier),
+		easier.is_empty())
+	_check("on the plateau no level falls from the one before by more than the band (at: %s)" % ", ".join(falls),
+		falls.is_empty())
+	_check("on the plateau no more than %d levels in a row are equally hard (at: %s)" % [TiltGenerator.RUN,
+		", ".join(flat)], flat.is_empty())
+	_check_chapters(at.slice(1), numbers, names, boards, measures, "on the plateau")
+
+func _check_chapters(at: Array[int], numbers: PackedInt32Array, names: PackedStringArray, boards: Array[TiltBoard],
+		measures: Array[TiltDifficulty], where: String) -> void:
+	var less: PackedStringArray = PackedStringArray()
+	var tame: PackedStringArray = PackedStringArray()
+	for k: int in range(at.size()):
+		var i: int = at[k]
+		if _pits(boards[i]) > 0 and measures[i].risk <= 0.0:
+			tame.append(names[i])
+		# A new chapter's tiles carry some of the load, so its first board may hold less than the last chapter's.
+		if k == 0 or _opens_chapter(numbers[i]):
+			continue
+		var a: TiltBoard = boards[at[k - 1]]
 		var b: TiltBoard = boards[i]
-		if not opens.has(i) and (b.cells.size() < a.cells.size() or b.marbles_left() < a.marbles_left()
-				or _colours(b) < _colours(a) or _pits(b) < _pits(a)):
-			less.append(i + 1)
-	_check("no level is easier than the one before (at: %s)" % str(easier), easier.is_empty())
-	_check("par never falls (at: %s)" % str(shorter), shorter.is_empty())
-	_check("no more than %d levels in a row are equally hard (at: %s)" % [TiltGenerator.RUN, str(flat)], flat.is_empty())
-	_check("within a chapter no level takes away room, a colour, a marble or a pit (at: %s)" % str(less),
-		less.is_empty())
-	_check("every pit level has a pit in play (not: %s)" % str(tame), tame.is_empty())
+		if b.cells.size() < a.cells.size() or b.marbles_left() < a.marbles_left() or _colours(b) < _colours(a) \
+				or _pits(b) < _pits(a):
+			less.append(names[i])
+	_check("%s, within a chapter no level takes away room, a colour, a marble or a pit (at: %s)" % [where,
+		", ".join(less)], less.is_empty())
+	_check("%s, every pit level has a pit in play (not: %s)" % [where, ", ".join(tame)], tame.is_empty())
+
+static func _opens_chapter(index: int) -> bool:
+	return TiltGenerator.chapter_start(TiltGenerator.chapter_at(index)) == index
+
+## Neither a player who tilts at random nor one who always takes the tilt that looks best clears the plateau in par
+## most of the time (MATH.md section 16).
+func _check_naive_players(boards: Array[TiltBoard], measures: Array[TiltDifficulty]) -> void:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 7
+	var greedy: int = 0
+	var lucky: int = 0
+	for k: int in range(boards.size()):
+		greedy += 1 if TiltNaive.greedy(boards[k], measures[k].par) else 0
+		lucky += 1 if TiltNaive.lucky(boards[k], measures[k].par, NAIVE_TRIES, rng) > 0 else 0
+	print("  naive players on the plateau: greedy clears %d of %d in par, %d random tries clear %d" % [greedy,
+		boards.size(), NAIVE_TRIES, lucky])
+	_check("greedy tilting clears fewer than one plateau level in %d in par" % NAIVE_SHARE,
+		greedy * NAIVE_SHARE < boards.size())
+	_check("random tilting clears fewer than one plateau level in %d in par" % NAIVE_SHARE,
+		lucky * NAIVE_SHARE < boards.size())
 
 # A rule change that quietly undoes an opening level's trait fails here, and so does a splice that would
 # touch anything in the level file but the opening.
@@ -1396,8 +1509,8 @@ func _test_title_follows_a_restore() -> void:
 	canvas.add_child(title)
 	await process_frame
 	var count: Label = title.find_child("Tally", true, false).find_children("*", "Label", true, false)[0]
-	var levels: int = int(root.get_node("Pack").call("count"))
-	_check("a fresh title tallies no stars", count.text == "0 / %d" % (levels * 3))
+	var levels: int = int(root.get_node("Pack").call("total"))
+	_check("a fresh title tallies no stars, out of both sets' levels", count.text == "0 / %d" % (levels * 3))
 	var cloud: ConfigFile = ConfigFile.new()
 	cloud.set_value("progress", "stars", PackedByteArray([3, 2]))
 	(load("res://kit/play_games/cloud_save.gd") as GDScript).call("absorb", cloud.encode_to_text())
@@ -2024,6 +2137,98 @@ func _test_unlocks() -> void:
 	save.set("path", old[4])
 	supporter.set("on_play", old[5])
 
+## A save from before the Hard levels: stars and keys go with the boards they were won on, and the main path keeps
+## open every chapter the player had reached (MATH.md section 16).
+func _test_hard_shelf() -> void:
+	var save: Node = root.get_node("Save")
+	var pack: Node = root.get_node("Pack")
+	var unlocks: GDScript = load("res://kit/monetize/unlocks.gd")
+	var analytics: GDScript = load("res://kit/monetize/analytics.gd")
+	var cloud: GDScript = load("res://kit/play_games/cloud_save.gd")
+	var first: int = HardShelf.FIRST
+	# Old levels 1 to 250 solved, level 201 with three stars, and a key spent on old level 306.
+	var stars: PackedByteArray = PackedByteArray()
+	stars.resize(250)
+	stars.fill(2)
+	stars[200] = 3
+	var old: ConfigFile = ConfigFile.new()
+	old.set_value("progress", "stars", stars)
+	old.set_value("progress", "opened", PackedInt32Array([40, 305]))
+	var file: ConfigFile = ConfigFile.new()
+	file.parse(old.encode_to_text())
+	_check("a save from before the Hard levels moves on", HardShelf.migrate(file, unlocks.GATE)
+		and int(file.get_value("progress", "layout")) == HardShelf.LAYOUT)
+	var main: PackedByteArray = file.get_value("progress", "stars")
+	var hard: PackedByteArray = file.get_value("progress", "hard")
+	var opened: PackedInt32Array = file.get_value("progress", "opened")
+	var hard_opened: PackedInt32Array = file.get_value("progress", "hard_opened")
+	_check("stars before the plateau stay on the main path, and its new boards start with none",
+		main == stars.slice(0, first))
+	_check("stars won on the old boards move with them to Hard", hard.size() == stars.size() and hard[200] == 3
+		and hard[249] == 2 and hard.slice(0, first).count(0) == first)
+	_check("a key spent on an old board stays with it in Hard", hard_opened == PackedInt32Array([305])
+		and opened.has(40) and not opened.has(305))
+	var starts: bool = true
+	for c: int in range(9, 16):
+		starts = starts and opened.has(c * HardShelf.CHAPTER)
+	_check("the main path opens the first level of every chapter up to the furthest reached", starts
+		and not opened.has(320))
+	_check("and moving on twice changes nothing", not HardShelf.migrate(file, unlocks.GATE))
+	var gated: PackedByteArray = PackedByteArray()
+	gated.resize(234)
+	gated.fill(1)
+	var by_gate: Dictionary = HardShelf.split(gated, PackedInt32Array(), unlocks.GATE)
+	_check("a chapter its gate had opened stays open", (by_gate["opened"] as PackedInt32Array).has(240)
+		and not (by_gate["opened"] as PackedInt32Array).has(260))
+	var early: Dictionary = HardShelf.split(PackedByteArray([3, 3, 1]), PackedInt32Array(), unlocks.GATE)
+	_check("a player who never reached the plateau has nothing to move", early["stars"] == PackedByteArray([3, 3, 1])
+		and (early["opened"] as PackedInt32Array).is_empty() and (early["hard"] as PackedByteArray).is_empty())
+
+	var kept: Array = [save.get("path"), save.get("stars"), save.get("hard_stars"), save.get("opened"),
+		save.get("hard_opened"), int(pack.get("section"))]
+	save.set("path", "user://test_hard_shelf.cfg")
+	old.save("user://test_hard_shelf.cfg")
+	save.call("restore")
+	var moved: ConfigFile = ConfigFile.new()
+	moved.load("user://test_hard_shelf.cfg")
+	_check("a save is moved on as it loads, and kept that way", int(moved.get_value("progress", "layout", 1)) == HardShelf.LAYOUT
+		and (save.get("stars") as PackedByteArray).size() == first)
+	pack.call("use", 1)
+	var hard_from: int = int(pack.get("hard_from"))
+	_check("in Hard each old board has its stars and its place", hard_from == first and int(save.call("best", 200)) == 3
+		and save.call("unlocked", 250) and not save.call("unlocked", 251) and save.call("unlocked", 305))
+	_check("and analytics names its levels apart", (analytics.call("tagged", {"level": 201}) as Dictionary)["level"] == "h201")
+	pack.call("use", 0)
+	_check("on the main path each reached chapter opens, and its new boards wait to be solved",
+		save.call("unlocked", 300) and save.call("unlocked", first) and not save.call("unlocked", first + 1)
+		and not save.call("unlocked", 305) and int(save.call("best", 200)) == 0)
+	_check("where the main path's levels keep their own names", (analytics.call("tagged", {"level": 201}) as Dictionary)["level"] == 201)
+	_check("a total counts the stars of both", int(save.call("total_stars")) == stars.size() * 2 + 1)
+	var theirs: ConfigFile = ConfigFile.new()
+	var cloud_stars: PackedByteArray = PackedByteArray()
+	cloud_stars.resize(first + 11)
+	cloud_stars[first + 10] = 3
+	theirs.set_value("progress", "stars", cloud_stars)
+	cloud.call("absorb", theirs.encode_to_text())
+	pack.call("use", 1)
+	_check("an old copy from the cloud lands its stars on the Hard boards they were won on",
+		int(save.call("best", first + 10)) == 3)
+	pack.call("use", 0)
+	_check("and never on the main path's new ones", int(save.call("best", first + 10)) == 0)
+	save.set("stars", PackedByteArray())
+	save.set("hard_stars", PackedByteArray())
+	save.set("opened", PackedInt32Array())
+	save.set("hard_opened", PackedInt32Array())
+	pack.call("use", 1)
+	_check("Hard is open from the start", save.call("unlocked", hard_from) and not save.call("unlocked", hard_from + 1))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_hard_shelf.cfg"))
+	save.set("path", kept[0])
+	save.set("stars", kept[1])
+	save.set("hard_stars", kept[2])
+	save.set("opened", kept[3])
+	save.set("hard_opened", kept[4])
+	pack.call("use", kept[5])
+
 func _test_passes() -> void:
 	var passes: GDScript = load("res://kit/monetize/passes.gd")
 	var shop: GDScript = load("res://kit/monetize/shop.gd")
@@ -2281,6 +2486,21 @@ func _test_levels_swipe() -> void:
 	var mid: Vector2 = (levels.get("_centre") as Control).get_global_rect().get_center()
 	_touch_drag(levels, mid, mid + Vector2(-200.0 * step, 10.0))
 	_check("a sideways swipe on the grid turns the page", int(levels.get("_page")) == first + step)
+	var pack: Node = root.get_node("Pack")
+	# Kit classes are named by string here, since this script compiles before the autoloads they read.
+	var switch: Array[Node] = levels.find_children("*", "Segmented", true, false)
+	_check("the Levels screen has a switch with the two sets' names alone", switch.size() == 1
+		and switch[0].get("options") == PackedStringArray(["Main", "Hard"]))
+	if switch.size() == 1:
+		switch[0].emit_signal(&"chosen", 1)
+		var hard_page: int = int(levels.get("_page"))
+		_check("Hard opens on its own first chapter, and the pages before it are not there",
+			hard_page == TiltGenerator.PLATEAU_FROM and int(pack.get("section")) == 1
+			and bool((levels.get("_prev") as Node).get("disabled")))
+		_touch_drag(levels, mid, mid + Vector2(200.0, 10.0))
+		_check("so a swipe back from it stays", int(levels.get("_page")) == hard_page)
+		switch[0].emit_signal(&"chosen", 0)
+		_check("and Main comes back", int(pack.get("section")) == 0)
 	levels.queue_free()
 	await process_frame
 

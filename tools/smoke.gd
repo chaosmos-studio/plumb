@@ -4,7 +4,9 @@ extends Node
 ## against a stand-in ad network.
 ## Run: godot --headless --path . res://tools/smoke.tscn     Prints SMOKE_OK on success.
 
-const LEVELS: Array[int] = [0, 3, 12, 44, 90, 119]
+const LEVELS: Array[int] = [0, 3, 12, 44, 90, 119, 180, 359, 499]
+## Hard levels played: the first, which opens chapter 10 with its card, and the last.
+const HARD_LEVELS: Array[int] = [180, 499]
 
 func _ready() -> void:
 	Save.path = "user://smoke.cfg"
@@ -29,6 +31,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 	failures += await _guide()
 	failures += await _ending()
+	failures += await _hard()
 	failures += await _daily()
 	for dark: bool in [false, true]:
 		Appearance.apply(Appearance.Choice.DARK if dark else Appearance.Choice.LIGHT)
@@ -104,6 +107,27 @@ func _ending() -> int:
 	game.queue_free()
 	await get_tree().process_frame
 	return 0 if shown else 1
+
+## Hard levels played from the start, their stars kept apart from the main path's, and no ending after the last one:
+## the ending closes the main path.
+func _hard() -> int:
+	Save.stars = PackedByteArray()
+	Save.hard_stars = PackedByteArray()
+	Pack.use(Pack.Section.HARD)
+	var failures: int = _report(Save.unlocked(Pack.hard_from) and not Save.unlocked(Pack.hard_from + 1),
+		"Hard's first level is open from the start, and the next waits for it")
+	for level: int in HARD_LEVELS:
+		var game: Node = await _open_game(level)
+		var cards: int = game.find_children("*", "ChapterCard", true, false).size()
+		await _solve(game)
+		await _wait(0.6)
+		failures += _report(Save.best(level) == 3 and Save.best_in(false, level) == 0 and not game.get("_ending")
+			and (cards == 1) == (level == Pack.hard_from), "Hard %d is solved in par, kept in Hard, with its card if it opens a chapter" % (level + 1))
+		game.queue_free()
+		await get_tree().process_frame
+	Pack.use(Pack.Section.MAIN)
+	Save.hard_stars = PackedByteArray()
+	return failures
 
 ## The Daily screen's calendar, then today's puzzle played through to its sheet, with the clock running.
 func _daily() -> int:
