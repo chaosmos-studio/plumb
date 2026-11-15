@@ -424,13 +424,12 @@ func _seed_progress(solved: int = 14) -> void:
 		stars.append(3 if i % 5 != 3 else 2)
 	Save.stars = stars
 
-## A solved level's sheet rises after the last marble's slow drop and, with faces on, the three-star party
-## (game.gd WIN_PAUSE and PARTY_TIME). The waits after a solve were set when it rose 0.3 s after the last tilt,
-## and every staged solve is a three-star one.
+## A solved level's sheet rises after the last marble's slow drop and the board's party (game.gd WIN_PAUSE,
+## Celebration.BOARD_TIME). The waits after a solve were set when it rose 0.3 s after the last tilt. A solve that
+## finishes a chapter adds the chapter's moment as well.
 func _after_win(seconds: float) -> float:
 	var game: Dictionary = (load("res://scenes/game/game.gd") as GDScript).get_script_constant_map()
-	var party: float = float(game["PARTY_TIME"]) if Save.faces else 0.0
-	return seconds + float(game["WIN_PAUSE"]) - 0.3 + party
+	return seconds + float(game["WIN_PAUSE"]) - 0.3 + Celebration.BOARD_TIME
 
 func _wait(host: Node, seconds: float) -> void:
 	await host.get_tree().create_timer(seconds).timeout

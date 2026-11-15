@@ -1,37 +1,21 @@
 extends CanvasLayer
 
-# A short fade, so a scene change never flashes a half-built frame.
+# Every scene change happens under the party's red circle (Celebration.cover), so a change never flashes a
+# half-built frame.
 
-const OUT_TIME: float = 0.14
-const IN_TIME: float = 0.2
-
-var _veil: ColorRect
 var _busy: bool = false
 
 func _ready() -> void:
 	layer = 100
-	_veil = ColorRect.new()
-	_veil.color = Brand.BG
-	_veil.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_veil.modulate.a = 0.0
-	add_child(_veil)
 
 func go(path: String) -> void:
 	if _busy:
 		return
 	_busy = true
-	_veil.color = Brand.BG
-	_veil.mouse_filter = Control.MOUSE_FILTER_STOP
-	var out: Tween = create_tween()
-	out.tween_property(_veil, "modulate:a", 1.0, OUT_TIME)
-	await out.finished
+	await Celebration.cover(self)
 	get_tree().change_scene_to_file(path)
 	await get_tree().process_frame
-	var back: Tween = create_tween()
-	back.tween_property(_veil, "modulate:a", 0.0, IN_TIME)
-	await back.finished
-	_veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	await Celebration.uncover()
 	_busy = false
 
 ## Android's back button and gesture, which would otherwise close the app.

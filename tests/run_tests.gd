@@ -96,6 +96,7 @@ func _initialize() -> void:
 	_test_daily_records()
 	await _test_board_follows_tilt()
 	await _test_walls_follow_pets()
+	_test_chapter_ticks()
 	_test_streak_keeping()
 	_test_chapter_colours()
 	_test_unlocks()
@@ -1042,6 +1043,27 @@ func _test_cast() -> void:
 	_check("the teal marble is Steve", Cast.of(1).name == "Steve" and Palette.LIGHT["marbles"][1] == Color("22b5a6"))
 	_check("a stone is a rock with no name", Cast.of(TiltBoard.STONE).mark == Cast.Mark.ROCK and Cast.of(TiltBoard.STONE).name == "")
 	_check("a colour past the fourth wraps round to a character", Cast.of(5) == Cast.of(1))
+
+## A finished chapter's moment counts through the level numbers a player sees, Hard's own included, and lands on the
+## chapter's. Loaded, since the party uses autoloads, which a test script cannot name when it compiles.
+func _test_chapter_ticks() -> void:
+	var celebration: GDScript = load("res://scenes/celebrate/celebration.gd")
+	var pack: Node = root.get_node("Pack")
+	var count: int = int((pack.get("chapters") as Array)[0]["count"])
+	var main: PackedInt32Array = celebration.call("ticks", 0)
+	_check("chapter 1's moment counts 1 to %d and lands on 1" % count, main.size() == count + 1 and main[0] == 1
+		and main[count - 1] == count and main[count] == 1)
+	var last: int = (pack.get("chapters") as Array).size() - 1
+	var end: PackedInt32Array = celebration.call("ticks", last)
+	_check("the last main chapter counts up to the last level and lands on its own number",
+		end[end.size() - 2] == pack.call("count") and end[end.size() - 1] == last + 1)
+	if int(pack.get("hard_from")) <= 0:
+		return
+	pack.call("use", 1)
+	var hard: PackedInt32Array = celebration.call("ticks", pack.call("chapter_of", pack.get("hard_from")))
+	pack.call("use", 0)
+	_check("Hard's first chapter counts its own levels from 1 and lands on its chapter 1", hard[0] == 1
+		and hard[hard.size() - 2] == hard.size() - 1 and hard[hard.size() - 1] == 1)
 
 func _test_star_notes() -> void:
 	var audio: GDScript = load("res://autoload/audio.gd")

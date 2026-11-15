@@ -154,8 +154,8 @@ func _shoot_level(level: int, name: String, hint: bool, solve: bool) -> void:
 			game.call("_tilt", dir)
 			while game.get("_view").busy:
 				await get_tree().process_frame
-		# The sheet rises after the last drop and, with faces on, the three-star party (game.gd WIN_PAUSE, PARTY_TIME).
-		await get_tree().create_timer(2.8).timeout
+		# The sheet rises after the last drop and the board's party (game.gd WIN_PAUSE, Celebration.BOARD_TIME).
+		await get_tree().create_timer(3.6).timeout
 	await _save(name)
 	game.queue_free()
 	await get_tree().process_frame

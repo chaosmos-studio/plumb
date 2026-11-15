@@ -10,10 +10,8 @@ const SIDE_MARGIN: float = 30.0
 const HINT_SEARCH: int = 30000
 ## With faces on, a fall takes this long before its memorial: the marble's scream and shrink.
 const FALL_TIME: float = 0.5
-## Seconds from the winning tilt to the result sheet: the last marble's slow drop, and with three stars and
-## faces on, the party after it.
+## Seconds from the winning tilt to the board's party: the last marble's slow drop and its chord.
 const WIN_PAUSE: float = 0.7
-const PARTY_TIME: float = 0.9
 const DIRECTION_NAMES: PackedStringArray = ["left", "right", "up", "down"]
 
 var level: int = 0
@@ -58,6 +56,12 @@ var _replay: Replay
 ## The daily puzzle (Daily): timed, no hint and no stars, and level is -1.
 var _daily: bool = false
 var _memorial: Memorial
+## For the celebration: the star total before this win, the one word of praise it earned, and whether it is playing
+## and a tap has hurried it on.
+var _stars_before: int = 0
+var _praise: String = ""
+var _celebrating: bool = false
+var _hurry: bool = false
 
 func _ready() -> void:
 	_daily = Daily.playing()
@@ -83,6 +87,7 @@ func _ready() -> void:
 	_layout()
 	_view.show_board(board, _fit())
 	_view.intro()
+	Celebration.install(get_tree())
 	_refresh()
 	if Save.faces:
 		Memorial.warm(self)
@@ -115,6 +120,11 @@ func _layout() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if (is_instance_valid(_coach) and _coach.blocks_input) or is_instance_valid(_prompt) or is_instance_valid(_replay):
+		return
+	if _celebrating:
+		# A tap or a key skips the party to the sheet: a fast player never waits.
+		if event.is_pressed() and not event.is_echo() and not event is InputEventMouseMotion:
+			_hurry_on()
 		return
 	if is_instance_valid(_memorial):
 		# Any key ends the memorial, and undo or restart go straight on to do their own work.
@@ -391,20 +401,51 @@ func _show_won() -> void:
 	_won.before = Save.best(level)
 	_won.clean = not _retried
 	_won.watch = _watch
+	_stars_before = Save.total_stars()
+	var was_open: bool = level + 1 < Pack.count() and Save.unlocked(level + 1)
 	Save.record(level, _earned)
 	EventBus.level_won.emit(level, moves, _earned)
-	# The last marble's slow drop rings the chord (BoardView), so the sheet waits for it and makes no sound of its
-	# own. Three stars with faces on throw a party first.
-	# An undo or a restart in the meantime takes the win back, and no sheet comes.
-	await get_tree().create_timer(WIN_PAUSE).timeout
-	if not finished:
+	if not was_open and level + 1 < Pack.count() and Save.unlocked(level + 1):
+		Celebration.just_opened = level + 1
+	_praise = Celebration.praise(_earned)
+	# The last marble's slow drop rings the chord (BoardView), then the board's party, then a chapter's moment when
+	# this solve finishes one (Celebration). A tap skips straight to the sheet, and an undo or a restart in the
+	# meantime takes the win back, so no sheet comes.
+	_celebrating = true
+	_hurry = false
+	await _pause(WIN_PAUSE)
+	if _partying():
+		await _pause(Celebration.board_win(self, _view, _earned, _praise))
+	var chapter: int = Pack.chapter_of(level)
+	if _partying() and _won.before == 0 and chapter >= 0 and _chapter_solved(chapter):
+		await _pause(Celebration.chapter_moment(self, chapter, _hurry_on))
+	_celebrating = false
+	if not is_inside_tree():
 		return
-	if _earned == 3 and Save.faces:
-		_view.party()
-		await get_tree().create_timer(PARTY_TIME).timeout
-		if not finished:
-			return
-	_show_result()
+	Celebration.hush(get_tree())
+	if finished:
+		_show_result()
+
+## Waits `seconds`, or until a tap hurries the celebration on or an undo takes the win back.
+func _pause(seconds: float) -> void:
+	var left: float = seconds
+	while left > 0.0 and _partying():
+		await get_tree().process_frame
+		left -= get_process_delta_time()
+
+func _hurry_on() -> void:
+	_hurry = true
+
+## Whether the celebration goes on: still won, not tapped past, and still on screen.
+func _partying() -> bool:
+	return finished and not _hurry and is_inside_tree()
+
+func _chapter_solved(chapter: int) -> bool:
+	var first: int = Pack.chapter_first(chapter)
+	for i: int in range(first, first + int(Pack.chapters[chapter]["count"])):
+		if Save.best(i) == 0:
+			return false
+	return true
 
 func _score() -> String:
 	var moves: int = history.size()
@@ -416,8 +457,10 @@ func _show_result() -> void:
 	if _earned < 3:
 		detail.append("Solve it in %d %s for three stars" % [par, "move" if par == 1 else "moves"])
 	var next_text: String = "Continue" if _ending else ("Back to levels" if last else "Next level")
-	_sheet = Result.won(self, "Every level solved" if last else "", _earned, detail, next_text,
+	var heading: String = "Every level solved" if last else _praise
+	_sheet = Result.won(self, heading, _earned, detail, next_text,
 		_on_finale if _ending else _on_next, _on_restart, _to_levels, _won)
+	Celebration.dress_sheet(self, _sheet, _earned, level, _stars_before, _won.before == 0, next_text)
 
 func _watch() -> void:
 	if _view.busy or not finished:

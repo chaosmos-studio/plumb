@@ -79,6 +79,8 @@ func _ready() -> void:
 	_place()
 	# Last, so the seesaw is there for the intro to drop its marbles onto.
 	Intro.play(self)
+	Celebration.install(get_tree())
+	Celebration.dress_title(self)
 
 func _show_progress() -> void:
 	var stars: int = Save.total_stars()
