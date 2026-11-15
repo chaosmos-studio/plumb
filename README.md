@@ -17,7 +17,7 @@ drops into a hole of its own colour. Clear the board in as few tilts as you can.
 ## Features
 
 - Every level generated and proven solvable by a solver, with the shortest route as par
-- No level repeats another, and none is easier than the one before it
+- No level repeats another. The main path climbs gently, then holds, and a Hard section keeps the steep climb
 - A hint that shows where every marble would land, undo and restart any time
 - Light and dark themes, sound, music and vibration you can switch off
 - Ads and a one-time Supporter pack on Android; no ads in the browser
