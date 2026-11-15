@@ -51,6 +51,12 @@ func _initialize() -> void:
 	_test_contrast()
 	_test_themes()
 	_test_marble_sets()
+	_test_gaze()
+	_test_mood()
+	_test_spin()
+	_test_cast()
+	_test_star_notes()
+	_test_wall_animals()
 	_test_saved_settings()
 	_test_guide_and_ending()
 	_test_banner_pacing()
@@ -79,6 +85,8 @@ func _initialize() -> void:
 	# The root takes new children only once _initialize has handed control back to the engine.
 	await process_frame
 	_test_daily_records()
+	await _test_board_follows_tilt()
+	await _test_walls_follow_pets()
 	_test_streak_keeping()
 	_test_chapter_colours()
 	_test_unlocks()
@@ -852,6 +860,199 @@ func _test_marble_sets() -> void:
 		named = named and GameLooks.PACK_LINE.to_lower().contains(set_name) == (k >= given)
 	_check("the Marble pack counts and names the sets it opens, and none of the free ones", named)
 
+func _test_gaze() -> void:
+	var white: Vector2 = Vector2(0.22, 0.26)
+	var pupil: float = 0.1
+	var outside: int = 0
+	for k: int in range(32):
+		var at: Vector2 = Gaze.inside(white, pupil, Vector2.from_angle(TAU * k / 32.0) * 3.0)
+		if pow(at.x / (white.x - pupil), 2.0) + pow(at.y / (white.y - pupil), 2.0) > 1.0001:
+			outside += 1
+	_check("a pupil never leaves its eye, however far it looks (%d out)" % outside, outside == 0)
+	_check("a pupil looking nowhere sits in the middle", Gaze.inside(white, pupil, Vector2.ZERO) == Vector2.ZERO)
+	var target: Vector2 = Vector2(0.0, 0.25)
+	var left: Vector2 = Gaze.pupil_for_point(Vector2(-0.27, -0.1), white, pupil, target) - Vector2(-0.27, -0.1)
+	var right: Vector2 = Gaze.pupil_for_point(Vector2(0.27, -0.1), white, pupil, target) - Vector2(0.27, -0.1)
+	_check("eyes on something close turn toward each other", left.x > 0.0 and right.x < 0.0)
+	_check("a far look reaches further than a near one", Gaze.toward(Vector2(5, 0)).x > Gaze.toward(Vector2(0.5, 0)).x)
+	for dt: float in [1.0 / 60.0, 0.5]:
+		var g: Gaze = Gaze.new()
+		var most: float = 0.0
+		for i: int in range(int(1.0 / dt) + 1):
+			g.step(Vector2(1, 0), dt)
+			most = maxf(most, g.at.x)
+		_check("a look settles without overshooting at %d ms a frame (peak %.4f)" % [int(dt * 1000.0), most],
+			most <= 1.0001 and g.at.x > 0.99)
+	var quick: Gaze = Gaze.new()
+	for i: int in range(12):
+		quick.step(Vector2(1, 0), 1.0 / 60.0)
+	_check("a glance is most of the way there in a fifth of a second", quick.at.x > 0.9)
+
+func _test_mood() -> void:
+	var m: Mood = Mood.new(3)
+	m.bump()
+	m.worry(true)
+	m.moving(Vector2(60, 0), 0.5)
+	m.fall()
+	_check("a fall shows over worry, a bump and rolling", m.resolve() == Mood.Feel.FALL)
+	m.reset()
+	m.worry(true)
+	m.bump()
+	_check("worry shows over a bump", m.resolve() == Mood.Feel.WORRY)
+	m.reset()
+	for i: int in range(18):
+		m.moving(Vector2(50, 0), 1.0 / 60.0)
+		m.step(1.0 / 60.0)
+	_check("rolling widens the eyes and looks ahead", m.feel == Mood.Feel.ROLL and m.wide > 1.1 and m.look.x > 0.5)
+	for i: int in range(40):
+		m.moving(Vector2.ZERO, 1.0 / 60.0)
+		m.step(1.0 / 60.0)
+	_check("and at rest the face settles", m.feel == Mood.Feel.IDLE and m.wide < 1.03)
+	var squint: Mood = Mood.new(5)
+	squint.bump()
+	for i: int in range(4):
+		squint.step(1.0 / 60.0)
+	var shut: float = squint.open
+	for i: int in range(40):
+		squint.step(1.0 / 60.0)
+	_check("a bump squints and the eyes open again (%.2f then %.2f)" % [shut, squint.open], shut < 0.4 and squint.open > 0.9)
+	var blinks: int = 0
+	var idle: Mood = Mood.new(7)
+	var was_open: bool = true
+	for i: int in range(60 * 30):
+		idle.step(1.0 / 60.0)
+		if was_open and idle.open < 0.2:
+			blinks += 1
+		was_open = idle.open >= 0.2
+	_check("a face at rest blinks every few seconds (%d in 30 s)" % blinks, blinks >= 6 and blinks <= 16)
+	var home: Mood = Mood.new(1)
+	home.home()
+	for i: int in range(12):
+		home.step(1.0 / 60.0)
+	_check("going home shuts the eyes happily and smiles", home.happy > 0.9 and home.smile > 0.8)
+	var lengths: Array[float] = []
+	for shown: int in range(5):
+		lengths.append(Mood.memorial_length(shown))
+	_check("the first memorials of a session play in full, and later ones shorter", lengths[0] == lengths[2]
+		and lengths[3] < lengths[2] and lengths[4] == lengths[3] and lengths[0] <= 1.2)
+
+func _test_spin() -> void:
+	var top: Vector3 = Vector3(0, 0, 1)
+	_check("rolling right turns the top of the ball right", (Spin.roll(Basis.IDENTITY, Vector2(5, 0), 10.0, 1.0) * top).x > 0.4)
+	_check("rolling down the screen turns it down", (Spin.roll(Basis.IDENTITY, Vector2(0, 5), 10.0, 1.0) * top).y > 0.4)
+	var quarter: Vector3 = Spin.roll(Basis.IDENTITY, Vector2(PI * 0.5 * 10.0, 0), 10.0, 1.0) * top
+	_check("rolling a quarter of the way round brings the top to the edge", quarter.distance_to(Vector3(1, 0, 0)) < 0.001)
+	var turned: Basis = Basis.IDENTITY
+	for i: int in range(500):
+		turned = Spin.roll(turned, Vector2(3, 2), 10.0)
+	_check("a long roll stays a rotation", absf(turned.determinant() - 1.0) < 0.001
+		and absf((turned * top).length() - 1.0) < 0.001)
+	_check("rolling right along a bar seen from the side turns clockwise",
+		(Spin.roll_side(Basis.IDENTITY, 2.0, 10.0) * Vector3(1, 0, 0)).y > 0.0)
+	var img: Image = Spin.light(64)
+	var middle: Color = img.get_pixel(32, 32)
+	var near: Color = img.get_pixel(18, 16)
+	var far: Color = img.get_pixel(46, 47)
+	_check("the light leaves a ball's middle near its own colour", middle.a < 0.08)
+	_check("and lightens the side facing the light", near.r > 0.9 and near.a > 0.1)
+	_check("and darkens the far side", far.r < 0.1 and far.a > 0.2)
+	_check("and nothing outside the ball", img.get_pixel(1, 1).a == 0.0 and img.get_pixel(62, 2).a == 0.0)
+
+func _test_cast() -> void:
+	var names: Dictionary = {}
+	var short: bool = true
+	for k: int in range(Cast.CAST.size()):
+		var who: Cast.Who = Cast.of(k)
+		names[who.name] = true
+		short = short and who.name.length() <= 5 and who.name.length() >= 3 and not who.name.contains(";")
+	_check("four characters, one for each colour, with short names of their own", Cast.CAST.size() == 4
+		and names.size() == 4 and short)
+	_check("the teal marble is Steve", Cast.of(1).name == "Steve" and Palette.LIGHT["marbles"][1] == Color("22b5a6"))
+	_check("a stone is a rock with no name", Cast.of(TiltBoard.STONE).mark == Cast.Mark.ROCK and Cast.of(TiltBoard.STONE).name == "")
+	_check("a colour past the fourth wraps round to a character", Cast.of(5) == Cast.of(1))
+
+func _test_star_notes() -> void:
+	var audio: GDScript = load("res://autoload/audio.gd")
+	var notes: Array[float] = []
+	for k: int in range(3):
+		notes.append(audio.call("star_pitch", 1.0 + 0.08 * k))
+	_check("the three stars climb the chord: E, G, then C", is_equal_approx(notes[0], 0.8409) and is_equal_approx(notes[1], 1.0)
+		and is_equal_approx(notes[2], 1.3348))
+	_check("any other pitch for a star is kept", is_equal_approx(audio.call("star_pitch", 0.9), 0.9))
+
+func _test_wall_animals() -> void:
+	var themes: GDScript = load("res://kit/ui/themes.gd")
+	var short: PackedStringArray = PackedStringArray()
+	var palettes: Array[Dictionary] = [{}]
+	for id: String in themes.call("ids"):
+		palettes.append({"id": id})
+	for entry: Dictionary in palettes:
+		for dark: bool in [false, true]:
+			var t: Dictionary = {} if entry.is_empty() else themes.call("colours", entry["id"], dark)
+			if entry.is_empty() or t.is_empty():
+				Brand.use(dark)
+			else:
+				Brand.use_theme(t, dark)
+			for family: int in range(Litter.Family.size()):
+				for coat: int in range(Litter.Coat.size()):
+					var fur: Color = Litter.fur(coat as Litter.Coat, family as Litter.Family, Palette.WALL, Palette.TILE)
+					var ratio: float = _contrast(fur, Palette.TILE)
+					if ratio < 2.0:
+						short.append("%s %s %d %d: %.1f" % [entry.get("id", "plumb"), "dark" if dark else "light", family, coat, ratio])
+	Brand.use(Brand.NATIVE_DARK)
+	_check("every animal's coat reads as a wall on the floor, in every theme (short: %s)" % ", ".join(short), short.is_empty())
+	_check("cats and dogs take turns level by level", Litter.family_for(0) == Litter.Family.CAT
+		and Litter.family_for(1) == Litter.Family.DOG and Litter.family_for(2) == Litter.Family.CAT)
+	var coats: Dictionary = {}
+	for cell: int in range(36):
+		coats[Litter.coat_for(cell, 7)] = true
+	_check("a board's walls wear a mix of coats (%d of %d)" % [coats.size(), Litter.Coat.size()], coats.size() >= 4)
+
+## Walls are plain blocks unless Pets is on, and turning it on mid-level makes them animals at once.
+func _test_walls_follow_pets() -> void:
+	var save: Node = root.get_node("Save")
+	var fresh: Node = (load("res://autoload/save.gd") as GDScript).new()
+	_check("a new player starts with faces and plain walls", bool(fresh.get("faces")) and not bool(fresh.get("pets")))
+	fresh.free()
+	var old_pets: bool = save.get("pets")
+	var old_path: String = save.get("path")
+	save.set("path", "user://test_pets.cfg")
+	save.set("pets", false)
+	var b: TiltBoard = TiltBoard.create(3, 3)
+	b.cells[b.index(Vector2i(1, 1))] = TiltBoard.Cell.WALL
+	b.add_marble(Vector2i(0, 0), 0)
+	var view: Node2D = (load("res://scenes/game/board_view.gd") as GDScript).new()
+	root.add_child(view)
+	view.call("show_board", b, Vector2(400, 400))
+	_check("walls are plain blocks by default", view.find_children("*", "Loaf", false, false).is_empty())
+	save.call("set_pets", true)
+	_check("and sleeping animals once Pets is on", view.find_children("*", "Loaf", false, false).size() == 1)
+	save.call("set_pets", false)
+	await process_frame
+	_check("and plain again when it goes off", view.find_children("*", "Loaf", false, false).is_empty())
+	view.queue_free()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_pets.cfg"))
+	save.set("path", old_path)
+	save.set("pets", old_pets)
+	await process_frame
+
+## The view draws the board the tilt led to, so a cracked cell shows as the pit it became.
+func _test_board_follows_tilt() -> void:
+	var b: TiltBoard = TiltBoard.create(4, 1)
+	b.set_tile(Vector2i(1, 0), TiltBoard.Tile.CRACK)
+	b.add_marble(Vector2i(0, 0), 0)
+	# Loaded, not named: the view uses autoloads, which a test script cannot name when it compiles.
+	var view: Node2D = (load("res://scenes/game/board_view.gd") as GDScript).new()
+	root.add_child(view)
+	view.call("show_board", b, Vector2(400, 200))
+	var next: TiltBoard = b.copy()
+	var move: TiltMove = next.tilt(TiltBoard.RIGHT)
+	await view.call("play", move, next)
+	var shown: TiltBoard = view.get("board")
+	_check("after a tilt the view draws the board it led to", shown == next and shown.cells[1] == TiltBoard.Cell.PIT)
+	view.queue_free()
+	await process_frame
+
 static func _hue_gap(a: Color, b: Color) -> float:
 	var d: float = absf(a.h - b.h)
 	return minf(d, 1.0 - d)
@@ -912,6 +1113,24 @@ func _test_saved_settings() -> void:
 	save.call("restore")
 	_check("the theme is saved", int(save.get("theme")) == 2)
 	_check("a seen guide stays seen", bool(save.get("tutorial_seen")))
+	var old_faces: bool = save.get("faces")
+	var old_pets: bool = save.get("pets")
+	save.set("faces", false)
+	save.set("pets", true)
+	save.call("store")
+	save.set("faces", true)
+	save.set("pets", false)
+	save.call("restore")
+	_check("faces turned off stay off", not bool(save.get("faces")))
+	_check("pets turned on stay on", bool(save.get("pets")))
+	var older: ConfigFile = ConfigFile.new()
+	older.set_value("settings", "theme", 1)
+	older.save("user://test_settings.cfg")
+	save.call("restore")
+	_check("a player from before faces gets them", bool(save.get("faces")))
+	_check("and plain walls, since pets are for those who ask", not bool(save.get("pets")))
+	save.set("faces", old_faces)
+	save.set("pets", old_pets)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_settings.cfg"))
 	save.set("path", real)
 	save.set("theme", old_theme)

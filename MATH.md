@@ -822,3 +822,237 @@ save, loads it, plays both sections on it, and joins an old cloud copy into it.
 - Set `PLATEAU_RISE` to 0: every level aims at the floor, and only the `RUN` limit makes the levels move.
 - Set `PLATEAU_LEVEL` to 120: the floor drops to chapter 6's end, par 10, and the plateau gets easier still.
 - `climb` makes every chapter on the ramp again, the way the Hard levels were made.
+
+---
+
+## 17. Faces: where the eyes look, and what the board makes a marble feel
+
+Each marble colour is a character (`scripts/feel/cast.gd`): Rosie the red one, bold, with brows and freckles,
+Steve the teal one with the reel's googly eyes, one bigger than the other, Pip the amber one, all eyes and
+blushes, and Lulu the violet one, half asleep under long lashes. A stone is a sleeping rock with no name. Faces
+are drawn in flat shapes on top of every marble set, and the node is never turned as a marble rolls, so a face
+is always upright.
+
+**What a marble feels** is decided in `Mood` from what the board reports: its speed every frame, and the
+events of a tilt. The strongest wins, in this order: a fall down a pit, going home, a party, worry, a bump,
+rolling, rest. Each feeling is a target for a handful of numbers (how open the lids are, the size of the eyes
+and pupils, the brows, the smile, how open the mouth is, happy shut eyes, where the eyes look), and the drawn
+numbers ease toward the target every frame by `1 - e^(-k dt)`. That form gives the same motion at 30 or 120
+frames a second, which a fixed step per frame would not. Lids ease three times as fast as the rest, because a
+blink or a squint is quick and a change of mood is not.
+
+Speed is smoothed over about a tenth of a second before it is read. A roll is a chain of one-cell steps, and on
+the frame between two steps a marble stands still: read raw, the face would flick back to rest in the middle of
+every roll.
+
+**Worry** comes from the move itself. `TiltBoard.tilt` has already said which marble falls and on which step,
+so the view tells it to worry three steps before. It is only ever shown on a tilt the player has made, never
+before one, so a face gives away nothing about which way is safe.
+
+**Where the eyes look.** A look is a direction with a reach from 0 (straight ahead) to 1 (the rim). Looking at
+a point a distance `d` away, measured in marble radii, the reach is
+
+    reach = d / (d + 0.8)
+
+so a near thing draws a small glance and a far one nearly a full one, and the reach never quite touches the rim.
+Each eye aims from its own centre, so for a point close to the face the two pupils turn toward each other, as real
+eyes converge. The pupil then moves inside the eye white, an ellipse with semi-axes `a` and `b`, and stops a
+pupil's radius `p` short of its rim. Along a unit direction `u` an ellipse with semi-axes `a' = a - p` and
+`b' = b - p` meets its rim at
+
+    1 / sqrt((uₓ / a')² + (u_y / b')²)
+
+which is how far the pupil may go (`Gaze.inside`).
+
+The look moves by a critically damped spring, `x'' = -2ω x' - ω² (x - target)`. Critical damping is the
+fastest a spring gets there without overshooting, and eyes do not overshoot. It is solved exactly rather than
+stepped: with `y = x - target` and `c = v + ω y`,
+
+    y(t) = (y + c t) e^(-ω t)        v(t) = (c - ω (y + c t)) e^(-ω t)
+
+so a long frame on a slow phone can never make it wobble or blow up. `ω` is 30, which gets a glance 90% of the
+way in a fifth of a second.
+
+The eyes follow the finger while it drags across the board, before the drag is long enough to tilt, so the
+marbles look where the player is about to send them. Marbles that a tilt does not move glance its way. At rest a
+marble now and then looks over at the nearest hole of its own colour, as Steve does in the reel.
+
+**Squash.** A marble that hits something squashes to 0.84 by 1.14 in 50 ms and springs back over 220 ms. The
+product is 0.96, close to 1, so the marble keeps about its area and reads as soft rather than shrinking. Fifty
+milliseconds is three frames, about the shortest change a player sees as an impact: shorter and it is missed,
+longer and it reads as slow. The spring back is four times as long, which is the follow through. A marble going
+home hops a fifth of a cell in 90 ms, comes down in the same, and drops in over 180 ms. With the squint on the
+same bump, the face and the body move together.
+
+### Things to try
+
+- `Gaze.SNAP` to 8: the eyes drift lazily after the finger.
+- `Gaze.SOFT` to 0: every glance goes all the way to the rim, which looks startled.
+- `Mood.EASE` to 60: faces snap from one feeling to the next and lose their softness.
+- `BoardView.WORRY_STEPS` to 0: the marble only worries on the cell it falls from.
+
+---
+
+## 18. A flat disc that reads as a ball
+
+A marble is drawn as a disc, and two things make it read as a ball: the light on it, and a pattern that turns
+as it rolls.
+
+**The light** (`Spin.light`). The ball's surface at a point `(x, y)` of the unit disc faces along
+`n = (x, y, sqrt(1 - x² - y²))`. The light comes from the upper left and in front, `L`, and a surface is lit by
+the cosine of the angle between them, `max(n · L, 0)` (Lambert's law). With a floor of ambient light,
+
+    brightness = 0.25 + 0.75 max(n · L, 0)
+
+Near the lower right rim the tray throws some light back up, which is what makes the shadow side of a real ball
+glow at its edge: `(1 - n_z)² max(n̂_xy · B, 0)`, strongest at the rim and facing the bounce `B`. The colour of
+each set is taken to be the ball at the brightness of its middle, 0.72, so the light is drawn as a layer over it:
+black, with opacity rising as brightness falls below 0.72, and white, rising as it climbs above. It is the same
+for every colour and every set, so it is computed once into one 128 pixel texture and each marble draws it with a
+single call over its own finish, before its face. The finish's own highlight sits where light reflects toward the
+player, the half vector `normalize(L + V)`, which for this light is 0.28 and 0.35 of the radius up and left of
+the middle.
+
+**The roll** (`Spin.roll`). Seen from above, a ball rolling a distance `s` along `d` turns by `s / r` about the
+axis in the board at right angles to `d`: with x to the right, y down the screen and z out of it, that axis is
+`(-d_y, d_x, 0)`. Rolling right turns the top of the ball right. Each frame the turn is composed onto the ball's
+orientation, a 3D rotation, and re-orthonormalised so rounding never lets it drift into a shear. Spots fixed on
+the ball are turned by it and drawn where they face the player (`z > 0`), smaller and fainter toward the rim,
+where they are seen edge on.
+
+A marble rolls a cell in 52 ms, about three frames, and a true roll turns it `1 / 0.36 = 2.8` radians a cell, 51
+degrees a frame. A pattern that jumps 51 degrees a frame is past what an eye follows: it flickers, or it seems to
+turn backwards, the wagon wheel effect. So the pattern turns at 40% of a true roll (`Spin.SHARE`), about 20
+degrees a frame, and still reads as a roll. On the title's seesaw, seen from the side, the ball turns in the
+screen's plane instead, at the true rate, since it rolls slowly.
+
+The pattern shows only while the ball moves, faded in by its speed. A marble at rest looks exactly as its set
+draws it, so the paid sets keep their look, and the pattern never shows stopped at an odd angle. Each set turns
+something of its own: Classic and Pearls light spots, Glass a vane inside, Gems glints, Planets storms, Candy
+sprinkles and Yarn its strands.
+
+### Things to try
+
+- `Spin.SHARE` to 1.0: the true roll. Watch a long roll at full speed: the spots strobe.
+- `Spin.BOUNCE_LIGHT` to 0: the shadow side goes flat, and the marble looks like a sticker again.
+- `Spin.TRUE_AT` to 0.5: every marble comes out lighter than its colour.
+
+---
+
+## 19. A win you can hear and feel
+
+Every sound is made in `tools/make_sfx.py` from sines and seeded noise.
+
+**Going home.** Each marble still rings its bell, and a glass plop now comes with it: a short tick of two
+partials at 2.35 and 3.71 kHz, out of tune with each other as struck glass is, then a drop whose pitch rises
+from 480 to 900 Hz. A drop of water makes that rising note: the air bubble it traps shrinks, and a smaller
+bubble rings higher. Sparkles and a ripple in the marble's colour go out from the hole, and the phone ticks for
+10 ms at a third of its strength.
+
+**The last marble** slows down: its last cells play at 65% and then 32% of normal speed, and it drops in more
+slowly. Only the board's own animation slows (`Tween.set_speed_scale`), not the game's clock
+(`Engine.time_scale`), so no timer, ad pacing or sheet is touched. As it drops, the bells resolve into the
+chord: C4 and G4 open at the bottom, then E5, A5 and D6, rolled upward 45 ms apart. The sink bells are C5, E5,
+G5 and A5, all notes of this chord, so it follows whichever marble is last. The spacing follows the overtone
+series, wide at the bottom and closer at the top: two notes a third apart low down sound muddy, and at C4 and G4
+the bottom is a fifth. A phone's speaker gives little below a few hundred hertz, so the chord goes no lower
+than C4, 262 Hz.
+
+The win sheet waits for all of it: it rises 0.7 s after the winning tilt, where it used to rise after 0.3, and
+on three stars with faces on one marble from each hole pops back out in a party hat with confetti first, which
+adds 0.9 s (`game.gd`, `WIN_PAUSE` and `PARTY_TIME`). An undo or a restart in that time takes the win back and
+no sheet comes. The stars on the sheet then land on E6, G6 and C7, climbing the same chord, at the pitch ratios
+`2^(-3/12) = 0.841`, 1 and `2^(5/12) = 1.335` of the star's own G6.
+
+**Rolling.** While marbles move, a bed of rolling sound plays: noise between 90 and 700 Hz, ringing in two
+wooden resonances at 230 and 470 Hz, with small grain ticks at random about forty times a second and a slight
+flutter. It loops, and its loudness follows the board: the sum of every marble's speed, in cells a second, over
+a single marble's full speed, under a square root. Sounds that are not in step add in power, not in amplitude,
+so four marbles rolling together sound about twice as loud as one (+6 dB), not four times. A faster roll also
+plays a little higher, as a real one does. The bed rises in about 30 ms and dies away over about 110, so a roll
+starts on the beat and ends softly.
+
+**Stopping.** A marble that stops against a wall knocks softly (partials at 310, 760 and 1620 Hz, as wood),
+one that stops against another marble clinks (2.78, 4.53 and 6.9 kHz, as glass), a few milliseconds apart, so a
+line coming to rest sounds like one. The new knock plays about 4 dB under the clack it replaces.
+
+Loudness, measured as the loudest 400 ms of each clip at the gain the game plays it (the momentary loudness of
+EBU R 128, so a short clip measures lower than it sounds):
+
+| Sound | At its gain |
+| --- | --- |
+| a sink bell | -15 LUFS |
+| the old win jingle, no longer played on a level | -15 |
+| a star | -20 |
+| the chord | -22 |
+| the plop | -30 |
+| the old stop clack it replaces | -33 |
+| rolling, one marble at full speed | -34 |
+| a knock | -37 |
+| a clink | -39 |
+
+### Things to try
+
+- `BoardView.SLOW_LAST` to (1, 1): the last marble drops in at full speed, and the chord comes a beat early.
+- `Audio.ROLLING_FALL` to 60: the rolling stops dead when the marbles do.
+- In `make_sfx.py`, voice the chord C4, E4, G4: the low third sounds thick on a phone.
+
+---
+
+## 20. The memorial: one pass of grey
+
+With faces on, a marble down a pit gets a short memorial in the spirit of the studio's reel: the screen turns
+black and white, the marble's photo stands framed with a candle and a flower, its name below, and then the
+colour snaps back and the pit banner rises with Undo. It lasts 1.15 s for the first three in a session and
+0.55 s after that (`Mood.memorial_length`), and a tap or any key ends it at once, an undo or a restart going
+straight on to do their work. A player trying a level for the tenth time is never held up.
+
+The grey is one shader pass over what is already on the screen (`grey.gdshader`), a full-screen rectangle that
+reads the screen texture, which the GL Compatibility renderer supports. A grey that keeps brightness has to be
+the luminance, a sum of linear light: `Y = 0.2126 R + 0.7152 G + 0.0722 B`, how much each of the screen's
+primaries adds to the brightness the eye sees (Rec. 709). The canvas holds sRGB values, which are not linear, so each channel is decoded,
+`((c + 0.055) / 1.055)^2.4`, summed, and encoded back. Done on the raw values instead, a saturated colour comes
+out too dark. The same pass dims the edges a little, so the eye goes to the middle. A light theme's board gone
+grey is still light, and on it the first memorial's white name all but vanished, so the card stands on a dark
+plaque and its words are outlined. Shaders compile the first
+time they are drawn, which on a cheap phone can stall a frame, so the play screen draws this one once,
+unseen, when it opens.
+
+### Things to try
+
+- `Mood.MEMORIAL_FULL_COUNT` to 0: every memorial is the short one.
+- In `grey.gdshader`, sum the raw values instead of the decoded ones and compare the red marble's grey.
+
+---
+
+## 21. Walls that sleep
+
+With Pets on, each wall is an animal asleep in a loaf, a cat or a dog (`scenes/game/loaf.gd`, its family and
+coats in `scripts/feel/litter.gd`): the same rounded block with the same darker lip along its bottom, with ears,
+shut eyes and a nose, and a tail curled round the front for a cat or a snout and floppy ears for a dog. Cats and
+dogs take turns level by level, so the board looks new every time. Pets is its own setting, off by default and
+apart from Faces: some players want calm, plain walls, so the extra character is something a player turns on.
+
+**Still a wall first.** Every coat is worked out from the wall's own colour in the theme now: grey is the wall
+itself, dark is 13% darker, pale 20% lighter, warm 36% of the way to a ginger (a tan for a dog), and patched
+pale with ginger and dark patches. That keeps every animal within a step of the wall. A dark coat on a dark
+theme's board moves toward the floor, though: in one of the colour themes it came out at 1.98:1, under the 2:1
+the plain wall must meet. So a coat that would come closer to the floor than 2.2:1 steps back toward the wall,
+a tenth at a time, until it does not (`Litter.fur`). The theme decides whether that is darker or lighter, and
+the tests check every coat in every theme, light and dark. The sleeping faces are drawn in a line a step lighter
+than a dark coat and a step darker than a light one (`Loaf.INK_TURN`), so they read on both without standing out
+from the wall. A dog's tail stays tucked away until it wags: poking up at rest, it read as an aerial. A coat is
+picked for a cell from a hash of the cell and the level, so neighbours mostly differ and a board looks like a
+litter.
+
+**Only a woken animal is drawn again.** Each animal is its own node, drawn once. When a marble stops against
+one it wakes: eyes open, a cat flicks an ear and trills, a dog wags and huffs, and it falls back asleep after
+0.8 s. Only that node draws again while it moves, and it stops processing when it is still. Now and then, as the
+board tips, one animal on that side stirs without waking. With Pets off, the board draws its plain blocks as
+before and makes no animals at all, and turning it on or off mid-level swaps them at once.
+
+### Things to try
+
+- `Litter.DARKER` to 0.5: dark cats on a light board come close to the pits.
+- `Litter.family_for` returning a family by chapter (`Pack.chapter_of`) instead of by level: twenty boards in a
+  row of cats.

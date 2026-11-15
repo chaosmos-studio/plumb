@@ -8,6 +8,12 @@ const TOP_SPACE: float = 300.0
 const BOTTOM_SPACE: float = 260.0
 const SIDE_MARGIN: float = 30.0
 const HINT_SEARCH: int = 30000
+## With faces on, a fall takes this long before its memorial: the marble's scream and shrink.
+const FALL_TIME: float = 0.5
+## Seconds from the winning tilt to the result sheet: the last marble's slow drop, and with three stars and
+## faces on, the party after it.
+const WIN_PAUSE: float = 0.7
+const PARTY_TIME: float = 0.9
 const DIRECTION_NAMES: PackedStringArray = ["left", "right", "up", "down"]
 
 var level: int = 0
@@ -51,6 +57,7 @@ var _ending: bool = false
 var _replay: Replay
 ## The daily puzzle (Daily): timed, no hint and no stars, and level is -1.
 var _daily: bool = false
+var _memorial: Memorial
 
 func _ready() -> void:
 	_daily = Daily.playing()
@@ -67,6 +74,9 @@ func _ready() -> void:
 			route = state["route"]
 			board = state["board"]
 	_view = BoardView.new()
+	var seed_level: int = Daily.day if _daily else level
+	_view.family = Litter.family_for(seed_level)
+	_view.litter = seed_level
 	add_child(_view)
 	_build_ui()
 	get_viewport().size_changed.connect(_layout)
@@ -74,6 +84,8 @@ func _ready() -> void:
 	_view.show_board(board, _fit())
 	_view.intro()
 	_refresh()
+	if Save.faces:
+		Memorial.warm(self)
 	EventBus.settings_changed.connect(_dress_hint)
 	if _daily:
 		return
@@ -104,6 +116,15 @@ func _layout() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if (is_instance_valid(_coach) and _coach.blocks_input) or is_instance_valid(_prompt) or is_instance_valid(_replay):
 		return
+	if is_instance_valid(_memorial):
+		# Any key ends the memorial, and undo or restart go straight on to do their own work.
+		if event.is_pressed() and not event.is_echo() and not event is InputEventMouseMotion:
+			_memorial.skip()
+			if event.is_action_pressed("undo"):
+				_on_undo()
+			elif event.is_action_pressed("retry"):
+				_on_restart()
+		return
 	if is_instance_valid(_sheet):
 		if event.is_action_pressed("retry"):
 			_on_restart()
@@ -118,6 +139,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag and _touching and not _swiped:
 		var drag: InputEventScreenDrag = event
 		var delta: Vector2 = drag.position - _touch_from
+		if Save.faces and not finished and not board.lost:
+			_view.glance(delta / SWIPE_MIN)
 		if delta.length() >= SWIPE_MIN:
 			_swiped = true
 			if absf(delta.x) > absf(delta.y):
@@ -169,7 +192,7 @@ func _tilt(dir: int) -> void:
 	route.append(dir)
 	board = next
 	_refresh()
-	await _view.play(move)
+	await _view.play(move, next)
 	if board.lost:
 		_queued = -1
 		_show_lost()
@@ -370,8 +393,17 @@ func _show_won() -> void:
 	_won.watch = _watch
 	Save.record(level, _earned)
 	EventBus.level_won.emit(level, moves, _earned)
-	await get_tree().create_timer(0.3).timeout
-	Audio.play(&"win", -3.0)
+	# The last marble's slow drop rings the chord (BoardView), so the sheet waits for it and makes no sound of its
+	# own. Three stars with faces on throw a party first.
+	# An undo or a restart in the meantime takes the win back, and no sheet comes.
+	await get_tree().create_timer(WIN_PAUSE).timeout
+	if not finished:
+		return
+	if _earned == 3 and Save.faces:
+		_view.party()
+		await get_tree().create_timer(PARTY_TIME).timeout
+		if not finished:
+			return
 	_show_result()
 
 func _score() -> String:
@@ -403,7 +435,7 @@ func _watch() -> void:
 		var next: TiltBoard = board.copy()
 		var move: TiltMove = next.tilt(dir)
 		board = next
-		await _view.play(move)
+		await _view.play(move, next)
 		replay.beat()
 		await get_tree().create_timer(0.1).timeout
 	if not is_inside_tree():
@@ -414,8 +446,21 @@ func _watch() -> void:
 	replay.finish()
 	_show_result()
 
+## With faces on, the marble that fell gets its memorial first. An undo or a restart during it skips the
+## banner, since the board is no longer lost.
 func _show_lost() -> void:
-	await get_tree().create_timer(0.35).timeout
+	var fell: int = _view.fallen()
+	if Save.faces and fell >= 0 and not _daily:
+		await get_tree().create_timer(FALL_TIME).timeout
+		if not board.lost:
+			return
+		var xf: Transform2D = _view.get_global_transform_with_canvas()
+		_memorial = Memorial.open(self, board.marble_colour[fell], _view.marble(fell).colour, xf * _view.bounds().get_center())
+		await _memorial.done
+		if not board.lost or finished:
+			return
+	else:
+		await get_tree().create_timer(0.35).timeout
 	_sheet = Result.failed(self, "Down the pit", "Undo that tilt and try another way", "Restart",
 		_on_restart, _to_levels, _on_undo)
 

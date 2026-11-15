@@ -98,16 +98,25 @@ change can never silently break the level set.
 
 ## 4. Screens
 
-- **Title**: the wordmark, a seesaw of marbles rolling back and forth, Play (continues at the first
-  unsolved level), Levels, the star total.
+- **Title**: the wordmark, a seesaw of marbles rolling back and forth, their faces looking down the slope and
+  squinting when they knock together, Play (continues at the first unsolved level), Levels, the star total.
 - **Levels**: twenty tiles a page with the stars each has earned; the next level in the accent colour;
   later levels locked. A Main and Hard switch in the title's place shows either set, Hard from chapter 10.
   Play on the title always goes on along the main path.
 - **Play**: level and par, the board, Undo and Restart, Hint, one line of guidance on the levels that
   introduce something, the result card (stars, moves against par, Next), and a pit banner (Undo).
-- **Settings**, a gear on every screen: sound, music, vibration, the theme (Auto, Light or Dark), How to
-  play, Support the game, About, Credits, Privacy choices (only where the consent message requires them),
-  and a guarded reset.
+  With faces on (the default), the marbles are characters (`MATH.md` section 17): Rosie (red), Steve (teal),
+  Pip (amber) and Lulu (violet), a sleeping rock for a stone, each drawn upright on every marble set. They
+  blink and look where the finger drags, go wide-eyed rolling, squint on a bump, worry on the way to a pit,
+  scream as they fall, hop for joy going home and pop back out in party hats on three stars. A marble down a
+  pit gets a black-and-white memorial with its name, a candle and a flower (about a second, shorter after the
+  first three in a session, skipped by a tap) before the pit banner, and the only place a name is written.
+  With Pets on, walls are sleeping cats or dogs, by turns level by level, that wake when a marble stops
+  against them. Pets is off by default: some players want calm, plain walls, so the extra character is opt-in.
+- **Settings**, a gear on every screen: sound, music, vibration, Faces, Pets, the theme (Auto, Light or Dark),
+  How to play, Support the game, About, Credits, Privacy choices (only where the consent message requires
+  them), and a guarded reset. Faces off gives the plain marbles, with no emotions or memorial. The two are
+  separate: animals with faces off are allowed, the walls being a look of their own.
 - **The guide** on level 1, once, and again from How to play: the goal and the help buttons on two
   cards, then the swipe itself, drawn by a ghost finger in the direction the solver would tilt next.
   Skip ends it at any point.
@@ -185,7 +194,10 @@ scripts/tilt board.gd (rules), tilt_move.gd, solver.gd (BFS), difficulty.gd (bit
              novelty.gd (replays), generator.gd (phases, the ramp and the plateau), showcase.gd (the
              opening), naive.gd (a random and a greedy player, for the tests)
 scripts/kit  palette, ui (code-built theme), stars (scoring), star_icon
-scenes/game  game.gd (play screen), board_view.gd, marble, ripple, hint_arrow
+scripts/feel cast.gd (the characters), mood.gd (what a face shows), gaze.gd (where eyes look), spin.gd (the
+             roll and the light on a ball), litter.gd (the wall animals' families and coats)
+scenes/game  game.gd (play screen), board_view.gd, marble, face, loaf (wall animals), memorial and its
+             grey.gdshader, sparkle, ripple, hint_arrow
 scenes/shell title.gd, seesaw.gd, levels.gd
 levels/      levels.json (the main path) and hard.json (the Hard levels), written by
              tools/generate_levels.gd, never hand-edited
@@ -208,7 +220,13 @@ generator are Plumb's own.
 - **M0 - Is it fun**: rules, solver, generated levels, the play screen. Done.
 - **M1 - The full loop**: title, level select, stars, progress, sounds, web preview. Done.
 - **M2 - Feel pass**: marble trails, marbles popping in at level start, and an ambient music loop with its
-  own toggle are done. Still to do: a tray light that follows the tilt.
+  own toggle are done. Then the marbles came alive (November 2026): character faces driven by the board and
+  the memorial behind a Faces setting (on by default), sleeping animals for walls behind a Pets setting (off by
+  default), and for everyone, faces or not,
+  shading that makes every set read as a ball, a pattern that turns as it rolls, a rolling sound that
+  follows the board's speed, soft knocks and clinks, a glass plop with every bell, the last marble slowing
+  into its hole as the bells resolve into a chord, stars on the chord's notes, sparkles and soft vibration
+  ticks (`MATH.md` sections 17 to 21). Still to do: a tray light that follows the tilt.
 - **M3 - Content**: 500 levels in 25 chapters, one new rule each (`CHAPTERS.md`), shipped in waves. 1.1,
   chapters 1 to 10 with stop pads, one-way gates, plugs, colour gates, paint and cracked floor: built.
   1.2 to 1.4, chapters 11 to 25: designed. Daily puzzles from a date seed may follow.
