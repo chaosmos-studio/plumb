@@ -2,7 +2,7 @@ extends SceneTree
 
 ## Writes levels/levels.json: the chapter list and every level of every chapter with its par.
 ## Run: godot --headless --path . -s res://tools/generate_levels.gd [-- seed=2026 out=user://try.json
-##   chapters=6 resume=10 workers=8 opening]
+##   chapters=6 resume=10 workers=8 opening shelve climb]
 ## `chapters` stops after that many chapters, for trying a schedule out. `resume` keeps that many chapters
 ## from the file already written and makes only the ones after them: the file keeps the generator's random
 ## state at the end of every chapter, so the result is the same as a full run's. `workers` is how many
@@ -10,8 +10,12 @@ extends SceneTree
 ## little, separate processes scale with the cores. `opening` makes only the opening (TiltShowcase) again,
 ## in the file already written, and leaves every other byte of it as it was. The same seed always writes
 ## the same file, whatever `workers` is, so the levels are a build product of the generator.
+## `shelve` copies the levels from TiltGenerator.PLATEAU_FROM on, as the file holds them, into levels/hard.json,
+## once, before those chapters are made again on the plateau: they are the Hard levels (MATH.md section 16), and
+## no level made after may replay one. `climb` makes every chapter on the ramp, as the Hard levels were made.
 
 const OUT: String = "res://levels/levels.json"
+const HARD: String = "res://levels/hard.json"
 ## How often a lane that stops before its batches are done is started again before the run gives up.
 const RESTARTS: int = 3
 
@@ -91,10 +95,16 @@ func _initialize() -> void:
 	var kept: int = 0
 	var workers: int = 8
 	var opening: bool = false
+	var shelve: bool = false
+	var climb: bool = false
 	var work: Dictionary = {}
 	for arg: String in OS.get_cmdline_user_args():
 		if arg == "opening":
 			opening = true
+		elif arg == "shelve":
+			shelve = true
+		elif arg == "climb":
+			climb = true
 		elif arg.begins_with("seed="):
 			seed_value = int(arg.substr(5))
 		elif arg.begins_with("out="):
@@ -113,9 +123,20 @@ func _initialize() -> void:
 	if opening:
 		_reopen(seed_value, out)
 		return
+	if shelve:
+		_shelve(seed_value)
+		return
 	var gen: TiltGenerator = TiltGenerator.new(seed_value)
 	if workers > 1:
 		gen.farm = Workers.new(workers)
+	gen.plateau = not climb
+	var hard: Variant = null
+	if gen.plateau and chapters > TiltGenerator.PLATEAU_FROM:
+		hard = JSON.parse_string(FileAccess.get_file_as_string(HARD)) if FileAccess.file_exists(HARD) else null
+		if typeof(hard) != TYPE_DICTIONARY:
+			push_error("the plateau makes chapter %d on again: shelve the Hard levels first" % (TiltGenerator.PLATEAU_FROM + 1))
+			quit(1)
+			return
 	var states: PackedStringArray = PackedStringArray()
 	if kept > 0:
 		var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(OUT))
@@ -131,19 +152,29 @@ func _initialize() -> void:
 			states.append(String((shipped["rng_states"] as Array)[c]))
 		gen.resume((shipped["levels"] as Array).slice(0, count), String(states[kept - 1]).to_int())
 		print("kept %d levels in %d chapters" % [count, kept])
+	if hard != null:
+		var known: bool = gen.levels.size() >= TiltGenerator.PLATEAU_LEVEL
+		var deepest: int = int(gen.floor_level()["par"]) + TiltGenerator.PLATEAU_PARS if known else 1 << 30
+		gen.reserve((hard as Dictionary)["levels"], deepest)
+		print("kept clear of %d Hard levels" % ((hard as Dictionary)["levels"] as Array).size())
 	var started: int = Time.get_ticks_msec()
 	for c: int in range(kept, chapters):
 		var phases: Array = TiltGenerator.CHAPTERS[c]["phases"]
 		for p: int in range(phases.size()):
 			var first: int = gen.levels.size()
 			if not gen.add_phase(c, p):
+				var whole: bool = gen.plateau and c >= TiltGenerator.PLATEAU_FROM
 				push_error("chapter %d phase %d: a pool of %d in %d attempts cannot fill a run of %d" % [c + 1, p,
-					gen.pooled, gen.attempts, int(phases[p][0])])
+					gen.pooled, gen.attempts, TiltGenerator.chapter_size(c) if whole else int(phases[p][0])])
 				if c > 0:
 					print("the first %d chapters are in %s; resume=%d continues from there" % [c, out, c])
 				quit(1)
 				return
 			var made: Array[TiltDifficulty] = gen.made()
+			if made.size() == first:
+				print("chapter %d phase %d: pool %d from %d attempts, held for the chapter's run  (%.1fs)" % [c + 1, p,
+					gen.pooled, gen.attempts, (Time.get_ticks_msec() - started) / 1000.0])
+				continue
 			var pars: PackedStringArray = PackedStringArray()
 			var bits: PackedStringArray = PackedStringArray()
 			for i: int in range(first, made.size()):
@@ -204,6 +235,26 @@ func _reopen(seed_value: int, out: String) -> void:
 	file.close()
 	_report_opening(gen.made())
 	print("wrote a new opening of %d levels to %s" % [count, out])
+	quit(0)
+
+## Once only: a second shelve would copy the plateau over the Hard levels.
+func _shelve(seed_value: int) -> void:
+	if FileAccess.file_exists(HARD):
+		push_error("%s already holds the Hard levels" % HARD)
+		quit(1)
+		return
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(OUT))
+	var problem: String = _resumable(data, TiltGenerator.CHAPTERS.size(), seed_value)
+	if problem != "":
+		push_error("cannot shelve the Hard levels: %s" % problem)
+		quit(1)
+		return
+	var first: int = TiltGenerator.chapter_start(TiltGenerator.PLATEAU_FROM)
+	var shelved: Array = ((data as Dictionary)["levels"] as Array).slice(first)
+	var file: FileAccess = FileAccess.open(HARD, FileAccess.WRITE)
+	file.store_string(JSON.stringify({"seed": seed_value, "first": first, "levels": shelved}, "\t"))
+	file.close()
+	print("shelved levels %d-%d as the Hard levels in %s" % [first + 1, first + shelved.size(), HARD])
 	quit(0)
 
 static func _report_opening(made: Array[TiltDifficulty]) -> void:

@@ -1,7 +1,8 @@
 class_name TiltGenerator
 extends RefCounted
 
-## Levels by rejection, then a run picked from each pool to follow the ramp (MATH.md sections 3, 6, 8 to 10).
+## Levels by rejection, then a run picked from each pool to follow the ramp or hold the plateau (MATH.md sections 3,
+## 6, 8 to 10 and 16).
 
 ## `rule` names the tile a chapter's levels must need: a TiltBoard.TILE_NAMES entry, "plug", "stone", "ice",
 ## "number", "wrap" or "locked", "" for the opening chapters, whose rules are the game's own, or "mix" for a
@@ -174,12 +175,27 @@ const BY_PAR_FROM: int = 10
 ## level rather than POOL, so par climbs slowly (MATH.md section 10).
 const CLOSE_FROM: int = 10
 const POOL_LATE: int = 8
+## From this chapter on the main path stops climbing: every level sits in a narrow band at level PLATEAU_LEVEL's
+## difficulty, on a board no larger than that level's and with no more marbles. The climb these chapters had
+## before ships as the Hard levels (MATH.md section 16).
+const PLATEAU_FROM: int = 9
+## The level, counted from 1, whose par and bits are the plateau's floor.
+const PLATEAU_LEVEL: int = 160
+## How far above the floor a plateau level may sit, in moves of par and in bits.
+const PLATEAU_PARS: int = 1
+const PLATEAU_BITS: float = 1.5
+## The share of that band one chapter aims to climb through, from the floor at its first level.
+const PLATEAU_RISE: float = 0.5
+## The chapter rule that leaves a random player three tilts where every other board offers four.
+const THREE_WAY: String = "locked"
 
 class Candidate:
 	var board: TiltBoard
 	var measure: TiltDifficulty
 	var views: TiltNovelty.Views
 	var order: int
+	## The phase whose pool it came from, which a plateau chapter's one run keeps it to.
+	var phase: int = 0
 
 	func _init(b: TiltBoard, m: TiltDifficulty, v: TiltNovelty.Views, n: int) -> void:
 		board = b
@@ -204,12 +220,19 @@ class Farm:
 
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var farm: Farm = Farm.new()
+## False makes every chapter climb the ramp, as the Hard levels were made.
+var plateau: bool = true
 ## Each a TiltBoard.to_dict() with its "par", in shipping order.
 var levels: Array[Dictionary] = []
 ## What the last phase measured, for reporting: pool size and attempts used.
 var pooled: int = 0
 var attempts: int = 0
 var _made: Array[Candidate] = []
+## Levels outside this run that none of its levels may replay: the Hard levels.
+var _avoid: Array[Candidate] = []
+## A plateau chapter's pools so far, each candidate tagged with its phase, until its last phase picks one run
+## through them all.
+var _held: Array[Candidate] = []
 
 func _init(seed_value: int) -> void:
 	rng.seed = seed_value
@@ -232,6 +255,35 @@ static func chapter_list() -> Array:
 		out.append({"name": CHAPTERS[c]["name"], "line": CHAPTERS[c]["line"], "count": chapter_size(c)})
 	return out
 
+## The first level (0-based) of chapter `c`.
+static func chapter_start(c: int) -> int:
+	var n: int = 0
+	for k: int in range(c):
+		n += chapter_size(k)
+	return n
+
+## The chapter level `i` (0-based) sits in.
+static func chapter_at(i: int) -> int:
+	var end: int = 0
+	for c: int in range(CHAPTERS.size()):
+		end += chapter_size(c)
+		if i < end:
+			return c
+	return CHAPTERS.size() - 1
+
+## A phase as it is made. `floor` is empty on the ramp, and on the plateau holds the floor level's par, bits, width,
+## height and marbles: the board shrinks to fit inside it and par may sit only in the band.
+static func phase_of(chapter: int, p: int, floor: Dictionary = {}) -> Array:
+	var phase: Array = (CHAPTERS[chapter]["phases"][p] as Array).duplicate()
+	if floor.is_empty():
+		return phase
+	phase[1] = mini(int(phase[1]), int(floor["width"]))
+	phase[2] = mini(int(phase[2]), int(floor["height"]))
+	phase[4] = mini(int(phase[4]), int(floor["marbles"]))
+	phase[7] = int(floor["par"])
+	phase[8] = int(floor["par"]) + PLATEAU_PARS
+	return phase
+
 ## How far along the ramp level `i` (0-based) is, from 0 to 1.
 static func progress(i: int) -> float:
 	return pow(float(i) / float(RAMP_LEVELS - 1), RAMP_POWER)
@@ -253,6 +305,18 @@ func resume(made: Array, state: int) -> void:
 		_made.append(Candidate.new(board, m, TiltNovelty.views(board, m.path), _made.size()))
 	rng.state = state
 
+## Levels this run must not replay though it does not make them, each a TiltBoard.to_dict() with its "par": the Hard
+## levels. A route replays only a level of the same par (MATH.md section 4), so a level past `deepest`, the most par
+## this run makes, is kept for its layout alone and never solved.
+func reserve(others: Array, deepest: int = 1 << 30) -> void:
+	for entry: Variant in others:
+		var level: Dictionary = entry
+		var board: TiltBoard = TiltBoard.from_dict(level)
+		var path: PackedInt32Array = PackedInt32Array()
+		if int(level["par"]) <= deepest:
+			path = TiltSolver.new().solve(board, 200000)
+		_avoid.append(Candidate.new(board, null, TiltNovelty.views(board, path), 0))
+
 ## Call once the levels after the opening are made. The showcase has a random stream of its own, so those
 ## levels come out the same either way.
 func open() -> bool:
@@ -273,35 +337,65 @@ func made() -> Array[TiltDifficulty]:
 		out.append(c.measure)
 	return out
 
+## False when the pool cannot hold a run. On the plateau a phase only pools, and a chapter's last phase picks one
+## run through all its phases' pools (MATH.md section 16).
 func add_phase(chapter: int, p: int) -> bool:
-	var phase: Array = CHAPTERS[chapter]["phases"][p]
+	var flat: bool = plateau and chapter >= PLATEAU_FROM
+	var floor: Dictionary = floor_level() if flat else {}
+	var phase: Array = phase_of(chapter, p, floor)
 	var rule: String = CHAPTERS[chapter]["rule"]
 	var count: int = phase[0]
-	var par_min: int = phase[7]
 	var par_max: int = phase[8]
 	# Deeper chapters may search further, but the ones before keep the limit they were made with.
 	var limit: int = int(CHAPTERS[chapter].get("search", SEARCH_LIMIT))
 	var first: int = levels.size()
 	var last: TiltDifficulty = null if _made.is_empty() else _made[-1].measure
-	var by_par: bool = chapter >= BY_PAR_FROM
+	var by_par: bool = flat or chapter >= BY_PAR_FROM
+	# On the plateau a chapter starts again from the floor, and its own order is the chapter's one run's to keep,
+	# so no phase pools above a level.
+	var above: TiltDifficulty = null if flat else last
 	# Levels that ran ahead of the ramp carry the window up with them, or it would close above the last one.
 	# Ordered by par first, bits may start lower again when par steps up, so there is no window on bits.
 	var ahead: float = 0.0 if last == null else maxf(last.bits - target_bits(first), 0.0)
 	var lo: float = -1.0 if by_par else target_bits(first) + ahead - BAND
 	var hi: float = 1e9 if by_par else target_bits(first + count - 1) + ahead + BAND
-	var close: bool = chapter >= CLOSE_FROM and last != null
+	if flat:
+		lo = float(floor["bits"]) * bits_scale(chapter)
+		hi = lo + PLATEAU_BITS * bits_scale(chapter)
+	var close: bool = chapter >= CLOSE_FROM and last != null and not flat
 	var cap: int = mini(par_max, last.par + 1) if close else par_max
-	var size: int = count * (POOL_LATE if chapter >= CLOSE_FROM else POOL)
+	var size: int = count * (POOL_LATE if chapter >= CLOSE_FROM or flat else POOL)
 	var pool: Array[Candidate] = []
 	attempts = 0
 	if chapter < PARALLEL_FROM:
 		while pool.size() < size and attempts < count * ATTEMPTS:
 			attempts += 1
-			_keep(_try(_propose(phase), phase, rule, limit, lo, hi, last, by_par, cap), pool)
+			_keep(_try(_propose(phase), phase, rule, limit, lo, hi, above, by_par, cap), pool)
 	else:
-		_fill(pool, chapter, p, lo, hi, last, cap, size)
+		_fill(pool, chapter, p, floor, lo, hi, above, by_par, cap, size)
 	pooled = pool.size()
-	var run: Array[Candidate] = _run(pool, first, count, last, _streak(by_par), by_par)
+	# A plateau phase's levels may only come from its own pool, so the boards still grow phase by phase.
+	var allowed: PackedInt32Array = PackedInt32Array()
+	if flat:
+		for c: Candidate in pool:
+			c.phase = p
+		_held.append_array(pool)
+		if p < (CHAPTERS[chapter]["phases"] as Array).size() - 1:
+			return true
+		pool = _held.duplicate()
+		_held.clear()
+		count = chapter_size(chapter)
+		for q: int in range((CHAPTERS[chapter]["phases"] as Array).size()):
+			for k: int in range(int(CHAPTERS[chapter]["phases"][q][0])):
+				allowed.append(q)
+	# A phase's first level aims where the level before it aimed, except where the plateau starts a chapter again.
+	var aim_par: PackedFloat64Array = PackedFloat64Array()
+	var aim_bits: PackedFloat64Array = PackedFloat64Array()
+	for k: int in range(count):
+		var at: int = first + k if k > 0 or flat else maxi(first - 1, 0)
+		aim_par.append(_aim_par(at, floor))
+		aim_bits.append(_aim_bits(at, floor))
+	var run: Array[Candidate] = _run(pool, aim_par, aim_bits, last, _streak(by_par), by_par, allowed)
 	if run.is_empty():
 		return false
 	for c: Candidate in run:
@@ -310,6 +404,34 @@ func add_phase(chapter: int, p: int) -> bool:
 		levels.append(level)
 		_made.append(c)
 	return true
+
+## The plateau's floor and its most: level PLATEAU_LEVEL's par and bits, board size and marbles.
+func floor_level() -> Dictionary:
+	var c: Candidate = _made[PLATEAU_LEVEL - 1]
+	return {"par": c.measure.par, "bits": c.measure.bits, "width": c.board.width, "height": c.board.height,
+		"marbles": c.board.marbles_left()}
+
+## Where level `i` (0-based) aims: the ramp, or on the plateau a climb through PLATEAU_RISE of the band that starts
+## from the floor at each chapter's first level.
+func _aim_par(i: int, floor: Dictionary) -> float:
+	if floor.is_empty():
+		return target_par(i)
+	return float(floor["par"]) + PLATEAU_PARS * _rise(i)
+
+func _aim_bits(i: int, floor: Dictionary) -> float:
+	if floor.is_empty():
+		return target_bits(i)
+	return (float(floor["bits"]) + PLATEAU_BITS * _rise(i)) * bits_scale(chapter_at(i))
+
+## What a plateau's bits are measured in for chapter `c`: with one way always locked, a random player has three
+## tilts where any other board offers four, so the most luck a tilt can ask is log2(3) bits instead of 2, and
+## the floor and band shrink by that share (MATH.md section 16).
+static func bits_scale(c: int) -> float:
+	return log(3.0) / log(4.0) if CHAPTERS[c]["rule"] == THREE_WAY else 1.0
+
+static func _rise(i: int) -> float:
+	var c: int = chapter_at(i)
+	return PLATEAU_RISE * float(i - chapter_start(c)) / float(maxi(chapter_size(c) - 1, 1))
 
 static func _try(board: TiltBoard, phase: Array, rule: String, limit: int, lo: float, hi: float,
 		last: TiltDifficulty, by_par: bool = false, cap: int = -1) -> Candidate:
@@ -371,13 +493,18 @@ func _keep(c: Candidate, pool: Array[Candidate]) -> void:
 
 ## Batches are merged strictly in batch order, so the pool never depends on where a batch ran. `cap` is the
 ## deepest par searched for.
-func _fill(pool: Array[Candidate], chapter: int, p: int, lo: float, hi: float, last: TiltDifficulty, cap: int,
-		size: int) -> void:
+func _fill(pool: Array[Candidate], chapter: int, p: int, floor: Dictionary, lo: float, hi: float, last: TiltDifficulty,
+		by_par: bool, cap: int, size: int) -> void:
 	var count: int = CHAPTERS[chapter]["phases"][p][0]
 	var batches: int = ceili(float(count * (ATTEMPTS_TILED if chapter >= TILED_FROM else ATTEMPTS)) / BATCH)
 	var job: Dictionary = {"chapter": chapter, "phase": p, "seed": rng.randi(), "batches": batches,
 		"lo": lo, "hi": hi, "cap": cap,
 		"last": {} if last == null else {"par": last.par, "bits": last.bits, "states": last.states}}
+	# Written only where they differ from what the chapter alone implies, so a job for the ramp is as it was.
+	if not floor.is_empty():
+		job["floor"] = floor
+	if by_par != (chapter >= BY_PAR_FROM):
+		job["by_par"] = by_par
 	farm.start(job)
 	for b: int in range(batches):
 		if pool.size() >= size:
@@ -391,7 +518,7 @@ func _fill(pool: Array[Candidate], chapter: int, p: int, lo: float, hi: float, l
 ## Seeded from the job's seed and `b` alone, so a batch comes out the same wherever it runs.
 static func batch(job: Dictionary, b: int) -> Array[Candidate]:
 	var chapter: int = job["chapter"]
-	var phase: Array = CHAPTERS[chapter]["phases"][int(job["phase"])]
+	var phase: Array = phase_of(chapter, int(job["phase"]), job.get("floor", {}))
 	var rule: String = CHAPTERS[chapter]["rule"]
 	var limit: int = int(CHAPTERS[chapter].get("search", SEARCH_LIMIT))
 	var last: TiltDifficulty = null
@@ -405,7 +532,7 @@ static func batch(job: Dictionary, b: int) -> Array[Candidate]:
 	var found: Array[Candidate] = []
 	for k: int in range(BATCH):
 		var c: Candidate = _try(own._propose(phase), phase, rule, limit, float(job["lo"]), float(job["hi"]), last,
-			chapter >= BY_PAR_FROM, int(job.get("cap", phase[8])))
+			bool(job.get("by_par", chapter >= BY_PAR_FROM)), int(job.get("cap", phase[8])))
 		if c != null:
 			found.append(c)
 	return found
@@ -513,16 +640,23 @@ func _replays(v: TiltNovelty.Views, pool: Array[Candidate]) -> bool:
 	for c: Candidate in _made:
 		if TiltNovelty.clash(c.views, v) != "":
 			return true
+	for c: Candidate in _avoid:
+		if TiltNovelty.clash(c.views, v) != "":
+			return true
+	for c: Candidate in _held:
+		if TiltNovelty.clash(c.views, v) != "":
+			return true
 	for c: Candidate in pool:
 		if TiltNovelty.clash(c.views, v) != "":
 			return true
 	return false
 
-## The dynamic program of MATH.md sections 6 and 8. A phase's first level aims where the level before it
-## aimed, so whatever the phase introduces arrives without a step up. The state is (candidate, how many
-## levels in a row it ends that share its bits).
-func _run(pool: Array[Candidate], first: int, count: int, last: TiltDifficulty, streak: int,
-		by_par: bool = false) -> Array[Candidate]:
+## The dynamic program of MATH.md sections 6, 8 and 16: a run through the pool, in order, nearest the aims, one
+## level for each. The state is (candidate, how many levels in a row it ends that share its bits). `allowed`, when
+## given, names the phase each level must come from.
+func _run(pool: Array[Candidate], aim_par: PackedFloat64Array, aim_bits: PackedFloat64Array, last: TiltDifficulty,
+		streak: int, by_par: bool = false, allowed: PackedInt32Array = PackedInt32Array()) -> Array[Candidate]:
+	var count: int = aim_par.size()
 	var sorted: Array[Candidate] = pool.duplicate()
 	sorted.sort_custom(func(a: Candidate, b: Candidate) -> bool:
 		if by_par and a.measure.par != b.measure.par:
@@ -533,12 +667,13 @@ func _run(pool: Array[Candidate], first: int, count: int, last: TiltDifficulty, 
 			return false
 		if a.measure.par != b.measure.par:
 			return a.measure.par < b.measure.par
+		if a.phase != b.phase:
+			return a.phase < b.phase
 		return a.order < b.order)
 	var n: int = sorted.size()
 	var cost: Array[PackedFloat64Array] = []
 	var back: Array[PackedInt32Array] = []
 	for k: int in range(count):
-		var aim: int = first + k if k > 0 else maxi(first - 1, 0)
 		var row: PackedFloat64Array = PackedFloat64Array()
 		var from: PackedInt32Array = PackedInt32Array()
 		row.resize(n * RUN)
@@ -546,9 +681,11 @@ func _run(pool: Array[Candidate], first: int, count: int, last: TiltDifficulty, 
 		from.resize(n * RUN)
 		from.fill(-1)
 		for j: int in range(n):
+			if not allowed.is_empty() and sorted[j].phase != allowed[k]:
+				continue
 			var m: TiltDifficulty = sorted[j].measure
-			var miss_par: float = m.par - target_par(aim)
-			var miss_bits: float = m.bits - target_bits(aim)
+			var miss_par: float = m.par - aim_par[k]
+			var miss_bits: float = m.bits - aim_bits[k]
 			var here: float = PAR_WEIGHT * miss_par * miss_par + miss_bits * miss_bits
 			if k == 0:
 				var length: int = streak + 1 if last != null and m.same_as(last, by_par) else 1
