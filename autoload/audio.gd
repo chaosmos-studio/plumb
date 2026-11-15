@@ -7,7 +7,7 @@ const SFX_DIR: String = "res://assets/audio/sfx/"
 const VOICES: int = 12
 
 const CLIPS: Array[StringName] = [&"tap", &"roll", &"clack", &"pit", &"win", &"star", &"undo", &"hint", &"plop", &"knock",
-	&"clink", &"chord", &"nooo", &"mrrp", &"huff"]
+	&"clink", &"chord", &"nooo", &"mrrp", &"huff", &"boing"]
 const SINK_NOTES: int = 4
 ## About 11 LU under the sink bells (music measures -22 LUFS, a sink -17): a bed, not a tune.
 const MUSIC_DB: float = -6.0

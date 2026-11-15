@@ -24,6 +24,7 @@ const WORRY_STEPS: int = 3
 ## such marble, under a square root, so four marbles sound twice as loud as one rather than four times.
 const ROLLING_REF: float = 1.0 / STEP_TIME
 const KNOCK_DB: float = -9.0
+const BOING_DB: float = -8.0
 const CLINK_DB: float = -11.0
 const PLOP_DB: float = -6.0
 const NOOO_DB: float = -12.0
@@ -70,6 +71,8 @@ var family: Litter.Family = Litter.Family.CAT
 var litter: int = 0
 ## Cell to Loaf.
 var _loaves: Dictionary = {}
+## Cell to Jelly, one for each bouncy block.
+var _jellies: Dictionary = {}
 
 func _ready() -> void:
 	EventBus.settings_changed.connect(_on_settings)
@@ -105,12 +108,29 @@ func _build_loaves() -> void:
 		move_child(loaf, 0)
 		_loaves[i] = loaf
 
+## A jelly for every bouncy block, under the marbles. Bouncy blocks never change, so they are built once a board.
+func _build_jellies() -> void:
+	for jelly: Jelly in _jellies.values():
+		jelly.queue_free()
+	_jellies.clear()
+	for i: int in range(board.tiles.size()):
+		if board.tiles[i] != TiltBoard.Tile.BOUNCE:
+			continue
+		var jelly: Jelly = Jelly.new()
+		jelly.half = cell * (0.5 - TILE_GAP)
+		jelly.colour = Palette.JELLY
+		jelly.position = centre(i)
+		add_child(jelly)
+		move_child(jelly, 0)
+		_jellies[i] = jelly
+
 func show_board(b: TiltBoard, fit: Vector2) -> void:
 	board = b
 	var c: float = minf(fit.x / (b.width + TRAY_PAD * 2.0), fit.y / (b.height + TRAY_PAD * 2.0))
 	cell = floorf(minf(c, MAX_CELL))
 	_origin = -Vector2(b.width, b.height) * cell * 0.5
 	_build_loaves()
+	_build_jellies()
 	for m: Marble in _marbles:
 		m.queue_free()
 	_marbles.clear()
@@ -573,6 +593,10 @@ func play(move: TiltMove, after: TiltBoard = null) -> void:
 				&"bounce":
 					_bump([int(event["marble"])] as Array[int], Vector2i(1, 1))
 					Audio.play(&"knock", KNOCK_DB - 2.0, 1.3)
+				&"rebound":
+					# A bounce on a step where nothing rolled had no roll to play it in.
+					if step == move.steps.size():
+						await _bounce(int(event["marble"]), event, _marbles[int(event["marble"])].position, 1.0).finished
 				&"portal":
 					Audio.play(&"tap", -8.0, 1.6)
 				&"key":
@@ -638,16 +662,33 @@ func _knocks(ids: Array[int], d: Vector2i) -> void:
 func _roll(move: TiltMove, step: int, pace: float = 1.0) -> void:
 	var tween: Tween = create_tween().set_parallel(true)
 	tween.set_speed_scale(pace)
+	# A step lasts a roll's length even when every marble in it is bouncing on a tween of its own.
+	tween.tween_interval(STEP_TIME)
+	var own: Array[Tween] = []
 	var through: Dictionary = {}
+	var rebounds: Dictionary = {}
 	for event: Dictionary in move.events:
-		if int(event["step"]) == step and event["kind"] in [&"portal", &"jump", &"wrap"]:
+		if int(event["step"]) != step:
+			continue
+		if event["kind"] in [&"portal", &"jump", &"wrap"]:
 			through[int(event["marble"])] = event
+		elif event["kind"] == &"rebound":
+			rebounds[int(event["marble"])] = event
+	# One that bounced but found the way back taken only touches the block.
+	for id: int in rebounds:
+		if not move.steps[step].has(id):
+			own.append(_bounce(id, rebounds[id], centre(_shown[id]), pace))
 	for k: int in range(move.steps[step].size()):
 		var id: int = int(move.steps[step][k])
 		var marble: Marble = _marbles[id]
 		var from: Vector2 = centre(_shown[id])
 		_shown[id] = move.cells[step][k]
 		var to: Vector2 = centre(_shown[id])
+		if rebounds.has(id):
+			if not through.has(id):
+				own.append(_bounce(id, rebounds[id], to, pace))
+				continue
+			_rebound(rebounds[id])
 		var event: Dictionary = through.get(id, {})
 		match event.get("kind", &""):
 			&"portal":
@@ -668,6 +709,31 @@ func _roll(move: TiltMove, step: int, pace: float = 1.0) -> void:
 			_:
 				tween.tween_property(marble, "position", to, STEP_TIME)
 	await tween.finished
+	for t: Tween in own:
+		if t.is_running():
+			await t.finished
+
+## A marble meets the jelly: it rolls up against it, the jelly gives, and it goes on to `to`.
+func _bounce(id: int, event: Dictionary, to: Vector2, pace: float) -> Tween:
+	var marble: Marble = _marbles[id]
+	var touch: Vector2 = marble.position.lerp(centre(int(event["cell"])), 0.3)
+	var t: Tween = create_tween()
+	t.set_speed_scale(pace)
+	t.tween_property(marble, "position", touch, STEP_TIME * 0.6).set_ease(Tween.EASE_IN)
+	t.tween_callback(_rebound.bind(event))
+	t.tween_property(marble, "position", to, STEP_TIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	return t
+
+## The jelly wobbles, boings and buzzes, and a marble with a face is surprised.
+func _rebound(event: Dictionary) -> void:
+	var at: int = int(event["cell"])
+	var marble: Marble = _marbles[int(event["marble"])]
+	if _jellies.has(at):
+		(_jellies[at] as Jelly).wobble(centre(at) - marble.position)
+	Audio.play(&"boing", BOING_DB, randf_range(0.95, 1.07))
+	Audio.buzz(12)
+	if Save.faces:
+		marble.mood.surprise()
 
 ## The direction a wrapping step went: the opposite of the long way across the board.
 static func _heading(from: Vector2, to: Vector2) -> int:

@@ -4,15 +4,16 @@ extends RefCounted
 ## What a marble's face shows, decided from what the board does to it (MATH.md section 17). The board reports
 ## events and speed. The face reads the eased values below and draws them.
 
-enum Feel { IDLE, ROLL, BUMP, WORRY, FALL, HOME, PARTY }
+enum Feel { IDLE, ROLL, BUMP, WORRY, FALL, HOME, PARTY, SURPRISE }
 
 ## Seconds between blinks, drawn evenly from this range, and how long one lasts. Now and then a blink comes
 ## twice.
 const BLINK_GAP: Vector2 = Vector2(2.2, 5.6)
 const BLINK_TIME: float = 0.13
 const DOUBLE_BLINK: float = 0.22
-## How long a squint on a bump lasts.
+## How long a squint on a bump lasts, and the startled look after a bouncy block sends a marble back.
 const SQUINT_TIME: float = 0.26
+const SURPRISE_TIME: float = 0.55
 ## Speed, in marble radii a second, above which a marble counts as rolling, and the speed it is smoothed
 ## over, so the gap between two steps of a roll never flickers the face back to rest.
 const ROLL_SPEED: float = 4.0
@@ -49,6 +50,7 @@ var feel: Feel = Feel.IDLE
 var _speed: float = 0.0
 var _heading: Vector2 = Vector2.ZERO
 var _squint: float = 0.0
+var _surprised: float = 0.0
 var _worried: bool = false
 var _lasting: Feel = Feel.IDLE
 var _blink_in: float = 0.0
@@ -79,6 +81,7 @@ func reset() -> void:
 	_lasting = Feel.IDLE
 	_worried = false
 	_squint = 0.0
+	_surprised = 0.0
 	_glance_left = 0.0
 	_speed = 0.0
 	feel = Feel.IDLE
@@ -98,6 +101,9 @@ func moving(velocity: Vector2, dt: float) -> void:
 
 func bump() -> void:
 	_squint = SQUINT_TIME
+
+func surprise() -> void:
+	_surprised = SURPRISE_TIME
 
 func worry(on: bool) -> void:
 	_worried = on
@@ -123,12 +129,15 @@ func home_at(d: Vector2) -> void:
 func rolling() -> bool:
 	return _speed > ROLL_SPEED
 
-## The strongest feeling wins: a fall over going home over a party over worry over a bump over rolling.
+## The strongest feeling wins: a fall over going home over a party over worry over surprise over a bump over
+## rolling.
 func resolve() -> Feel:
 	if _lasting != Feel.IDLE:
 		return _lasting
 	if _worried:
 		return Feel.WORRY
+	if _surprised > 0.0:
+		return Feel.SURPRISE
 	if _squint > 0.0:
 		return Feel.BUMP
 	if rolling():
@@ -137,6 +146,7 @@ func resolve() -> Feel:
 
 func step(dt: float) -> void:
 	_squint = maxf(_squint - dt, 0.0)
+	_surprised = maxf(_surprised - dt, 0.0)
 	_glance_left = maxf(_glance_left - dt, 0.0)
 	feel = resolve()
 	var t_open: float = rest_open
@@ -160,6 +170,15 @@ func step(dt: float) -> void:
 			t_open = 0.12
 			t_brow = -0.4
 			t_smile = -0.25
+		Feel.SURPRISE:
+			# Eyes wide with small pupils, brows up and a round "o": startled, not scared.
+			t_open = 1.0
+			t_wide = 1.32
+			t_pupil = 0.55
+			t_brow = 0.75
+			t_smile = 0.0
+			t_gape = 0.6
+			t_look = _heading * 0.6
 		Feel.WORRY:
 			t_open = 1.0
 			t_wide = 1.25

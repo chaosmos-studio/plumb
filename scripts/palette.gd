@@ -14,6 +14,7 @@ const LIGHT: Dictionary = {
 	"pit": Color("16171d"),
 	"danger": Color("ff6b6b"),
 	"stone": Color("a39b8f"),
+	"jelly": Color("5aa62a"),
 	"marbles": [Color("ff6b6b"), Color("22b5a6"), Color("ffb020"), Color("7b6cf6")],
 }
 
@@ -27,6 +28,7 @@ const DARK: Dictionary = {
 	"pit": Color("050506"),
 	"danger": Color("ff7b7b"),
 	"stone": Color("9b968e"),
+	"jelly": Color("a3e05e"),
 	"marbles": [Color("ff7474"), Color("2cc4b4"), Color("ffbb33"), Color("8f82ff")],
 }
 
@@ -40,6 +42,8 @@ static var PIT: Color = LIGHT["pit"]
 static var DANGER: Color = LIGHT["danger"]
 ## A stone's grey: no marble colour, so it never reads as one that belongs in a hole.
 static var STONE: Color = LIGHT["stone"]
+## A bouncy block's lime, a hue no marble set, wall or tile wears, so it reads as jelly before anything else.
+static var JELLY: Color = LIGHT["jelly"]
 static var MARBLES: Array[Color] = Array(LIGHT["marbles"], TYPE_COLOR, &"", null)
 
 static func marble(colour: int) -> Color:
@@ -56,6 +60,7 @@ static func use(dark: bool) -> void:
 	PIT = p["pit"]
 	DANGER = p["danger"]
 	STONE = p["stone"]
+	JELLY = p["jelly"]
 	MARBLES.assign(GameLooks.marbles(dark, p["marbles"]))
 
 ## Walls are lighter than the floor by night and darker by day, as in the game's own palettes.

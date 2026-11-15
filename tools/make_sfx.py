@@ -19,6 +19,8 @@ OUT = "assets/audio/sfx"
 RNG = np.random.default_rng(7)
 # The feel sounds draw from their own generator, so adding them changed none of the sounds before them.
 FEEL_RNG = np.random.default_rng(46)
+# And the bouncy block's from its own, for the same reason.
+BOING_RNG = np.random.default_rng(22)
 # C major pentatonic from C5: every pair is consonant, so a board cleared in any order sounds like a chord.
 SINK_NOTES = [523.25, 659.25, 783.99, 880.00]
 
@@ -379,6 +381,22 @@ def huff():
     return normalise(breath / np.max(np.abs(breath)) * swell + throat, 0.35)
 
 
+def boing():
+    """A marble off a bouncy block: a soft rubbery note that springs down in pitch and wobbles as it settles, over a
+    muffled thump, like a jelly struck with a finger."""
+    seconds = 0.42
+    t = t_axis(seconds)
+    n = t.size
+    wobble = 1 + 0.07 * np.sin(2 * np.pi * 13 * t) * np.exp(-t / 0.15)
+    freq = (190 + 330 * np.exp(-t / 0.035)) * wobble
+    tone = np.sin(2 * np.pi * np.cumsum(freq) / RATE)
+    tone += 0.3 * np.sin(2 * np.pi * np.cumsum(freq * 2.0) / RATE) * np.exp(-t / 0.05)
+    env = np.clip(t / 0.006, 0, 1) * np.exp(-t / 0.12)
+    thump = lowpass(BOING_RNG.standard_normal(n), 500) * decay(n, 0.01)
+    body = lowpass(tone * env, 2600)
+    return normalise(body / np.max(np.abs(body)) + 0.5 * thump / np.max(np.abs(thump)), 0.45)
+
+
 SOUNDS = {
     "tap": tap,
     "roll": roll,
@@ -398,6 +416,7 @@ SOUNDS = {
     "nooo": nooo,
     "mrrp": mrrp,
     "huff": huff,
+    "boing": boing,
 }
 
 
