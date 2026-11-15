@@ -908,11 +908,11 @@ unseen, when it opens.
 
 ## 20. Walls that sleep
 
-With faces on, each wall is an animal asleep in a loaf, a cat or a dog (`scenes/game/loaf.gd`, its family and
-coats in `scripts/feel/litter.gd`): the same rounded
-block with the same darker lip along its bottom, with ears, shut eyes and a nose, and a tail curled round the
-front for a cat or a snout and floppy ears for a dog. Cats and dogs take turns level by level, so the board
-looks new every time.
+With Pets on, each wall is an animal asleep in a loaf, a cat or a dog (`scenes/game/loaf.gd`, its family and
+coats in `scripts/feel/litter.gd`): the same rounded block with the same darker lip along its bottom, with ears,
+shut eyes and a nose, and a tail curled round the front for a cat or a snout and floppy ears for a dog. Cats and
+dogs take turns level by level, so the board looks new every time. Pets is its own setting, off by default and
+apart from Faces: some players want calm, plain walls, so the extra character is something a player turns on.
 
 **Still a wall first.** Every coat is worked out from the wall's own colour in the theme now: grey is the wall
 itself, dark is 13% darker, pale 20% lighter, warm 36% of the way to a ginger (a tan for a dog), and patched
@@ -922,14 +922,15 @@ the plain wall must meet. So a coat that would come closer to the floor than 2.2
 a tenth at a time, until it does not (`Litter.fur`). The theme decides whether that is darker or lighter, and
 the tests check every coat in every theme, light and dark. The sleeping faces are drawn in a line a step lighter
 than a dark coat and a step darker than a light one (`Loaf.INK_TURN`), so they read on both without standing out
-from the wall. A dog's tail stays tucked away until it wags: poking up at rest, it read as an aerial. A coat is picked for a cell from a hash of the cell and the
-level, so neighbours mostly differ and a board looks like a litter.
+from the wall. A dog's tail stays tucked away until it wags: poking up at rest, it read as an aerial. A coat is
+picked for a cell from a hash of the cell and the level, so neighbours mostly differ and a board looks like a
+litter.
 
 **Only a woken animal is drawn again.** Each animal is its own node, drawn once. When a marble stops against
 one it wakes: eyes open, a cat flicks an ear and trills, a dog wags and huffs, and it falls back asleep after
 0.8 s. Only that node draws again while it moves, and it stops processing when it is still. Now and then, as the
-board tips, one animal on that side stirs without waking. With faces off, the board draws its plain blocks as
-before and makes no animals at all.
+board tips, one animal on that side stirs without waking. With Pets off, the board draws its plain blocks as
+before and makes no animals at all, and turning it on or off mid-level swaps them at once.
 
 ### Things to try
 

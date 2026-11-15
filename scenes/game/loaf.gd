@@ -1,7 +1,7 @@
 class_name Loaf
 extends Node2D
 
-## With faces on, every wall is an animal asleep in a loaf, a cat or a dog, filling its cell as the plain
+## With Pets on, every wall is an animal asleep in a loaf, a cat or a dog, filling its cell as the plain
 ## block did (MATH.md section 20). Each is its own node, so only one that wakes is drawn again. It keeps the
 ## wall's lip along its bottom and a coat in the wall's own tones, so it still reads as a wall first.
 

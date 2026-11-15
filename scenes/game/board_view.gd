@@ -64,8 +64,8 @@ var _up: PackedByteArray = PackedByteArray()
 var _locked: int = -1
 ## The marble the last tilt dropped down a pit, or -1.
 var _fell: int = -1
-## With faces on, the walls are animals (Loaf): which family, and a number that picks their coats, both set
-## by the game for its level.
+## With Pets on, the walls are animals (Loaf): which family, and a number that picks their coats, both set by
+## the game for its level.
 var family: Litter.Family = Litter.Family.CAT
 var litter: int = 0
 ## Cell to Loaf.
@@ -79,16 +79,16 @@ func _exit_tree() -> void:
 
 func _on_settings() -> void:
 	var shown: bool = not _loaves.is_empty()
-	if board != null and Save.faces != shown:
+	if board != null and Save.pets != shown:
 		_build_loaves()
 		queue_redraw()
 
-## A loaf for every wall, under the marbles, or none with faces off.
+## A loaf for every wall, under the marbles, or none with Pets off.
 func _build_loaves() -> void:
 	for loaf: Loaf in _loaves.values():
 		loaf.queue_free()
 	_loaves.clear()
-	if not Save.faces:
+	if not Save.pets:
 		return
 	for i: int in range(board.cells.size()):
 		if board.cells[i] != TiltBoard.Cell.WALL:

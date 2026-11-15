@@ -77,6 +77,7 @@ func _initialize() -> void:
 	await process_frame
 	_test_daily_records()
 	await _test_board_follows_tilt()
+	await _test_walls_follow_pets()
 	_test_streak_keeping()
 	_test_chapter_colours()
 	_test_unlocks()
@@ -894,6 +895,34 @@ func _test_wall_animals() -> void:
 		coats[Litter.coat_for(cell, 7)] = true
 	_check("a board's walls wear a mix of coats (%d of %d)" % [coats.size(), Litter.Coat.size()], coats.size() >= 4)
 
+## Walls are plain blocks unless Pets is on, and turning it on mid-level makes them animals at once.
+func _test_walls_follow_pets() -> void:
+	var save: Node = root.get_node("Save")
+	var fresh: Node = (load("res://autoload/save.gd") as GDScript).new()
+	_check("a new player starts with faces and plain walls", bool(fresh.get("faces")) and not bool(fresh.get("pets")))
+	fresh.free()
+	var old_pets: bool = save.get("pets")
+	var old_path: String = save.get("path")
+	save.set("path", "user://test_pets.cfg")
+	save.set("pets", false)
+	var b: TiltBoard = TiltBoard.create(3, 3)
+	b.cells[b.index(Vector2i(1, 1))] = TiltBoard.Cell.WALL
+	b.add_marble(Vector2i(0, 0), 0)
+	var view: Node2D = (load("res://scenes/game/board_view.gd") as GDScript).new()
+	root.add_child(view)
+	view.call("show_board", b, Vector2(400, 400))
+	_check("walls are plain blocks by default", view.find_children("*", "Loaf", false, false).is_empty())
+	save.call("set_pets", true)
+	_check("and sleeping animals once Pets is on", view.find_children("*", "Loaf", false, false).size() == 1)
+	save.call("set_pets", false)
+	await process_frame
+	_check("and plain again when it goes off", view.find_children("*", "Loaf", false, false).is_empty())
+	view.queue_free()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_pets.cfg"))
+	save.set("path", old_path)
+	save.set("pets", old_pets)
+	await process_frame
+
 ## The view draws the board the tilt led to, so a cracked cell shows as the pit it became.
 func _test_board_follows_tilt() -> void:
 	var b: TiltBoard = TiltBoard.create(4, 1)
@@ -972,17 +1001,23 @@ func _test_saved_settings() -> void:
 	_check("the theme is saved", int(save.get("theme")) == 2)
 	_check("a seen guide stays seen", bool(save.get("tutorial_seen")))
 	var old_faces: bool = save.get("faces")
+	var old_pets: bool = save.get("pets")
 	save.set("faces", false)
+	save.set("pets", true)
 	save.call("store")
 	save.set("faces", true)
+	save.set("pets", false)
 	save.call("restore")
 	_check("faces turned off stay off", not bool(save.get("faces")))
+	_check("pets turned on stay on", bool(save.get("pets")))
 	var older: ConfigFile = ConfigFile.new()
 	older.set_value("settings", "theme", 1)
 	older.save("user://test_settings.cfg")
 	save.call("restore")
 	_check("a player from before faces gets them", bool(save.get("faces")))
+	_check("and plain walls, since pets are for those who ask", not bool(save.get("pets")))
 	save.set("faces", old_faces)
+	save.set("pets", old_pets)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_settings.cfg"))
 	save.set("path", real)
 	save.set("theme", old_theme)

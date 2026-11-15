@@ -54,6 +54,9 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 	Supporter.on_play = OS.has_feature("android")
 	Supporter.price = ""
 	Save.supporter = false
+	# Store art and promos show the game as a new player meets it: faces on, plain walls.
+	Save.faces = true
+	Save.pets = false
 	DailyStage.reset()
 	var parts: PackedStringArray = action.split(":")
 	var variant: String = parts[1] if parts.size() > 1 else ""

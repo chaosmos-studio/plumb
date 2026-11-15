@@ -24,6 +24,7 @@ func _ready() -> void:
 	stars.fill(3)
 	Save.stars = stars
 	Save.faces = true
+	Save.pets = false
 	Coach.enabled = false
 	Intro.enabled = false
 	ChapterCard.enabled = false
@@ -51,26 +52,35 @@ func _ready() -> void:
 func _shots() -> void:
 	var cats: int = _wall_level(0)
 	var dogs: int = _wall_level(1)
+	# The game as a new player meets it (faces on, plain walls), then with Pets on, then with faces off.
 	for dark: bool in [false, true]:
 		var look: String = "dark" if dark else "light"
 		_theme(dark)
+		await _rest(cats, "default_%s" % look)
+		Save.pets = true
 		await _rest(cats, "cats_%s" % look)
 		await _rest(dogs, "dogs_%s" % look)
+		Save.pets = false
 		Save.faces = false
 		await _rest(cats, "faces_off_%s" % look)
 		Save.faces = true
 	_theme(false)
 	await _rolling(cats)
+	Save.pets = true
 	await _bump(cats, "bump_cat")
 	await _bump(dogs, "bump_dog")
+	Save.pets = false
 	await _fall()
 	await _home_and_party()
-	# One level in from each chapter's start, odd chapters on an odd level, so cats and dogs both meet the tiles.
+	# With Pets on, one level in from each chapter's start, odd chapters on an odd level, so cats and dogs both
+	# meet the tiles.
+	Save.pets = true
 	for dark: bool in [false, true]:
 		_theme(dark)
 		for c: int in [4, 5, 8, 9]:
 			if c < Pack.chapters.size():
 				await _rest(Pack.chapter_first(c) + 2 + c % 2, "tiles_ch%02d%s" % [c + 1, "_dark" if dark else ""])
+	Save.pets = false
 	_theme(false)
 	if Pack.chapters.size() > 20:
 		await _rest(Pack.chapter_first(20) + 1, "numbered")
@@ -311,6 +321,7 @@ func _clip(which: String) -> void:
 			game.call("_on_undo")
 			await _wait(1.2)
 		"walls":
+			Save.pets = true
 			for level: int in [_wall_level(0), _wall_level(1)]:
 				var game: Node = await _game(level)
 				var view: BoardView = game.get("_view")

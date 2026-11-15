@@ -93,10 +93,12 @@ can never silently break the level set.
   scream as they fall, hop for joy going home and pop back out in party hats on three stars. A marble down a
   pit gets a black-and-white memorial with its name, a candle and a flower (about a second, shorter after the
   first three in a session, skipped by a tap) before the pit banner, and the only place a name is written.
-  Walls are sleeping cats or dogs, by turns level by level, that wake when a marble stops against them.
-- **Settings**, a gear on every screen: sound, music, vibration, Faces, the theme (Auto, Light or Dark), How
-  to play, Support the game, About, Credits, Privacy choices (only where the consent message requires them),
-  and a guarded reset. Faces off gives the plain marbles and plain walls, with no emotions or memorial.
+  With Pets on, walls are sleeping cats or dogs, by turns level by level, that wake when a marble stops
+  against them. Pets is off by default: some players want calm, plain walls, so the extra character is opt-in.
+- **Settings**, a gear on every screen: sound, music, vibration, Faces, Pets, the theme (Auto, Light or Dark),
+  How to play, Support the game, About, Credits, Privacy choices (only where the consent message requires
+  them), and a guarded reset. Faces off gives the plain marbles, with no emotions or memorial. The two are
+  separate: animals with faces off are allowed, the walls being a look of their own.
 - **The guide** on level 1, once, and again from How to play: the goal and the help buttons on two
   cards, then the swipe itself, drawn by a ghost finger in the direction the solver would tilt next.
   Skip ends it at any point.
@@ -197,8 +199,9 @@ generator are Plumb's own.
 - **M0 - Is it fun**: rules, solver, generated levels, the play screen. Done.
 - **M1 - The full loop**: title, level select, stars, progress, sounds, web preview. Done.
 - **M2 - Feel pass**: marble trails, marbles popping in at level start, and an ambient music loop with its
-  own toggle are done. Then the marbles came alive (November 2026): character faces driven by the board,
-  the memorial, sleeping animals for walls, each with a Faces toggle, and for everyone, faces or not,
+  own toggle are done. Then the marbles came alive (November 2026): character faces driven by the board and
+  the memorial behind a Faces setting (on by default), sleeping animals for walls behind a Pets setting (off by
+  default), and for everyone, faces or not,
   shading that makes every set read as a ball, a pattern that turns as it rolls, a rolling sound that
   follows the board's speed, soft knocks and clinks, a glass plop with every bell, the last marble slowing
   into its hole as the bells resolve into a chord, stars on the chord's notes, sparkles and soft vibration
