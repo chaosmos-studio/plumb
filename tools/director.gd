@@ -8,7 +8,8 @@ extends RefCounted
 ## boardhint:N:K, which also hide the HUD, guide:K (level 1's guide at step K, counting from 0) and ending
 ## (the note after the last level). Levels are 1-based here, as a player counts them. Any action takes a
 ## "dark/" prefix to stage it in the dark theme. Without one it is in the game's own look. A "hard/" prefix stages
-## it in the Hard section, its levels and pages counted as Hard counts them (hard/levels, hard/board:N). Also looks[:owned]
+## it in the Hard section, its levels and pages counted as Hard counts them (hard/levels, hard/board:N). A "pets/"
+## prefix, before any other, turns Pets on, so the walls are sleeping cats and dogs (pets/play:N). Also looks[:owned]
 ## (the marble sets sheet), colours (the colour themes sheet), themed:ID:K[:SET] (level K in colour theme
 ## ID, with marble set SET), sets (one marble of every set, named) and tiles[::K] (every mark from chapter 16 on, after K tilts). levels:K shows page K of the grid,
 ## unlock:N the sheet a locked level N opens on Google Play, replay:N:K level N's solve watched back K
@@ -42,6 +43,8 @@ var film: Object = null
 ## `settle` waits for the level's opening animation, which stills want and films do not.
 func stage(action: String, host: Node, settle: bool = true) -> void:
 	_settle = SETTLE if settle else 0.02
+	var pets: bool = action.begins_with("pets/")
+	action = action.trim_prefix("pets/")
 	var dark: bool = action.begins_with("dark/")
 	action = action.trim_prefix("dark/")
 	# "hard/" comes after any "dark/".
@@ -59,9 +62,10 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 	Supporter.on_play = OS.has_feature("android")
 	Supporter.price = ""
 	Save.supporter = false
-	# Store art and promos show the game as a new player meets it: faces on, plain walls.
+	# Store art and promos show the game as a new player meets it: faces on, plain walls, unless "pets/" asks for
+	# the walls a player gets from Settings.
 	Save.faces = true
-	Save.pets = false
+	Save.pets = pets
 	DailyStage.reset()
 	var parts: PackedStringArray = action.split(":")
 	var variant: String = parts[1] if parts.size() > 1 else ""
