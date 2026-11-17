@@ -5,7 +5,7 @@ extends RefCounted
 ##
 ## Actions: title, levels, settings, about, credits, play:N, moves:N:K (after K solver moves), hint:N:K, rolling:N:K,
 ## won:N, failed:N (the shortest fall into a pit), hero:N (the board with the HUD hidden), and for the website board:N[:LRUD], boardsolve:N:K and
-## boardhint:N:K, which also hide the HUD, guide:K (level 1's guide at step K, counting from 0) and ending
+## boardhint:N:K, which also hide the HUD, deadend:N:LRUD (those tilts, then the hint that walks back), guide:K (level 1's guide at step K, counting from 0) and ending
 ## (the note after the last level). Levels are 1-based here, as a player counts them. Any action takes a
 ## "dark/" prefix to stage it in the dark theme. Without one it is in the game's own look. A "hard/" prefix stages
 ## it in the Hard section, its levels and pages counted as Hard counts them (hard/levels, hard/board:N). A "pets/"
@@ -298,6 +298,13 @@ func stage(action: String, host: Node, settle: bool = true) -> void:
 			await _solve(game8, k)
 			_hide_hud(game8)
 			game8.call("_on_hint")
+			await _wait(host, 1.0)
+		"deadend":
+			# deadend:N:LRUD tilts into a dead end, then asks for the hint that walks back out of it.
+			var game10: Node = await _game(host, n)
+			for letter: String in parts[2].split(""):
+				await _tilt_now(game10, letter)
+			game10.call("_on_hint")
 			await _wait(host, 1.0)
 		"failed":
 			var game9: Node = await _game(host, n)
