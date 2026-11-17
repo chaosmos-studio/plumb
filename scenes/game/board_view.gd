@@ -11,6 +11,8 @@ const TIP_DEGREES: float = 2.4
 const TIP_SHIFT: float = 12.0
 const TRAY_PAD: float = 0.32
 const TILE_GAP: float = 0.06
+## In a hint's trail, a bouncy block the marble turned back from is this minus its cell (-1 is a portal's break).
+const BOUNCED_OFF: int = -2
 ## The win (MATH.md section 19): the last marble's final cells play at these shares of normal speed, the step
 ## before it and its own, and the chord rings as it drops.
 const SLOW_LAST: Vector2 = Vector2(0.65, 0.32)
@@ -871,12 +873,15 @@ func show_hint(dir: int, from: TiltBoard) -> void:
 	_clear_hint()
 	var probe: TiltBoard = from.copy()
 	var move: TiltMove = probe.tilt(dir)
+	# The bouncy blocks this tilt's marbles hit, which wobble with each nudge.
+	var hit: Array[int] = []
 	for m: int in range(from.marble_cell.size()):
 		var start_cell: int = from.marble_cell[m]
 		if start_cell == TiltBoard.GONE or not move.moved(m):
 			continue
 		var kind: StringName = &"roll"
 		var jumps: Dictionary = {}
+		var rebound: Vector2i = Vector2i(-1, -1)
 		for event: Dictionary in move.events:
 			if int(event["marble"]) != m:
 				continue
@@ -884,27 +889,53 @@ func show_hint(dir: int, from: TiltBoard) -> void:
 				kind = event["kind"]
 			elif event["kind"] == &"portal" or event["kind"] == &"wrap":
 				jumps[int(event["step"])] = int(event["cell"])
-		_hint_paths.append([_route(move, m, start_cell, jumps), kind, from.marble_colour[m]])
+			elif event["kind"] == &"rebound":
+				rebound = Vector2i(int(event["step"]), int(event["cell"]))
+				hit.append(rebound.y)
+		_hint_paths.append([_route(move, m, start_cell, jumps, rebound), kind, from.marble_colour[m]])
 	_hint_dir = dir
 	_hint_t = 0.0
 	_hint_nudge = create_tween().set_loops()
 	_hint_nudge.tween_interval(0.5)
 	_hint_nudge.tween_callback(func() -> void: _tip(dir, 0.55))
-	_hint_nudge.tween_interval(0.9)
+	_hint_nudge.tween_interval(0.15)
+	# A marble that starts beside the block hides the trail's way in, so the block itself shows it gets hit.
+	_hint_nudge.tween_callback(func() -> void:
+		for at: int in hit:
+			if _jellies.has(at):
+				(_jellies[at] as Jelly).wobble(Vector2(TiltBoard.DIRS[dir])))
+	_hint_nudge.tween_interval(0.75)
 	queue_redraw()
 
-## A portal's cell comes before its twin, with -1 between, where the trail breaks for the jump.
-static func _route(move: TiltMove, m: int, start: int, jumps: Dictionary) -> PackedInt32Array:
+## A portal's cell comes before its twin, with -1 between, where the trail breaks for the jump. A bouncy block the
+## marble turns back from is BOUNCED_OFF minus its cell, so the trail runs into it first and the tilt's own way
+## reads even when the marble ends up rolling the other way. `rebound` is the step and the block's cell, or -1s.
+static func _route(move: TiltMove, m: int, start: int, jumps: Dictionary, rebound: Vector2i) -> PackedInt32Array:
 	var route: PackedInt32Array = PackedInt32Array([start])
+	var bounce_step: int = rebound.x
 	for step: int in range(move.steps.size()):
 		var k: int = move.steps[step].find(m)
 		if k < 0:
 			continue
+		if bounce_step >= 0 and step >= bounce_step:
+			route.append(BOUNCED_OFF - rebound.y)
+			bounce_step = -1
 		if jumps.has(step):
 			route.append(int(jumps[step]))
 			route.append(-1)
 		route.append(move.cells[step][k])
+	# Turned back but blocked from rolling back: the trail ends at the block.
+	if bounce_step >= 0:
+		route.append(BOUNCED_OFF - rebound.y)
 	return route
+
+## A point on a hint's trail: a cell's centre, or for a bounce the block's edge facing the cell before it.
+func _trail_point(route: PackedInt32Array, i: int) -> Vector2:
+	if route[i] >= 0:
+		return centre(route[i])
+	var block: int = BOUNCED_OFF - route[i]
+	var before: int = route[i - 1] if i > 0 else -1
+	return centre(before).lerp(centre(block), 0.5) if before >= 0 else centre(block)
 
 func _clear_hint() -> void:
 	if _hint_nudge != null and _hint_nudge.is_valid():
@@ -978,13 +1009,16 @@ func _draw_hint() -> void:
 	for path: Array in _hint_paths:
 		var route: PackedInt32Array = path[0]
 		var colour: Color = Palette.marble(int(path[2]))
-		var b: Vector2 = centre(route[route.size() - 1])
+		var last: int = route.size() - 1
+		while route[last] < 0:
+			last -= 1
+		var b: Vector2 = centre(route[last])
 		var step: float = cell * 0.22
 		for s: int in range(route.size() - 1):
-			if route[s] < 0 or route[s + 1] < 0:
+			if route[s] == -1 or route[s + 1] == -1:
 				continue
-			var from: Vector2 = centre(route[s])
-			var to: Vector2 = centre(route[s + 1])
+			var from: Vector2 = _trail_point(route, s)
+			var to: Vector2 = _trail_point(route, s + 1)
 			var n: int = maxi(int(from.distance_to(to) / step), 1)
 			for k: int in range(1 if s == 0 else 0, n):
 				var t: float = float(k) / float(n)
@@ -992,6 +1026,14 @@ func _draw_hint() -> void:
 				var phase: float = fposmod(float(s) * 0.25 + t * 0.25 - _hint_t * 0.8, 1.0)
 				var alpha: float = 0.35 + 0.6 * (1.0 - absf(phase * 2.0 - 1.0))
 				draw_circle(from.lerp(to, t), cell * 0.058, Color(colour, alpha), true, -1.0, true)
+			# Where it hits a bouncy block, a curve facing the block, pulsing, so a marble that starts beside the block
+			# still shows the tilt going its way first.
+			if route[s + 1] <= BOUNCED_OFF and route[s] >= 0:
+				var at: Vector2 = _trail_point(route, s + 1)
+				var facing: float = (centre(BOUNCED_OFF - route[s + 1]) - centre(route[s])).angle()
+				# The jelly is drawn over the board, so the curve sits on the floor just short of it.
+				draw_arc(at - Vector2.from_angle(facing) * cell * (0.34 + 0.03 * pulse), cell * 0.22, facing - 1.05,
+					facing + 1.05, 16, Color(colour, 0.9), cell * 0.06, true)
 		match path[1]:
 			&"sink":
 				# Outside the hole's own ring, which sits at 0.41 and would hide a hint drawn on it.
