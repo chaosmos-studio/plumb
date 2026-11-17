@@ -1169,3 +1169,37 @@ into cups and screens slid like drawers. Shravan picked Party, for the confetti,
 
 - `Celebration.BOARD_TIME` to 0.8: the sheet comes up while the confetti is still falling.
 - In `chapter_moment`, set `fill` to 2.0: the count through the levels slows enough to read every number.
+
+## 24. Dead ends: the hint walks back first
+
+A dead end is a position with every marble still on the board that can never be won. It happens on almost every
+level. Most often a helper marble went home too early, and the one left has nothing to stop against where it needs
+to stop. Or a marble crossed something that only lets it through one way. Nothing on screen says so, so a player
+keeps tilting until they ask for a hint.
+
+To count them, take every position reachable from a level's start (a breadth-first search with no goal), then walk
+backwards from the won positions along the same tilts. Anything that walk never reaches is a dead end:
+
+| Level | Positions reachable | Dead ends |
+| --- | --- | --- |
+| 2 | 14 | 12 |
+| 175 | 3,555 | 0 |
+| 181, the first bouncy block | 7,460 | 1,517, about one in five |
+| 190 | 732 | 396, more than half |
+| 201, cracked floor | 112 | 58 |
+
+The hint used to answer a dead end with "No way home from here. Undo or restart", which left the player to guess how
+far back the mistake was. Now `TiltSolver.way_back` runs the same search (section 2) on the boards kept for undo,
+newest first, and the first one with a way home is where the game takes the player, with "Dead end. Took back 2
+tilts", before the hint is given from there. Like an undo, it is free. It costs one hint search for each tilt it
+takes back, each held to the hint's own 30,000 positions.
+
+Following the hint can never lead into a dead end. A shortest way home from a position is still a way home after
+its first tilt, so every hint keeps the player on a winnable path.
+
+### Things to try
+
+- In `_walk_back`, return false at the top: the old "Undo or restart" comes back, and level 190 shows how often it
+  appears.
+- Pass `HINT_SEARCH / 10` to `way_back`: on late levels some winnable boards give up the search, so the walk goes
+  further back than it needs to.

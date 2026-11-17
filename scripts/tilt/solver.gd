@@ -8,6 +8,8 @@ extends RefCounted
 const DEFAULT_LIMIT: int = 60000
 
 var explored: int = 0
+## The way home from the position `way_back` found.
+var route: PackedInt32Array = PackedInt32Array()
 
 ## Empty when there is no solution within `depth` moves or the search gave up at `limit` states. `exhausted`
 ## tells which.
@@ -46,3 +48,13 @@ func solve(start: TiltBoard, limit: int = DEFAULT_LIMIT, depth: int = 1 << 30) -
 
 func exhausted(limit: int = DEFAULT_LIMIT) -> bool:
 	return explored < limit
+
+## How many tilts back the latest position with a way home is, or -1 if none has one. `history` is the boards
+## before the one in play, oldest first, as the game keeps them for undo (MATH.md section 24).
+func way_back(history: Array[TiltBoard], limit: int = DEFAULT_LIMIT) -> int:
+	for back: int in range(1, history.size() + 1):
+		route = solve(history[history.size() - back], limit)
+		if not route.is_empty():
+			return back
+	route = PackedInt32Array()
+	return -1

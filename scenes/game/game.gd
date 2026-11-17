@@ -276,9 +276,28 @@ func _hint_path() -> PackedInt32Array:
 	if _hint_board != board:
 		_hint_board = board
 		_hint_route = TiltSolver.new().solve(board, HINT_SEARCH)
-	if _hint_route.is_empty():
+	if _hint_route.is_empty() and not _walk_back():
 		Toast.say(self, "No way home from here. Undo or restart")
 	return _hint_route
+
+## A dead end, with no marble down a pit: take back the tilts since the last position that had a way home, so the
+## hint is for there (MATH.md section 24). Free, like an undo.
+func _walk_back() -> bool:
+	var solver: TiltSolver = TiltSolver.new()
+	var back: int = solver.way_back(history, HINT_SEARCH)
+	if back < 0:
+		return false
+	board = history[history.size() - back]
+	history.resize(history.size() - back)
+	route.resize(history.size())
+	_retried = true
+	_hint_board = board
+	_hint_route = solver.route
+	_view.sync(board)
+	Audio.play(&"undo", -4.0)
+	_refresh()
+	Toast.say(self, "Dead end. Took back %d tilt%s" % [back, "" if back == 1 else "s"])
+	return true
 
 func _dress_hint() -> void:
 	if _hint != null:

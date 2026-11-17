@@ -547,6 +547,21 @@ func _test_solver() -> void:
 	path = solver.solve(b)
 	_check("the solver never routes through a pit", path.size() == 1 and path[0] == TiltBoard.RIGHT)
 
+	# Through the one-way gate is a dead end with no marble lost: the marble can never come back to its hole.
+	var start: TiltBoard = _tiled(["0...."], [[1, 0, 0]], [[2, 0, "gate", TiltBoard.RIGHT]])
+	var through: TiltBoard = start.copy()
+	through.tilt(TiltBoard.RIGHT)
+	var back_once: TiltBoard = through.copy()
+	_check("a tilt back toward the gate still moves the marble", back_once.tilt(TiltBoard.LEFT).changed())
+	_check("past the gate there is no way home", solver.solve(back_once).is_empty() and solver.exhausted())
+	var history: Array[TiltBoard] = [start, through]
+	_check("the way back from the dead end is two tilts, to the start", solver.way_back(history) == 2
+		and solver.route == PackedInt32Array([TiltBoard.LEFT]))
+	history = [start]
+	_check("one tilt into the dead end is one tilt back", solver.way_back(history) == 1)
+	history = [through]
+	_check("a history of dead ends has no way back", solver.way_back(history) == -1 and solver.route.is_empty())
+
 func _test_difficulty() -> void:
 	var d: TiltDifficulty = TiltDifficulty.of(_board(["..0"], [[0, 0, 0]]))
 	_check("a forced win needs no luck", d.par == 1 and d.bits == 0.0)
