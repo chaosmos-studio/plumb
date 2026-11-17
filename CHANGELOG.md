@@ -16,6 +16,11 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
+## 1.5.1
+
+- Stuck with no way home? The hint now takes back the tilts that went wrong and shows the way on from there.
+- Hints show a marble hitting a bouncy block before it bounces back, so the way to tilt is clear.
+
 ## 1.5.0
 
 - Later levels are gentler now, and a new chapter brings bouncy blocks that send a marble straight back.
