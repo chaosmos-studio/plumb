@@ -1255,15 +1255,16 @@ which draws its shapes one by one, draw calls rose to 32 to 179 and 13 of 4,308 
 stand-ins first drew in code, shape by shape, at 541 draw calls a screen. Baked into one texture they batch, which
 is why the painted art comes as cut-outs packed into an atlas.
 
-**Since 20 November the map scrolls flat.** Shravan found the rolling street's houses shrinking and vanishing over
-the horizon as he scrolled, and wanted Candy Crush Saga's map instead: houses keep their size, travel down the screen
-and leave through its foot, and the next ones come in from the top. The map now uses the drum with a radius so large
-it is flat, no tilt, and only a gentle bow toward the sides. The street ends just past the newest doors in sky and
-hills, and the PLUMB title belongs to that sky: the ground shader leaves the strip past `street_end` clear, the sky's
-horizon follows the same point as the street scrolls, and the title moves with it. So scrolling back to older doors
-carries the title off the top with the sky, and no house can pass behind it. A house or a tree is only placed if,
-at rest, it stays under the title's foot (`_fits` in `map.gd`), which is also why a short screen shows one door ahead
-and a tall one two. The drum and the tilt below stay in `StreetProjection`, tested, for any screen that wants depth.
+**A radius chosen for the title.** The PLUMB title sits in the sky and must only ever have blue sky behind it
+(Shravan, 21 November), while the street keeps rolling like a little round world. Nothing on the drum rises higher
+than the crest, and at the crest a thing of height `h` reaches `h · k(π/2)` above the horizon, where `k(π/2)` is the
+scale at the horizon. So the map picks, for each screen, the largest radius whose horizon still sits low enough:
+
+    horizon_y - max(HILLS_RISE, TALLEST · k(π/2)) ≥ title's foot + TITLE_CLEAR
+
+A larger radius raises the horizon, so the right radius is found by halving the range until the two sides meet
+(`_radius_for` in `map.gd`). A taller phone gets a larger, gentler world, a short one a tighter one, and on every screen
+houses come up over the horizon, grow as they travel down and leave through the screen's foot. Nothing fades.
 
 **A camera tilted down at the street.** The drum alone shrinks things only near the horizon, since its depth grows
 with the square of the distance along it. The concepts show the next door about three quarters the size of the one at
