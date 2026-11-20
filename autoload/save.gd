@@ -61,6 +61,18 @@ var daily: Dictionary = {}
 ## no choice yet, so a player updating sees the chooser once, as a new player does.
 var app_look: String = AppLook.STREET
 var look_chosen: bool = false
+## Street's purse and keepsakes (REVAMP_PLAN.md section 4.7): coins, each helper's count by StreetRewards id, the
+## doors whose parcel or milestone has been opened, the doors wearing a golden knocker, the shop's things owned
+## (such as "hat_2" or "marbles_gems") and the hat each cast member wears (0 for none).
+var coins: int = 0
+var boosters: Dictionary = {}
+var gifts: PackedInt32Array = PackedInt32Array()
+var knockers: PackedInt32Array = PackedInt32Array()
+var street_owned: PackedStringArray = PackedStringArray()
+var worn: PackedInt32Array = PackedInt32Array([0, 0, 0, 0])
+
+signal coins_changed(total: int)
+signal street_changed
 
 func _ready() -> void:
 	ScreenLock.start()
@@ -127,10 +139,12 @@ func total_stars() -> int:
 func was_opened(level: int) -> bool:
 	return (hard_opened if Pack.is_hard(level) else opened).has(level)
 
-## Forgets the stars only: settings, purchases, keys and the levels they opened stay.
+## Forgets the stars only, and the knockers they earned: settings, purchases, keys, coins, opened parcels and the
+## levels they opened stay.
 func reset() -> void:
 	stars = PackedByteArray()
 	hard_stars = PackedByteArray()
+	knockers = PackedInt32Array()
 	store()
 	EventBus.settings_changed.emit()
 
@@ -257,6 +271,52 @@ func set_daily(record: Dictionary) -> void:
 	daily = record
 	store()
 
+func add_coins(n: int) -> void:
+	coins = maxi(coins + n, 0)
+	store()
+	coins_changed.emit(coins)
+
+## Spends `n` coins if there are enough, and answers whether it did.
+func spend_coins(n: int) -> bool:
+	if coins < n:
+		return false
+	add_coins(-n)
+	return true
+
+func booster_count(id: String) -> int:
+	var n: int = boosters.get(id, 0)
+	return n
+
+func add_booster(id: String, n: int) -> void:
+	boosters[id] = maxi(booster_count(id) + n, 0)
+	store()
+	street_changed.emit()
+
+## Marks door `n`'s parcel or milestone as opened, and answers whether it was still waiting.
+func claim_gift(n: int) -> bool:
+	if gifts.has(n):
+		return false
+	gifts.append(n)
+	store()
+	return true
+
+func set_knocker(n: int) -> void:
+	if not knockers.has(n):
+		knockers.append(n)
+		store()
+
+func own_street(item: String) -> void:
+	if not street_owned.has(item):
+		street_owned.append(item)
+		store()
+		street_changed.emit()
+
+## Puts hat `hat` (1 and up, or 0 for none) on cast member `member`.
+func wear(member: int, hat: int) -> void:
+	worn[member] = hat
+	store()
+	street_changed.emit()
+
 func set_app_look(look: String) -> void:
 	if not AppLook.valid(look):
 		return
@@ -322,6 +382,14 @@ func restore() -> void:
 	var look: String = str(file.get_value("settings", "app_look", AppLook.STREET))
 	app_look = look if AppLook.valid(look) else AppLook.STREET
 	look_chosen = bool(file.get_value("settings", "look_chosen", false))
+	coins = int(file.get_value("street", "coins", 0))
+	var helpers: Variant = file.get_value("street", "boosters", {})
+	boosters = helpers if helpers is Dictionary else {}
+	gifts = PackedInt32Array(file.get_value("street", "gifts", PackedInt32Array()))
+	knockers = PackedInt32Array(file.get_value("street", "knockers", PackedInt32Array()))
+	street_owned = PackedStringArray(file.get_value("street", "owned", PackedStringArray()))
+	var hats: PackedInt32Array = PackedInt32Array(file.get_value("street", "worn", PackedInt32Array([0, 0, 0, 0])))
+	worn = hats if hats.size() == 4 else PackedInt32Array([0, 0, 0, 0])
 
 func store() -> void:
 	var file: ConfigFile = ConfigFile.new()
@@ -355,4 +423,10 @@ func store() -> void:
 	file.set_value("daily", "record", daily)
 	file.set_value("settings", "app_look", app_look)
 	file.set_value("settings", "look_chosen", look_chosen)
+	file.set_value("street", "coins", coins)
+	file.set_value("street", "boosters", boosters)
+	file.set_value("street", "gifts", gifts)
+	file.set_value("street", "knockers", knockers)
+	file.set_value("street", "owned", street_owned)
+	file.set_value("street", "worn", worn)
 	file.save(path)
