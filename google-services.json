@@ -16,6 +16,12 @@
       "api_key": [
         {
           "current_key": "AIzaSyA9avW87bb8NZXyEPv6veRPAhmrwoEep5I"
+        },
+        {
+          "current_key": "AIzaSyDEGndHHby--7YOSCZezIsr20fH6-apJLY"
+        },
+        {
+          "current_key": "AIzaSyBUwp7a-az9FzEzJa_xON-iWuZ7NWip8jc"
         }
       ],
       "services": {
@@ -35,6 +41,37 @@
       "api_key": [
         {
           "current_key": "AIzaSyA9avW87bb8NZXyEPv6veRPAhmrwoEep5I"
+        },
+        {
+          "current_key": "AIzaSyDEGndHHby--7YOSCZezIsr20fH6-apJLY"
+        },
+        {
+          "current_key": "AIzaSyBUwp7a-az9FzEzJa_xON-iWuZ7NWip8jc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:774261168232:android:b1093b2961debf6adb03dd",
+        "android_client_info": {
+          "package_name": "com.shravangoswami.hako"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9avW87bb8NZXyEPv6veRPAhmrwoEep5I"
+        },
+        {
+          "current_key": "AIzaSyDEGndHHby--7YOSCZezIsr20fH6-apJLY"
+        },
+        {
+          "current_key": "AIzaSyBUwp7a-az9FzEzJa_xON-iWuZ7NWip8jc"
         }
       ],
       "services": {
@@ -54,6 +91,162 @@
       "api_key": [
         {
           "current_key": "AIzaSyA9avW87bb8NZXyEPv6veRPAhmrwoEep5I"
+        },
+        {
+          "current_key": "AIzaSyDEGndHHby--7YOSCZezIsr20fH6-apJLY"
+        },
+        {
+          "current_key": "AIzaSyBUwp7a-az9FzEzJa_xON-iWuZ7NWip8jc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:774261168232:android:cae3caa01a6a0990db03dd",
+        "android_client_info": {
+          "package_name": "com.shravangoswami.plumb.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9avW87bb8NZXyEPv6veRPAhmrwoEep5I"
+        },
+        {
+          "current_key": "AIzaSyDEGndHHby--7YOSCZezIsr20fH6-apJLY"
+        },
+        {
+          "current_key": "AIzaSyBUwp7a-az9FzEzJa_xON-iWuZ7NWip8jc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:774261168232:android:edf3bb6966cccdd8db03dd",
+        "android_client_info": {
+          "package_name": "com.shravangoswami.pyxis"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9avW87bb8NZXyEPv6veRPAhmrwoEep5I"
+        },
+        {
+          "current_key": "AIzaSyDEGndHHby--7YOSCZezIsr20fH6-apJLY"
+        },
+        {
+          "current_key": "AIzaSyBUwp7a-az9FzEzJa_xON-iWuZ7NWip8jc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:774261168232:android:08ff1ab3d3d9f90bdb03dd",
+        "android_client_info": {
+          "package_name": "com.shravangoswami.rinse"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9avW87bb8NZXyEPv6veRPAhmrwoEep5I"
+        },
+        {
+          "current_key": "AIzaSyDEGndHHby--7YOSCZezIsr20fH6-apJLY"
+        },
+        {
+          "current_key": "AIzaSyBUwp7a-az9FzEzJa_xON-iWuZ7NWip8jc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:774261168232:android:c8b95731c1ad5947db03dd",
+        "android_client_info": {
+          "package_name": "com.shravangoswami.seiche"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9avW87bb8NZXyEPv6veRPAhmrwoEep5I"
+        },
+        {
+          "current_key": "AIzaSyDEGndHHby--7YOSCZezIsr20fH6-apJLY"
+        },
+        {
+          "current_key": "AIzaSyBUwp7a-az9FzEzJa_xON-iWuZ7NWip8jc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:774261168232:android:094cfdd352479536db03dd",
+        "android_client_info": {
+          "package_name": "com.shravangoswami.stitchfall"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9avW87bb8NZXyEPv6veRPAhmrwoEep5I"
+        },
+        {
+          "current_key": "AIzaSyDEGndHHby--7YOSCZezIsr20fH6-apJLY"
+        },
+        {
+          "current_key": "AIzaSyBUwp7a-az9FzEzJa_xON-iWuZ7NWip8jc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:774261168232:android:93de7f6ea4a1a645db03dd",
+        "android_client_info": {
+          "package_name": "com.shravangoswami.sunwise"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9avW87bb8NZXyEPv6veRPAhmrwoEep5I"
+        },
+        {
+          "current_key": "AIzaSyDEGndHHby--7YOSCZezIsr20fH6-apJLY"
+        },
+        {
+          "current_key": "AIzaSyBUwp7a-az9FzEzJa_xON-iWuZ7NWip8jc"
         }
       ],
       "services": {
