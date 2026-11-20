@@ -34,15 +34,23 @@ const RAY_SPIN: float = 0.25
 const WIDE_GROUND_AT: float = 0.6
 const WIDE_STARS_AT: float = 0.19
 const WIDE_SCALE: float = 0.66
+## The golden knocker's width, as a share of its door's radius, and the coin pill's distance from the screen's corner.
+const KNOCKER: float = 0.8
+const PILL_EDGE: float = 22.0
 
 var colours: PackedInt32Array = PackedInt32Array()
 var earned: int = 0
+## The coins this win paid, already in the purse, which arc from the houses into the coin pill, and whether it earned
+## the golden knocker, which glints onto the middle house's door.
+var coins: int = 0
+var knocker: bool = false
 ## Where the marbles start: the board's middle on screen.
 var from: Vector2 = Vector2.ZERO
 var _rays: _Piece
 var _balls: Array[_Ball] = []
 var _houses: Array[_Piece] = []
 var _wobbler: StreetWobbler
+var _shown_coins: int = 0
 
 func play() -> float:
 	var size: Vector2 = get_viewport_rect().size
@@ -195,6 +203,46 @@ func play() -> float:
 				Audio.play(&"star", -2.0, 1.0 + 0.08 * s)
 				Audio.buzz(16, 0.55)).set_delay(at + 0.05)
 	var end: float = star_at + 3.0 * STAR_TIME + 0.4
+	# The golden knocker glints onto the middle house's door as its window lights.
+	if knocker:
+		@warning_ignore("integer_division")
+		var middle: int = n / 2
+		var house_name: String = houses[middle].piece
+		var hk: float = houses[middle].k
+		var d: Vector3 = StreetArt.door(house_name) * hk
+		var ring: _Piece = _Piece.new("knocker", d.z * KNOCKER / StreetArt.size("knocker").x)
+		ring.position = shuts[middle].position + Vector2(0.0, d.z * 0.12)
+		ring.scale = Vector2.ZERO
+		add_child(ring)
+		var glint: _Piece = _Piece.new("sparks", d.z * 1.6 / StreetArt.size("sparks").x)
+		glint.position = ring.position
+		glint.scale = Vector2.ZERO
+		add_child(glint)
+		t.tween_property(ring, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT) \
+			.set_delay(lit_at + 0.1)
+		t.tween_property(glint, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT) \
+			.set_delay(lit_at + 0.2)
+		t.tween_property(glint, "modulate:a", 0.0, 0.4).set_delay(lit_at + 0.7)
+		t.tween_callback(func() -> void: Audio.play(&"clink", -6.0, 1.6)).set_delay(lit_at + 0.15)
+	# The coins arc from the houses into the pill, which counts them in.
+	if coins > 0:
+		var pill: StreetCoinPill = StreetCoinPill.new()
+		pill.follow_save = false
+		_shown_coins = Save.coins - coins
+		pill.set_value(_shown_coins)
+		var safe: Dictionary = UI.safe_margins(get_viewport())
+		pill.position = Vector2(size.x - float(safe["right"]) - PILL_EDGE - pill.size.x, float(safe["top"]) + PILL_EDGE)
+		pill.modulate.a = 0.0
+		pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(pill)
+		t.tween_property(pill, "modulate:a", 1.0, 0.25).set_delay(star_at)
+		var from: Vector2 = Vector2(size.x * 0.5, ground - StreetArt.size(houses[0].piece).y * houses[0].k * 0.6)
+		t.tween_callback(func() -> void:
+			var land: Callable = func(share: int) -> void:
+				_shown_coins += share
+				pill.count_to(_shown_coins)
+			StreetCoinPill.fly(self, from, pill, coins, land)).set_delay(end - 0.2)
+		end += 0.5
 	if earned == 3:
 		for i: int in range(n):
 			var b: _Ball = balls[i]

@@ -141,6 +141,10 @@ func _member(colour: int, index: int, centre: Vector2, w: float) -> void:
 	StreetArt.draw(self, "blush", centre + Vector2(-0.27 * w, 0.1 * w), SCALE)
 	StreetArt.draw(self, "blush", centre + Vector2(0.27 * w, 0.1 * w), SCALE)
 	StreetArt.draw(self, mouth, centre + Vector2(0.0, 0.16 * w) + gaze * 0.4, SCALE)
+	# The hat this member wears, from the shop or a parcel (Save.worn, by colour), set at a jaunty angle.
+	var hat: int = Save.worn[colour] if colour < Save.worn.size() else 0
+	if hat > 0:
+		StreetArt.draw(self, "hat_%d" % hat, centre + Vector2(0.12 * w, -0.36 * w), SCALE * 1.05)
 
 func _blinking(index: int) -> bool:
 	if _t >= _blink_at[index] + BLINK_TIME:
