@@ -28,7 +28,8 @@ static var _hints: int = 0
 static var _started_at: int = 0
 
 static func start() -> void:
-	if is_instance_valid(_backend) or not OS.has_feature("android") or app_id() == "" \
+	# A dev build runs under its own package, which no Play Games project knows, so it would only fail to sign in.
+	if is_instance_valid(_backend) or not OS.has_feature("android") or OS.has_feature("dev_build") or app_id() == "" \
 			or not Engine.has_singleton("GodotPlayGameServices"):
 		return
 	var backend: GDScript = load("res://kit/monetize/android/play_games.gd")
