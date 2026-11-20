@@ -1258,8 +1258,12 @@ is why the painted art comes as cut-outs packed into an atlas.
 **Since 20 November the map scrolls flat.** Shravan found the rolling street's houses shrinking and vanishing over
 the horizon as he scrolled, and wanted Candy Crush Saga's map instead: houses keep their size, travel down the screen
 and leave through its foot, and the next ones come in from the top. The map now uses the drum with a radius so large
-it is flat, no tilt, and only a gentle bow toward the sides, with the sky a fixed band at the top. The drum and the
-tilt below stay in `StreetProjection`, tested, for any screen that wants depth.
+it is flat, no tilt, and only a gentle bow toward the sides. The street ends just past the newest doors in sky and
+hills, and the PLUMB title belongs to that sky: the ground shader leaves the strip past `street_end` clear, the sky's
+horizon follows the same point as the street scrolls, and the title moves with it. So scrolling back to older doors
+carries the title off the top with the sky, and no house can pass behind it. A house or a tree is only placed if,
+at rest, it stays under the title's foot (`_fits` in `map.gd`), which is also why a short screen shows one door ahead
+and a tall one two. The drum and the tilt below stay in `StreetProjection`, tested, for any screen that wants depth.
 
 **A camera tilted down at the street.** The drum alone shrinks things only near the horizon, since its depth grows
 with the square of the distance along it. The concepts show the next door about three quarters the size of the one at
