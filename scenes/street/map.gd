@@ -6,17 +6,21 @@ extends Node2D
 ## to the next door and its card drops in by itself. In a debug build, a run with `-- --auto-scroll`, or the file
 ## user://measure_street, plays a scripted scroll and logs its frames instead.
 
-## The street scrolls flat, as Candy Crush Saga's map does (Shravan, 20 November): a house keeps its size as the player
-## scrolls, travels down the screen and leaves through its foot, and the next ones come in from the top. It is the
-## drum of MATH.md section 25 with a radius so large the drum is flat.
+## The street rolls like a little round world, as Candy Crush Saga's map does (Shravan, 21 November): houses come up
+## over the horizon, grow as they travel down the screen and leave through its foot (MATH.md section 25). The drum's
+## radius is chosen per screen (`_radius_for`), as large as it can be while the horizon stays low enough that the PLUMB
+## title above it only ever has blue sky behind it: nothing on the street, not even the tallest house at the crest or
+## the hills, reaches within TITLE_CLEAR of the title's foot. Reduce motion flattens it.
 const FLAT_RADIUS: float = 100000.0
-const FOCAL: float = 1000.0
-## The world's top: at rest, the street ends in sky and hills just under the PLUMB title, which belongs to that sky.
-## Both scroll away together as the player scrolls back to older doors, so no house ever passes behind the title, and
-## they are there again at the newest door. The sky starts this far under the title, in design units, and nothing on
-## the street may reach within TITLE_CLEAR of the title's foot.
-const SKY_BELOW_TITLE: float = 20.0
-const TITLE_CLEAR: float = 8.0
+const FOCAL: float = 700.0
+## The camera's tilt down at the street: each door up the screen is drawn a steady share smaller than the one below.
+const TILT: float = 0.0
+const TITLE_CLEAR: float = 16.0
+## The tallest thing on the street at its near-edge size (a tall house), and how far the hills rise above the horizon.
+const TALLEST: float = 450.0
+const HILLS_RISE: float = 75.0
+## The radius is searched between these, in design units.
+const RADIUS_RANGE: Vector2 = Vector2(500.0, 4000.0)
 ## At rest the door below the current one shows its number just clear of the bottom buttons: its base sits this far
 ## above their top. On a wide screen, with the buttons down the side, it sits this far above the screen's foot.
 const PREV_CLEAR: float = 4.0
@@ -29,7 +33,7 @@ const BOW: float = 0.00012
 ## On a wide screen the street is a world this tall (the portrait phone's design height the concepts were drawn for),
 ## scaled to fit the screen's height, so it composes as the portrait street does, horizon and all, with more of the
 ## meadow either side (StreetLayout).
-const WIDE_WORLD_HEIGHT: float = 1100.0
+const WIDE_WORLD_HEIGHT: float = 1400.0
 ## The ground's mesh: rows evenly down the screen, columns across.
 const ROWS: int = 72
 const COLUMNS: int = 28
@@ -54,13 +58,15 @@ const WALK_TIME: float = 1.1
 const CARD_DELAY: float = 0.35
 ## Doors after the current one that show their number. Further ones show a padlock. How many show at all is what fits
 ## under the title at rest.
-const NUMBERED_AHEAD: int = 1
+const NUMBERED_AHEAD: int = 3
+## The street can be scrolled this many doors past the current one, to see what is coming.
+const AHEAD: int = 6
 ## The bottom row of buttons: their size, and their distance from the screen's foot.
 const BUTTON: float = 132.0
 const BUTTON_LIFT: float = 54.0
 ## The PLUMB title's top below the safe area, and its width.
-const TITLE_TOP: float = 84.0
-const TITLE_WIDTH: float = 520.0
+const TITLE_TOP: float = 100.0
+const TITLE_WIDTH: float = 470.0
 ## A round "back home" button shows once the current door is this far off screen, in design pixels.
 const PIN_AFTER: float = 140.0
 ## The scripted scroll: the fling speed, the steady speed, in strip pixels a second, the door it starts from, the rounds
@@ -119,14 +125,9 @@ var _preview: bool = false
 var _far_bands: int = 0
 ## Props whose tap wobble is still moving.
 var _wobbling: Array[StreetProp] = []
-## The world's top (see SKY_BELOW_TITLE): the scroll at rest, the strip point the street ends at, the world height of
-## the sky line at rest, and the height nothing may reach above at rest.
+## The scroll at which the current door rests, and the drum's radius for this screen.
 var _rest: float = 0.0
-var _street_end: float = INF
-var _sky_rest_y: float = 0.0
-var _title_clear: float = 0.0
-## Set for a preview with no title, where nothing need keep under it.
-var _preview_free: bool = false
+var _drum_radius: float = FLAT_RADIUS
 ## The title in the sky, and what wobbles it and the buttons' neighbours.
 var _title: StreetTitle
 var _wobbler: StreetWobbler
@@ -192,9 +193,33 @@ func _world_scale() -> float:
 func _world_size() -> Vector2:
 	return get_viewport_rect().size / _world_scale()
 
-## The drum's radius, so large the street scrolls flat (MATH.md section 25).
+## The drum's radius for this screen (see FOCAL): the largest that keeps the title's sky clear.
 func _radius() -> float:
-	return FLAT_RADIUS
+	return _drum_radius
+
+## A drum of radius `r` for a world of `size`, its tilt set and its gain making the door at rest its painted size.
+func _drum(r: float, size: Vector2, bow: float) -> StreetProjection:
+	var proj: StreetProjection = StreetProjection.new(r, FOCAL, size.y + NEAR_BELOW, size.x * 0.5, bow)
+	if r < FLAT_RADIUS:
+		proj.tilt = TILT
+		proj.normalise_at(proj.s_rel_at(_prev_y()) + StreetPath.DOOR_GAP)
+	return proj
+
+## The largest radius whose horizon sits low enough that the hills, and the tallest house at the crest, stay under the
+## title's foot, found by halving the range: a larger radius always raises the horizon.
+func _radius_for(size: Vector2, bow: float) -> float:
+	var ceiling: float = _title_box().end.y / _world_scale() + TITLE_CLEAR
+	var low: float = RADIUS_RANGE.x
+	var high: float = RADIUS_RANGE.y
+	for i: int in range(24):
+		var r: float = (low + high) * 0.5
+		var proj: StreetProjection = _drum(r, size, bow)
+		var rise: float = maxf(HILLS_RISE, TALLEST * proj.scale_at(PI * 0.5))
+		if proj.horizon_y() - rise >= ceiling:
+			low = r
+		else:
+			high = r
+	return low
 
 func _layout() -> void:
 	var size: Vector2 = _world_size()
@@ -202,8 +227,11 @@ func _layout() -> void:
 	# Reduce motion keeps the street dead flat, with no curve toward the sides.
 	var bow: float = 0.0 if Save.reduce_motion else \
 		(BOW * pow(StreetLayout.SHORT / size.x, 2.0) if size.x > StreetLayout.SHORT else BOW)
-	_proj = StreetProjection.new(_radius(), FOCAL, size.y + NEAR_BELOW, size.x * 0.5, bow)
+	_drum_radius = FLAT_RADIUS if Save.reduce_motion else _radius_for(size, bow)
+	_proj = _drum(_drum_radius, size, bow)
+	_sky.horizon_y = _proj.horizon_y() if not Save.reduce_motion else _title_box().end.y / scale.y + TITLE_CLEAR + HILLS_RISE
 	_sky.area = size
+	_sky.clear_bottom = _title_box().end.y / scale.y
 	_ground.mesh = _ground_mesh(size)
 	_ground_material.set_shader_parameter("radius", _radius())
 	# Bands of meadow scenery out to the screen's edges, as many as its width needs.
@@ -214,32 +242,27 @@ func _layout() -> void:
 	for n: Variant in _houses.keys():
 		_recycle(_houses[n])
 	_houses.clear()
-	# The world's top, from the title's foot at rest: the sky line just under it, and the strip point the street ends
-	# at. Nothing may stand above the street's end, or reach up within TITLE_CLEAR of the title's foot.
-	var title_foot: float = _title_box().end.y / scale.y
-	_title_clear = title_foot + TITLE_CLEAR
-	_sky_rest_y = title_foot + SKY_BELOW_TITLE
 	_rest = _scroll_for(_current)
-	_street_end = INF if _measuring else _rest + _proj.s_rel_at(_sky_rest_y)
-	_ground_material.set_shader_parameter("street_end", 1.0e9 if _measuring else _street_end)
-	# The newest door is as far as the street goes: a player looks back at older doors, never past the sky.
-	_bounds = Vector2(_scroll_for(1), _rest)
+	_bounds = Vector2(_scroll_for(1), _scroll_for(mini(_current + AHEAD, _last)))
 	if _buttons != null:
 		_place_hud()
 
-## The world height a door at rest stands at: its base where the door below it shows its number just clear of the
-## bottom buttons.
-func _rest_y() -> float:
+## The world height the door below the current one stands at when the street is at rest: its base just above the
+## bottom buttons, so its number shows clear of them.
+func _prev_y() -> float:
 	var screen: Vector2 = get_viewport_rect().size
 	var safe: Dictionary = UI.safe_margins(get_viewport())
 	if StreetLayout.wide(screen):
-		return (screen.y - float(safe["bottom"])) / _world_scale() - WIDE_PREV_CLEAR - StreetPath.DOOR_GAP
-	var button_top: float = screen.y - float(safe["bottom"]) - BUTTON_LIFT - BUTTON - _banner_room
-	return button_top - PREV_CLEAR - StreetPath.DOOR_GAP
+		return (screen.y - float(safe["bottom"])) / _world_scale() - WIDE_PREV_CLEAR
+	return screen.y - float(safe["bottom"]) - BUTTON_LIFT - BUTTON - _banner_room - PREV_CLEAR
 
-## The scroll that rests door `n` at its resting height.
+## How far along the strip the door at rest stands from the near edge: one door further than the one below it.
+func _rest_s_rel() -> float:
+	return _proj.s_rel_at(_prev_y()) + StreetPath.DOOR_GAP
+
+## The scroll that rests door `n`.
 func _scroll_for(n: int) -> float:
-	return StreetPath.door_s(n) - _proj.s_rel_at(_rest_y())
+	return StreetPath.door_s(n) - _rest_s_rel()
 
 ## The title's box on screen, where StreetTitle puts it.
 func _title_box() -> Rect2:
@@ -252,29 +275,19 @@ func _title_box() -> Rect2:
 	var height: float = StreetArt.size("title_plumb").y * width / StreetArt.size("title_plumb").x
 	return Rect2(Vector2(across * 0.5 - width * 0.5, top + (24.0 if wide else TITLE_TOP)), Vector2(width, height))
 
-## Whether something standing at strip point `s` and `x` across, `half_width` either side and reaching `height` above
-## its base, stands on the street and keeps clear of the title at rest.
-func _fits(s: float, x: float, half_width: float, height: float) -> bool:
-	if _measuring or _preview_free:
-		return true
-	if s > _street_end:
-		return false
-	var at: Vector3 = _proj.place(s - _rest, x)
-	var box: Rect2 = _title_box()
-	var left: float = box.position.x / scale.x
-	var right: float = box.end.x / scale.x
-	if at.x + half_width < left or at.x - half_width > right:
-		return true
-	return at.y - height >= _title_clear
-
-## The ground never moves: its rows run evenly down the screen from below the foot to above its top, each projected
-## once, and the shader paints the strip under it from `scroll`, leaving the sky clear past the street's end.
+## The ground never moves: its rows run evenly down the screen from below the foot to the horizon, each projected
+## once, and the shader paints the strip under it from `scroll`.
 func _ground_mesh(size: Vector2) -> ArrayMesh:
 	var bottom: float = size.y + 40.0
-	var top: float = -40.0
 	var radius: float = _radius()
-	var top_s: float = _proj.s_rel_at(top)
-	var half_width: float = size.x * 0.5 + 120.0
+	var top: float = maxf(_proj.horizon_y(), -40.0)
+	var top_s: float = _proj.s_rel_at(top) if _proj.horizon_y() < -40.0 else radius * PI * 0.5
+	if Save.reduce_motion:
+		# Flat, the ground runs to the sky line under the title.
+		top = _sky.horizon_y
+		top_s = _proj.s_rel_at(top)
+	var far_k: float = _proj.scale_at(top_s / radius)
+	var half_width: float = (size.x * 0.5 + 120.0) / far_k
 	var vertices: PackedVector2Array = PackedVector2Array()
 	var uvs: PackedVector2Array = PackedVector2Array()
 	for row: int in range(ROWS + 1):
@@ -446,7 +459,7 @@ func _rubber(want: float) -> float:
 ## laughs, and an open door's house opens its card too.
 func _tap(at: Vector2) -> void:
 	if _title != null and _title.hit(at):
-		_wobbler.tap(_title, StreetWobbler.Voice.BOING)
+		_title.poke()
 		return
 	var member: int = _cast.member_at(at) if _cast.visible else -1
 	if member >= 0:
@@ -504,8 +517,8 @@ func _on_play(door: int) -> void:
 
 ## Rolls the street `by` doors on from the one at its resting height, back as far as door 1 and on to the newest.
 func _step(by: int) -> void:
-	var resting: int = StreetPath.door_near(_scroll + _proj.s_rel_at(_rest_y()))
-	var to: int = clampi(resting + by, 1, _current)
+	var resting: int = StreetPath.door_near(_scroll + _rest_s_rel())
+	var to: int = clampi(resting + by, 1, mini(_current + AHEAD, _last))
 	_velocity = 0.0
 	var t: Tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	t.tween_property(self, "_scroll", _scroll_for(to), 0.35)
@@ -540,7 +553,7 @@ func _process(delta: float) -> void:
 			_wobbling.remove_at(i)
 		i -= 1
 	if _preview:
-		_scroll = _rest - PREVIEW_ROLL * (0.5 - 0.5 * cos(_time * PREVIEW_SPEED))
+		_scroll = _rest + PREVIEW_ROLL * sin(_time * PREVIEW_SPEED)
 	elif not _dragging:
 		if _steady != 0.0:
 			_scroll += _steady * delta
@@ -558,13 +571,8 @@ func _process(delta: float) -> void:
 func _place() -> void:
 	var size: Vector2 = _world_size()
 	_ground_material.set_shader_parameter("scroll", _scroll)
-	# The sky line and the title belong to the world's top, so they travel with the street.
-	var sky_y: float = _proj.place(_street_end - _scroll, 0.0).y if _street_end < INF else -1000.0
-	_sky.horizon_y = sky_y
-	if _title != null:
-		_title.drop = (sky_y - _sky_rest_y) * scale.y
 	var near: float = _scroll + _proj.near_s_rel(size.y)
-	var far: float = minf(_scroll + _proj.far_s_rel(0.0), _street_end)
+	var far: float = _scroll + _proj.far_s_rel(_sky.horizon_y if Save.reduce_motion else 0.0)
 	var first: int = clampi(StreetPath.door_near(near) - 1, 1, _last)
 	var last: int = clampi(StreetPath.door_near(far) + 1, 1, _last)
 	for n: Variant in _houses.keys():
@@ -575,15 +583,12 @@ func _place() -> void:
 			_houses.erase(door)
 	for door: int in range(first, last + 1):
 		var s: float = StreetPath.door_s(door)
-		var top: Vector2 = StreetProp.door_top(door)
-		var half: float = StreetArt.size(StreetArt.house_of(door)).x * StreetProp.HOUSE_SCALE * 0.5
-		if s < near or s > far or not _fits(s, StreetPath.door_x(door), half, top.x):
+		if s < near or s > far:
 			continue
 		var house: StreetProp = _houses.get(door, null)
 		if house == null:
 			house = _take()
-			house.dress_house(door, _state(door), Save.best_in(false, door - 1),
-				_fits(s, StreetPath.door_x(door), half * 1.4, top.y))
+			house.dress_house(door, _state(door), Save.best_in(false, door - 1))
 			_houses[door] = house
 		_stand(house, s, StreetPath.door_x(door))
 		if house.state == StreetProp.Door.CURRENT:
@@ -605,10 +610,6 @@ func _place() -> void:
 				if int(spot.x) == StreetPath.Kind.NONE:
 					continue
 				var variety: int = StreetPath.mix(slot * 7 + side + band * 3)
-				var half: float = StreetArt.size(StreetProp.piece_for(int(spot.x), variety)).x \
-					* float(StreetProp.SCENERY_SCALE.get(int(spot.x), 0.7)) * 0.7
-				if not _fits(StreetPath.slot_s(slot), spot.y, half, StreetProp.scenery_top(int(spot.x), variety)):
-					continue
 				var key: Vector2i = Vector2i(slot, side * (band + 1))
 				var prop: StreetProp = _scenery.get(key, null)
 				if prop == null:

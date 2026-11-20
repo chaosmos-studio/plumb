@@ -53,43 +53,17 @@ var stars: int = 0
 var pulse: float = 0.0
 ## Its tap wobble (Jiggle), made on its first tap and kept while it is recycled.
 var jiggle: Jiggle
-## Whether a house draws its tree or big bush behind it: the map leaves it off where it would reach the title.
-var greenery: bool = true
-
-func dress_house(number: int, door_state: Door, earned: int, with_greenery: bool = true) -> void:
+func dress_house(number: int, door_state: Door, earned: int) -> void:
 	kind = HOUSE
 	door = number
 	state = door_state
 	stars = earned
-	greenery = with_greenery
 	_still()
 	queue_redraw()
-
-## How far a door's house reaches above its base, in design units, without and with its greenery behind.
-static func door_top(n: int) -> Vector2:
-	var house: String = StreetArt.house_of(n)
-	var size: Vector2 = StreetArt.size(house) * HOUSE_SCALE
-	var behind: Dictionary = _behind_of(n, size, HOUSE_SCALE)
-	var tree: float = 0.0
-	if not behind.is_empty():
-		tree = -(behind["at"] as Vector2).y + StreetArt.size(str(behind["piece"])).y * float(behind["scale"])
-	return Vector2(size.y, maxf(size.y, tree))
-
-## How far a scenery piece reaches above its base, in design units.
-static func scenery_top(scenery_kind: int, variety: int) -> float:
-	var piece: String = piece_for(scenery_kind, variety)
-	if scenery_kind == StreetPath.Kind.SIDE_HOUSE:
-		var size: Vector2 = StreetArt.size(piece) * SIDE_HOUSE_SCALE
-		var behind: Dictionary = _behind_of(variety, size, SIDE_HOUSE_SCALE)
-		if behind.is_empty():
-			return size.y
-		return maxf(size.y, -(behind["at"] as Vector2).y + StreetArt.size(str(behind["piece"])).y * float(behind["scale"]))
-	return StreetArt.size(piece).y * float(SCENERY_SCALE.get(scenery_kind, 0.7))
 
 func dress_scenery(scenery_kind: int, variety: int) -> void:
 	kind = scenery_kind
 	door = variety
-	greenery = true
 	_still()
 	queue_redraw()
 
@@ -181,8 +155,6 @@ func _side_house() -> void:
 
 ## Greenery growing up behind a house, as in every concept: a tree or a big bush at one or both back corners.
 func _behind(house: String, k: float) -> void:
-	if not greenery:
-		return
 	var behind: Dictionary = _behind_of(door, StreetArt.size(house) * k, k)
 	if not behind.is_empty():
 		StreetArt.draw(self, str(behind["piece"]), behind["at"], float(behind["scale"]))
