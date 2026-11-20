@@ -33,16 +33,19 @@ func _ready() -> void:
 	layer.add_child(_ring)
 	await _wait(START)
 	print("WOBBLE_DEMO_START")
-	# `-- scroll`: drag the street up several doors, so the houses travel down and out through the screen's foot,
-	# then back again.
+	# `-- scroll`: drag back along the street to older doors, the title and sky leaving through the top with it, then
+	# drag forward again, the houses travelling down and out through the screen's foot and the title coming back, and
+	# last a pull past the newest door, which springs back.
 	if OS.get_cmdline_user_args().has("scroll"):
 		var size: Vector2 = get_viewport().get_visible_rect().size
-		for k: int in range(4):
-			await _drag(Vector2(size.x * 0.5, size.y * 0.3), Vector2(size.x * 0.5, size.y * 0.75), 1.1)
+		for k: int in range(3):
+			await _drag(Vector2(size.x * 0.5, size.y * 0.75), Vector2(size.x * 0.5, size.y * 0.3), 1.0)
 			await _wait(0.5)
-		for k: int in range(2):
-			await _drag(Vector2(size.x * 0.5, size.y * 0.75), Vector2(size.x * 0.5, size.y * 0.25), 0.9)
+		for k: int in range(3):
+			await _drag(Vector2(size.x * 0.5, size.y * 0.3), Vector2(size.x * 0.5, size.y * 0.75), 1.0)
 			await _wait(0.5)
+		await _drag(Vector2(size.x * 0.5, size.y * 0.3), Vector2(size.x * 0.5, size.y * 0.6), 0.8)
+		await _wait(0.8)
 		await _wait(0.8)
 		print("WOBBLE_DEMO_DONE")
 		get_tree().quit()
