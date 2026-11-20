@@ -56,6 +56,7 @@ func _initialize() -> void:
 	_test_street_path()
 	_test_street_layout()
 	_test_jiggle()
+	_test_street_rewards()
 	if not OS.get_cmdline_user_args().has("quick"):
 		_test_level_pack()
 	_test_opening()
@@ -732,6 +733,88 @@ func _test_street_path() -> void:
 	_check("a wide screen's meadow holds trees and bushes in their own bands", meadow)
 	_check("and about FAR_SHARE of its spots are filled",
 		absf(float(filled) / (4000.0 * 2.0 * 4.0) * 100.0 - StreetPath.FAR_SHARE) < 3.0)
+
+# Street's rewards (REVAMP_PLAN.md section 4.7): generous, on a steady rhythm, and help is never sold as power.
+func _test_street_rewards() -> void:
+	_check("a win pays 10, 5 a star and 5 more when clean", StreetRewards.win_coins(3, true) == 30
+		and StreetRewards.win_coins(1, false) == 15)
+	_check("the knocker needs par with no hint and no restart", StreetRewards.knocker(8, 8, false, false)
+		and not StreetRewards.knocker(9, 8, false, false) and not StreetRewards.knocker(8, 8, true, false)
+		and not StreetRewards.knocker(8, 8, false, true))
+	_check("a spare step gives one move of leeway for the stars", StreetRewards.stars(9, 8, true) == 3
+		and StreetRewards.stars(9, 8, false) < 3)
+	var parcels: PackedInt32Array = PackedInt32Array()
+	var milestones: PackedInt32Array = PackedInt32Array()
+	for n: int in range(1, 101):
+		if StreetRewards.has_parcel(n):
+			parcels.append(n)
+		if StreetRewards.is_milestone(n):
+			milestones.append(n)
+	_check("a parcel every fifth door, a milestone every twentieth in its place",
+		parcels == PackedInt32Array([5, 10, 15, 25, 30, 35, 45, 50, 55, 65, 70, 75, 85, 90, 95])
+		and milestones == PackedInt32Array([20, 40, 60, 80, 100]))
+	var firsts: bool = true
+	for b: int in range(3):
+		var gift: Dictionary = StreetRewards.parcel(StreetRewards.BOOSTER_AT[b])
+		firsts = firsts and int(gift["booster"]) == b and int(gift["count"]) == StreetRewards.BOOSTER_FIRST
+	_check("the first three parcels each bring a new helper, three of it", firsts)
+	var later: bool = true
+	var hats: int = 0
+	for n: int in range(25, 400, 5):
+		if not StreetRewards.has_parcel(n):
+			continue
+		var gift: Dictionary = StreetRewards.parcel(n)
+		later = later and int(gift["coins"]) == StreetRewards.PARCEL_COINS \
+			and (int(gift["booster"]) >= 0) != (int(gift["hat"]) >= 0)
+		hats += 1 if int(gift["hat"]) >= 0 else 0
+	_check("later parcels bring coins and either a helper or a hat", later and hats > 0)
+	_check("helpers open after their parcel's door", not StreetRewards.booster_open(0, 5)
+		and StreetRewards.booster_open(0, 6) and StreetRewards.booster_open(2, 16))
+	_check("families arrive in turn at each milestone", StreetRewards.family_of(20) == 0
+		and StreetRewards.family_of(40) == 1 and StreetRewards.family_of(100) == 0)
+	_test_street_purse()
+
+# Street's purse and keepsakes survive a restart, and a parcel opens once.
+func _test_street_purse() -> void:
+	var save: Node = root.get_node("Save")
+	var real: String = save.get("path")
+	var fields: PackedStringArray = ["coins", "boosters", "gifts", "knockers", "street_owned", "worn"]
+	var kept: Array[Variant] = []
+	for field: String in fields:
+		kept.append(save.get(field))
+	save.set("path", "user://test_street.cfg")
+	save.set("coins", 0)
+	save.set("boosters", {})
+	save.set("gifts", PackedInt32Array())
+	save.call("add_coins", 45)
+	var spent: bool = save.call("spend_coins", 20)
+	var broke: bool = save.call("spend_coins", 999)
+	_check("coins are spent only when there are enough", spent and not broke and int(save.get("coins")) == 25)
+	save.call("add_booster", "ghosts", 3)
+	var first: bool = save.call("claim_gift", 5)
+	var again: bool = save.call("claim_gift", 5)
+	_check("a parcel opens once", first and not again)
+	save.call("set_knocker", 7)
+	save.call("own_street", "hat_2")
+	save.call("wear", 1, 2)
+	save.set("coins", 0)
+	save.set("boosters", {})
+	save.set("gifts", PackedInt32Array())
+	save.set("knockers", PackedInt32Array())
+	save.set("street_owned", PackedStringArray())
+	save.set("worn", PackedInt32Array([0, 0, 0, 0]))
+	save.call("restore")
+	var count: int = save.call("booster_count", "ghosts")
+	var gifts: PackedInt32Array = save.get("gifts")
+	var knockers: PackedInt32Array = save.get("knockers")
+	var owned: PackedStringArray = save.get("street_owned")
+	var worn: PackedInt32Array = save.get("worn")
+	_check("coins, helpers, parcels, knockers, things owned and hats worn are saved", int(save.get("coins")) == 25
+		and count == 3 and gifts.has(5) and knockers.has(7) and owned.has("hat_2") and worn[1] == 2)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_street.cfg"))
+	save.set("path", real)
+	for i: int in range(fields.size()):
+		save.set(fields[i], kept[i])
 
 # A tap's wobble (MATH.md section 27): it squashes about an eighth, keeps its area, rocks a little, and rests
 # within about half a second, the same however the frames fall.
