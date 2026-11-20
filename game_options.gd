@@ -18,6 +18,11 @@ static func rows() -> Array[Control]:
 	var pets: Switch = Switch.new(Save.pets)
 	pets.toggled.connect(func(on: bool) -> void: Save.set_pets(on))
 	lines.append(_drawn_row("Pets", pets, _Loaf.new()))
+	# Street's own row, in the room its missing Theme row leaves (AppLook.use), so the sheet still fits a phone.
+	if Save.app_look == AppLook.STREET and Settings.hide_theme:
+		var still: Switch = Switch.new(Save.reduce_motion)
+		still.toggled.connect(func(on: bool) -> void: Save.set_reduce_motion(on))
+		lines.append(_drawn_row("Reduce motion", still, _Still.new()))
 	if not PhoneTilt.can_feel():
 		return lines
 	var tip: Switch = Switch.new(Save.phone_tilt)
@@ -64,6 +69,14 @@ class _House extends _Glyph:
 		draw_polyline(PackedVector2Array([c + Vector2(-0.27, -0.08) * S, c + Vector2(-0.27, 0.32) * S,
 			c + Vector2(0.27, 0.32) * S, c + Vector2(0.27, -0.08) * S]), Brand.MUTED, w, true)
 		draw_arc(c + Vector2(0.0, 0.2) * S, S * 0.1, PI, TAU, 10, Brand.MUTED, w, true)
+
+## A marble at rest on a line, for Reduce motion.
+class _Still extends _Glyph:
+	func _draw() -> void:
+		var c: Vector2 = size * 0.5
+		var w: float = _width()
+		draw_arc(c + Vector2(0.0, -0.06) * S, S * 0.22, 0.0, TAU, 32, Brand.MUTED, w, true)
+		draw_line(c + Vector2(-0.38, 0.26) * S, c + Vector2(0.38, 0.26) * S, Brand.MUTED, w, true)
 
 ## A cat asleep in a loaf, as the walls are drawn with Pets on.
 class _Loaf extends _Glyph:

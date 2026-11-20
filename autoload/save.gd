@@ -27,6 +27,9 @@ var faces: bool = true:
 		Cast.showing = value
 ## Walls drawn as sleeping cats and dogs, off until a player turns it on: some want calm, plain walls.
 var pets: bool = false
+## Street holds still: no idle sway or bob, a flat street instead of a rolling one, and a tap answers with a short
+## fade instead of a wobble (REVAMP_PLAN.md section 8).
+var reduce_motion: bool = false
 ## An Appearance.Choice.
 var theme: int = Appearance.native()
 var tutorial_seen: bool = false
@@ -175,6 +178,11 @@ func set_faces(on: bool) -> void:
 	store()
 	EventBus.settings_changed.emit()
 
+func set_reduce_motion(on: bool) -> void:
+	reduce_motion = on
+	store()
+	EventBus.settings_changed.emit()
+
 func set_pets(on: bool) -> void:
 	pets = on
 	store()
@@ -284,6 +292,7 @@ func restore() -> void:
 	phone_tilt = bool(file.get_value("settings", "phone_tilt", false))
 	faces = bool(file.get_value("settings", "faces", true))
 	pets = bool(file.get_value("settings", "pets", false))
+	reduce_motion = bool(file.get_value("settings", "reduce_motion", false))
 	theme = clampi(int(file.get_value("settings", "theme", Appearance.native())), 0, Appearance.Choice.size() - 1)
 	tutorial_seen = bool(file.get_value("progress", "tutorial_seen", false))
 	supporter = bool(file.get_value("monetize", "supporter", false))
@@ -328,6 +337,7 @@ func store() -> void:
 	file.set_value("settings", "phone_tilt", phone_tilt)
 	file.set_value("settings", "faces", faces)
 	file.set_value("settings", "pets", pets)
+	file.set_value("settings", "reduce_motion", reduce_motion)
 	file.set_value("settings", "theme", theme)
 	file.set_value("progress", "tutorial_seen", tutorial_seen)
 	file.set_value("monetize", "supporter", supporter)

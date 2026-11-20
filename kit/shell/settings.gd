@@ -15,6 +15,9 @@ const EDGE_MS: int = 30
 const TAP_STRENGTH: Vector2 = Vector2(0.2, 1.0)
 const GAME_OPTIONS: String = "res://game_options.gd"
 
+## Set by a game whose current look has no light and dark choice, so the sheet leaves the Theme row out.
+static var hide_theme: bool = false
+
 static func open(host: Node) -> Sheet:
 	var sheet: Sheet = Sheet.open(host)
 	var c: VBoxContainer = sheet.content
@@ -31,10 +34,11 @@ static func open(host: Node) -> Sheet:
 		var options: GDScript = load(GAME_OPTIONS)
 		for extra: Variant in options.call("rows"):
 			c.add_child(extra as Control)
-	var looks: Segmented = Segmented.new(Appearance.NAMES, Save.theme)
-	looks.chosen.connect(func(choice: int) -> void:
-		Appearance.choose(choice, host.get_tree(), func(scene: Node) -> void: Settings.open(scene)))
-	c.add_child(setting_row(&"theme", "Theme", looks))
+	if not hide_theme:
+		var looks: Segmented = Segmented.new(Appearance.NAMES, Save.theme)
+		looks.chosen.connect(func(choice: int) -> void:
+			Appearance.choose(choice, host.get_tree(), func(scene: Node) -> void: Settings.open(scene)))
+		c.add_child(setting_row(&"theme", "Theme", looks))
 	var cards: HBoxContainer = _row_of(16)
 	cards.add_child(_card(&"palette", "Colours", Themes.name_of(Themes.current()), func() -> void: Themes.open(host)))
 	cards.add_child(_card(&"looks", GameLooks.TITLE, Looks.name_of(Looks.current()), func() -> void: Looks.open(host)))

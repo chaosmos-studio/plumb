@@ -21,6 +21,8 @@ static func first_scene(look: String, chosen: bool) -> String:
 ## Puts the look's screen rule in place (StreetLayout): Street turns and composes wide screens, Classic keeps its own.
 ## The chooser counts as Street, since it is drawn in Street's world.
 static func use(look: String) -> void:
+	# Street is light only for 2.0 (REVAMP_PLAN.md section 15, item 14), so its Settings have no Theme row.
+	Settings.hide_theme = look != CLASSIC
 	if look == CLASSIC:
 		StreetLayout.stop()
 	else:
