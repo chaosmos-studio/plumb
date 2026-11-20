@@ -37,10 +37,9 @@ const WIDE_PAR_RECT: Rect2 = Rect2(154, 348, 252, 96)
 const WIDE_SLOT: float = 128.0
 const WIDE_SLOTS: Vector2 = Vector2(580, 84)
 const WIDE_PLAY_RECT: Rect2 = Rect2(586, 272, 360, 164)
-const SLOT_PIECES: PackedStringArray = ["slot_teal", "slot_purple", "slot_grey"]
-const SLOT_GLYPHS: Array[StringName] = [&"footprints", &"ghosts", &"play"]
-## The door each helper opens at (REVAMP_PLAN.md section 4.7).
-const HELPERS_AT: PackedInt32Array = [5, 10, 15]
+## The helpers' slots (StreetMoment's pieces): a tap on an open one with some left picks it for this board, and a
+## picked one rises with a tick on its badge.
+const CHOSEN_LIFT: float = 10.0
 ## The drop: its time, and the swing after it, a damped spring in radians.
 const DROP_TIME: float = 0.45
 const SWING_START: float = 0.06
@@ -64,6 +63,9 @@ var _spin: float = 0.0
 var _swinging: bool = false
 var _open: bool = false
 var _shape: Shape = Shape.tall()
+## The helpers picked for this board, by StreetRewards.Booster.
+var _chosen: PackedByteArray = PackedByteArray([0, 0, 0])
+var _slot_springs: Array[Jiggle] = [Jiggle.new(), Jiggle.new(), Jiggle.new()]
 
 ## Where everything sits on the card, in its portrait or its wide form. Boxes are measured from the frame's top-left.
 class Shape:
@@ -126,6 +128,10 @@ func _ready() -> void:
 	_card.gui_input.connect(func(event: InputEvent) -> void:
 		if not _open or not (event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed):
 			return
+		var slot: int = _slot_at((event as InputEventScreenTouch).position)
+		if slot >= 0:
+			_toggle(slot)
+			return
 		Audio.play(&"pop", StreetWobbler.VOICE_DB, randf_range(0.9, 1.1))
 		Audio.buzz(StreetWobbler.BUZZ_MS, StreetWobbler.BUZZ)
 		if Save.reduce_motion:
@@ -161,10 +167,41 @@ func _reshape() -> void:
 func _top() -> float:
 	return maxf(10.0, (_card.get_viewport_rect().size.y - _shape.size.y) * DROP_TO)
 
+## The helpers picked for this board, as StreetRewards.Booster values.
+func chosen() -> PackedInt32Array:
+	var out: PackedInt32Array = PackedInt32Array()
+	for b: int in range(3):
+		if _chosen[b] == 1:
+			out.append(b)
+	return out
+
+## The helper slot under a point in the card's space, or -1.
+func _slot_at(at: Vector2) -> int:
+	for b: int in range(3):
+		var corner: Vector2 = Vector2(0.0, _shape.frame_top) + _shape.slots + Vector2(float(b) * _shape.slot_step, 0.0)
+		if Rect2(corner, Vector2.ONE * _shape.slot).has_point(at):
+			return b
+	return -1
+
+## A tap on a helper's slot: an open one with some left is picked or put back, with a pop. A locked or empty one only
+## wobbles with a knock.
+func _toggle(b: int) -> void:
+	var usable: bool = StreetRewards.booster_open(b, _door) and Save.booster_count(StreetRewards.BOOSTER_IDS[b]) > 0
+	if not Save.reduce_motion:
+		_slot_springs[b].kick(1.2)
+	Audio.buzz(StreetWobbler.BUZZ_MS, StreetWobbler.BUZZ)
+	if not usable:
+		Audio.play(&"knock", -8.0)
+		return
+	_chosen[b] = 1 - _chosen[b]
+	Audio.play(&"pop", -6.0, 1.25 if _chosen[b] == 1 else 0.9)
+	_card.queue_redraw()
+
 func open(door: int, board: TiltBoard, par: int, best: int) -> void:
 	_door = door
 	_par = par
 	_best = best
+	_chosen = PackedByteArray([0, 0, 0])
 	var seen: Dictionary = {}
 	for c: int in board.marble_colour:
 		if c != TiltBoard.STONE:
@@ -212,6 +249,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		_on_play()
 
 func _process(delta: float) -> void:
+	var springing: bool = false
+	for spring: Jiggle in _slot_springs:
+		springing = spring.step(delta) or springing
+	if springing:
+		_card.queue_redraw()
 	if not _swinging:
 		return
 	_spin += (-SWING_STIFFNESS * _angle - SWING_DAMPING * _spin) * delta
@@ -277,6 +319,10 @@ class _Card extends Control:
 			draw_circle(Vector2.ZERO, 46.0, colour, true, -1.0, true)
 			draw_circle(Vector2(0, 2), 30.0, Palette.HOLE, true, -1.0, true)
 			draw_set_transform(Vector2.ZERO)
+			if Save.colour_help:
+				ColourHelp.draw(self, c._colours[i], hole + Vector2(0, 2), 30.0)
+				ColourHelp.draw(self, c._colours[i], top + Vector2(0.0, body_w * 0.36), body_w * 0.28,
+					colour.darkened(0.55))
 		# Par, as footprints, with sparks either side.
 		var pill: Rect2 = Rect2(o + shape.par.position, shape.par.size)
 		StreetUI.sparks(self, pill, 44.0)
@@ -284,22 +330,42 @@ class _Card extends Control:
 		StreetUI.glyph(self, &"footprints", pill.position + Vector2(76.0, pill.size.y * 0.48), pill.size.y * 0.92)
 		draw_string(font, Vector2(pill.position.x + 120.0, pill.get_center().y + 27.0), str(c._par),
 			HORIZONTAL_ALIGNMENT_CENTER, 100.0, 76, StreetUI.CREAM)
-		# The helpers, locked until their door.
+		# The helpers: locked, showing the door their parcel waits at, until it is opened; then each with how many are
+		# left on its badge, a tick there once picked.
 		var slot: float = shape.slot
 		for i: int in range(3):
 			var at: Vector2 = o + shape.slots + Vector2(float(i) * shape.slot_step, 0.0)
-			var open_now: bool = c._door >= StreetDoorCard.HELPERS_AT[i]
-			var piece: String = StreetDoorCard.SLOT_PIECES[i] if open_now else "slot_grey"
-			StreetArt.draw_at(self, piece, at, slot / StreetArt.size(piece).x)
-			var centre: Vector2 = at + Vector2.ONE * slot * 0.5
+			var open_now: bool = StreetRewards.booster_open(i, c._door)
+			var count: int = Save.booster_count(StreetRewards.BOOSTER_IDS[i])
+			var picked: bool = c._chosen[i] == 1
+			var centre: Vector2 = at + Vector2.ONE * slot * 0.5 + Vector2(0.0, -StreetDoorCard.CHOSEN_LIFT if picked else 0.0)
+			var spring: Jiggle = c._slot_springs[i]
+			draw_set_transform(centre, spring.tilt(), spring.squash() * (1.06 if picked else 1.0))
+			var piece: String = StreetMoment.SLOT_PIECES[i] if open_now else "slot_grey"
+			var tint: Color = StreetMoment.SLOT_TINTS[i] if open_now else Color.WHITE
+			if open_now and count == 0 and not picked:
+				tint = tint.darkened(0.25)
+			StreetArt.draw(self, piece, Vector2.ZERO, slot / StreetArt.size(piece).x, tint)
 			if open_now:
-				StreetUI.glyph(self, StreetDoorCard.SLOT_GLYPHS[i], centre, slot * 0.69)
+				var icon: String = StreetMoment.SLOT_ICONS[i]
+				StreetArt.draw(self, icon, Vector2.ZERO, slot * 0.64 / StreetArt.size(icon).x)
 			else:
-				StreetUI.glyph(self, &"lock", centre + Vector2(0.0, -8.0), slot * 0.6)
-				draw_string_outline(font, Vector2(at.x, at.y + slot - 14.0), str(StreetDoorCard.HELPERS_AT[i]),
-					HORIZONTAL_ALIGNMENT_RIGHT, slot - 22.0, 34, 8, Color("7d8196"))
-				draw_string(font, Vector2(at.x, at.y + slot - 14.0), str(StreetDoorCard.HELPERS_AT[i]),
-					HORIZONTAL_ALIGNMENT_RIGHT, slot - 22.0, 34, StreetUI.CREAM)
+				StreetArt.draw(self, "icon_lock", Vector2(0.0, -8.0), slot * 0.5 / StreetArt.size("icon_lock").x)
+			draw_set_transform(Vector2.ZERO)
+			var corner: Vector2 = centre + Vector2(slot * 0.4, -slot * 0.4)
+			if not open_now:
+				var opens: String = str(StreetRewards.BOOSTER_AT[i])
+				draw_string_outline(font, Vector2(at.x, at.y + slot - 14.0), opens, HORIZONTAL_ALIGNMENT_RIGHT,
+					slot - 22.0, 34, 8, Color("7d8196"))
+				draw_string(font, Vector2(at.x, at.y + slot - 14.0), opens, HORIZONTAL_ALIGNMENT_RIGHT, slot - 22.0,
+					34, StreetUI.CREAM)
+			elif picked:
+				StreetUI.gloss_circle(self, corner, slot * 0.2, Color("4caf3a"))
+				StreetArt.draw(self, "icon_tick", corner, slot * 0.28 / StreetArt.size("icon_tick").x)
+			else:
+				StreetUI.gloss_circle(self, corner, slot * 0.2, StreetUI.RED if count > 0 else Color("9a9cab"))
+				draw_string(font, corner + Vector2(-slot * 0.2, slot * 0.1), str(count), HORIZONTAL_ALIGNMENT_CENTER,
+					slot * 0.4, int(slot * 0.28), StreetUI.CREAM)
 		# Play.
 		var play_rect: Rect2 = Rect2(o + shape.play.position, shape.play.size)
 		StreetUI.sparks(self, play_rect, 50.0)

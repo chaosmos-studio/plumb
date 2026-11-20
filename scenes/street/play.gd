@@ -34,6 +34,11 @@ const WIDE_BUTTON: float = 140.0
 const WIDE_BUTTON_GAP: float = 28.0
 const WIDE_EDGE: float = 30.0
 const DIRECTION_NAMES: PackedStringArray = ["left", "right", "up", "down"]
+## Ghost marbles show once a drag has gone this far, in design pixels, toward a tilt.
+const GHOST_FROM: float = 14.0
+
+## The helpers picked on the start card for the next board (StreetRewards.Booster values), used up as it opens.
+static var helpers: PackedInt32Array = PackedInt32Array()
 
 var level: int = 0
 var par: int = 0
@@ -60,6 +65,17 @@ var _hint_board: TiltBoard
 var _hint_route: PackedInt32Array = PackedInt32Array()
 var _hinted: TiltBoard
 var _retried: bool = false
+## Whether the board was started over, which the golden knocker never allows (an undo it does).
+var _restarted: bool = false
+## The helpers in use on this board (REVAMP_PLAN.md section 4.7): Footprints shows the solver's first two tilts, one
+## at a time, while the player follows them; Ghost marbles shows where one drag's tilt would leave every marble; Spare
+## step gives one move of leeway for the stars. Footprints and ghosts count as help, so the knocker waits for a board
+## won without them.
+var _footprints: PackedInt32Array = PackedInt32Array()
+var _ghosts: bool = false
+var _spare: bool = false
+var _helped: bool = false
+var _ghost_dir: int = -1
 var _celebrating: bool = false
 var _hurry: bool = false
 var _finger: _Finger
@@ -99,6 +115,59 @@ func _ready() -> void:
 	EventBus.level_started.emit(level)
 	if level == 0 and not Save.tutorial_seen:
 		_teach()
+	_use_helpers()
+
+## Takes the picked helpers from the purse and sets them going.
+func _use_helpers() -> void:
+	var picked: PackedInt32Array = helpers
+	helpers = PackedInt32Array()
+	for b: int in picked:
+		var id: String = StreetRewards.BOOSTER_IDS[b]
+		if Save.booster_count(id) <= 0:
+			continue
+		Save.add_booster(id, -1)
+		match b:
+			StreetRewards.Booster.FOOTPRINTS:
+				_footprints = TiltSolver.new().solve(board, HINT_SEARCH).slice(0, 2)
+				_helped = true
+			StreetRewards.Booster.GHOSTS:
+				_ghosts = true
+			StreetRewards.Booster.SPARE_STEP:
+				_spare = true
+	if not _footprints.is_empty():
+		await get_tree().create_timer(0.6).timeout
+		_step_footprints()
+
+## Shows the next footprint, while the player has followed the ones before.
+func _step_footprints() -> void:
+	if _footprints.is_empty() or finished or not is_inside_tree():
+		return
+	_view.show_hint(_footprints[0], board)
+
+## A drag's direction as a tilt.
+static func _drag_dir(delta: Vector2) -> int:
+	if absf(delta.x) > absf(delta.y):
+		return TiltBoard.RIGHT if delta.x > 0.0 else TiltBoard.LEFT
+	return TiltBoard.DOWN if delta.y > 0.0 else TiltBoard.UP
+
+## Shows where tilt `dir` would leave every marble, faint, or hides them for -1.
+func _show_ghosts(dir: int) -> void:
+	if dir == _ghost_dir:
+		return
+	_ghost_dir = dir
+	var ghosts: _Ghosts = _view.get_node_or_null("Ghosts")
+	if ghosts == null:
+		ghosts = _Ghosts.new()
+		ghosts.name = "Ghosts"
+		ghosts.view = _view
+		_view.add_child(ghosts)
+	ghosts.after = null
+	if dir >= 0:
+		var after: TiltBoard = board.copy()
+		if after.tilt(dir).changed():
+			ghosts.after = after
+		Audio.play(&"clink", -18.0, 1.4)
+	ghosts.queue_redraw()
 
 ## Where the top bar starts.
 func top_y() -> float:
@@ -201,6 +270,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventScreenTouch:
 		var touch: InputEventScreenTouch = event
+		# With ghost marbles out, the tilt waits for the finger to lift, and lifting short of a swipe cancels.
+		if not touch.pressed and _ghost_dir >= 0:
+			var dir: int = _ghost_dir
+			_show_ghosts(-1)
+			if touch.position.distance_to(_touch_from) >= SWIPE_MIN:
+				_ghosts = false
+				_helped = true
+				_swiped = true
+				_tilt(dir)
 		# A touch that lifts without swiping is a tap: the sign, the moves or the faces under it wobble.
 		if not touch.pressed and _touching and not _swiped and touch.position.distance_to(_touch_from) < SWIPE_MIN:
 			_hud.poke(touch.position)
@@ -212,6 +290,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		var delta: Vector2 = drag.position - _touch_from
 		if Save.faces and not finished and not board.lost:
 			_view.glance(delta / SWIPE_MIN)
+		if _ghosts and not finished and not board.lost and not _view.busy:
+			if delta.length() >= GHOST_FROM:
+				_show_ghosts(_drag_dir(delta))
+			return
 		if delta.length() >= SWIPE_MIN:
 			_swiped = true
 			if absf(delta.x) > absf(delta.y):
@@ -261,8 +343,14 @@ func _tilt(dir: int) -> void:
 	route.append(dir)
 	board = next
 	_refresh()
+	# Footprints last while the player follows them: one taken shows the next, a step elsewhere ends them.
+	var followed: bool = not _footprints.is_empty() and _footprints[0] == dir
+	if not _footprints.is_empty():
+		_footprints = _footprints.slice(1) if followed else PackedInt32Array()
 	await _view.play(move, next)
 	_hud.queue_redraw()
+	if followed:
+		_step_footprints()
 	if board.lost:
 		_queued = -1
 		_show_lost()
@@ -290,6 +378,7 @@ func _on_restart() -> void:
 	history.clear()
 	route.clear()
 	_retried = true
+	_restarted = true
 	board = start.copy()
 	_view.sync(board)
 	Audio.play(&"undo", -4.0, 0.8)
@@ -377,10 +466,18 @@ func _teach() -> void:
 func _show_won() -> void:
 	finished = true
 	var moves: int = history.size()
-	var earned: int = Stars.earned(moves, par)
+	var earned: int = StreetRewards.stars(moves, par, _spare)
 	var before: int = Save.best(level)
 	Save.record(level, earned)
 	EventBus.level_won.emit(level, moves, earned)
+	# Every win pays (REVAMP_PLAN.md section 4.7), more for stars and a clean solve, and par with no hint and no
+	# restart puts the golden knocker on the door for good.
+	var hinted: bool = _hinted != null or _helped
+	var coins: int = StreetRewards.win_coins(earned, not _retried and not hinted)
+	var knocker: bool = StreetRewards.knocker(moves, par, hinted, _restarted)
+	Save.add_coins(coins)
+	if knocker:
+		Save.set_knocker(level + 1)
 	_celebrating = true
 	_hurry = false
 	await _pause(WIN_PAUSE)
@@ -392,6 +489,8 @@ func _show_won() -> void:
 	_homecoming = home
 	home.colours = colours
 	home.earned = earned
+	home.coins = coins
+	home.knocker = knocker
 	home.from = _view.get_global_transform_with_canvas() * _view.bounds().get_center()
 	add_child(home)
 	var t: Tween = create_tween().set_parallel()
@@ -404,6 +503,9 @@ func _show_won() -> void:
 		return
 	# The street walks on from here only when this win opened the next door.
 	StreetMap.arrival = level + 1 if before == 0 else 0
+	var door: int = level + 1
+	if (StreetRewards.has_parcel(door) or StreetRewards.is_milestone(door)) and not Save.gifts.has(door):
+		StreetMap.gift_door = door
 	_celebrating = false
 	_to_street()
 
@@ -530,6 +632,11 @@ class _Hud extends Control:
 			HORIZONTAL_ALIGNMENT_CENTER, red, 66, StreetUI.CREAM if not over else Color("ffe08a"))
 		draw_string(font, Vector2(pill.position.x + red, pill.get_center().y + 24.0), "/" + str(play.par),
 			HORIZONTAL_ALIGNMENT_CENTER, pill.size.x - red - 8.0, 62, StreetUI.INK)
+		# The spare step in use: its glyph on a yellow badge at the pill's corner.
+		if play._spare:
+			var badge: Vector2 = pill.position + Vector2(pill.size.x - 6.0, 4.0)
+			StreetUI.gloss_circle(self, badge, 26.0, Color("ffc23d"))
+			StreetArt.draw(self, "icon_spare_step", badge, 40.0 / StreetArt.size("icon_spare_step").x)
 		# A face for each colour on the board, happy once all its marbles are home.
 		var colours: PackedInt32Array = PackedInt32Array()
 		var home: Dictionary = {}
@@ -578,6 +685,26 @@ class _Hud extends Control:
 
 
 ## Door 1's teacher: a finger that swipes the solver's first tilt, again and again, with one word.
+## Ghost marbles: faint copies of every marble where the dragged tilt would leave it, drawn over the board in its own
+## space. A marble the tilt sends home or into a pit shows no ghost.
+class _Ghosts extends Node2D:
+	var view: BoardView
+	var after: TiltBoard
+
+	func _draw() -> void:
+		if after == null:
+			return
+		for m: int in range(after.marble_cell.size()):
+			var cell: int = after.marble_cell[m]
+			if cell == TiltBoard.GONE:
+				continue
+			var c: Vector2 = view.centre(cell)
+			var colour: Color = Palette.marble(after.marble_colour[m]) if after.marble_colour[m] != TiltBoard.STONE \
+				else Color(0.55, 0.55, 0.6)
+			draw_circle(c, view.cell * 0.36, Color(colour, 0.42), true, -1.0, true)
+			draw_circle(c, view.cell * 0.36, Color(1, 1, 1, 0.75), false, view.cell * 0.04, true)
+
+
 class _Finger extends Node2D:
 	var from: Vector2 = Vector2.ZERO
 	var to: Vector2 = Vector2.ZERO

@@ -69,6 +69,13 @@ const TITLE_TOP: float = 100.0
 const TITLE_WIDTH: float = 470.0
 ## A round "back home" button shows once the current door is this far off screen, in design pixels.
 const PIN_AFTER: float = 140.0
+## The coin pill's distance from the screen's top-right corner.
+const COINS_EDGE: float = 18.0
+## The finish ribbon stands across the front of its milestone's plot, this far nearer along the street, as the
+## concept stands it before the new house, and breaks as the cast walks past after the win. Its halves fly apart this
+## far, in design pixels.
+const RIBBON_BEFORE: float = 34.0
+const RIBBON_FLY: float = 260.0
 ## The scripted scroll: the fling speed, the steady speed, in strip pixels a second, the door it starts from, the rounds
 ## it plays and the flings each way in each stretch.
 const AUTO_FLING: float = 3400.0
@@ -81,6 +88,8 @@ const SCENE: String = AppLook.MAP_SCENE
 
 ## The door just won, set by the play screen before it comes back here, or 0.
 static var arrival: int = 0
+## A door whose parcel or milestone the win just earned, opened once the cast has walked on, or 0.
+static var gift_door: int = 0
 ## Set while the look chooser makes its live preview: no buttons, card, banner or intro, and a gentle roll on its own.
 static var preview: bool = false
 ## How far the preview rolls each way from the current door, in strip pixels, and how fast.
@@ -98,6 +107,9 @@ var _ground_material: ShaderMaterial
 var _props: Node2D
 var _houses: Dictionary = {}
 var _scenery: Dictionary = {}
+## The finish ribbons in view, by the milestone door they stand before.
+var _ribbons: Dictionary = {}
+var _coins: StreetCoinPill
 var _pool: Array[StreetProp] = []
 var _cast: StreetCast
 ## Where the cast stands along the street, and the door to play next.
@@ -170,6 +182,8 @@ func _ready() -> void:
 	_scroll = _scroll_for(_current)
 	var walked_from: int = arrival
 	arrival = 0
+	var gift: int = gift_door if gift_door > 0 else _unclaimed()
+	gift_door = 0
 	if walked_from > 0 and walked_from + 1 == _current and not _measuring:
 		_cast_s = StreetPath.door_s(walked_from) - CAST_BEFORE
 		_scroll = _scroll_for(walked_from)
@@ -182,7 +196,12 @@ func _ready() -> void:
 	if _measuring:
 		_auto_scroll()
 	elif walked_from > 0 and walked_from + 1 == _current:
-		_walk_on()
+		_walk_on(gift)
+	elif gift > 0:
+		_busy = true
+		await get_tree().create_timer(0.4).timeout
+		await _open_gift(gift)
+		_busy = false
 
 ## The world's scale on screen: 1 in portrait, and on a wide screen the share that fits WIDE_WORLD_HEIGHT in.
 func _world_scale() -> float:
@@ -242,6 +261,9 @@ func _layout() -> void:
 	for n: Variant in _houses.keys():
 		_recycle(_houses[n])
 	_houses.clear()
+	for n: Variant in _ribbons.keys():
+		_recycle(_ribbons[n])
+	_ribbons.clear()
 	_rest = _scroll_for(_current)
 	_bounds = Vector2(_scroll_for(1), _scroll_for(mini(_current + AHEAD, _last)))
 	if _buttons != null:
@@ -344,9 +366,12 @@ func _build_hud() -> void:
 	var daily: StreetUI.RoundButton = StreetUI.RoundButton.new(StreetUI.RED, &"calendar", BUTTON)
 	daily.pressed.connect(_on_daily)
 	var shop: StreetUI.RoundButton = StreetUI.RoundButton.new(StreetUI.ORANGE, &"stall", BUTTON)
-	shop.pressed.connect(func() -> void: Shop.open(self))
+	shop.pressed.connect(_open_shop)
 	var settings: StreetUI.RoundButton = StreetUI.RoundButton.new(StreetUI.PURPLE, &"gear", BUTTON)
-	settings.pressed.connect(func() -> void: Settings.open(self))
+	settings.pressed.connect(_open_settings)
+	_coins = StreetCoinPill.new()
+	_coins.pressed.connect(_open_shop)
+	root.add_child(_coins)
 	for b: StreetUI.RoundButton in [daily, shop, settings]:
 		_buttons.add_child(b)
 	_pin = StreetUI.RoundButton.new(StreetUI.TEAL, &"home", BUTTON * 0.72)
@@ -369,6 +394,8 @@ func _place_hud() -> void:
 	var lift: float = BUTTON_LIFT + float(safe["bottom"]) + _banner_room
 	var box: Rect2 = _title_box()
 	_title.place(Vector2(box.get_center().x * 2.0, size.y), box.position.y, box.size.x)
+	# The purse sits in the sky's top-right corner, above the title.
+	_coins.position = Vector2(size.x - float(safe["right"]) - COINS_EDGE - _coins.size.x, float(safe["top"]) + COINS_EDGE)
 	if StreetLayout.wide(size):
 		_buttons.vertical = true
 		_buttons.add_theme_constant_override("separation", 36)
@@ -479,6 +506,12 @@ func _tap(at: Vector2) -> void:
 		if _sky.poke(world):
 			Audio.play(&"clink", -12.0, randf_range(1.0, 1.3))
 		return
+	# A family in front of its house: the one tapped laughs and wobbles.
+	if hit.folk != null and hit.folk.visible:
+		var folk_at: int = hit.folk.member_at((world - hit.position) / hit.scale.y - hit.folk.position)
+		if folk_at >= 0:
+			hit.folk.poke(folk_at)
+			return
 	_wobble(hit)
 	if hit.kind != StreetProp.HOUSE:
 		Audio.play(&"pop", StreetWobbler.VOICE_DB, randf_range(0.95, 1.3))
@@ -508,6 +541,7 @@ func _open_card(door: int) -> void:
 func _on_play(door: int) -> void:
 	Pack.use(Pack.Section.MAIN)
 	Pack.current = door - 1
+	StreetPlay.helpers = _card.chosen()
 	var go: Callable = func() -> void: Screens.go(StreetPlay.SCENE)
 	# Decision 7: an ad between levels comes only after a tap on Play, with the kit's usual spacing.
 	if door > 1:
@@ -528,21 +562,111 @@ func _go_home() -> void:
 	var t: Tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	t.tween_property(self, "_scroll", _scroll_for(_current), 0.6)
 
-## After a win: the cast hops along the road to the next door while the street rolls with it, then its card drops in.
-func _walk_on() -> void:
+## After a win: the cast hops along the road to the next door while the street rolls with it, breaking a milestone's
+## ribbon on the way, then the parcel or milestone the win earned opens, then the next door's card drops in.
+func _walk_on(gift: int = 0) -> void:
 	_busy = true
 	await get_tree().create_timer(0.45).timeout
 	_cast.hopping = true
 	Audio.play(&"roll", -10.0)
+	var from_s: float = _cast_s
+	var to_s: float = StreetPath.door_s(_current) - CAST_BEFORE
 	var t: Tween = create_tween().set_parallel().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	t.tween_property(self, "_cast_s", StreetPath.door_s(_current) - CAST_BEFORE, WALK_TIME)
+	t.tween_property(self, "_cast_s", to_s, WALK_TIME)
 	t.tween_property(self, "_scroll", _scroll_for(_current), WALK_TIME)
+	if _ribbons.has(_current - 1):
+		# The eased walk crosses the ribbon where the cosine ease reaches its share of the way.
+		var share: float = clampf((_ribbon_s(_current - 1) - from_s) / (to_s - from_s), 0.0, 1.0)
+		var at: float = acos(1.0 - 2.0 * share) / PI * WALK_TIME
+		t.tween_callback(_break_ribbon.bind(_current - 1)).set_delay(at)
 	await t.finished
 	_cast.hopping = false
 	_cast.cheer()
 	Audio.play(&"pop", -6.0)
+	if gift > 0:
+		await _open_gift(gift)
 	await get_tree().create_timer(CARD_DELAY).timeout
 	_open_card(_current)
+
+## Opens door `n`'s parcel or milestone, once, and waits for it to close. The street then shows what it brought: a
+## family's house where the plot was.
+func _open_gift(n: int) -> void:
+	if Save.gifts.has(n):
+		return
+	var moment: StreetMoment = null
+	if StreetRewards.is_milestone(n):
+		moment = StreetMilestone.new()
+	elif StreetRewards.has_parcel(n):
+		moment = StreetGift.new()
+	if moment == null:
+		return
+	moment.door = n
+	moment.layer = 5
+	_title.create_tween().tween_property(_title, "modulate:a", 0.0, 0.2)
+	add_child(moment)
+	await moment.done
+	_title.create_tween().tween_property(_title, "modulate:a", 1.0, 0.25)
+	if _houses.has(n):
+		_recycle(_houses[n])
+		_houses.erase(n)
+	_place()
+
+## A parcel or milestone won among the last few doors but never opened (the app closed before it could open), or 0.
+func _unclaimed() -> int:
+	if _measuring or _preview:
+		return 0
+	for n: int in range(_current - 1, maxi(_current - 1 - StreetRewards.PARCEL_EVERY, 0), -1):
+		if (StreetRewards.has_parcel(n) or StreetRewards.is_milestone(n)) and Save.best_in(false, n - 1) > 0 \
+				and not Save.gifts.has(n):
+			return n
+	return 0
+
+## Where milestone `n`'s finish ribbon stands along the street.
+func _ribbon_s(n: int) -> float:
+	return StreetPath.door_s(n) - RIBBON_BEFORE
+
+## The cast breaks milestone `n`'s ribbon: its halves fly apart and fade, and it is gone from the street.
+func _break_ribbon(n: int) -> void:
+	var ribbon: StreetProp = _ribbons.get(n, null)
+	if ribbon == null:
+		return
+	Audio.play(&"pop", -2.0, 0.8)
+	Audio.buzz(30, 0.6)
+	ribbon.visible = false
+	for side: int in [-1, 1]:
+		var half: StreetPiece = StreetPiece.new("ribbon_half_left" if side < 0 else "ribbon_half_right",
+			StreetProp.ribbon_k())
+		half.position = ribbon.position
+		half.scale = ribbon.scale
+		half.z_index = 1
+		_props.add_child(half)
+		var t: Tween = half.create_tween().set_parallel()
+		if Save.reduce_motion:
+			t.tween_property(half, "modulate:a", 0.0, 0.3)
+		else:
+			t.tween_property(half, "position:x", half.position.x + side * RIBBON_FLY, 0.6).set_trans(Tween.TRANS_QUAD) \
+				.set_ease(Tween.EASE_OUT)
+			t.tween_property(half, "position:y", half.position.y + 60.0, 0.6).set_trans(Tween.TRANS_BACK) \
+				.set_ease(Tween.EASE_IN)
+			t.tween_property(half, "rotation", side * 0.7, 0.6)
+			t.tween_property(half, "modulate:a", 0.0, 0.3).set_delay(0.35)
+		t.chain().tween_callback(half.queue_free)
+
+func _open_shop() -> void:
+	if _busy:
+		return
+	_busy = true
+	var shop: StreetShop = StreetShop.new()
+	shop.closed.connect(func() -> void: _busy = false)
+	add_child(shop)
+
+func _open_settings() -> void:
+	if _busy:
+		return
+	_busy = true
+	var settings: StreetSettings = StreetSettings.new()
+	settings.closed.connect(func() -> void: _busy = false)
+	add_child(settings)
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -588,12 +712,33 @@ func _place() -> void:
 		var house: StreetProp = _houses.get(door, null)
 		if house == null:
 			house = _take()
-			house.dress_house(door, _state(door), Save.best_in(false, door - 1))
+			house.dress_house(door, _state(door), Save.best_in(false, door - 1), Save.knockers.has(door),
+				Save.gifts.has(door))
 			_houses[door] = house
 		_stand(house, s, StreetPath.door_x(door))
 		if house.state == StreetProp.Door.CURRENT:
 			house.pulse = _time
 			house.queue_redraw()
+	# A finish ribbon across the road just past each milestone still to come.
+	for n: Variant in _ribbons.keys():
+		var m: int = n
+		var at_s: float = _ribbon_s(m)
+		if at_s < near or at_s > far or Save.gifts.has(m):
+			_recycle(_ribbons[m])
+			_ribbons.erase(m)
+	@warning_ignore("integer_division")
+	var milestone: int = (first + StreetRewards.MILESTONE_EVERY - 1) / StreetRewards.MILESTONE_EVERY \
+		* StreetRewards.MILESTONE_EVERY
+	while milestone <= last:
+		var rs: float = _ribbon_s(milestone)
+		if rs >= near and rs <= far and not Save.gifts.has(milestone):
+			var ribbon: StreetProp = _ribbons.get(milestone, null)
+			if ribbon == null:
+				ribbon = _take()
+				ribbon.dress_ribbon(milestone)
+				_ribbons[milestone] = ribbon
+			_stand(ribbon, rs, StreetPath.door_x(milestone))
+		milestone += StreetRewards.MILESTONE_EVERY
 	var from_slot: int = floori(near / StreetPath.SLOT_GAP)
 	var to_slot: int = ceili(far / StreetPath.SLOT_GAP)
 	for key: Variant in _scenery.keys():
