@@ -30,6 +30,20 @@ SCREENS = {
     "walk": [("Concept", "revamp2/4-win.png", (0.682, 0.0, 1.0, 1.0)), ("Build", "street/1080x2400/7-walk.png", None)],
     "chooser": [("Concept world", "revamp2/board.png", (0.0, 0.0, 0.142, 1.0)),
                 ("Build", "street/1080x2400/1-chooser.png", None)],
+    "plot": [("Codex lineup", "art/d1-milestone-lineup.png", None), ("Build", "street/1080x2400/9-plot.png", None),
+             ("Build, settled", "street/1080x2400/10-family.png", None)],
+    "gift": [("Codex paste-up", "art/d1-gift.png", None), ("Build", "street/1080x2400/11-gift.png", None),
+             ("Build, opened", "street/1080x2400/13-gift-done.png", None)],
+    "milestone": [("Codex paste-up", "art/h2-milestone.png", None),
+                  ("Build", "street/1080x2400/14-milestone-rise.png", None),
+                  ("Build, done", "street/1080x2400/16-milestone-done.png", None)],
+    "families": [("Codex lineups", "art/h1-lineups.png", None), ("Build", "street/1080x2400/15-milestone-family.png", None)],
+    "helpers": [("Concept", "revamp2/2-start.png", None), ("Build", "street/1080x2400/17-card-helpers.png", None),
+                ("Build, play", "street/1080x2400/18-play-helpers.png", None)],
+    "shop": [("Concept", "revamp2/6-shop.png", None), ("Codex paste-up", "art/d2-shop.png", None),
+             ("Build", "street/1080x2400/19-shop.png", None)],
+    "settings": [("Concept", "revamp2/7-settings.png", None), ("Build, General", "street/1080x2400/20-settings.png", None),
+                 ("Build, Accessibility", "street/1080x2400/21-settings-access.png", None)],
 }
 
 
