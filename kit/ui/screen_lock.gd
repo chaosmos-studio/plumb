@@ -11,6 +11,9 @@ extends RefCounted
 ## Android's own line between a phone and a large screen, in density-independent pixels.
 const LARGE_DP: float = 600.0
 
+## Set by a game whose every screen has a wide layout too: then phones turn with the device as well.
+static var phones_turn: bool = false
+
 static func start() -> void:
 	if not OS.has_feature("android"):
 		return
@@ -24,6 +27,8 @@ static func apply() -> void:
 		DisplayServer.screen_set_orientation(want)
 
 static func orientation_for(pixels: Vector2i, dpi: int) -> DisplayServer.ScreenOrientation:
+	if phones_turn:
+		return DisplayServer.SCREEN_SENSOR
 	if dpi <= 0:
 		return DisplayServer.SCREEN_PORTRAIT
 	var dp: float = minf(pixels.x, pixels.y) * 160.0 / float(dpi)

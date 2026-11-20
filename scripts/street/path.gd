@@ -71,6 +71,20 @@ static func scenery(slot: int, side: int) -> Vector2:
 		lerpf(SCENERY_SET.x, SCENERY_SET.y, float((h >> 8) % 1000) / 1000.0)
 	return Vector2(kind, road_x(s) + float(side) * out)
 
+## The meadow a wide screen shows beyond SCENERY_SET: in band `band` (1, 2, ...) a slot may hold a tree or a bush,
+## FAR_BAND further out each band, so a wide street fills to its edges. Its kind (Kind.NONE for an empty spot) and x.
+const FAR_BAND: float = 300.0
+const FAR_SHARE: int = 30
+
+static func far_scenery(slot: int, side: int, band: int) -> Vector2:
+	var h: int = mix(slot * 31 + band * 7 + (1 if side > 0 else 0) + 5)
+	if h % 100 >= FAR_SHARE:
+		return Vector2(Kind.NONE, 0.0)
+	var kind: int = Kind.TREE if (h >> 4) % 2 == 0 else Kind.BUSH
+	var inner: float = SCENERY_SET.y + FAR_BAND * float(band - 1) + 60.0
+	var out: float = inner + float((h >> 9) % 1000) / 1000.0 * (FAR_BAND - 60.0)
+	return Vector2(kind, road_x(slot_s(slot)) + float(side) * out)
+
 ## A 32-bit integer hash (the "lowbias32" mix): close inputs give unrelated outputs.
 static func mix(value: int) -> int:
 	var h: int = value & 0xFFFFFFFF

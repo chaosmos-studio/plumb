@@ -18,6 +18,14 @@ static func first_scene(look: String, chosen: bool) -> String:
 		return CHOOSER_SCENE
 	return MAP_SCENE if look == STREET else Brand.TITLE_SCENE
 
+## Puts the look's screen rule in place (StreetLayout): Street turns and composes wide screens, Classic keeps its own.
+## The chooser counts as Street, since it is drawn in Street's world.
+static func use(look: String) -> void:
+	if look == CLASSIC:
+		StreetLayout.stop()
+	else:
+		StreetLayout.start()
+
 ## Home in the look being played.
 static func home_scene(look: String) -> String:
 	return Brand.TITLE_SCENE if look == CLASSIC else MAP_SCENE

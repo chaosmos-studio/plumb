@@ -9,6 +9,7 @@ static func rows() -> Array[Control]:
 		Save.set_app_look(AppLook.STREET if on else AppLook.CLASSIC)
 		if not on:
 			Appearance.apply(Save.theme)
+		AppLook.use(Save.app_look)
 		Screens.go(AppLook.home_scene(Save.app_look)))
 	lines.append(_drawn_row("Street look", street, _House.new()))
 	var faces: Switch = Switch.new(Save.faces)

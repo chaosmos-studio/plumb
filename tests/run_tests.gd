@@ -54,6 +54,7 @@ func _initialize() -> void:
 	_test_stars()
 	_test_street_projection()
 	_test_street_path()
+	_test_street_layout()
 	if not OS.get_cmdline_user_args().has("quick"):
 		_test_level_pack()
 	_test_opening()
@@ -684,6 +685,49 @@ func _test_street_path() -> void:
 	for k: int in range(StreetPath.SHARE.size()):
 		shares = shares and absf(float(counts[k + 1]) / float(free) * 100.0 - StreetPath.SHARE[k]) < 3.0
 	_check("each kind of scenery turns up about as often as its share of the free slots", shares)
+	# A wide screen's meadow: trees and bushes only, in their band, beyond the street's own scenery.
+	var meadow: bool = true
+	var filled: int = 0
+	for slot: int in range(4000):
+		for side: int in [-1, 1]:
+			for band: int in range(1, 5):
+				var spot: Vector2 = StreetPath.far_scenery(slot, side, band)
+				if int(spot.x) == StreetPath.Kind.NONE:
+					continue
+				filled += 1
+				var out: float = (spot.y - StreetPath.road_x(StreetPath.slot_s(slot))) * float(side)
+				var inner: float = StreetPath.SCENERY_SET.y + StreetPath.FAR_BAND * float(band - 1)
+				meadow = meadow and (int(spot.x) == StreetPath.Kind.TREE or int(spot.x) == StreetPath.Kind.BUSH) \
+					and out > inner and out <= inner + StreetPath.FAR_BAND
+	_check("a wide screen's meadow holds trees and bushes in their own bands", meadow)
+	_check("and about FAR_SHARE of its spots are filled",
+		absf(float(filled) / (4000.0 * 2.0 * 4.0) * 100.0 - StreetPath.FAR_SHARE) < 3.0)
+
+# Shravan's rule: portrait is the design and a wide screen gets its own layout, on a base whose short side is 720
+# units, so the hand sees one size either way (REVAMP_PLAN.md section 16).
+func _test_street_layout() -> void:
+	var shapes: Array[Vector2] = [Vector2(1080, 2400), Vector2(2400, 1080), Vector2(1920, 1080), Vector2(2560, 1080),
+		Vector2(2048, 1536), Vector2(1536, 2048), Vector2(720, 1280), Vector2(1000, 1000)]
+	var short_side: bool = true
+	var keeps_shape: bool = true
+	var covers_base: bool = true
+	for pixels: Vector2 in shapes:
+		var design: Vector2 = StreetLayout.design_size(pixels)
+		var base: Vector2 = StreetLayout.base_for(pixels)
+		short_side = short_side and minf(design.x, design.y) >= StreetLayout.SHORT - 0.01 \
+			and (absf(design.x - base.x) < 0.01 or absf(design.y - base.y) < 0.01)
+		keeps_shape = keeps_shape and is_equal_approx(design.x / design.y, pixels.x / pixels.y)
+		covers_base = covers_base and design.x >= base.x - 0.01 and design.y >= base.y - 0.01
+	_check("every screen's short side is at least 720 units, and one side matches the base", short_side)
+	_check("the design keeps the screen's shape: nothing stretches", keeps_shape)
+	_check("and always holds the whole base for its orientation", covers_base)
+	_check("a landscape phone is wide, a portrait one and a square are not",
+		StreetLayout.wide(StreetLayout.design_size(Vector2(2400, 1080)))
+		and not StreetLayout.wide(StreetLayout.design_size(Vector2(1080, 2400)))
+		and not StreetLayout.wide(StreetLayout.design_size(Vector2(1000, 1000))))
+	var a142: Vector2 = StreetLayout.design_size(Vector2(1084, 2412))
+	_check("a portrait phone shows the same design as before the rule",
+		absf(a142.x - 720.0) < 0.01 and absf(a142.y - 2412.0 * 720.0 / 1084.0) < 0.01)
 
 # Every shipped level, on the main path and in Hard, is re-solved against the current rules, so a rule change that
 # alters a par or makes a level unsolvable fails before a build can ship it.
