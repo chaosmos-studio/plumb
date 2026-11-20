@@ -26,7 +26,7 @@ const BOW: float = 0.00022
 ## On a wide screen the street is a world this tall (the portrait phone's design height the concepts were drawn for),
 ## scaled to fit the screen's height, so it composes as the portrait street does, horizon and all, with more of the
 ## meadow either side (StreetLayout).
-const WIDE_WORLD_HEIGHT: float = 1602.0
+const WIDE_WORLD_HEIGHT: float = 1250.0
 ## The ground's mesh: rows evenly down the screen, columns across.
 const ROWS: int = 72
 const COLUMNS: int = 28
@@ -58,6 +58,9 @@ const NUMBERED_AHEAD: int = 3
 ## The bottom row of buttons: their size, and their distance from the screen's foot.
 const BUTTON: float = 132.0
 const BUTTON_LIFT: float = 54.0
+## The PLUMB title's top below the safe area, and its width.
+const TITLE_TOP: float = 120.0
+const TITLE_WIDTH: float = 620.0
 ## A round "back home" button shows once the current door is this far off screen, in design pixels.
 const PIN_AFTER: float = 140.0
 ## The scripted scroll: the fling speed, the steady speed, in strip pixels a second, the door it starts from, the rounds
@@ -116,6 +119,9 @@ var _preview: bool = false
 var _far_bands: int = 0
 ## Props whose tap wobble is still moving.
 var _wobbling: Array[StreetProp] = []
+## The title in the sky, and what wobbles it and the buttons' neighbours.
+var _title: StreetTitle
+var _wobbler: StreetWobbler
 
 func _ready() -> void:
 	_preview = preview
@@ -262,6 +268,10 @@ func _build_hud() -> void:
 	_hud.add_child(root)
 	var front: _Front = _Front.new()
 	root.add_child(front)
+	_title = StreetTitle.new()
+	root.add_child(_title)
+	_wobbler = StreetWobbler.new()
+	add_child(_wobbler)
 	_buttons = BoxContainer.new()
 	_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	_buttons.add_theme_constant_override("separation", 56)
@@ -291,6 +301,11 @@ func _place_hud() -> void:
 	var size: Vector2 = get_viewport_rect().size
 	var safe: Dictionary = UI.safe_margins(get_viewport())
 	var lift: float = BUTTON_LIFT + float(safe["bottom"]) + _banner_room
+	# Wide, the title sits in the sky's top-left corner, clear of the street and the buttons.
+	if StreetLayout.wide(size):
+		_title.place(Vector2(size.y * 1.1, size.y), float(safe["top"]) + 24.0, TITLE_WIDTH * 0.8)
+	else:
+		_title.place(size, float(safe["top"]) + TITLE_TOP, TITLE_WIDTH)
 	if StreetLayout.wide(size):
 		_buttons.vertical = true
 		_buttons.add_theme_constant_override("separation", 36)
@@ -376,6 +391,9 @@ func _rubber(want: float) -> float:
 ## A tap on the street, `at` in screen units: whatever is under the finger, front first, wobbles. A cast member
 ## laughs, and an open door's house opens its card too.
 func _tap(at: Vector2) -> void:
+	if _title != null and _title.hit(at):
+		_wobbler.tap(_title, StreetWobbler.Voice.BOING)
+		return
 	var member: int = _cast.member_at(at) if _cast.visible else -1
 	if member >= 0:
 		_cast.poke(member)
@@ -632,11 +650,9 @@ func _begin(label: String) -> void:
 	_probe.begin(label)
 
 
-## What frames the street on the screen itself, under the buttons, as in every concept: the PLUMB title in the sky,
-## a strip of grass and flowers along the foot, and leafy corners growing up from the bottom corners.
+## What frames the street on the screen itself, under the buttons, as in every concept: a strip of grass and flowers
+## along the foot, and leafy corners growing up from the bottom corners.
 class _Front extends Node2D:
-	const TITLE_WIDTH: float = 620.0
-	const TITLE_TOP: float = 120.0
 	const GRASS_HEIGHT: float = 150.0
 	const CORNER_WIDTH: float = 300.0
 
@@ -645,11 +661,6 @@ class _Front extends Node2D:
 
 	func _draw() -> void:
 		var size: Vector2 = get_viewport_rect().size
-		var safe: Dictionary = UI.safe_margins(get_viewport())
-		var title_w: float = minf(TITLE_WIDTH, size.x * 0.86)
-		var title_k: float = title_w / StreetArt.size("title_plumb").x
-		var title_h: float = StreetArt.size("title_plumb").y * title_k
-		StreetArt.draw(self, "title_plumb", Vector2(size.x * 0.5, float(safe["top"]) + TITLE_TOP + title_h * 0.5), title_k)
 		var grass_k: float = GRASS_HEIGHT / StreetArt.size("grass_front").y
 		var step: float = StreetArt.size("grass_front").x * grass_k
 		var x: float = 0.0

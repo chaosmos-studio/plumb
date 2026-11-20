@@ -8,10 +8,14 @@ extends Node2D
 ## long it takes.
 
 ## The houses: their widest, and the line their feet stand on, as a share of the screen's height.
-const HOUSE_WIDTH: float = 300.0
+const HOUSE_WIDTH: float = 380.0
 const GROUND_AT: float = 0.6
+## The neighbours a row back: their size beside the level's houses, how far back they stand, and their trees' size.
+const BACK_SCALE: float = 0.62
+const BACK_RISE: float = 70.0
+const BACK_TREE: float = 1.0
 ## A marble's size, and its hop home: its height and how long it takes.
-const BALL: float = 136.0
+const BALL: float = 160.0
 const HOP: float = 150.0
 const HOP_TIME: float = 0.6
 const HOP_GAP: float = 0.14
@@ -52,9 +56,32 @@ func play() -> float:
 	plaza.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	plaza.modulate.a = 0.0
 	add_child(plaza)
-	var width: float = minf(HOUSE_WIDTH * u, (size.x - 40.0) / float(n))
+	var width: float = minf(HOUSE_WIDTH * u, (size.x - 20.0) / float(n))
 	var ball_w: float = BALL * u
+	# The street behind: neighbours' houses a row back with trees among them, so the square is a full street, as in
+	# the concept, however few colours the level had.
+	var back: Array[_Piece] = []
+	var back_w: float = width * BACK_SCALE
+	var back_n: int = ceili(size.x / back_w) + 1
+	for i: int in range(back_n + 1):
+		var tree: _Piece = _Piece.new("tree_%d" % (1 + i % 3), BACK_TREE * u)
+		tree.position = Vector2(size.x * 0.5 + (float(i) - float(back_n) * 0.5) * back_w, ground - BACK_RISE * u - 20.0)
+		back.append(tree)
+	for i: int in range(back_n):
+		var name: String = "house_%s_%d" % [StreetArt.COLOURS[(i + 1) % 4], 1 + (i * 3 + 1) % StreetArt.SHAPES]
+		var bk: float = back_w / StreetArt.size(name).x * 0.95
+		var neighbour: _Piece = _Piece.new(name, bk)
+		neighbour.position = Vector2(size.x * 0.5 + (float(i) - float(back_n - 1) * 0.5) * back_w, ground - BACK_RISE * u)
+		back.append(neighbour)
+		var nd: Vector3 = StreetArt.door(name) * bk
+		var shut: _Piece = _Piece.new("door_" + StreetArt.COLOURS[(i + 1) % 4], bk)
+		shut.position = neighbour.position + Vector2(nd.x, nd.y)
+		back.append(shut)
+	for p: _Piece in back:
+		p.modulate.a = 0.0
+		add_child(p)
 	var houses: Array[_Piece] = []
+	var feet: Array[_Piece] = []
 	var opens: Array[_Piece] = []
 	var shuts: Array[_Piece] = []
 	var windows: Array[_Piece] = []
@@ -67,6 +94,11 @@ func play() -> float:
 		var house: _Piece = _Piece.new(house_name, k)
 		house.position = Vector2(x, ground)
 		houses.append(house)
+		for side: int in [-1, 1]:
+			var bed: _Piece = _Piece.new(("flowerbed_%d" % (1 + (i + side + 3) % 3)) if (i + side) % 2 == 0 else "bush_big_1",
+				k * 0.7)
+			bed.position = Vector2(x + side * width * 0.4, ground + 10.0)
+			feet.append(bed)
 		var d: Vector3 = StreetArt.door(house_name) * k
 		var at: Vector2 = Vector2(x + d.x, ground + d.y)
 		opens.append(_Piece.new("door_open", k))
@@ -83,9 +115,9 @@ func play() -> float:
 		ball.lift = HOP * u
 		ball.position = from + Vector2((float(i) - float(n - 1) * 0.5) * ball_w * 1.1, 0.0)
 		ball.home = at
-		ball.step_out = Vector2(at.x, ground + ball_w * 1.3)
+		ball.step_out = Vector2(lerpf(at.x, size.x * 0.5, 0.25), ground + ball_w * (1.5 + 0.35 * float(i % 2)))
 		balls.append(ball)
-	for layer: Array in [houses, opens, shuts, windows]:
+	for layer: Array in [houses, opens, shuts, windows, feet]:
 		for p: _Piece in layer:
 			p.modulate.a = 0.0
 			add_child(p)
@@ -116,6 +148,10 @@ func play() -> float:
 
 	var t: Tween = create_tween().set_parallel()
 	t.tween_property(plaza, "modulate:a", 1.0, 0.3)
+	for p: _Piece in back:
+		t.tween_property(p, "modulate:a", 1.0, 0.3)
+	for p: _Piece in feet:
+		t.tween_property(p, "modulate:a", 1.0, 0.25).set_delay(0.2)
 	for i: int in range(n):
 		t.tween_property(houses[i], "modulate:a", 1.0, 0.25).set_delay(i * 0.07)
 		t.tween_property(houses[i], "position:y", ground, 0.45).from(ground + 90.0).set_trans(Tween.TRANS_BACK) \
@@ -166,15 +202,17 @@ func play() -> float:
 			t.tween_callback(func() -> void: b.cheering = true).set_delay(at + 0.45)
 		t.tween_callback(func() -> void:
 			Audio.play(&"chord", -4.0)
-			var burst: Flourish.Burst = Flourish.Burst.new()
-			burst.count = 90
-			burst.speed = 900.0
-			burst.gravity = 1100.0
-			burst.life = 1.6
-			burst.size = 16.0
-			burst.colours = [StreetUI.RED, StreetUI.YELLOW, StreetUI.TEAL, StreetUI.PURPLE, Color.WHITE]
-			burst.position = Vector2(size.x * 0.5, stars_y)
-			add_child(burst)).set_delay(end + 0.2)
+			# Confetti from the stars and from both sides of the square, so it rains over the whole street.
+			for spot: Vector2 in [Vector2(0.5, 0.0), Vector2(0.08, 0.35), Vector2(0.92, 0.35)]:
+				var burst: Flourish.Burst = Flourish.Burst.new()
+				burst.count = 70
+				burst.speed = 950.0
+				burst.gravity = 1000.0
+				burst.life = 1.9
+				burst.size = 17.0
+				burst.colours = [StreetUI.RED, StreetUI.YELLOW, StreetUI.TEAL, StreetUI.PURPLE, Color.WHITE]
+				burst.position = Vector2(size.x * spot.x, stars_y + size.y * spot.y)
+				add_child(burst)).set_delay(end + 0.2)
 		end += 1.6
 	return end + 0.5
 
