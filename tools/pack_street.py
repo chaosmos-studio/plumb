@@ -30,8 +30,8 @@ SIZE = (2048, 4096)
 UI_SIZE = (2048, 3072)
 PAD = 4
 # The screens' pieces, which go on the UI page, and the whole-screen backdrops.
-UI = ("bunting", "button_", "card_", "icon_", "pill_", "ribbon", "sign_", "slot_", "star_big", "rays", "sparks",
-      "confetti_")
+UI = ("button_", "card_", "icon_", "pill_", "ribbon", "sign_", "slot_", "star_big", "rays", "sparks",
+      "confetti_", "title_", "front_", "grass_front")
 BACKDROPS = ("play_backdrop", "win_backdrop", "play_backdrop_wide", "win_backdrop_wide")
 SKIP = ("grass_tile", "road_tile", "hills", "sky")
 # Art painted ahead for M3 (milestones, the parcel opening, the shop and Settings), which gets its own pages when the
@@ -197,6 +197,33 @@ def drawn_pieces() -> dict[str, tuple[Image.Image, tuple[float, float]]]:
     return out
 
 
+DIGIT_PX = 220
+DIGIT_FILL = (255, 243, 223)
+# Each digit's advance, in atlas pixels, filled by digit_pieces and written into the index after packing.
+ADVANCES: dict[str, float] = {}
+
+
+def digit_pieces() -> tuple[dict, dict]:
+    """The door numbers' digits, set in Baloo 2 at its heaviest and packed with the houses, so a door's number draws in
+    the same run as its house instead of breaking the batch with text. Each is centred on its ink, and its advance
+    (how far the next digit starts) is kept for setting numbers."""
+    from PIL import ImageFont
+    font = ImageFont.truetype(str(ROOT / "assets" / "fonts" / "Baloo2.ttf"), DIGIT_PX)
+    try:
+        font.set_variation_by_axes([800])
+    except (OSError, AttributeError):
+        pass
+    out, advances = {}, {}
+    for d in "0123456789":
+        x0, y0, x1, y1 = font.getbbox(d)
+        w, h = x1 - x0 + 8, y1 - y0 + 8
+        im = Image.new("RGBA", (w, h), DIGIT_FILL + (0,))
+        ImageDraw.Draw(im).text((4 - x0, 4 - y0), d, font=font, fill=DIGIT_FILL + (255,))
+        out["digit_" + d] = (im, (w / 2, h / 2))
+        advances["digit_" + d] = round(font.getlength(d), 2)
+    return out, advances
+
+
 def stand_in_body(colour: str) -> Image.Image:
     """A glossy ball for a cast member whose painted body has not arrived."""
     r, g, b = BODY[colour]
@@ -223,7 +250,7 @@ def collect() -> tuple[dict, dict, dict, dict]:
         name = ALIAS.get(source, source)
         if name in SKIP or name in BACKDROPS or name.startswith(("faces_",) + LATER):
             continue
-        if name.startswith(UI):
+        if name == "bunting" or name.startswith(UI):
             im = Image.open(path).convert("RGBA")
             spec = SRC / (source + ".json")
             ui_meta[name] = json.loads(spec.read_text()) if spec.exists() else {}
@@ -253,22 +280,57 @@ def collect() -> tuple[dict, dict, dict, dict]:
     for name, drawn in drawn_pieces().items():
         if name not in pieces and name not in ui:
             pieces[name] = drawn
+    digits, advances = digit_pieces()
+    pieces.update(digits)
+    ADVANCES.update(advances)
     return pieces, houses, ui, ui_meta
 
 
 def pack(pieces: dict, size: tuple[int, int] = SIZE) -> tuple[Image.Image, dict]:
+    """A skyline packer: the page's filled outline is kept as a list of steps (x, width, height), and each piece,
+    tallest first, goes where its top lands lowest. It fills a page far tighter than rows of shelves do."""
     atlas = Image.new("RGBA", size, (0, 0, 0, 0))
     index = {}
-    x, y, shelf = PAD, PAD, 0
-    for name, (im, anchor) in sorted(pieces.items(), key=lambda kv: (-kv[1][0].height, kv[0])):
-        if x + im.width + PAD > size[0]:
-            x, y, shelf = PAD, y + shelf + PAD, 0
-        if y + im.height + PAD > size[1]:
+    sky = [[0, size[0], 0]]
+    for name, (im, anchor) in sorted(pieces.items(), key=lambda kv: (-kv[1][0].height, -kv[1][0].width, kv[0])):
+        w, h = im.width + PAD, im.height + PAD
+        best = None
+        for i in range(len(sky)):
+            x = sky[i][0]
+            if x + w > size[0]:
+                break
+            # The piece rests on the highest step it spans.
+            top, span, j = 0, 0, i
+            while span < w:
+                top = max(top, sky[j][2])
+                span += sky[j][1]
+                j += 1
+            if top + h <= size[1] and (best is None or top < best[1] or (top == best[1] and x < best[0])):
+                best = (x, top)
+        if best is None:
             raise SystemExit(f"the page is full at {name}")
-        atlas.alpha_composite(im, (x, y))
-        index[name] = {"rect": [x, y, im.width, im.height], "anchor": [round(anchor[0], 2), round(anchor[1], 2)]}
-        x += im.width + PAD
-        shelf = max(shelf, im.height)
+        x, y = best
+        atlas.alpha_composite(im, (x + PAD // 2, y + PAD // 2))
+        index[name] = {"rect": [x + PAD // 2, y + PAD // 2, im.width, im.height],
+                       "anchor": [round(anchor[0], 2), round(anchor[1], 2)]}
+        # The piece's top becomes a new step, cutting the steps it covers.
+        steps = []
+        for sx, sw, sh in sky:
+            if sx + sw <= x or sx >= x + w:
+                steps.append([sx, sw, sh])
+                continue
+            if sx < x:
+                steps.append([sx, x - sx, sh])
+            if sx + sw > x + w:
+                steps.append([x + w, sx + sw - (x + w), sh])
+        steps.append([x, w, y + h])
+        steps.sort()
+        sky = []
+        for step in steps:
+            if sky and sky[-1][2] == step[2] and sky[-1][0] + sky[-1][1] == step[0]:
+                sky[-1][1] += step[1]
+            else:
+                sky.append(step)
     return atlas, index
 
 
@@ -291,6 +353,8 @@ def main() -> None:
         index[name]["door"] = [round((cx - bx) * f, 2), round((cy - by) * f, 2), round(r * f, 2)]
         index[name]["windows"] = [[round((wx - bx) * f, 2), round((wy - by) * f, 2), round(ww * f, 2), round(wh * f, 2)]
                                   for wx, wy, ww, wh in data["windows"]]
+    for name, advance in ADVANCES.items():
+        index[name]["advance"] = advance
     atlas.save(OUT / "atlas.png", optimize=True)
     (OUT / "atlas.json").write_text(json.dumps({"scale": SCALE, "body": BODY_PX, "pieces": index}, indent=1,
                                                sort_keys=True) + "\n")
