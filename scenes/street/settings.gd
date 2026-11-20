@@ -272,14 +272,18 @@ class _Board extends Node2D:
 	var _knobs: PackedFloat32Array = PackedFloat32Array()
 	var _pops: PackedFloat32Array = PackedFloat32Array()
 	var _t: float = 0.0
+	## The rows the panel is drawn tall enough for, easing to the current tab's count as tabs change.
+	var _rows_drawn: float = 0.0
 
 	func _ready() -> void:
+		_rows_drawn = float(settings.rows_of(settings._tab).size())
 		_sync()
 
-	## The board's height in its pixels, for the most rows a tab shows.
-	func height() -> float:
-		return StreetSettings.ROWS_Y - StreetSettings.BOARD_AT.y + float(settings.most_rows() - 1) \
-			* StreetSettings.ROW_STEP + StreetSettings.ROW_SIZE.y + StreetSettings.BOARD_FOOT
+	## The board's height in its pixels for `rows` rows, by default the most rows a tab shows, which sets its scale.
+	func height(rows: float = -1.0) -> float:
+		var n: float = float(settings.most_rows()) if rows < 0.0 else rows
+		return StreetSettings.ROWS_Y - StreetSettings.BOARD_AT.y + (n - 1.0) * StreetSettings.ROW_STEP \
+			+ StreetSettings.ROW_SIZE.y + StreetSettings.BOARD_FOOT
 
 	func _sync() -> void:
 		var rows: Array[StreetSettings.Row] = settings.rows_of(settings._tab)
@@ -298,17 +302,23 @@ class _Board extends Node2D:
 		return Rect2(Vector2(StreetSettings.TABS_AT.x - StreetSettings.BOARD_AT.x, StreetSettings.ROWS_Y
 			- StreetSettings.BOARD_AT.y + float(i) * StreetSettings.ROW_STEP), StreetSettings.ROW_SIZE)
 
-	## The tab pill slides to `tab`, and its rows come in.
+	## The tab pill slides to `tab`, its rows come in, and the board grows or shrinks to hold them.
 	func slide_tab(tab: int) -> void:
 		_sync()
+		var rows: float = float(settings.rows_of(tab as StreetSettings.Tab).size())
 		if Save.reduce_motion:
 			_tab_at = float(tab)
+			_rows_drawn = rows
 			queue_redraw()
 			return
 		var slide: Callable = func(v: float) -> void:
 			_tab_at = v
 			queue_redraw()
 		create_tween().tween_method(slide, _tab_at, float(tab), 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		var grow: Callable = func(v: float) -> void:
+			_rows_drawn = v
+			queue_redraw()
+		create_tween().tween_method(grow, _rows_drawn, rows, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 	## Row `i`'s toggle slides to its new place with an overshoot, and its tick and cross swap with a pop.
 	func flip(i: int) -> void:
@@ -337,7 +347,8 @@ class _Board extends Node2D:
 
 	func _draw() -> void:
 		var px: float = 1.0 / StreetArt.DESIGN_PER_PIXEL
-		StreetArt.draw_nine(self, "settings_panel", Rect2(Vector2.ZERO, Vector2(StreetSettings.BOARD_W, height())), px)
+		StreetArt.draw_nine(self, "settings_panel", Rect2(Vector2.ZERO, Vector2(StreetSettings.BOARD_W,
+			height(_rows_drawn))), px)
 		var track: Vector2 = StreetSettings.TABS_AT - StreetSettings.BOARD_AT
 		StreetArt.draw_nine(self, "settings_tab_track", Rect2(track, Vector2(860.0, 148.0)), px)
 		var pill: Rect2 = tab_rect(0)
