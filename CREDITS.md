@@ -13,6 +13,7 @@ Android build, which come under Google's own terms. Note every modification (res
 | Asset | Author | Licence | Notes |
 | --- | --- | --- | --- |
 | Outfit (`assets/fonts/Outfit-Light.ttf` and `assets/fonts/Outfit-Medium.ttf`, and the light one again as `web/Outfit-Light.ttf` for the loading page) | The Outfit Project Authors | SIL Open Font License 1.1 (`assets/fonts/Outfit-OFL.txt`) | Modified: static weight-300 and weight-500 instances of the variable font with overlapping contours merged, written by `tools/make_font.py` from the unmodified source in `assets/fonts/source/`. The variable font's overlaps showed as faint seams across stems. The licence declares no Reserved Font Name. |
+| Baloo 2 (`assets/fonts/Baloo2.ttf`), the Street look's numbers and words | The Baloo 2 Project Authors (Ek Type) | SIL Open Font License 1.1 (`assets/fonts/Baloo2-OFL.txt`) | Unmodified variable font, the same file Faceplant ships. The game picks its weight-800 instance at run time. The licence declares no Reserved Font Name. |
 
 ## Ads, purchases and analytics (Android build only)
 
@@ -38,3 +39,5 @@ All synthesised by `tools/make_sfx.py`, including the ambient music loop. None a
 ## Everything else
 
 Code, generated art and synthesised audio are original to this project, apart from the plugins above.
+The Street look's painted art (`art/street/`, packed into `assets/street/` by `tools/pack_street.py`) is original
+to this project too, made with the help of AI tools.
