@@ -23,7 +23,7 @@ const TRAY_SIZE: Vector2 = Vector2(840.0, 276.0)
 const TRAYS_Y: PackedFloat32Array = [977.0, 1285.0, 1593.0]
 const ITEMS_DY: float = 120.0
 const PILL_DY: float = 257.0
-const PILL_SIZE: Vector2 = Vector2(220.0, 72.0)
+const PILL_SIZE: Vector2 = Vector2(250.0, 86.0)
 const VENDOR: Vector2 = Vector2(433.0, 808.0)
 const VENDOR_D: float = 231.0
 const PLANTERS: PackedFloat32Array = [198.0, 886.0]
@@ -34,7 +34,7 @@ const WIDE_TOP: float = 300.0
 const WIDE_BOTTOM: float = 2170.0
 ## The items: a hat's width, a marble's diameter, a helper's slot, and how near a tap must land.
 const HAT: float = 150.0
-const MARBLE: float = 80.0
+const MARBLE: float = 90.0
 const SLOT: float = 150.0
 const REACH: float = 80.0
 ## Items bob at rest this far, in painting pixels, this fast.
@@ -362,17 +362,17 @@ class _Front extends Node2D:
 			for i: int in range(StreetShop.count_of(tray)):
 				var bob: float = 0.0 if still else sin(_t * StreetShop.BOB_SPEED + float(i) * 1.3) * StreetShop.BOB
 				_item(tray, i, StreetShop.item_at(tray, i) + Vector2(0.0, lift + bob), tint)
-			# The tray's one quiet price pill: a coin and its price.
+			# The tray's one quiet price pill: a coin and its price. Its wiggle squashes its box, since a nine-patch
+			# sets its own transform.
 			var pill: Rect2 = StreetShop.pill_rect(tray)
 			pill.position.y += lift
-			var spring: Jiggle = _pills[tray]
-			draw_set_transform(pill.get_center(), spring.tilt() * 2.0, spring.squash())
-			var local: Rect2 = Rect2(-pill.size * 0.5, pill.size)
-			StreetArt.draw_nine(self, "pill_orange", local, pill.size.y / StreetArt.size("pill_orange").y, tint)
-			_fit("coin", Vector2(local.position.x + 46.0, 0.0), 54.0, tint)
-			draw_string(font, Vector2(local.position.x + 76.0, 18.0), str(StreetShop.price_of(tray)),
-				HORIZONTAL_ALIGNMENT_CENTER, pill.size.x - 96.0, 52, Color(StreetUI.CREAM, a))
-			draw_set_transform(Vector2.ZERO)
+			var squash: Vector2 = _pills[tray].squash()
+			var shake: float = _pills[tray].tilt() * 60.0
+			var box: Rect2 = Rect2(pill.get_center() + Vector2(shake, 0.0) - pill.size * squash * 0.5, pill.size * squash)
+			StreetArt.draw_nine(self, "pill_orange", box, box.size.y / StreetArt.size("pill_orange").y, tint)
+			_fit("coin", Vector2(box.position.x + 54.0, box.get_center().y), 64.0, tint)
+			draw_string(font, Vector2(box.position.x + 88.0, box.get_center().y + 22.0), str(StreetShop.price_of(tray)),
+				HORIZONTAL_ALIGNMENT_CENTER, box.size.x - 110.0, 62, Color(StreetUI.CREAM, a))
 		# The Supporter row: a heart and its price, or a tick once it is the player's.
 		var row: Rect2 = StreetShop.support_rect()
 		row.position.y += rise

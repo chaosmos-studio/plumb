@@ -132,11 +132,11 @@ func _dress_family() -> void:
 			folk.family = f
 			add_child(folk)
 		folk.size_k = FOLK_SCALE
-		# In front of the house, on its side toward the road.
+		# On the plot's steps in front of their door, a little toward the road, in front of the sails.
 		var toward: float = -float(StreetPath.door_side(door))
-		folk.position = Vector2(toward * (StreetArt.size(house).x * HOUSE_SCALE * MILESTONE_SCALE * 0.5
-			- folk.width() * 0.3), 18.0)
+		folk.position = Vector2(toward * StreetArt.size(house).x * HOUSE_SCALE * MILESTONE_SCALE * 0.16, 12.0)
 		folk.visible = true
+		move_child(folk, -1)
 	elif folk != null:
 		folk.visible = false
 	set_process(sails != null and sails.visible and not Save.reduce_motion)

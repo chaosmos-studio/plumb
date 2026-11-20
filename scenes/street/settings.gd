@@ -113,9 +113,11 @@ func _layout() -> void:
 	var top: float = float(safe["top"])
 	if wide:
 		# The arch on the left, the board on the right, each as large as the height allows.
+		# The board keeps clear of the close button in the top-right corner.
 		var board_s: float = (size.y - top - float(safe["bottom"]) - 40.0) / _board.height()
 		_board.scale = Vector2.ONE * board_s
-		_board.position = Vector2(size.x * 0.72 - BOARD_W * 0.5 * board_s, top + 20.0)
+		var right: float = size.x - float(safe["right"]) - _close.size.x - 44.0
+		_board.position = Vector2(minf(size.x * 0.7 - BOARD_W * 0.5 * board_s, right - BOARD_W * board_s), top + 20.0)
 		var arch_s: float = minf(size.x * 0.42 / FRAME.x, size.y * 0.9 / 900.0)
 		_top.scale = Vector2.ONE * arch_s
 		_top.position = Vector2(size.x * 0.27 - FRAME.x * 0.5 * arch_s, size.y * 0.5 - 520.0 * arch_s)
