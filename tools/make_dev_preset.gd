@@ -2,7 +2,7 @@ extends SceneTree
 
 # Adds or refreshes the "Android Dev" export preset: a copy of the Android APK preset under its own package, so a dev
 # build installs beside the live Plumb on a phone and never touches its progress. Debug-signed, arm64 only, and with
-# the street_spike feature, which opens the rolling street (REVAMP_PLAN.md, M1).
+# the dev_build feature, which keeps Play Games off (no Play Games project knows the dev package).
 #
 # Run: godot --headless --path . -s res://tools/make_dev_preset.gd
 
@@ -11,10 +11,10 @@ const SOURCE_NAME: String = "Android APK"
 const NAME: String = "Android Dev"
 const PACKAGE: String = "com.shravangoswami.plumb.dev"
 const LABEL: String = "Plumb Dev"
-const FEATURES: String = "street_spike"
+const FEATURES: String = "dev_build"
 const EXPORT_PATH: String = "build/android/plumb-dev.apk"
-## What a build with FEATURES opens on, through a feature override of the main scene.
-const MAIN_SCENE: String = "res://scenes/street/map.tscn"
+## Every build opens on the boot scene, which picks the chooser or a look's Home.
+const MAIN_SCENE: String = "res://scenes/boot/boot.tscn"
 
 func _initialize() -> void:
 	var presets: ConfigFile = ConfigFile.new()
@@ -44,7 +44,8 @@ func _initialize() -> void:
 	presets.set_value(options, "architectures/armeabi-v7a", false)
 	presets.set_value(options, "architectures/arm64-v8a", true)
 	var status: int = presets.save(PRESETS)
-	ProjectSettings.set_setting("application/run/main_scene.%s" % FEATURES, MAIN_SCENE)
+	ProjectSettings.set_setting("application/run/main_scene.street_spike", null)
+	ProjectSettings.set_setting("application/run/main_scene", MAIN_SCENE)
 	var settings: int = ProjectSettings.save()
 	print("make_dev_preset: %s as [%s], save status %d, main scene %s, settings status %d" % [NAME, target, status,
 		MAIN_SCENE, settings])
