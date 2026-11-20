@@ -10,7 +10,14 @@ Reads Codex's painted sources in art/street/ and writes assets/street/:
   and windows.
 - ui.png and ui.json: the screens' pieces (buttons, icons, pills, slots, the start card, the sign, the bunting), kept
   whole on their own page so their nine-slice margins and layout points stay in source pixels, as Codex recorded them.
-- play_backdrop.png and win_backdrop.png, whole screens, each its own texture.
+- town.png and town.json: what the rewards bring to the street and its moments (the families' houses, the windmill's
+  sails, the plot and its signs, the marble folk and their props, the finish ribbon and its halves, fireworks and the
+  parcel's flaps), trimmed and indexed as the atlas is, its houses with their door and windows. A page of its own, so
+  the street's atlas keeps its room.
+- rooms.png and rooms.json: the shop's stall, awning, counter and trays, and Settings' arch, bow, panel, rows, tabs and
+  toggles, kept whole with their nine-slice records, as the UI page keeps its pieces. Loaded only when a room opens.
+- play_backdrop.png, win_backdrop.png, gift_backdrop.png, shop_backdrop.png and settings_backdrop.png, with their
+  `_wide` versions: whole screens, each its own texture.
 - grass.png, road.png, hills.png and sky.png, which the map tiles or stretches.
 
 A piece drawn here is a stand-in: once Codex paints one of the same name, the painted one is used.
@@ -28,22 +35,36 @@ SRC = ROOT / "art" / "street"
 OUT = ROOT / "assets" / "street"
 SIZE = (2048, 4096)
 UI_SIZE = (2048, 3072)
+TOWN_SIZE = (2048, 2048)
+ROOMS_SIZE = (2048, 3072)
 PAD = 4
+# The rewards' pieces, which go on the town page, and the rooms' pieces, which go on theirs. Checked before UI, so the
+# finish ribbon's pieces are the town's and the card's ribbon stays the UI page's.
+TOWN = ("milestone_", "folk_", "prop_", "ribbon_finish", "ribbon_half_", "firework_", "plot_sign_", "parcel_flaps_")
+ROOMS = ("shop_", "settings_", "toggle_")
 # The screens' pieces, which go on the UI page, and the whole-screen backdrops.
 UI = ("button_", "card_", "icon_", "pill_", "ribbon", "sign_", "slot_", "star_big", "rays", "sparks",
-      "confetti_", "title_", "front_", "grass_front")
-BACKDROPS = ("play_backdrop", "win_backdrop", "play_backdrop_wide", "win_backdrop_wide")
+      "confetti_", "title_", "front_", "grass_front", "coin")
+BACKDROPS = tuple(name + wide for name in ("play_backdrop", "win_backdrop", "gift_backdrop", "shop_backdrop",
+                                           "settings_backdrop") for wide in ("", "_wide"))
 SKIP = ("grass_tile", "road_tile", "hills", "sky")
-# Art painted ahead for M3 (milestones, the parcel opening, the shop and Settings), which gets its own pages when the
-# game first draws it.
-LATER = ("milestone_", "parcel_flaps", "gift_", "shop_", "settings_", "toggle_", "icon_tick")
+# The houses whose records (base, door, windows) are read from their JSON, and the windmill's sails' hub on its house,
+# in its source pixels (Codex, the final windmill).
+HOUSES = ("house_", "milestone_bakery", "milestone_windmill", "milestone_clock_tower", "milestone_tree_house")
+HUBS = {"milestone_windmill": (386, 235)}
+# The parcel's flaps turn about their shared hinge, in their source pixels.
+HINGE = (208, 111)
+# The finish ribbon's halves sit at these x on the whole ribbon's canvas, so each is drawn from the whole one's base.
+RIBBON_HALVES = {"ribbon_half_left": 0, "ribbon_half_right": 340}
 # Soft pieces that lose nothing packed smaller: their share of full size. ui.json records it, and the game draws them
 # back at full size.
 UI_SCALE = {"rays": 0.5}
 # Painted pieces that take over a stand-in's name in the game.
 ALIAS = {"star_small": "star", "star_small_empty": "star_dim", "star_big_empty": "star_big_dim"}
-# Pieces whose base point is their centre rather than their foot.
-CENTRED = ("door_", "window_", "padlock", "cloud", "sun", "marble_", "parcel_lid", "parcel_bow", "plaque", "star")
+# Pieces whose base point is their centre rather than their foot. A folk prop's centre is where it attaches, and its
+# JSON gives that point's offset from the body's centre.
+CENTRED = ("door_", "window_", "padlock", "cloud", "sun", "marble_", "parcel_lid", "parcel_bow", "plaque", "star",
+           "knocker", "folk_", "prop_", "firework_", "milestone_windmill_sails")
 # Atlas pixels per source pixel. At 1 the houses keep all of Codex's detail, since the street shows them about as wide
 # as they were painted. The game imports the atlas VRAM-compressed, about 11 MB with its mipmaps.
 SCALE = 1.0
@@ -239,51 +260,85 @@ def stand_in_body(colour: str) -> Image.Image:
     return done(im, s, s)
 
 
-def collect() -> tuple[dict, dict, dict, dict]:
-    """The map's pieces and its houses' records, then the UI page's pieces and their records."""
-    pieces: dict[str, tuple[Image.Image, tuple[float, float]]] = {}
-    houses: dict[str, dict] = {}
-    ui: dict[str, tuple[Image.Image, tuple[float, float]]] = {}
-    ui_meta: dict[str, dict] = {}
+def collect() -> dict[str, dict]:
+    """Every page's pieces, by page: "atlas" and "town" (trimmed cut-outs, with their houses' and pieces' records) and
+    "ui" and "rooms" (whole screen pieces, with their layout records)."""
+    pages: dict[str, dict] = {page: {"pieces": {}, "meta": {}} for page in ("atlas", "town", "ui", "rooms")}
     for path in sorted(SRC.glob("*.png")):
         source = path.stem
         name = ALIAS.get(source, source)
-        if name in SKIP or name in BACKDROPS or name.startswith(("faces_",) + LATER):
+        if name in SKIP or name in BACKDROPS or name.startswith("faces_"):
             continue
-        if name == "bunting" or name.startswith(UI):
-            im = Image.open(path).convert("RGBA")
-            spec = SRC / (source + ".json")
-            ui_meta[name] = json.loads(spec.read_text()) if spec.exists() else {}
+        spec = SRC / (source + ".json")
+        data = json.loads(spec.read_text()) if spec.exists() else {}
+        im = Image.open(path).convert("RGBA")
+        whole = "rooms" if name.startswith(ROOMS) else "ui" if name == "bunting" or (
+            name.startswith(UI) and not name.startswith(TOWN)) else ""
+        if whole:
             if name in UI_SCALE:
                 im = scaled(im, UI_SCALE[name])
-                ui_meta[name]["scale"] = UI_SCALE[name]
-            ui[name] = (im, (im.width / 2, im.height / 2))
+                data["scale"] = UI_SCALE[name]
+            pages[whole]["pieces"][name] = (im, (im.width / 2, im.height / 2))
+            pages[whole]["meta"][name] = data
             continue
-        im = Image.open(path).convert("RGBA")
+        page = "town" if name.startswith(TOWN) else "atlas"
         factor = SKY_SCALE if name.startswith(("cloud", "sun")) else SCALE
+        meta: dict = {}
         if name.startswith(CENTRED):
             anchor = (im.width / 2, im.height / 2)
         else:
             anchor = (im.width / 2, im.height - BASE_MARGIN)
-        spec = SRC / (source + ".json")
-        if name.startswith("house_") and spec.exists():
-            data = json.loads(spec.read_text())
+        if name.startswith(HOUSES) and "base" in data:
             anchor = tuple(data["base"])
-            houses[name] = data
+            meta = {"house": data}
+        elif "base" in data:
+            anchor = tuple(data["base"])
+        if name.startswith("prop_") and "anchor" in data:
+            # Where it sits on a body: its centre's offset from the body's centre, in body pixels.
+            meta["offset"] = [round(v * factor, 2) for v in data["anchor"]]
+        if name.startswith("parcel_flaps_"):
+            anchor = HINGE
+        if name in RIBBON_HALVES:
+            whole_w = Image.open(SRC / "ribbon_finish.png").width
+            anchor = (whole_w / 2 - RIBBON_HALVES[name], im.height - BASE_MARGIN)
+        if name in HUBS:
+            hx, hy = HUBS[name]
+            meta["hub"] = [round((hx - anchor[0]) * factor, 2), round((hy - anchor[1]) * factor, 2)]
         cut, anchor = trim(im, anchor)
-        pieces[name] = (scaled(cut, factor), (anchor[0] * factor, anchor[1] * factor))
-        if name in houses:
-            houses[name]["factor"] = factor
+        pages[page]["pieces"][name] = (scaled(cut, factor), (anchor[0] * factor, anchor[1] * factor))
+        if meta:
+            meta["factor"] = factor
+            pages[page]["meta"][name] = meta
+    atlas = pages["atlas"]["pieces"]
     for colour in COLOURS:
-        if "marble_" + colour not in pieces:
-            pieces["marble_" + colour] = (stand_in_body(colour), (BODY_PX / 2, BODY_PX / 2))
+        if "marble_" + colour not in atlas:
+            atlas["marble_" + colour] = (stand_in_body(colour), (BODY_PX / 2, BODY_PX / 2))
     for name, drawn in drawn_pieces().items():
-        if name not in pieces and name not in ui:
-            pieces[name] = drawn
+        if name not in atlas and name not in pages["ui"]["pieces"]:
+            atlas[name] = drawn
     digits, advances = digit_pieces()
-    pieces.update(digits)
+    atlas.update(digits)
     ADVANCES.update(advances)
-    return pieces, houses, ui, ui_meta
+    return pages
+
+
+def cut_records(index: dict, meta: dict) -> None:
+    """Writes a cut-out page's records into its index: each house's door and windows from its base point, a sail's
+    hub, a prop's offset, all at the page's scale."""
+    for name, data in meta.items():
+        f = data["factor"]
+        if "house" in data:
+            house = data["house"]
+            bx, by = house["base"]
+            if "door" in house:
+                cx, cy, r = house["door"]
+                index[name]["door"] = [round((cx - bx) * f, 2), round((cy - by) * f, 2), round(r * f, 2)]
+            if "windows" in house:
+                index[name]["windows"] = [[round((wx - bx) * f, 2), round((wy - by) * f, 2), round(ww * f, 2),
+                                           round(wh * f, 2)] for wx, wy, ww, wh in house["windows"]]
+        for key in ("hub", "offset"):
+            if key in data:
+                index[name][key] = data[key]
 
 
 def pack(pieces: dict, size: tuple[int, int] = SIZE) -> tuple[Image.Image, dict]:
@@ -336,37 +391,32 @@ def pack(pieces: dict, size: tuple[int, int] = SIZE) -> tuple[Image.Image, dict]
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    pieces, houses, ui, ui_meta = collect()
-    atlas, index = pack(pieces)
-    page, ui_index = pack(ui, UI_SIZE)
-    for name, data in ui_meta.items():
-        ui_index[name].update(data)
-    page.save(OUT / "ui.png", optimize=True)
-    (OUT / "ui.json").write_text(json.dumps({"pieces": ui_index}, indent=1, sort_keys=True) + "\n")
+    pages = collect()
+    sizes = {"atlas": SIZE, "town": TOWN_SIZE, "ui": UI_SIZE, "rooms": ROOMS_SIZE}
+    for name, page in pages.items():
+        image, index = pack(page["pieces"], sizes[name])
+        if name in ("ui", "rooms"):
+            for piece, data in page["meta"].items():
+                index[piece].update(data)
+        else:
+            cut_records(index, page["meta"])
+        head = {"pieces": index}
+        if name == "atlas":
+            for piece, advance in ADVANCES.items():
+                index[piece]["advance"] = advance
+            head.update({"scale": SCALE, "body": BODY_PX})
+        image.save(OUT / (name + ".png"), optimize=True)
+        (OUT / (name + ".json")).write_text(json.dumps(head, indent=1, sort_keys=True) + "\n")
+        used = sum(v["rect"][2] * v["rect"][3] for v in index.values())
+        print(f"{name}: packed {len(index)} pieces, {100 * used / sizes[name][0] / sizes[name][1]:.0f}% of the page")
     for name in BACKDROPS:
         if (SRC / (name + ".png")).exists():
             Image.open(SRC / (name + ".png")).convert("RGB").save(OUT / (name + ".png"), optimize=True)
-    for name, data in houses.items():
-        f = data["factor"]
-        bx, by = data["base"]
-        cx, cy, r = data["door"]
-        index[name]["door"] = [round((cx - bx) * f, 2), round((cy - by) * f, 2), round(r * f, 2)]
-        index[name]["windows"] = [[round((wx - bx) * f, 2), round((wy - by) * f, 2), round(ww * f, 2), round(wh * f, 2)]
-                                  for wx, wy, ww, wh in data["windows"]]
-    for name, advance in ADVANCES.items():
-        index[name]["advance"] = advance
-    atlas.save(OUT / "atlas.png", optimize=True)
-    (OUT / "atlas.json").write_text(json.dumps({"scale": SCALE, "body": BODY_PX, "pieces": index}, indent=1,
-                                               sort_keys=True) + "\n")
     Image.open(SRC / "grass_tile.png").convert("RGB").save(OUT / "grass.png", optimize=True)
     Image.open(SRC / "road_tile.png").convert("RGB").save(OUT / "road.png", optimize=True)
     Image.open(SRC / "hills.png").convert("RGBA").save(OUT / "hills.png", optimize=True)
     sky = Image.open(SRC / "sky.png").convert("RGB")
     sky.resize((16, sky.height // 2), Image.Resampling.LANCZOS).save(OUT / "sky.png", optimize=True)
-    used = sum(v["rect"][2] * v["rect"][3] for v in index.values())
-    print(f"packed {len(index)} pieces, {100 * used / SIZE[0] / SIZE[1]:.0f}% of the atlas")
-    used = sum(v["rect"][2] * v["rect"][3] for v in ui_index.values())
-    print(f"packed {len(ui_index)} screen pieces, {100 * used / UI_SIZE[0] / UI_SIZE[1]:.0f}% of the UI page")
 
 
 if __name__ == "__main__":

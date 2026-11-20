@@ -6,10 +6,16 @@ extends RefCounted
 ## are drawn at their size at the street's near edge, in design pixels: an atlas pixel is one screen pixel on a
 ## 1084-pixel-wide phone, which shows 720 design pixels across.
 
-## The pages, each a texture and its index: the map's atlas, then the screens'.
-const PAGES: PackedStringArray = ["res://assets/street/atlas", "res://assets/street/ui"]
+## The pages, each a texture and its index: the map's atlas, the screens', the town's (what the rewards bring) and the
+## rooms' (the shop and Settings). Every index is read at once, and each texture loads the first time one of its
+## pieces is drawn, so the rooms' page costs nothing until a room opens.
+const PAGES: PackedStringArray = ["res://assets/street/atlas", "res://assets/street/ui", "res://assets/street/town",
+	"res://assets/street/rooms"]
 const PLAY_BACKDROP: String = "res://assets/street/play_backdrop.png"
 const WIN_BACKDROP: String = "res://assets/street/win_backdrop.png"
+const GIFT_BACKDROP: String = "res://assets/street/gift_backdrop.png"
+const SHOP_BACKDROP: String = "res://assets/street/shop_backdrop.png"
+const SETTINGS_BACKDROP: String = "res://assets/street/settings_backdrop.png"
 
 ## A whole-screen backdrop for a screen of this shape: its wide painting (`<name>_wide.png`) on a wide screen, where
 ## there is one.
@@ -30,11 +36,11 @@ static var _pieces: Dictionary = {}
 static var _nines: Dictionary = {}
 static var _font: Font
 
-## The map's atlas, loading both pages on first use.
+## The map's atlas, reading every page's index on first use.
 static func texture() -> Texture2D:
 	if _textures.is_empty():
 		for page: int in range(PAGES.size()):
-			_textures.append(load(PAGES[page] + ".png"))
+			_textures.append(null)
 			var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(PAGES[page] + ".json"))
 			if data is Dictionary:
 				var pieces: Dictionary = (data as Dictionary)["pieces"]
@@ -42,7 +48,12 @@ static func texture() -> Texture2D:
 					var record: Dictionary = pieces[name]
 					record["page"] = page
 					_pieces[name] = record
-	return _textures[0]
+	return _page(0)
+
+static func _page(page: int) -> Texture2D:
+	if _textures[page] == null:
+		_textures[page] = load(PAGES[page] + ".png")
+	return _textures[page]
 
 static func has(piece: String) -> bool:
 	texture()
@@ -51,7 +62,7 @@ static func has(piece: String) -> bool:
 ## The page a piece is on.
 static func texture_of(piece: String) -> Texture2D:
 	texture()
-	return _textures[int((_pieces[piece] as Dictionary)["page"])]
+	return _page(int((_pieces[piece] as Dictionary)["page"]))
 
 ## The piece's box on its page.
 static func rect(piece: String) -> Rect2:
@@ -143,6 +154,16 @@ static func door(house: String) -> Vector3:
 	texture()
 	var d: Array = (_pieces[house] as Dictionary)["door"]
 	return Vector3(float(d[0]), float(d[1]), float(d[2])) * DESIGN_PER_PIXEL
+
+## The size to draw a door piece at for `house`'s doorway, as a share of its near-edge size: the families' houses
+## have wider doorways than the street's.
+static func door_scale(house: String) -> float:
+	return door(house).z / door("house_red_1").z
+
+## A point a piece records (a sail's "hub", a prop's "offset"), from its base point at near-edge size.
+static func point(piece: String, key: String) -> Vector2:
+	var p: Array = meta(piece, key)
+	return Vector2(float(p[0]), float(p[1])) * _k(piece) if p.size() == 2 else Vector2.ZERO
 
 static func windows(house: String) -> Array[Rect2]:
 	texture()
