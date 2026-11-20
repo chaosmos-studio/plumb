@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: studio-site
+  group: deploy-web
   cancel-in-progress: false
 
 jobs:
@@ -64,13 +64,8 @@ jobs:
              web/apple-touch-icon-180.png web/icon-192.png web/icon-512.png web/gate.js build/web/
 
       - name: Deploy to chaosmos.studio/plumb/play/
-        uses: JamesIves/github-pages-deploy-action@v4
+        uses: chaosmos-studio/.github/actions/deploy-web@main
         with:
-          repository-name: chaosmos-studio/chaosmos-studio.github.io
-          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
-          branch: gh-pages
-          folder: build/web
-          target-folder: plumb/play
-          force: false
-          attempt-limit: 10
-          commit-message: Update Plumb's web build
+          worker: plumb-play
+          paths: plumb/play=build/web
+          cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
