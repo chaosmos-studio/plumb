@@ -9,15 +9,16 @@ extends RefCounted
 ## middle in turn, two or three on a phone at once, and a road that winds from door to door, passing just in front of
 ## each one where the cast waits.
 const FIRST_DOOR: float = 360.0
-const DOOR_GAP: float = 310.0
-const ROAD_HALF: float = 100.0
+const DOOR_GAP: float = 270.0
+## Half the road's width: a lane that the houses sit on the bends of, not an avenue they stand beside.
+const ROAD_HALF: float = 74.0
 ## How far a door's house stands from the street's middle, left and right in turn.
 const DOOR_X: float = 150.0
 ## The road reaches its widest swing this far in front of each door, toward that door's side.
 const FRONT: float = 120.0
 ## The road's sway: the big swing, one bend each door so it passes before every one, and a slow drift of a second
 ## sine of another length, so the bends never repeat in a way the eye catches.
-const SWAY_A: float = 140.0
+const SWAY_A: float = 112.0
 const SWAY_A_LENGTH: float = DOOR_GAP * 2.0
 const SWAY_A_PHASE: float = PI * (FRONT - FIRST_DOOR) / DOOR_GAP + PI * 0.5
 const SWAY_B: float = 26.0
@@ -44,11 +45,11 @@ const BACK_SHARE: PackedInt32Array = [16, 8, 0, 4, 0, 0, 8]
 ## edge, trees, bushes and fences stand back, and side houses fill the far edges of the screen.
 const SET: Dictionary = {
 	Kind.TREE: Vector2(300.0, 480.0),
-	Kind.BUSH: Vector2(160.0, 250.0),
-	Kind.LAMP: Vector2(140.0, 150.0),
+	Kind.BUSH: Vector2(130.0, 230.0),
+	Kind.LAMP: Vector2(108.0, 116.0),
 	Kind.FENCE: Vector2(280.0, 400.0),
-	Kind.FLOWERS: Vector2(150.0, 250.0),
-	Kind.BUNTING: Vector2(190.0, 220.0),
+	Kind.FLOWERS: Vector2(118.0, 230.0),
+	Kind.BUNTING: Vector2(270.0, 300.0),
 	Kind.SIDE_HOUSE: Vector2(420.0, 470.0),
 }
 ## A bush in the back row stands this much further out than one at the road's edge.

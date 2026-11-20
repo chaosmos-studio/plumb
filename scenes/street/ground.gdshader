@@ -6,6 +6,8 @@ shader_type canvas_item;
 // grass and road are Codex's tiles (art/street/), repeated over the strip.
 
 uniform float scroll = 0.0;
+// The strip point the street ends at: past it the ground is left clear, and the sky and hills behind show.
+uniform float street_end = 1.0e9;
 uniform float radius = 1150.0;
 uniform float sway_a = 115.0;
 uniform float sway_a_length = 1730.0;
@@ -37,6 +39,9 @@ float road_slope(float s) {
 
 void fragment() {
 	float s = scroll + UV.x;
+	if (s > street_end) {
+		discard;
+	}
 	float x = UV.y;
 	float t = UV.x / radius;
 	float slope = road_slope(s);

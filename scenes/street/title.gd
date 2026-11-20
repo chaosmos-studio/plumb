@@ -8,6 +8,8 @@ extends Node2D
 const BOB: float = 5.0
 const BOB_SPEED: float = 1.3
 
+## How far below its resting place it is drawn: on the map it belongs to the world's top and scrolls with it.
+var drop: float = 0.0
 var _rest: Vector2 = Vector2.ZERO
 var _k: float = 1.0
 var _t: float = 0.0
@@ -23,14 +25,14 @@ func place(size: Vector2, top: float, width: float) -> void:
 ## Whether a screen point is on it.
 func hit(at: Vector2) -> bool:
 	var half: Vector2 = StreetArt.size("title_plumb") * _k * 0.5
-	return Rect2(_rest - half, half * 2.0).has_point(at)
+	return Rect2(_rest + Vector2(0.0, drop) - half, half * 2.0).has_point(at)
 
 func _process(delta: float) -> void:
 	if Save.reduce_motion:
-		position = _rest
+		position = _rest + Vector2(0.0, drop)
 		return
 	_t += delta
-	position = _rest + Vector2(0.0, sin(_t * BOB_SPEED) * BOB)
+	position = _rest + Vector2(0.0, drop + sin(_t * BOB_SPEED) * BOB)
 
 func _draw() -> void:
 	StreetArt.draw(self, "title_plumb", Vector2.ZERO, _k)

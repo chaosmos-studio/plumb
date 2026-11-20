@@ -7,7 +7,7 @@ extends Node2D
 const SKY: String = "res://assets/street/sky.png"
 const HILLS: String = "res://assets/street/hills.png"
 ## The sun's place, as shares of the screen, and its size beside its painting.
-const SUN_AT: Vector2 = Vector2(0.86, 0.025)
+const SUN_AT: Vector2 = Vector2(0.9, -0.015)
 const SUN_SCALE: float = 0.95
 ## The sun turns this fast, in radians a second.
 const SUN_SPIN: float = 0.12
