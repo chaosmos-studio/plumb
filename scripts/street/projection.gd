@@ -6,9 +6,9 @@ extends RefCounted
 ## `radius`, so scrolling turns the drum toward the player. Everything here takes `s_rel`, a point's `s` less the
 ## scroll: 0 is the near edge.
 ##
-## A point at angle t = s_rel / R over the drum shows at height near_y - R sin t, at depth R (1 - cos t), where it is
-## drawn at scale k = F / (F + depth), across at mid_x + x k, sinking by bow (x k)² toward the sides. The horizon is
-## t = π/2, R pixels above the near edge. A very large R flattens it all into a plain scroll.
+## A point at angle t = s_rel / R over the drum shows at height near_y - R sin t, at depth R (1 - cos t) + tilt s_rel,
+## where it is drawn at scale k = gain F / (F + depth), across at mid_x + x k, sinking by bow (x k)² toward the sides.
+## The horizon is t = π/2, R pixels above the near edge. A very large R and no tilt flatten it all into a plain scroll.
 
 ## How far past the horizon a prop is still placed, as an angle: a tall one rises over the crest before its base shows.
 const BEYOND: float = 0.4
@@ -22,6 +22,12 @@ var focal: float
 var near_y: float
 var mid_x: float
 var bow: float
+## A camera tilted down at the street adds depth in step with the distance along it, so things shrink steadily up the
+## screen as in the concepts, not only near the horizon: depth gains `tilt` pixels for each pixel along. 0 is the bare
+## drum.
+var tilt: float = 0.0
+## Every scale is multiplied by this, so a chosen point (the door at rest) can be drawn at its painted size.
+var gain: float = 1.0
 
 func _init(radius_px: float, focal_px: float, near_edge_y: float, middle_x: float, bow_per_px: float) -> void:
 	radius = radius_px
@@ -34,7 +40,12 @@ func angle(s_rel: float) -> float:
 	return s_rel / radius
 
 func scale_at(t: float) -> float:
-	return focal / (focal + radius * (1.0 - cos(t)))
+	return gain * focal / (focal + radius * (1.0 - cos(t)) + tilt * radius * maxf(t, 0.0))
+
+## Sets `gain` so the point `s_rel` along is drawn at scale 1.
+func normalise_at(s_rel: float) -> void:
+	gain = 1.0
+	gain = 1.0 / scale_at(s_rel / radius)
 
 func horizon_y() -> float:
 	return near_y - radius

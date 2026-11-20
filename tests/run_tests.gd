@@ -642,24 +642,41 @@ func _test_street_projection() -> void:
 		level = level and absf(at.y - (1400.0 - s)) < 0.5 and absf(at.z - 1.0) < 0.001
 	_check("a very large radius is a flat scroll (Reduce motion)", level)
 	_check("and a flat street is placed only as far as the screen's top", absf(flat.far_s_rel(0.0) - (1400.0 + StreetProjection.MARGIN)) < 1.0)
+	var tilted: StreetProjection = StreetProjection.new(1340.0, 600.0, 1662.0, 360.0, 0.0)
+	tilted.tilt = 0.8
+	tilted.normalise_at(437.0)
+	var at_rest: float = tilted.place(437.0, 0.0).z
+	var next: float = tilted.place(737.0, 0.0).z
+	_check("a tilted camera draws the door at rest at its painted size", absf(at_rest - 1.0) < 0.0001)
+	_check("and the next door, one gap on, at about three quarters", next > 0.65 and next < 0.8)
+	_check("and leaves heights on the screen to the drum", is_equal_approx(tilted.place(737.0, 0.0).y,
+		1662.0 - 1340.0 * sin(737.0 / 1340.0)))
 
 ## Where the road runs and what stands beside it.
 func _test_street_path() -> void:
 	var alternate: bool = true
 	var found: bool = true
-	var clear: bool = true
+	var passes: bool = true
 	for n: int in range(1, 400):
 		alternate = alternate and StreetPath.door_side(n) != StreetPath.door_side(n + 1)
 		found = found and StreetPath.door_near(StreetPath.door_s(n)) == n
-		clear = clear and absf(StreetPath.door_x(n) - StreetPath.road_x(StreetPath.door_s(n))) >= StreetPath.ROAD_HALF + 100.0
-	_check("doors alternate sides of the road", alternate)
+		# Just in front of each door the road swings out to that door's side, where the cast waits.
+		var front: float = StreetPath.road_x(StreetPath.door_s(n) - StreetPath.FRONT)
+		passes = passes and signf(front) == float(StreetPath.door_side(n)) \
+			and absf(front - StreetPath.door_x(n)) < StreetPath.DOOR_X
+	_check("doors alternate sides of the street", alternate)
 	_check("the door nearest a door's place is that door", found and StreetPath.door_near(-1000.0) == 1)
-	_check("no house stands on the road", clear)
+	_check("the road passes just in front of every door, on its side", passes)
 	var smooth: bool = true
+	var slope: bool = true
 	for i: int in range(5000):
 		var s: float = float(i) * 7.0
-		smooth = smooth and absf(StreetPath.road_x(s + 1.0) - StreetPath.road_x(s)) < 1.0
-	_check("the road bends gently: under a pixel across for each pixel along", smooth)
+		# The bend's steepness changes smoothly: the slope moves by under 3% from one pixel along to the next.
+		smooth = smooth and absf(StreetPath.road_slope(s + 1.0) - StreetPath.road_slope(s)) < 0.03
+		slope = slope and absf((StreetPath.road_x(s + 0.01) - StreetPath.road_x(s - 0.01)) / 0.02
+			- StreetPath.road_slope(s)) < 0.01
+	_check("the road bends without kinks", smooth)
+	_check("and its slope is the true slope, which the ground uses for its width", slope)
 	var counts: PackedInt32Array = PackedInt32Array()
 	counts.resize(StreetPath.SHARE.size() + 1)
 	var off_road: bool = true
@@ -677,15 +694,27 @@ func _test_street_path() -> void:
 			counts[int(spot.x)] += 0 if by_house else 1
 			if int(spot.x) == StreetPath.Kind.NONE:
 				continue
-			off_road = off_road and absf(spot.y - StreetPath.road_x(s)) >= StreetPath.ROAD_HALF + StreetPath.LAMP_SET - 0.001
+			off_road = off_road and absf(spot.y - StreetPath.road_x(s)) >= StreetPath.ROAD_HALF + 15.0
 			off_doors = off_doors and not by_house
 	_check("a scenery slot always holds the same thing", same)
 	_check("scenery stands off the road", off_road)
 	_check("and clear of the houses on its side", off_doors)
+	# The ground in front of each door is kept clear of anything taller than a flowerbed, so flowers turn up as often
+	# as their share and taller things less, never more.
 	var shares: bool = true
 	for k: int in range(StreetPath.SHARE.size()):
-		shares = shares and absf(float(counts[k + 1]) / float(free) * 100.0 - StreetPath.SHARE[k]) < 3.0
-	_check("each kind of scenery turns up about as often as its share of the free slots", shares)
+		var seen: float = float(counts[k + 1]) / float(free) * 100.0
+		var least: float = StreetPath.SHARE[k] * (1.0 if k + 1 == StreetPath.Kind.FLOWERS else 0.3) - 2.0
+		shares = shares and seen <= StreetPath.SHARE[k] + 2.0 and seen >= least
+	_check("each kind of scenery turns up as often as its share, or less where it would hide a door", shares)
+	var rows_apart: bool = true
+	for slot: int in range(4000):
+		for side: int in [-1, 1]:
+			var near_kind: int = int(StreetPath.scenery(slot, side).x)
+			var back_kind: int = int(StreetPath.scenery(slot, side, true).x)
+			rows_apart = rows_apart and near_kind != StreetPath.Kind.TREE and near_kind != StreetPath.Kind.SIDE_HOUSE \
+				and back_kind != StreetPath.Kind.LAMP and back_kind != StreetPath.Kind.FLOWERS
+	_check("the road's edge holds low things and the row behind holds trees and houses", rows_apart)
 	# A wide screen's meadow: trees and bushes only, in their band, beyond the street's own scenery.
 	var meadow: bool = true
 	var filled: int = 0
