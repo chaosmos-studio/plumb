@@ -6,7 +6,7 @@ The concepts are `build/review/revamp2/` (round 2, the vivid colours) and `build
 This file says how it gets built: the architecture, the data, the delivery format, the analytics, the motion, the sound, the art, the risks and the tests.
 Work happens on the branch `sg/revamp`, in milestones M0 to M5, with a gate after each.
 
-Status: **M0 approved by the lead on 20 November 2026, with the decisions in section 15. M1 under way.**
+Status: **M0 approved by the lead on 20 November 2026, with the decisions in section 15. M1, the rolling-map spike, measured on the A142 the same day (`MATH.md` section 25) and waiting for the lead's review. Codex paints the street's art on bridge thread `plumb-art`.**
 
 ## 1. The game in one page
 
