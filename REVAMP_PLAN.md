@@ -553,8 +553,8 @@ M1 uses code-drawn placeholders only.
 
 - 60 frames a second while scrolling the map, playing and celebrating
 - 95% of frames under 16.7 ms and none over 33 ms in a 30 s scripted scroll
-- at most about 150 draw calls on the map
-- memory under 300 MB
+- at most about 150 draw calls on the map, and under 20 for the four cast marbles (measured in M2 with the painted art: the whole map takes 9 to 17, and the cast adds none, since it batches with the street's atlas)
+- memory set against Classic on the same build, not as a fixed number, since M1 found the engine alone holds most of the phone's PSS (about 520 MB with the stand-ins, 204 MB of it graphics): Street's video memory at most Classic's plus 48 MB on `tools/look_memory.gd`'s counters (M2: Classic 13 MB on its title and in play, Street 45 MB on the map and 42 MB in play), and on the A142 Street's total PSS at most Classic's plus 64 MB
 - the map's first frame within 1.5 s of the studio beat ending
 
 **How it is measured:** a dev build under the separate package `com.shravangoswami.plumb.dev` ("Plumb Dev", debug-signed, with Firebase off until its own Firebase app is made for the analytics work, decision 8), with a frame logger (frame times, process time, GPU time where the driver reports it, draw calls) writing a CSV that `adb exec-out run-as` pulls.
