@@ -1255,6 +1255,12 @@ which draws its shapes one by one, draw calls rose to 32 to 179 and 13 of 4,308 
 stand-ins first drew in code, shape by shape, at 541 draw calls a screen. Baked into one texture they batch, which
 is why the painted art comes as cut-outs packed into an atlas.
 
+**Since 20 November the map scrolls flat.** Shravan found the rolling street's houses shrinking and vanishing over
+the horizon as he scrolled, and wanted Candy Crush Saga's map instead: houses keep their size, travel down the screen
+and leave through its foot, and the next ones come in from the top. The map now uses the drum with a radius so large
+it is flat, no tilt, and only a gentle bow toward the sides, with the sky a fixed band at the top. The drum and the
+tilt below stay in `StreetProjection`, tested, for any screen that wants depth.
+
 **A camera tilted down at the street.** The drum alone shrinks things only near the horizon, since its depth grows
 with the square of the distance along it. The concepts show the next door about three quarters the size of the one at
 rest, and the one after about half. So the depth also grows in step with the distance, `depth = R (1 - cos θ) + tilt ·
