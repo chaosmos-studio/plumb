@@ -54,6 +54,10 @@ var rated: bool = false
 ## The daily puzzles: the first time of each day solved, the days solved late, the days a video opened and the
 ## time spent on days not solved yet (Daily).
 var daily: Dictionary = {}
+## The look the game is played in (AppLook), and whether the player has chosen it. A save from before the looks has
+## no choice yet, so a player updating sees the chooser once, as a new player does.
+var app_look: String = AppLook.STREET
+var look_chosen: bool = false
 
 func _ready() -> void:
 	ScreenLock.start()
@@ -245,6 +249,16 @@ func set_daily(record: Dictionary) -> void:
 	daily = record
 	store()
 
+func set_app_look(look: String) -> void:
+	if not AppLook.valid(look):
+		return
+	var from: String = app_look if look_chosen else ""
+	app_look = look
+	look_chosen = true
+	store()
+	Analytics.event(&"look_choose", {"look": look, "from": from, "how": "settings" if from != "" else "first"})
+	EventBus.settings_changed.emit()
+
 ## A save from before the Hard levels moves on to them once, here, and so does a copy from the cloud (CloudSave).
 func upgrade(file: ConfigFile) -> bool:
 	return HardShelf.migrate(file, Unlocks.GATE)
@@ -296,6 +310,9 @@ func restore() -> void:
 	var record: Variant = file.get_value("daily", "record", {})
 	if record is Dictionary:
 		daily = record
+	var look: String = str(file.get_value("settings", "app_look", AppLook.STREET))
+	app_look = look if AppLook.valid(look) else AppLook.STREET
+	look_chosen = bool(file.get_value("settings", "look_chosen", false))
 
 func store() -> void:
 	var file: ConfigFile = ConfigFile.new()
@@ -326,4 +343,6 @@ func store() -> void:
 	file.set_value("rating", "asked", rate_asked)
 	file.set_value("rating", "rated", rated)
 	file.set_value("daily", "record", daily)
+	file.set_value("settings", "app_look", app_look)
+	file.set_value("settings", "look_chosen", look_chosen)
 	file.save(path)

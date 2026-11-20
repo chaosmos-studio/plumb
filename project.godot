@@ -15,13 +15,12 @@ general/android/app_id="ca-app-pub-3135321730568420~4276024954"
 [application]
 
 config/name="Plumb"
-run/main_scene="res://scenes/shell/title.tscn"
+run/main_scene="res://scenes/boot/boot.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/bg_color=Color(0.9529412, 0.92941177, 0.8901961, 1)
 boot_splash/show_image=false
 config/icon="res://assets/branding/icon.png"
-run/main_scene.street_spike="res://scenes/street/map.tscn"
 
 [autoload]
 

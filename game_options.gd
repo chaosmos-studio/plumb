@@ -2,6 +2,15 @@ extends RefCounted
 
 static func rows() -> Array[Control]:
 	var lines: Array[Control] = []
+	# The new street look or today's (REVAMP_PLAN.md section 3.3). Switching keeps all progress and goes to that look's
+	# Home at once.
+	var street: Switch = Switch.new(Save.app_look == AppLook.STREET)
+	street.toggled.connect(func(on: bool) -> void:
+		Save.set_app_look(AppLook.STREET if on else AppLook.CLASSIC)
+		if not on:
+			Appearance.apply(Save.theme)
+		Screens.go(AppLook.home_scene(Save.app_look)))
+	lines.append(_drawn_row("Street look", street, _House.new()))
 	var faces: Switch = Switch.new(Save.faces)
 	faces.toggled.connect(func(on: bool) -> void: Save.set_faces(on))
 	lines.append(_drawn_row("Faces", faces, _Smile.new()))
@@ -43,6 +52,17 @@ class _Smile extends _Glyph:
 		for side: float in [-1.0, 1.0]:
 			draw_circle(c + Vector2(side * 0.13, -0.07) * S, S * 0.05, Brand.MUTED, true, -1.0, true)
 		draw_arc(c + Vector2(0.0, 0.02) * S, S * 0.17, PI * 0.2, PI * 0.8, 14, Brand.MUTED, _width(), true)
+
+## A little house, for the street look.
+class _House extends _Glyph:
+	func _draw() -> void:
+		var c: Vector2 = size * 0.5
+		var w: float = _width()
+		draw_polyline(PackedVector2Array([c + Vector2(-0.36, -0.02) * S, c + Vector2(0.0, -0.36) * S,
+			c + Vector2(0.36, -0.02) * S]), Brand.MUTED, w, true)
+		draw_polyline(PackedVector2Array([c + Vector2(-0.27, -0.08) * S, c + Vector2(-0.27, 0.32) * S,
+			c + Vector2(0.27, 0.32) * S, c + Vector2(0.27, -0.08) * S]), Brand.MUTED, w, true)
+		draw_arc(c + Vector2(0.0, 0.2) * S, S * 0.1, PI, TAU, 10, Brand.MUTED, w, true)
 
 ## A cat asleep in a loaf, as the walls are drawn with Pets on.
 class _Loaf extends _Glyph:
