@@ -284,6 +284,8 @@ func _draw() -> void:
 					draw_circle(c, cell * 0.41, ring, true, -1.0, true)
 					draw_circle(c, cell * 0.33, Palette.HOLE, true, -1.0, true)
 					draw_circle(c + Vector2(0, cell * 0.06), cell * 0.25, Palette.HOLE.darkened(0.45), true, -1.0, true)
+					if ColourHelp.on:
+						ColourHelp.draw(self, hole, c + Vector2(0, cell * 0.03), cell * 0.3)
 					if plug:
 						# A plug's dashed outer ring: it is good for one marble.
 						for k: int in range(8):

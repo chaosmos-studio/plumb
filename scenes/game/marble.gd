@@ -159,6 +159,10 @@ func _draw() -> void:
 		_remember_face()
 	if number > 0:
 		_number(r, faces)
+	elif ColourHelp.on and not stone and who >= 0:
+		# Colour help: the colour's shape in its own deep tone, under the face or in the middle without one.
+		ColourHelp.draw(self, who, Vector2(0.0, r * 0.56) if faces else Vector2.ZERO, r * (0.5 if faces else 0.8),
+			colour.darkened(0.55))
 	if hat > 0.0 and faces:
 		var main: Color = Palette.marble(posmod(who + 2, 4))
 		Face.hat(self, r, hat, main, Color(1, 1, 1, 0.92), _buf)
