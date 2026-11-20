@@ -1213,7 +1213,7 @@ with one small projection, `StreetProjection`, rather than a 3D camera, so the h
 ordinary 2D drawings, always upright.
 
 **The street is a strip.** Every point on it has `s`, how far along the street it is, and `x`, how far across from the
-middle, both in design pixels. Doors stand every 230 pixels of `s`, on alternate sides (`StreetPath`). Scrolling only
+middle, both in design pixels. Doors stand every 390 pixels of `s`, on alternate sides (`StreetPath`). Scrolling only
 changes one number, `c`, the `s` at the bottom of the screen.
 
 **The strip lies over a drum.** Wrap the strip over a drum of radius R, seen from the side. A point `s - c` along it sits
@@ -1262,3 +1262,37 @@ is why the painted art comes as cut-outs packed into an atlas.
 - `FOCAL` to 400: things shrink much faster with depth, as through a wide lens.
 - `BOW` to 0: the street becomes a log rolling toward you instead of a planet.
 - `StreetPath.SWAY_A` to 0: the road runs almost straight up the middle.
+
+## 26. A card on a string, a hop home, and a picture that stretches
+
+Three small ideas carry Street's start card and its win (`scenes/street/door_card.gd`, `homecoming.gd`, `art.gd`).
+
+**The card swings on a spring.** A tapped door's card drops from the top and then swings about a point far above the
+screen, as if it hung on a string. The swing is a damped spring, stepped once a frame:
+
+    spin  += (-STIFFNESS · angle - DAMPING · spin) · dt
+    angle += spin · dt
+
+The first term pulls the card back toward hanging straight, harder the further it leans. The second drags on its
+speed, so each swing is smaller than the last. With STIFFNESS 90 the card would swing back and forth about
+√90 ≈ 9.5 radians a second, a full swing in about two thirds of a second. DAMPING 7 against that speed gives a
+damping ratio of 7 / (2 · 9.5) ≈ 0.37: well below 1, so it overshoots and settles after two or three visible swings.
+At a ratio of 1 it would ease straight down with no swing at all. Updating `spin` first and then moving `angle` with
+the new `spin` keeps the motion steady even when a frame runs long.
+
+**A hop is a parabola.** A marble hopping from `a` to `b` slides along the straight line between them while rising and
+falling by `HOP · 4t(1 - t)`. That product is 0 at the start and the end and peaks at exactly 1 halfway, so the hop's
+top is HOP pixels above the line, whatever the distance.
+
+**Nine slices.** The card's frame, its inner panel and the pills are each one painting that must fit many sizes.
+Codex marks four margins on each (`nine` in its JSON). The four corners are drawn as painted. The top and bottom
+edges stretch sideways only, the left and right edges only up and down, and the middle both ways. So the rim, the
+flowers and the rounded ends keep their shape at any size. A nine-patch draws its margins at their pixel size, so
+`StreetArt.draw_nine` draws in the painting's own pixels and scales the whole patch, which keeps a rim as thick,
+relative to the screen, as Codex painted it.
+
+### Things to try
+
+- `SWING_DAMPING` in `door_card.gd` to 2: the card keeps swinging for seconds. To 19: it settles with no swing.
+- `SWING_STIFFNESS` to 30: a slower, heavier swing, as on a longer string.
+- `HOP` in `homecoming.gd` to 400: the marbles leap home over the roofs.
