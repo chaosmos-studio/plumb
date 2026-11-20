@@ -26,6 +26,13 @@ const FALL_TIME: float = 0.5
 const WIN_PAUSE: float = 0.7
 ## The bottom row's buttons.
 const BUTTON: float = 168.0
+## The wide layout: the room kept free either side of the board for the rails, the board's margin top and bottom,
+## and the right rail's column of buttons, their gap and their distance from the edge.
+const WIDE_RAIL: float = 360.0
+const WIDE_MARGIN: float = 36.0
+const WIDE_BUTTON: float = 140.0
+const WIDE_BUTTON_GAP: float = 28.0
+const WIDE_EDGE: float = 30.0
 const DIRECTION_NAMES: PackedStringArray = ["left", "right", "up", "down"]
 
 var level: int = 0
@@ -66,7 +73,6 @@ func _ready() -> void:
 	board = start.copy()
 	_started_us = Time.get_ticks_usec()
 	var backdrop: TextureRect = TextureRect.new()
-	backdrop.texture = load(StreetArt.PLAY_BACKDROP)
 	backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	backdrop.z_index = -10
@@ -79,6 +85,7 @@ func _ready() -> void:
 	_build_ui()
 	var lay: Callable = func() -> void:
 		backdrop.size = get_viewport_rect().size
+		backdrop.texture = StreetArt.backdrop(StreetArt.PLAY_BACKDROP, wide())
 		_layout()
 	get_viewport().size_changed.connect(lay)
 	lay.call()
@@ -102,27 +109,54 @@ func top_y() -> float:
 func _row_y() -> float:
 	return get_viewport_rect().size.y - float(UI.safe_margins(get_viewport())["bottom"]) - ROW_BOTTOM - BUTTON
 
-## The board's room: from under the top bar to above the buttons.
-func _room() -> Rect2:
+## Whether the screen gets the wide layout: the board in the middle, the sign and the moves on the left rail, the
+## faces and the buttons on the right one (StreetLayout).
+func wide() -> bool:
+	return StreetLayout.wide(get_viewport_rect().size)
+
+## The board's room. Portrait: from under the top bar to above the buttons. Wide: a square in the middle, as large as
+## the screen's height allows with a rail left either side.
+func room() -> Rect2:
 	var size: Vector2 = get_viewport_rect().size
+	var safe: Dictionary = UI.safe_margins(get_viewport())
+	if wide():
+		var side: float = minf(size.y - float(safe["top"]) - float(safe["bottom"]) - WIDE_MARGIN * 2.0,
+			size.x - WIDE_RAIL * 2.0)
+		var middle: Vector2 = Vector2(size.x * 0.5, (float(safe["top"]) + size.y - float(safe["bottom"])) * 0.5)
+		return Rect2(middle - Vector2(side, side) * 0.5, Vector2(side, side))
 	var top: float = top_y() + BOARD_TOP
 	return Rect2(SIDE_MARGIN, top, size.x - SIDE_MARGIN * 2.0, _row_y() - ROW_GAP - top)
 
 func _fit() -> Vector2:
-	return _room().size
+	return room().size
 
 func _layout() -> void:
 	var size: Vector2 = get_viewport_rect().size
-	var room: Rect2 = _room()
-	_view.home = Vector2(size.x * 0.5, room.position.y + room.size.y * 0.5)
+	var safe: Dictionary = UI.safe_margins(get_viewport())
+	var area: Rect2 = room()
+	_view.home = area.get_center()
 	if _view.board != null:
 		_view.show_board(board, _fit())
+	var buttons: Array[StreetUI.RoundButton] = [_undo, _restart, _hint]
+	if wide():
+		# A column down the right edge, centred on the board.
+		var column: float = WIDE_BUTTON * 3.0 + WIDE_BUTTON_GAP * 2.0
+		for i: int in range(3):
+			buttons[i].custom_minimum_size = Vector2.ONE * WIDE_BUTTON
+			buttons[i].size = Vector2.ONE * WIDE_BUTTON
+			buttons[i].position = Vector2(size.x - float(safe["right"]) - WIDE_EDGE - WIDE_BUTTON,
+				area.get_center().y - column * 0.5 + i * (WIDE_BUTTON + WIDE_BUTTON_GAP))
+		_home.position = Vector2(float(safe["left"]) + 18.0, size.y - float(safe["bottom"]) - 18.0 - _home.size.y)
+		_hud.queue_redraw()
+		return
 	var row_y: float = _row_y()
 	var gap: float = (size.x - BUTTON * 3.0) / 4.0
 	for i: int in range(3):
-		var b: StreetUI.RoundButton = [_undo, _restart, _hint][i]
-		b.position = Vector2(gap + i * (BUTTON + gap), row_y)
+		buttons[i].custom_minimum_size = Vector2.ONE * BUTTON
+		buttons[i].size = Vector2.ONE * BUTTON
+		buttons[i].position = Vector2(gap + i * (BUTTON + gap), row_y)
 	_home.position = Vector2(18.0, top_y())
+	_hud.queue_redraw()
 
 func _build_ui() -> void:
 	var layer: CanvasLayer = CanvasLayer.new()
@@ -400,6 +434,12 @@ class _Hud extends Control:
 	const FACE: float = 84.0
 	const FACE_GAP: float = 106.0
 	const BAR: Color = Color("fff6e3")
+	## The wide layout's rails: the sign's top and its pole from the left edge, the moves pill under the sign, and the
+	## faces' gap from the board.
+	const WIDE_TOP: float = 30.0
+	const WIDE_POLE_X: float = 60.0
+	const WIDE_MOVES_Y: float = 300.0
+	const WIDE_FACES_GAP: float = 30.0
 
 	var play: StreetPlay
 
@@ -407,10 +447,15 @@ class _Hud extends Control:
 		if play == null or play.board == null:
 			return
 		var w: float = size.x
-		var top: float = play.top_y()
+		var wide: bool = play.wide()
+		var safe: Dictionary = UI.safe_margins(get_viewport())
+		var area: Rect2 = play.room()
+		# Portrait: the top bar. Wide: the left rail holds the sign and the moves, the right one the faces.
+		var top: float = float(safe["top"]) + WIDE_TOP if wide else play.top_y()
+		var pole_x: float = float(safe["left"]) + WIDE_POLE_X if wide else POLE_X
 		var font: Font = StreetArt.font()
 		# The post, its top at the bar's start, and the sign hung from its hooks by its chains.
-		var post_at: Vector2 = Vector2(POLE_X, top) - Vector2(58.0, 14.0) * StreetArt.DESIGN_PER_PIXEL
+		var post_at: Vector2 = Vector2(pole_x, top) - Vector2(58.0, 14.0) * StreetArt.DESIGN_PER_PIXEL
 		StreetArt.draw_at(self, "sign_post", post_at)
 		var hooks: Array = StreetArt.meta("sign_post", "hooks")
 		var hang: Array = StreetArt.meta("sign_board", "hang")
@@ -429,6 +474,9 @@ class _Hud extends Control:
 			HORIZONTAL_ALIGNMENT_CENTER, face.size.x, number_size, StreetUI.INK)
 		# The moves against par: the count on the red end, par on the cream.
 		var pill: Rect2 = Rect2(Vector2(w + MOVES_RECT.position.x, top + MOVES_RECT.position.y), MOVES_RECT.size)
+		if wide:
+			pill.position = Vector2(area.position.x * 0.5 + float(safe["left"]) * 0.5 - MOVES_RECT.size.x * 0.5,
+				top + WIDE_MOVES_Y)
 		var k: float = pill.size.y / StreetArt.size("pill_cream").y
 		StreetArt.draw_nine(self, "pill_cream", pill, k)
 		var red: float = float(StreetArt.meta("pill_cream", "nine")[0]) * StreetArt.DESIGN_PER_PIXEL * k * 0.86
@@ -451,9 +499,13 @@ class _Hud extends Control:
 			if play.board.marble_cell[m] != TiltBoard.GONE:
 				home[c] = false
 		var n: int = colours.size()
-		var bar_width: float = n * FACE_GAP + 56.0
-		var bar: Rect2 = Rect2(w * 0.5 - bar_width * 0.5, top + FACES_Y, bar_width, FACES_HEIGHT)
-		StreetUI.sparks(self, bar, 40.0)
+		var bar_length: float = n * FACE_GAP + 56.0
+		var bar: Rect2 = Rect2(w * 0.5 - bar_length * 0.5, top + FACES_Y, bar_length, FACES_HEIGHT)
+		if wide:
+			# Standing up beside the board, centred on it.
+			bar = Rect2(area.end.x + WIDE_FACES_GAP, area.get_center().y - bar_length * 0.5, FACES_HEIGHT, bar_length)
+		else:
+			StreetUI.sparks(self, bar, 40.0)
 		var bar_box: StyleBoxFlat = StyleBoxFlat.new()
 		bar_box.bg_color = BAR
 		bar_box.border_color = BAR.darkened(0.12)
@@ -468,7 +520,8 @@ class _Hud extends Control:
 		k = body / StreetArt.size("marble_red").x
 		for i: int in range(n):
 			var c: int = colours[i]
-			var centre: Vector2 = Vector2(w * 0.5 + (float(i) - float(n - 1) * 0.5) * FACE_GAP, bar.get_center().y - 2.0)
+			var along: float = (float(i) - float(n - 1) * 0.5) * FACE_GAP
+			var centre: Vector2 = bar.get_center() + (Vector2(0.0, along - 2.0) if wide else Vector2(along, -2.0))
 			var happy: bool = bool(home[c])
 			StreetArt.draw(self, "marble_" + StreetArt.COLOURS[c % 4], centre, k)
 			var eye: String = "eye_happy" if happy else "eye"

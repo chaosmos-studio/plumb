@@ -12,6 +12,9 @@ const GAP: float = 0.03
 const GRASS: float = 0.17
 const CARDS_AT: float = 0.43
 const RIM: int = 8
+## On a wide screen, a card's height as a share of the screen's.
+const WIDE_CARD_HEIGHT: float = 0.7
+const WIDE_CARDS_AT: float = 0.41
 ## The design size each preview is drawn at before it is scaled into its card.
 const PREVIEW: Vector2i = Vector2i(720, 1602)
 const GROW_TIME: float = 0.5
@@ -94,6 +97,10 @@ func _layout() -> void:
 	var size: Vector2 = get_viewport_rect().size
 	var w: float = size.x * CARD_SHARE
 	var h: float = w * float(PREVIEW.y) / float(PREVIEW.x)
+	if StreetLayout.wide(size):
+		# On a wide screen the height sets the cards' size, and they stand side by side in the middle.
+		h = size.y * WIDE_CARD_HEIGHT
+		w = h * float(PREVIEW.x) / float(PREVIEW.y)
 	_sky.horizon_y = size.y * (1.0 - GRASS)
 	_sky.queue_redraw()
 	_cast.position = Vector2(size.x * 0.5, size.y * (1.0 - GRASS * 0.45))
@@ -114,7 +121,8 @@ func _process(delta: float) -> void:
 		_cards[i].position.y = _card_top(_cards[i].size.y) + sin(_t * BOB_SPEED + i * PI) * BOB
 
 func _card_top(h: float) -> float:
-	return maxf(10.0, get_viewport_rect().size.y * CARDS_AT - h * 0.5)
+	var size: Vector2 = get_viewport_rect().size
+	return maxf(10.0, size.y * (WIDE_CARDS_AT if StreetLayout.wide(size) else CARDS_AT) - h * 0.5)
 
 func _choose(look: String) -> void:
 	if _chosen:
@@ -136,6 +144,7 @@ func _choose(look: String) -> void:
 		Save.set_app_look(look)
 		if look == AppLook.CLASSIC:
 			Appearance.apply(Save.theme)
+		AppLook.use(look)
 		Screens.go(AppLook.home_scene(look)))
 
 

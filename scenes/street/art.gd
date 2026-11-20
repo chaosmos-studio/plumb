@@ -9,6 +9,13 @@ extends RefCounted
 ## The pages, each a texture and its index: the map's atlas, then the screens'.
 const PAGES: PackedStringArray = ["res://assets/street/atlas", "res://assets/street/ui"]
 const PLAY_BACKDROP: String = "res://assets/street/play_backdrop.png"
+const WIN_BACKDROP: String = "res://assets/street/win_backdrop.png"
+
+## A whole-screen backdrop for a screen of this shape: its wide painting (`<name>_wide.png`) on a wide screen, where
+## there is one.
+static func backdrop(path: String, wide: bool) -> Texture2D:
+	var wide_path: String = path.trim_suffix(".png") + "_wide.png"
+	return load(wide_path if wide and ResourceLoader.exists(wide_path) else path)
 const DESIGN_PER_PIXEL: float = 720.0 / 1084.0
 const FONT: String = "res://assets/fonts/Baloo2.ttf"
 ## Baloo 2's heaviest weight, the concepts' chunky numbers.

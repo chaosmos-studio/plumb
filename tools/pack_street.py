@@ -32,7 +32,7 @@ PAD = 4
 # The screens' pieces, which go on the UI page, and the whole-screen backdrops.
 UI = ("bunting", "button_", "card_", "icon_", "pill_", "ribbon", "sign_", "slot_", "star_big", "rays", "sparks",
       "confetti_")
-BACKDROPS = ("play_backdrop", "win_backdrop")
+BACKDROPS = ("play_backdrop", "win_backdrop", "play_backdrop_wide", "win_backdrop_wide")
 SKIP = ("grass_tile", "road_tile", "hills", "sky")
 # Art painted ahead for M3 (milestones, the parcel opening, the shop and Settings), which gets its own pages when the
 # game first draws it.

@@ -25,7 +25,11 @@ const STAR_DROP: float = 40.0
 const STAR_TIME: float = 0.3
 ## Rays behind the stars turn this fast, in radians a second.
 const RAY_SPIN: float = 0.25
-const WIN_BACKDROP: String = "res://assets/street/win_backdrop.png"
+## A wide screen: the line the houses stand on, the stars' height, and everything's size against the portrait one's,
+## so the scene fits a screen 720 tall with the stars clear above the roofs.
+const WIDE_GROUND_AT: float = 0.6
+const WIDE_STARS_AT: float = 0.19
+const WIDE_SCALE: float = 0.66
 
 var colours: PackedInt32Array = PackedInt32Array()
 var earned: int = 0
@@ -36,16 +40,20 @@ var _rays: _Piece
 func play() -> float:
 	var size: Vector2 = get_viewport_rect().size
 	var n: int = colours.size()
-	var ground: float = size.y * GROUND_AT
+	var wide: bool = StreetLayout.wide(size)
+	var u: float = WIDE_SCALE if wide else 1.0
+	var ground: float = size.y * (WIDE_GROUND_AT if wide else GROUND_AT)
+	var stars_y: float = size.y * (WIDE_STARS_AT if wide else STARS_AT)
 	var plaza: TextureRect = TextureRect.new()
-	plaza.texture = load(WIN_BACKDROP)
+	plaza.texture = StreetArt.backdrop(StreetArt.WIN_BACKDROP, wide)
 	plaza.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	plaza.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	plaza.size = size
 	plaza.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	plaza.modulate.a = 0.0
 	add_child(plaza)
-	var width: float = minf(HOUSE_WIDTH, (size.x - 40.0) / float(n))
+	var width: float = minf(HOUSE_WIDTH * u, (size.x - 40.0) / float(n))
+	var ball_w: float = BALL * u
 	var houses: Array[_Piece] = []
 	var opens: Array[_Piece] = []
 	var shuts: Array[_Piece] = []
@@ -71,10 +79,11 @@ func play() -> float:
 			windows.append(lit)
 		var ball: _Ball = _Ball.new()
 		ball.colour = colours[i]
-		ball.width = BALL
-		ball.position = from + Vector2((float(i) - float(n - 1) * 0.5) * BALL * 1.1, 0.0)
+		ball.width = ball_w
+		ball.lift = HOP * u
+		ball.position = from + Vector2((float(i) - float(n - 1) * 0.5) * ball_w * 1.1, 0.0)
 		ball.home = at
-		ball.step_out = Vector2(at.x, ground + BALL * 1.3)
+		ball.step_out = Vector2(at.x, ground + ball_w * 1.3)
 		balls.append(ball)
 	for layer: Array in [houses, opens, shuts, windows]:
 		for p: _Piece in layer:
@@ -83,14 +92,15 @@ func play() -> float:
 	for b: _Ball in balls:
 		add_child(b)
 	_rays = _Piece.new("rays", 1.1)
-	_rays.position = Vector2(size.x * 0.5, size.y * STARS_AT)
+	_rays.position = Vector2(size.x * 0.5, stars_y)
+	_rays.scale = Vector2.ONE * u
 	_rays.modulate.a = 0.0
 	add_child(_rays)
 	var stars: Array[_Piece] = []
 	var sparks: Array[_Piece] = []
 	for s: int in range(3):
-		var star_size: float = STAR_MIDDLE if s == 1 else STAR_SIDE
-		var at: Vector2 = Vector2(size.x * 0.5 + (s - 1) * STAR_GAP, size.y * STARS_AT + (0.0 if s == 1 else STAR_DROP))
+		var star_size: float = (STAR_MIDDLE if s == 1 else STAR_SIDE) * u
+		var at: Vector2 = Vector2(size.x * 0.5 + (s - 1) * STAR_GAP * u, stars_y + (0.0 if s == 1 else STAR_DROP * u))
 		if s < earned:
 			var spark: _Piece = _Piece.new("sparks", star_size * 1.25 / StreetArt.size("sparks").x)
 			spark.position = at + Vector2(0.0, -star_size * 0.12)
@@ -163,7 +173,7 @@ func play() -> float:
 			burst.life = 1.6
 			burst.size = 16.0
 			burst.colours = [StreetUI.RED, StreetUI.YELLOW, StreetUI.TEAL, StreetUI.PURPLE, Color.WHITE]
-			burst.position = Vector2(size.x * 0.5, size.y * STARS_AT)
+			burst.position = Vector2(size.x * 0.5, stars_y)
 			add_child(burst)).set_delay(end + 0.2)
 		end += 1.6
 	return end + 0.5
@@ -192,6 +202,8 @@ class _Ball extends Node2D:
 	var home: Vector2 = Vector2.ZERO
 	var step_out: Vector2 = Vector2.ZERO
 	var hat: int = 0
+	## How high a hop rises.
+	var lift: float = 150.0
 	var cheering: bool = false:
 		set(value):
 			cheering = value
@@ -203,7 +215,7 @@ class _Ball extends Node2D:
 
 	## Moves along a hop from `a` to `b`, `t` from 0 to 1.
 	func hop(t: float, a: Vector2, b: Vector2) -> void:
-		position = a.lerp(b, t) + Vector2(0.0, -StreetHomecoming.HOP * 4.0 * t * (1.0 - t))
+		position = a.lerp(b, t) + Vector2(0.0, -lift * 4.0 * t * (1.0 - t))
 		queue_redraw()
 
 	func _process(delta: float) -> void:

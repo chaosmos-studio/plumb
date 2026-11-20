@@ -12,8 +12,13 @@ const RADIUS: float = 1340.0
 const FOCAL: float = 1000.0
 ## The drum's near edge sits this far below the screen's foot.
 const NEAR_BELOW: float = 60.0
-## How far a point sinks toward the sides, per pixel squared across: the street reads as a small planet.
+## How far a point sinks toward the sides, per pixel squared across: the street reads as a small planet. It is set for
+## a 720-wide world, and a wider one bends less, so the screen's edges always sink the same.
 const BOW: float = 0.00022
+## On a wide screen the street is a world this tall (the portrait phone's design height the concepts were drawn for),
+## scaled to fit the screen's height, so it composes as the portrait street does, horizon and all, with more of the
+## meadow either side (StreetLayout).
+const WIDE_WORLD_HEIGHT: float = 1602.0
 ## The ground's mesh: rows evenly down the screen, columns across.
 const ROWS: int = 72
 const COLUMNS: int = 28
@@ -29,6 +34,8 @@ const VELOCITY_SMOOTHING: float = 0.05
 ## A touch that moves less than this, in pixels, and lifts within this long, in seconds, is a tap.
 const TAP_SLOP: float = 14.0
 const TAP_TIME: float = 0.4
+## A notch of the mouse wheel flings the street at this speed, in strip pixels a second.
+const WHEEL_SPEED: float = 900.0
 ## The cast stands this far in front of the current door, along the street.
 const CAST_BEFORE: float = 125.0
 ## After a win: the cast's walk to the next door, and the pause before its card drops in.
@@ -90,7 +97,7 @@ var _moved: bool = false
 var _busy: bool = false
 var _card: StreetDoorCard
 var _hud: CanvasLayer
-var _buttons: HBoxContainer
+var _buttons: BoxContainer
 var _pin: StreetUI.RoundButton
 var _banner_room: float = 0.0
 var _probe: FrameProbe
@@ -98,6 +105,8 @@ var _time: float = 0.0
 var _measuring: bool = false
 var _cast_hidden: bool = false
 var _preview: bool = false
+## Bands of meadow scenery beyond the street's own, as many as the world's width needs.
+var _far_bands: int = 0
 
 func _ready() -> void:
 	_preview = preview
@@ -150,19 +159,35 @@ func _ready() -> void:
 	elif walked_from > 0 and walked_from + 1 == _current:
 		_walk_on()
 
-func _layout() -> void:
+## The world's scale on screen: 1 in portrait, and on a wide screen the share that fits WIDE_WORLD_HEIGHT in.
+func _world_scale() -> float:
 	var size: Vector2 = get_viewport_rect().size
-	_proj = StreetProjection.new(RADIUS, FOCAL, size.y + NEAR_BELOW, size.x * 0.5, BOW)
+	return size.y / WIDE_WORLD_HEIGHT if StreetLayout.wide(size) else 1.0
+
+## The world's size, in world units: the screen's size undone by the world's scale.
+func _world_size() -> Vector2:
+	return get_viewport_rect().size / _world_scale()
+
+func _layout() -> void:
+	var size: Vector2 = _world_size()
+	scale = Vector2.ONE * _world_scale()
+	var bow: float = BOW * pow(StreetLayout.SHORT / size.x, 2.0) if size.x > StreetLayout.SHORT else BOW
+	_proj = StreetProjection.new(RADIUS, FOCAL, size.y + NEAR_BELOW, size.x * 0.5, bow)
 	_sky.horizon_y = _proj.horizon_y()
+	_sky.area = size
 	_ground.mesh = _ground_mesh(size)
 	_ground_material.set_shader_parameter("radius", RADIUS)
+	_far_bands = maxi(0, ceili((size.x * 0.5 + 60.0 - StreetPath.SCENERY_SET.y) / StreetPath.FAR_BAND))
+	for key: Variant in _scenery.keys():
+		_recycle(_scenery[key])
+	_scenery.clear()
 	_bounds = Vector2(_scroll_for(1), _scroll_for(mini(_current + AHEAD, _last)))
 	if _buttons != null:
 		_place_hud()
 
 ## The scroll that rests door `n` at REST_AT.
 func _scroll_for(n: int) -> float:
-	return StreetPath.door_s(n) - _proj.s_rel_at(get_viewport_rect().size.y * REST_AT)
+	return StreetPath.door_s(n) - _proj.s_rel_at(_world_size().y * REST_AT)
 
 ## The ground never moves: its rows run evenly down the screen from below the foot to the horizon, each projected
 ## once, and the shader paints the strip under it from `scroll`.
@@ -213,7 +238,7 @@ func _build_hud() -> void:
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hud.add_child(root)
-	_buttons = HBoxContainer.new()
+	_buttons = BoxContainer.new()
 	_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	_buttons.add_theme_constant_override("separation", 56)
 	_buttons.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -237,10 +262,20 @@ func _build_hud() -> void:
 	add_child(_card)
 	_place_hud()
 
+## Portrait: the buttons in a row along the foot. Wide: in a column down the right edge, clear of the street.
 func _place_hud() -> void:
 	var size: Vector2 = get_viewport_rect().size
 	var safe: Dictionary = UI.safe_margins(get_viewport())
 	var lift: float = BUTTON_LIFT + float(safe["bottom"]) + _banner_room
+	if StreetLayout.wide(size):
+		_buttons.vertical = true
+		_buttons.add_theme_constant_override("separation", 36)
+		_buttons.size = Vector2(BUTTON, size.y - lift)
+		_buttons.position = Vector2(size.x - float(safe["right"]) - BUTTON_LIFT - BUTTON, 0.0)
+		_pin.position = Vector2(size.x * 0.5 - _pin.size.x * 0.5, size.y - lift - _pin.size.y)
+		return
+	_buttons.vertical = false
+	_buttons.add_theme_constant_override("separation", 56)
 	_buttons.position = Vector2(0.0, size.y - lift - BUTTON)
 	_buttons.size = Vector2(size.x, BUTTON)
 	_pin.position = Vector2(size.x * 0.5 - _pin.size.x * 0.5, _buttons.position.y - _pin.size.y - 28.0)
@@ -258,6 +293,22 @@ func _on_daily() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if _busy or _measuring or _preview:
 		return
+	# Keys and the mouse wheel walk the street a door at a time, and Enter opens the door to play next.
+	if event.is_action_pressed("tilt_up") or event.is_action_pressed("ui_up"):
+		_step(1)
+		return
+	if event.is_action_pressed("tilt_down") or event.is_action_pressed("ui_down"):
+		_step(-1)
+		return
+	if event.is_action_pressed("ui_accept"):
+		_open_card(_current)
+		return
+	if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
+		var wheel: MouseButton = (event as InputEventMouseButton).button_index
+		if wheel == MOUSE_BUTTON_WHEEL_UP or wheel == MOUSE_BUTTON_WHEEL_DOWN:
+			_velocity += WHEEL_SPEED * (1.0 if wheel == MOUSE_BUTTON_WHEEL_UP else -1.0)
+			return
+	# Touches arrive in screen units, and the world is drawn at _world_scale().
 	if event is InputEventScreenTouch:
 		var touch: InputEventScreenTouch = event
 		if touch.pressed:
@@ -267,20 +318,21 @@ func _unhandled_input(event: InputEvent) -> void:
 			_press_us = Time.get_ticks_usec()
 			_steady = 0.0
 			_velocity = 0.0
-			_grab_s = _scroll + _proj.s_rel_at(touch.position.y)
+			_grab_s = _scroll + _proj.s_rel_at(touch.position.y / scale.y)
 			_last_drag_us = _press_us
 		else:
 			_dragging = false
 			if not _moved and Time.get_ticks_usec() - _press_us < int(TAP_TIME * 1000000.0):
 				_velocity = 0.0
-				_tap(touch.position)
+				_cast.look_toward(touch.position)
+				_tap(touch.position / scale.x)
 	elif event is InputEventScreenDrag and _dragging:
 		var drag: InputEventScreenDrag = event
 		_cast.look_toward(drag.position)
 		if not _moved and drag.position.distance_to(_press_at) < TAP_SLOP:
 			return
 		_moved = true
-		var want: float = _grab_s - _proj.s_rel_at(drag.position.y)
+		var want: float = _grab_s - _proj.s_rel_at(drag.position.y / scale.y)
 		var now: int = Time.get_ticks_usec()
 		var dt: float = maxf(float(now - _last_drag_us) / 1000000.0, 0.001)
 		_last_drag_us = now
@@ -297,9 +349,8 @@ func _rubber(want: float) -> float:
 		return _bounds.y + (want - _bounds.y) * RUBBER
 	return want
 
-## The nearest house under the finger, front first.
+## The nearest house under the finger, front first, `at` in world units.
 func _tap(at: Vector2) -> void:
-	_cast.look_toward(at)
 	var hit: StreetProp = null
 	for n: Variant in _houses.keys():
 		var house: StreetProp = _houses[n]
@@ -338,6 +389,14 @@ func _on_play(door: int) -> void:
 		RatePrompt.or_ad(self, go, false)
 	else:
 		go.call()
+
+## Rolls the street `by` doors on from the one resting nearest REST_AT, within the street's ends.
+func _step(by: int) -> void:
+	var resting: int = StreetPath.door_near(_scroll + _proj.s_rel_at(_world_size().y * REST_AT))
+	var to: int = clampi(resting + by, 1, mini(_current + AHEAD, _last))
+	_velocity = 0.0
+	var t: Tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	t.tween_property(self, "_scroll", _scroll_for(to), 0.35)
 
 func _go_home() -> void:
 	_velocity = 0.0
@@ -380,7 +439,7 @@ func _process(delta: float) -> void:
 
 ## Puts everything in view where the drum shows it, recycling what has left the view.
 func _place() -> void:
-	var size: Vector2 = get_viewport_rect().size
+	var size: Vector2 = _world_size()
 	_ground_material.set_shader_parameter("scroll", _scroll)
 	var near: float = _scroll + _proj.near_s_rel(size.y)
 	var far: float = _scroll + _proj.far_s_rel(0.0)
@@ -414,16 +473,18 @@ func _place() -> void:
 			_scenery.erase(slot)
 	for slot: int in range(maxi(from_slot, 0), to_slot + 1):
 		for side: int in [-1, 1]:
-			var spot: Vector2 = StreetPath.scenery(slot, side)
-			if int(spot.x) == StreetPath.Kind.NONE:
-				continue
-			var key: Vector2i = Vector2i(slot, side)
-			var prop: StreetProp = _scenery.get(key, null)
-			if prop == null:
-				prop = _take()
-				prop.dress_scenery(int(spot.x), StreetPath.mix(slot * 7 + side))
-				_scenery[key] = prop
-			_stand(prop, StreetPath.slot_s(slot), spot.y)
+			# Band 0 is the street's own scenery, and a wide world adds bands of meadow out to its edges.
+			for band: int in range(_far_bands + 1):
+				var spot: Vector2 = StreetPath.scenery(slot, side) if band == 0 else StreetPath.far_scenery(slot, side, band)
+				if int(spot.x) == StreetPath.Kind.NONE:
+					continue
+				var key: Vector2i = Vector2i(slot, side * (band + 1))
+				var prop: StreetProp = _scenery.get(key, null)
+				if prop == null:
+					prop = _take()
+					prop.dress_scenery(int(spot.x), StreetPath.mix(slot * 7 + side + band * 3))
+					_scenery[key] = prop
+				_stand(prop, StreetPath.slot_s(slot), spot.y)
 	var cast_at: Vector3 = _proj.place(_cast_s - _scroll, StreetPath.road_x(_cast_s))
 	_cast.visible = not _cast_hidden and _cast_s > near and _cast_s < far and not _proj.behind_crest(_cast_s - _scroll)
 	_cast.position = Vector2(cast_at.x, cast_at.y)

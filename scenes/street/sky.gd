@@ -16,6 +16,8 @@ const HILLS_SCALE: float = 0.62
 const HILLS_SINK: float = 26.0
 
 var horizon_y: float = 400.0
+## The area it fills, in its own units, where that is not the screen: the map's world on a wide screen is scaled.
+var area: Vector2 = Vector2.ZERO
 var _sky: Texture2D
 var _hills: Texture2D
 var _t: float = 0.0
@@ -30,7 +32,7 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	var size: Vector2 = get_viewport_rect().size
+	var size: Vector2 = area if area != Vector2.ZERO else get_viewport_rect().size
 	draw_texture_rect(_sky, Rect2(Vector2.ZERO, Vector2(size.x, maxf(horizon_y + 40.0, 1.0))), false)
 	StreetArt.draw(self, "sun", Vector2(size.x * SUN_AT.x, size.y * SUN_AT.y + StreetArt.size("sun").y * 0.5 * SUN_SCALE),
 		SUN_SCALE)
