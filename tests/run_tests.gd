@@ -52,6 +52,8 @@ func _initialize() -> void:
 	_test_novelty()
 	_test_serialisation()
 	_test_stars()
+	_test_street_projection()
+	_test_street_path()
 	if not OS.get_cmdline_user_args().has("quick"):
 		_test_level_pack()
 	_test_opening()
@@ -605,6 +607,83 @@ func _test_stars() -> void:
 	_check("and drops one at the goal unsolved, since a win needs another move",
 		Stars.possible(5, 5, false) == 2 and Stars.possible(5, 5, true) == 3)
 	_check("and another past the two-star leeway", Stars.possible(5 + Stars.leeway(5), 5, false) == 1)
+
+## The rolling street's projection (MATH.md section 25).
+func _test_street_projection() -> void:
+	var p: StreetProjection = StreetProjection.new(1150.0, 900.0, 1400.0, 360.0, 0.0002)
+	var near: Vector3 = p.place(0.0, 0.0)
+	_check("the street's near edge sits at the near edge, full size", near.is_equal_approx(Vector3(360.0, 1400.0, 1.0)))
+	var rising: bool = true
+	var shrinking: bool = true
+	var last: Vector3 = near
+	for i: int in range(1, 91):
+		var at: Vector3 = p.place(p.radius * PI * 0.5 * float(i) / 90.0, 0.0)
+		rising = rising and at.y < last.y
+		shrinking = shrinking and at.z < last.z and at.z > 0.0
+		last = at
+	_check("farther along the street is higher up the screen, up to the horizon", rising)
+	_check("and smaller", shrinking)
+	_check("the horizon is the radius above the near edge", is_equal_approx(last.y, p.horizon_y()))
+	var sinks: bool = p.place(400.0, 300.0).y > p.place(400.0, 0.0).y and p.place(400.0, -300.0).y > p.place(400.0, 0.0).y
+	_check("the street sinks toward both sides, as a small planet", sinks)
+	var grabbed: bool = true
+	for s: float in [0.0, 150.0, 600.0, 1100.0]:
+		grabbed = grabbed and absf(p.s_rel_at(p.place(s, 0.0).y) - s) < 0.01
+	_check("a finger's height finds the point of the street under it", grabbed)
+	_check("past the crest a point is hidden, before it is not", p.behind_crest(p.radius * 1.6) and not p.behind_crest(p.radius * 1.5))
+	_check("tall things are placed a little past the horizon, to rise over it",
+		is_equal_approx(p.far_s_rel(0.0), p.radius * (PI * 0.5 + StreetProjection.BEYOND)))
+	var flat: StreetProjection = StreetProjection.new(1.0e7, 900.0, 1400.0, 360.0, 0.0)
+	var level: bool = true
+	for s: float in [0.0, 500.0, 1200.0]:
+		var at: Vector3 = flat.place(s, 200.0)
+		level = level and absf(at.y - (1400.0 - s)) < 0.5 and absf(at.z - 1.0) < 0.001
+	_check("a very large radius is a flat scroll (Reduce motion)", level)
+	_check("and a flat street is placed only as far as the screen's top", absf(flat.far_s_rel(0.0) - (1400.0 + StreetProjection.MARGIN)) < 1.0)
+
+## Where the road runs and what stands beside it.
+func _test_street_path() -> void:
+	var alternate: bool = true
+	var found: bool = true
+	var clear: bool = true
+	for n: int in range(1, 400):
+		alternate = alternate and StreetPath.door_side(n) != StreetPath.door_side(n + 1)
+		found = found and StreetPath.door_near(StreetPath.door_s(n)) == n
+		clear = clear and absf(StreetPath.door_x(n) - StreetPath.road_x(StreetPath.door_s(n))) >= StreetPath.ROAD_HALF + 100.0
+	_check("doors alternate sides of the road", alternate)
+	_check("the door nearest a door's place is that door", found and StreetPath.door_near(-1000.0) == 1)
+	_check("no house stands on the road", clear)
+	var smooth: bool = true
+	for i: int in range(5000):
+		var s: float = float(i) * 7.0
+		smooth = smooth and absf(StreetPath.road_x(s + 1.0) - StreetPath.road_x(s)) < 1.0
+	_check("the road bends gently: under a pixel across for each pixel along", smooth)
+	var counts: PackedInt32Array = PackedInt32Array()
+	counts.resize(StreetPath.SHARE.size() + 1)
+	var off_road: bool = true
+	var off_doors: bool = true
+	var same: bool = true
+	var free: int = 0
+	for slot: int in range(20000):
+		for side: int in [-1, 1]:
+			var spot: Vector2 = StreetPath.scenery(slot, side)
+			same = same and spot == StreetPath.scenery(slot, side)
+			var s: float = StreetPath.slot_s(slot)
+			var door: int = StreetPath.door_near(s)
+			var by_house: bool = StreetPath.door_side(door) == side and absf(StreetPath.door_s(door) - s) < StreetPath.DOOR_CLEAR
+			free += 0 if by_house else 1
+			counts[int(spot.x)] += 0 if by_house else 1
+			if int(spot.x) == StreetPath.Kind.NONE:
+				continue
+			off_road = off_road and absf(spot.y - StreetPath.road_x(s)) >= StreetPath.ROAD_HALF + StreetPath.LAMP_SET - 0.001
+			off_doors = off_doors and not by_house
+	_check("a scenery slot always holds the same thing", same)
+	_check("scenery stands off the road", off_road)
+	_check("and clear of the houses on its side", off_doors)
+	var shares: bool = true
+	for k: int in range(StreetPath.SHARE.size()):
+		shares = shares and absf(float(counts[k + 1]) / float(free) * 100.0 - StreetPath.SHARE[k]) < 3.0
+	_check("each kind of scenery turns up about as often as its share of the free slots", shares)
 
 # Every shipped level, on the main path and in Hard, is re-solved against the current rules, so a rule change that
 # alters a par or makes a level unsolvable fails before a build can ship it.
