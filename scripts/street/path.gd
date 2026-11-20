@@ -5,19 +5,19 @@ extends RefCounted
 ## and the tests agree (MATH.md section 25). `s` runs along the street from its start and `x` across it from the middle
 ## of the screen, in design pixels. The ground shader takes the same sway constants as uniforms.
 
-## Doors, one a level, close together as in the concept and Codex's street paste-up (build/review/revamp2/1-map.png,
-## build/review/art/g-street.png): big houses left and right of the screen's middle in turn, overlapping, and a road
-## that winds from door to door, passing just in front of each one where the cast waits.
+## Doors, one a level, as in the concept (build/review/revamp2/1-map.png): houses left and right of the screen's
+## middle in turn, two or three on a phone at once, and a road that winds from door to door, passing just in front of
+## each one where the cast waits.
 const FIRST_DOOR: float = 360.0
-const DOOR_GAP: float = 300.0
-const ROAD_HALF: float = 150.0
+const DOOR_GAP: float = 310.0
+const ROAD_HALF: float = 100.0
 ## How far a door's house stands from the street's middle, left and right in turn.
-const DOOR_X: float = 115.0
+const DOOR_X: float = 150.0
 ## The road reaches its widest swing this far in front of each door, toward that door's side.
-const FRONT: float = 110.0
+const FRONT: float = 120.0
 ## The road's sway: the big swing, one bend each door so it passes before every one, and a slow drift of a second
 ## sine of another length, so the bends never repeat in a way the eye catches.
-const SWAY_A: float = 165.0
+const SWAY_A: float = 140.0
 const SWAY_A_LENGTH: float = DOOR_GAP * 2.0
 const SWAY_A_PHASE: float = PI * (FRONT - FIRST_DOOR) / DOOR_GAP + PI * 0.5
 const SWAY_B: float = 26.0
@@ -26,7 +26,7 @@ const SWAY_B_PHASE: float = 1.3
 
 ## Scenery stands in slots this far apart along each side, and keeps this far along from a door on its side (side
 ## houses, being big, keep further).
-const SLOT_GAP: float = 80.0
+const SLOT_GAP: float = 120.0
 const DOOR_CLEAR: float = 170.0
 const SIDE_HOUSE_CLEAR: float = 300.0
 ## Lamps stand at the road's edge, everything else this far out from the road's middle.
@@ -34,20 +34,22 @@ const LAMP_SET: float = 30.0
 const SCENERY_SET: Vector2 = Vector2(340.0, 620.0)
 
 enum Kind { NONE, TREE, BUSH, LAMP, FENCE, FLOWERS, BUNTING, SIDE_HOUSE }
-## Out of 100: how often a slot holds each kind, in Kind's order after NONE. The rest stay empty. Each slot has two
-## rows: the road's edge (flowers, bushes, lamps, bunting) and behind it (trees, big bushes, fences, neighbours' houses).
-const SHARE: PackedInt32Array = [0, 34, 9, 0, 42, 4, 0]
-const BACK_SHARE: PackedInt32Array = [30, 30, 0, 10, 0, 0, 16]
+## Out of 100: how often a slot holds each kind, in Kind's order after NONE. The rest stay empty, so clear grass shows
+## between things (Shravan, 20 November: the path and the houses lead, dressing sits sparsely in the gaps). Each slot
+## has two rows: the road's edge (flowers, bushes, lamps, bunting) and behind it (trees, big bushes, fences,
+## neighbours' houses at the screen's edges).
+const SHARE: PackedInt32Array = [0, 9, 6, 0, 14, 3, 0]
+const BACK_SHARE: PackedInt32Array = [16, 8, 0, 4, 0, 0, 8]
 ## How far out from the road's middle each kind stands, as a range: lamps, bunting and flowerbeds line the road's
 ## edge, trees, bushes and fences stand back, and side houses fill the far edges of the screen.
 const SET: Dictionary = {
-	Kind.TREE: Vector2(320.0, 520.0),
-	Kind.BUSH: Vector2(175.0, 290.0),
-	Kind.LAMP: Vector2(175.0, 185.0),
-	Kind.FENCE: Vector2(300.0, 440.0),
-	Kind.FLOWERS: Vector2(170.0, 290.0),
-	Kind.BUNTING: Vector2(230.0, 260.0),
-	Kind.SIDE_HOUSE: Vector2(400.0, 460.0),
+	Kind.TREE: Vector2(300.0, 480.0),
+	Kind.BUSH: Vector2(160.0, 250.0),
+	Kind.LAMP: Vector2(140.0, 150.0),
+	Kind.FENCE: Vector2(280.0, 400.0),
+	Kind.FLOWERS: Vector2(150.0, 250.0),
+	Kind.BUNTING: Vector2(190.0, 220.0),
+	Kind.SIDE_HOUSE: Vector2(420.0, 470.0),
 }
 ## A bush in the back row stands this much further out than one at the road's edge.
 const BACK_BUSH: float = 160.0
@@ -55,7 +57,7 @@ const BACK_BUSH: float = 160.0
 ## either side of its middle.
 const DOOR_FRONT: float = 240.0
 const DOOR_BEHIND: float = 10.0
-const DOOR_HALF: float = 200.0
+const DOOR_HALF: float = 170.0
 
 ## The road's middle at `s`. Its big swing is a cosine one door long each way, peaking FRONT before each door on
 ## that door's side.
@@ -122,7 +124,7 @@ static func scenery(slot: int, side: int, back: bool = false) -> Vector2:
 ## The meadow a wide screen shows beyond SCENERY_SET: in band `band` (1, 2, ...) a slot may hold a tree or a bush,
 ## FAR_BAND further out each band, so a wide street fills to its edges. Its kind (Kind.NONE for an empty spot) and x.
 const FAR_BAND: float = 300.0
-const FAR_SHARE: int = 30
+const FAR_SHARE: int = 20
 
 static func far_scenery(slot: int, side: int, band: int) -> Vector2:
 	var h: int = mix(slot * 31 + band * 7 + (1 if side > 0 else 0) + 5)

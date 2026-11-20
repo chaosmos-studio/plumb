@@ -6,34 +6,28 @@ extends Node2D
 ## to the next door and its card drops in by itself. In a debug build, a run with `-- --auto-scroll`, or the file
 ## user://measure_street, plays a scripted scroll and logs its frames instead.
 
-## The drum: its radius and the camera's focal length, in design pixels (StreetProjection). A smaller radius is a
-## tighter little world, and a very large one a flat scroll.
-const RADIUS: float = 1340.0
+## The street scrolls flat, as Candy Crush Saga's map does (Shravan, 20 November): a house keeps its size as the player
+## scrolls, travels down the screen and leaves through its foot, and the next ones come in from the top. It is the
+## drum of MATH.md section 25 with a radius so large the drum is flat.
 const FLAT_RADIUS: float = 100000.0
-## The screen height RADIUS is set for: the A142's, which the concepts were drawn at.
-const DESIGN_HEIGHT: float = 1602.0
-const FOCAL: float = 600.0
-## The camera's tilt down at the street (StreetProjection.tilt): things shrink steadily up the screen, as in the
-## concepts, where the next door is about three quarters the size of the one at rest.
-const TILT: float = 0.6
-## At rest, a door's house below the one at rest fades out toward the screen's foot, which the concepts keep for the
-## road, the cast and the buttons: fully gone below FADE_FROM of the screen's height, fully there above FADE_TO.
-const FADE_FROM: float = 0.93
-const FADE_TO: float = 0.86
-## The drum's near edge sits this far below the screen's foot.
+const FOCAL: float = 1000.0
+## The sky stays at the top of the screen as a backdrop: the ground starts this share of the way down, and houses
+## coming in from the top pass in front of it.
+const SKY_SHARE: float = 0.13
+## The street's near edge sits this far below the screen's foot.
 const NEAR_BELOW: float = 60.0
-## How far a point sinks toward the sides, per pixel squared across: the street reads as a small planet. It is set for
-## a 720-wide world, and a wider one bends less, so the screen's edges always sink the same.
-const BOW: float = 0.00022
+## How far a point sinks toward the sides, per pixel squared across, a gentle curve so the street reads as a hill. It
+## is set for a 720-wide world, and a wider one bends less, so the screen's edges always sink the same.
+const BOW: float = 0.00012
 ## On a wide screen the street is a world this tall (the portrait phone's design height the concepts were drawn for),
 ## scaled to fit the screen's height, so it composes as the portrait street does, horizon and all, with more of the
 ## meadow either side (StreetLayout).
-const WIDE_WORLD_HEIGHT: float = 1250.0
+const WIDE_WORLD_HEIGHT: float = 1100.0
 ## The ground's mesh: rows evenly down the screen, columns across.
 const ROWS: int = 72
 const COLUMNS: int = 28
 ## Where the current door rests, as a share of the screen's height from the top.
-const REST_AT: float = 0.77
+const REST_AT: float = 0.72
 ## A fling dies away by this rate a second, and a drag past either end follows the finger by this share.
 const FRICTION: float = 2.6
 const RUBBER: float = 0.35
@@ -47,7 +41,7 @@ const TAP_TIME: float = 0.4
 ## A notch of the mouse wheel flings the street at this speed, in strip pixels a second.
 const WHEEL_SPEED: float = 900.0
 ## The cast stands this far in front of the current door, along the street.
-const CAST_BEFORE: float = 100.0
+const CAST_BEFORE: float = 80.0
 ## How far from the road's middle toward the door it waits at the cast stands.
 const CAST_TOWARD_DOOR: float = 0.35
 ## After a win: the cast's walk to the next door, and the pause before its card drops in.
@@ -186,27 +180,23 @@ func _world_scale() -> float:
 func _world_size() -> Vector2:
 	return get_viewport_rect().size / _world_scale()
 
-## The drum's radius: RADIUS, or under Reduce motion one so large the street scrolls flat (MATH.md section 25).
-## The drum grows and shrinks with the screen's height, so a shorter phone keeps the same sky and street.
+## The drum's radius, so large the street scrolls flat (MATH.md section 25).
 func _radius() -> float:
-	return FLAT_RADIUS if Save.reduce_motion else RADIUS * _world_size().y / DESIGN_HEIGHT
+	return FLAT_RADIUS
 
 func _layout() -> void:
 	var size: Vector2 = _world_size()
 	scale = Vector2.ONE * _world_scale()
-	var bow: float = BOW * pow(StreetLayout.SHORT / size.x, 2.0) if size.x > StreetLayout.SHORT else BOW
+	# Reduce motion keeps the street dead flat, with no curve toward the sides.
+	var bow: float = 0.0 if Save.reduce_motion else \
+		(BOW * pow(StreetLayout.SHORT / size.x, 2.0) if size.x > StreetLayout.SHORT else BOW)
 	_proj = StreetProjection.new(_radius(), FOCAL, size.y + NEAR_BELOW, size.x * 0.5, bow)
-	if not Save.reduce_motion:
-		_proj.tilt = TILT
-		_proj.normalise_at(_proj.s_rel_at(size.y * REST_AT))
-	_sky.horizon_y = _proj.horizon_y()
+	_sky.horizon_y = size.y * SKY_SHARE
 	_sky.area = size
 	_ground.mesh = _ground_mesh(size)
 	_ground_material.set_shader_parameter("radius", _radius())
-	# Up the street things shrink, so the screen shows more meadow either side: enough bands to reach its edges where
-	# the street is a third of the way down the screen.
-	var far_k: float = _proj.scale_at(_proj.s_rel_at(size.y * 0.35) / _radius())
-	_far_bands = maxi(0, ceili((size.x * 0.5 / far_k + 60.0 - StreetPath.SCENERY_SET.y) / StreetPath.FAR_BAND))
+	# Bands of meadow scenery out to the screen's edges, as many as its width needs.
+	_far_bands = maxi(0, ceili((size.x * 0.5 + 60.0 - StreetPath.SCENERY_SET.y) / StreetPath.FAR_BAND))
 	for key: Variant in _scenery.keys():
 		_recycle(_scenery[key])
 	_scenery.clear()
@@ -218,15 +208,14 @@ func _layout() -> void:
 func _scroll_for(n: int) -> float:
 	return StreetPath.door_s(n) - _proj.s_rel_at(_world_size().y * REST_AT)
 
-## The ground never moves: its rows run evenly down the screen from below the foot to the horizon, each projected
-## once, and the shader paints the strip under it from `scroll`.
+## The ground never moves: its rows run evenly down the screen from below the foot to the sky, each projected once,
+## and the shader paints the strip under it from `scroll`.
 func _ground_mesh(size: Vector2) -> ArrayMesh:
 	var bottom: float = size.y + 40.0
-	var top: float = maxf(_proj.horizon_y(), -40.0)
+	var top: float = size.y * SKY_SHARE - 6.0
 	var radius: float = _radius()
-	var top_s: float = _proj.s_rel_at(top) if _proj.horizon_y() < -40.0 else radius * PI * 0.5
-	var far_k: float = _proj.scale_at(top_s / radius)
-	var half_width: float = (size.x * 0.5 + 120.0) / far_k
+	var top_s: float = _proj.s_rel_at(top)
+	var half_width: float = size.x * 0.5 + 120.0
 	var vertices: PackedVector2Array = PackedVector2Array()
 	var uvs: PackedVector2Array = PackedVector2Array()
 	for row: int in range(ROWS + 1):
@@ -586,9 +575,6 @@ func _stand(prop: StreetProp, s: float, x: float) -> void:
 	prop.scale = Vector2(at.z, at.z) * prop.wobble_scale()
 	prop.rotation = prop.wobble_turn() + (0.0 if Save.reduce_motion else prop.sway(_time))
 	prop.z_index = -1 if _proj.behind_crest(s - _scroll) else 0
-	if prop.tall():
-		var h: float = _world_size().y
-		prop.modulate.a = clampf((h * FADE_FROM - at.y) / (h * (FADE_FROM - FADE_TO)), 0.0, 1.0)
 
 func _state(door: int) -> StreetProp.Door:
 	if door == _current:

@@ -9,27 +9,27 @@ enum Door { FAR, LOCKED, OPEN, CURRENT, SOLVED }
 
 const HOUSE: int = -1
 const INK: Color = Color("fff3df")
-## A house's size at the near edge beside its painting (StreetArt), and its number's height as a share of its door's
-## radius. The houses are as big as Codex's street paste-up, so the current door nearly fills the screen's width.
-const HOUSE_SCALE: float = 1.3
+## A house's size beside its painting (StreetArt), and its number's height as a share of its door's radius. Two or
+## three houses show on a phone with the road between them (Shravan, 20 November).
+const HOUSE_SCALE: float = 1.12
 const NUMBER_HEIGHT: float = 0.95
-## A side house, filling the screen's edges, at this size beside a door's house.
-const SIDE_HOUSE_SCALE: float = 1.15
+## A neighbour's house at the street's edges, at this size beside a door's house.
+const SIDE_HOUSE_SCALE: float = 0.9
 ## Scenery's size beside the houses, as Codex painted each at its own canvas.
 const SCENERY_SCALE: Dictionary = {
-	StreetPath.Kind.TREE: 1.15,
-	StreetPath.Kind.BUSH: 1.15,
-	StreetPath.Kind.LAMP: 1.2,
-	StreetPath.Kind.FENCE: 1.05,
-	StreetPath.Kind.FLOWERS: 1.1,
-	StreetPath.Kind.BUNTING: 1.15,
+	StreetPath.Kind.TREE: 0.95,
+	StreetPath.Kind.BUSH: 0.85,
+	StreetPath.Kind.LAMP: 0.95,
+	StreetPath.Kind.FENCE: 0.85,
+	StreetPath.Kind.FLOWERS: 0.85,
+	StreetPath.Kind.BUNTING: 0.9,
 	StreetPath.Kind.SIDE_HOUSE: SIDE_HOUSE_SCALE,
 }
 ## The dressing at a door's house's feet: a flowerbed or a bush at each corner, as in the concepts.
-const FOOT_SCALE: float = 0.95
+const FOOT_SCALE: float = 0.8
 ## And the trees and big bushes behind it.
-const BEHIND_TREE: float = 1.25
-const BEHIND_BUSH: float = 1.0
+const BEHIND_TREE: float = 1.0
+const BEHIND_BUSH: float = 0.85
 ## The breeze: how far each kind leans, in radians, and how fast it sways.
 const SWAY: Dictionary = {
 	StreetPath.Kind.TREE: 0.03,
@@ -89,10 +89,6 @@ func wobble_scale() -> Vector2:
 
 func wobble_turn() -> float:
 	return jiggle.tilt() if jiggle != null else 0.0
-
-## Whether it is tall enough to hide the road and the cast when it stands near the screen's foot.
-func tall() -> bool:
-	return kind == HOUSE or kind == StreetPath.Kind.SIDE_HOUSE
 
 ## Its idle lean in the breeze at time `t`: trees, bushes and flowers sway, each in its own time, and nothing else.
 func sway(t: float) -> float:
@@ -157,21 +153,21 @@ func _side_house() -> void:
 ## Greenery growing up behind a house, as in every concept: a tree or a big bush at one or both back corners.
 func _behind(house: String, k: float) -> void:
 	var size: Vector2 = StreetArt.size(house) * k
-	for side: int in [-1, 1]:
-		var pick: int = StreetPath.mix(door * 5 + side + 23) % 6
-		if pick == 5:
-			continue
-		var piece: String = ("tree_%d" % (1 + pick % 3)) if pick < 3 else ("bush_big_%d" % (1 + pick % 2))
-		var reach: float = BEHIND_TREE if pick < 3 else BEHIND_BUSH
-		StreetArt.draw(self, piece, Vector2(side * size.x * 0.4, -size.y * 0.12), reach * k / HOUSE_SCALE)
+	# One tree or big bush at one back corner, on about half the houses: a touch of green, not a wall of it.
+	var pick: int = StreetPath.mix(door * 5 + 23) % 6
+	if pick >= 3:
+		return
+	var side: float = -1.0 if StreetPath.mix(door * 3 + 7) % 2 == 0 else 1.0
+	var piece: String = ("tree_%d" % (1 + pick)) if pick < 2 else "bush_big_%d" % (1 + door % 2)
+	var reach: float = BEHIND_TREE if pick < 2 else BEHIND_BUSH
+	StreetArt.draw(self, piece, Vector2(side * size.x * 0.42, -size.y * 0.1), reach * k / HOUSE_SCALE)
 
-## A flowerbed or a bush at each front corner of a house, chosen by its number.
+## A flowerbed at one front corner of a house, chosen by its number.
 func _feet(house: String, k: float) -> void:
 	var half: float = StreetArt.size(house).x * k * 0.42
-	for side: int in [-1, 1]:
-		var pick: int = StreetPath.mix(door * 7 + side + 11) % 5
-		var piece: String = ("flowerbed_%d" % (1 + pick % 3)) if pick < 3 else ("bush_%d" % (1 + pick % 3))
-		StreetArt.draw(self, piece, Vector2(side * half, 6.0), FOOT_SCALE * k / HOUSE_SCALE)
+	var side: float = -1.0 if StreetPath.mix(door * 7 + 11) % 2 == 0 else 1.0
+	var piece: String = "flowerbed_%d" % (1 + StreetPath.mix(door * 7 + 13) % 3)
+	StreetArt.draw(self, piece, Vector2(side * half, 6.0), FOOT_SCALE * k / HOUSE_SCALE)
 
 ## Everything, the number's digits too, comes from the atlas, so a whole street of houses batches into a few runs.
 func _house() -> void:
