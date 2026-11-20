@@ -7,9 +7,10 @@ extends RefCounted
 
 ## Doors, one a level, as in the concept (build/review/revamp2/1-map.png): houses left and right of the screen's
 ## middle in turn, two or three on a phone at once, and a road that winds from door to door, passing just in front of
-## each one where the cast waits.
+## each one where the cast waits. The gap was 270 until Shravan found the houses too close from bottom to top
+## (21 November), so it is 40% more, with grass and the road's bend showing between doors.
 const FIRST_DOOR: float = 360.0
-const DOOR_GAP: float = 270.0
+const DOOR_GAP: float = 378.0
 ## Half the road's width: a lane that the houses sit on the bends of, not an avenue they stand beside.
 const ROAD_HALF: float = 74.0
 ## How far a door's house stands from the street's middle, left and right in turn.

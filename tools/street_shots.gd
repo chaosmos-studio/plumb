@@ -152,6 +152,7 @@ func _plot() -> void:
 	await _seconds(1.2)
 	await _save(view, "9-plot")
 	view.queue_free()
+	_street(STARS.size())
 
 ## The street after one: the family's house on its plot, the family in front, the windmill turning.
 func _family() -> void:
@@ -163,6 +164,7 @@ func _family() -> void:
 	await _seconds(1.0)
 	await _save(view, "10-family")
 	view.queue_free()
+	_street(STARS.size())
 
 ## The parcel at door 25: waiting, opened with what it holds rising, and done with "x2" offered.
 func _gift() -> void:

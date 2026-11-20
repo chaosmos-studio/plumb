@@ -10,11 +10,12 @@ enum Door { FAR, LOCKED, OPEN, CURRENT, SOLVED }
 const HOUSE: int = -1
 const INK: Color = Color("fff3df")
 ## A house's size beside its painting (StreetArt), and its number's height as a share of its door's radius. Two or
-## three houses show on a phone with the road between them (Shravan, 20 November).
-const HOUSE_SCALE: float = 1.12
+## three houses show on a phone with the road between them (Shravan, 20 November), a little smaller than the first
+## 1.12 so the doors breathe (21 November).
+const HOUSE_SCALE: float = 0.98
 const NUMBER_HEIGHT: float = 0.95
-## A neighbour's house at the street's edges, at this size beside a door's house.
-const SIDE_HOUSE_SCALE: float = 0.9
+## A neighbour's house at the street's edges, at this size beside its painting.
+const SIDE_HOUSE_SCALE: float = 0.79
 ## Scenery's size beside the houses, as Codex painted each at its own canvas.
 const SCENERY_SCALE: Dictionary = {
 	StreetPath.Kind.TREE: 0.95,

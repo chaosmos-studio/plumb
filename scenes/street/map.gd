@@ -16,8 +16,9 @@ const FOCAL: float = 700.0
 ## The camera's tilt down at the street: each door up the screen is drawn a steady share smaller than the one below.
 const TILT: float = 0.0
 const TITLE_CLEAR: float = 16.0
-## The tallest thing on the street at its near-edge size (a tall house), and how far the hills rise above the horizon.
-const TALLEST: float = 450.0
+## The tallest thing on the street at its near-edge size (the windmill on its plot), and how far the hills rise above
+## the horizon.
+const TALLEST: float = 520.0
 const HILLS_RISE: float = 75.0
 ## The radius is searched between these, in design units.
 const RADIUS_RANGE: Vector2 = Vector2(500.0, 4000.0)
@@ -54,7 +55,7 @@ const CAST_BEFORE: float = 80.0
 ## How far from the road's middle toward the door it waits at the cast stands.
 const CAST_TOWARD_DOOR: float = 0.35
 ## After a win: the cast's walk to the next door, and the pause before its card drops in.
-const WALK_TIME: float = 1.1
+const WALK_TIME: float = 1.3
 const CARD_DELAY: float = 0.35
 ## Doors after the current one that show their number. Further ones show a padlock. How many show at all is what fits
 ## under the title at rest.
