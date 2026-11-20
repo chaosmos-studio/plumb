@@ -7,17 +7,19 @@ extends Node2D
 const SKY: String = "res://assets/street/sky.png"
 const HILLS: String = "res://assets/street/hills.png"
 ## The sun's place, as shares of the screen, and its size beside its painting.
-const SUN_AT: Vector2 = Vector2(0.9, -0.015)
+const SUN_AT: Vector2 = Vector2(0.93, -0.03)
 const SUN_SCALE: float = 0.95
 ## The sun turns this fast, in radians a second.
 const SUN_SPIN: float = 0.12
 ## Clouds: their height as a share of the space above the horizon, their size, and their drift in pixels a second.
-const CLOUDS: Array = [[0.12, 0.62, 7.0, 0.05], [0.42, 0.44, 4.5, 0.55], [0.72, 0.36, 3.0, 0.3]]
+const CLOUDS: Array = [[0.15, 0.5, 7.0, 0.05], [0.55, 0.4, 4.5, 0.55], [0.9, 0.34, 3.0, 0.3]]
 ## The hills' size beside their painting, and how far below the horizon their foot sits, in design pixels.
 const HILLS_SCALE: float = 0.62
 const HILLS_SINK: float = 26.0
 
 var horizon_y: float = 400.0
+## The foot of the title above, in this node's units: the clouds keep below it.
+var clear_bottom: float = 0.0
 ## The area it fills, in its own units, where that is not the screen: the map's world on a wide screen is scaled.
 var area: Vector2 = Vector2.ZERO
 ## The sun first, then each cloud: its tap wobble, and where it was last drawn (middle and reach) for taps.
@@ -64,7 +66,10 @@ func _draw() -> void:
 		var w: float = StreetArt.size(piece).x * float(c[1])
 		var span: float = size.x + w
 		var x: float = fposmod(float(c[3]) * span + _t * float(c[2]), span) - w * 0.5
-		var at: Vector2 = Vector2(x, maxf(horizon_y, 0.0) * float(c[0]) + 30.0)
+		# Clouds drift in the band between the title's foot and the hills, so the title has only blue sky behind it.
+		var band_top: float = clear_bottom + 24.0
+		var band_bottom: float = maxf(horizon_y - 90.0, band_top)
+		var at: Vector2 = Vector2(x, lerpf(band_top, band_bottom, float(c[0])))
 		_spots[k + 1] = Vector3(at.x, at.y, w * 0.5)
 		draw_set_transform(at, _springs[k + 1].tilt(), _springs[k + 1].squash())
 		StreetArt.draw(self, piece, Vector2.ZERO, float(c[1]))

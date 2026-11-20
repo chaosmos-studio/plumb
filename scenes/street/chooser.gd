@@ -130,6 +130,7 @@ func _layout() -> void:
 		_title.place(Vector2(size.x * 0.4, size.y), 24.0, TITLE_WIDTH * 0.75)
 	else:
 		_title.place(size, float(UI.safe_margins(get_viewport())["top"]) + TITLE_TOP, TITLE_WIDTH)
+	_sky.clear_bottom = _title.foot()
 	_cast.position = Vector2(size.x * 0.5, size.y * (1.0 - GRASS * 0.42))
 	_cast.look_toward(Vector2(size.x * 0.5, 0.0))
 	for i: int in range(_cards.size()):
@@ -153,7 +154,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	var at: Vector2 = (event as InputEventScreenTouch).position
 	if _title.hit(at):
-		_wobbler.tap(_title, StreetWobbler.Voice.BOING)
+		_title.poke()
 		return
 	var member: int = _cast.member_at(at)
 	if member >= 0:
