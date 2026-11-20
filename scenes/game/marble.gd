@@ -160,9 +160,12 @@ func _draw() -> void:
 	if number > 0:
 		_number(r, faces)
 	elif ColourHelp.on and not stone and who >= 0:
-		# Colour help: the colour's shape in its own deep tone, under the face or in the middle without one.
-		ColourHelp.draw(self, who, Vector2(0.0, r * 0.56) if faces else Vector2.ZERO, r * (0.5 if faces else 0.8),
-			colour.darkened(0.55))
+		# Colour help: the colour's shape in cream on a rim of its own deep tone, low on the marble under the face, as
+		# the Settings concept draws it, or in the middle without a face.
+		var at: Vector2 = Vector2(0.0, r * 0.7) if faces else Vector2.ZERO
+		var size: float = r * (0.4 if faces else 0.8)
+		ColourHelp.draw(self, who, at, size * 1.35, colour.darkened(0.5))
+		ColourHelp.draw(self, who, at, size)
 	if hat > 0.0 and faces:
 		var main: Color = Palette.marble(posmod(who + 2, 4))
 		Face.hat(self, r, hat, main, Color(1, 1, 1, 0.92), _buf)

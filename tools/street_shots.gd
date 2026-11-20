@@ -38,7 +38,7 @@ func _ready() -> void:
 	if sizes.is_empty():
 		sizes = SIZES.duplicate()
 	var shots: Array[Callable] = [_chooser, _map, _card, _play, _win, _walk, _plot, _family, _gift, _milestone, _helpers,
-		_shop, _settings]
+		_shop, _settings, _colour]
 	for pixels: Vector2i in sizes:
 		_pixels = pixels
 		_folder = OUT + "%dx%d/" % [pixels.x, pixels.y]
@@ -230,6 +230,17 @@ func _settings() -> void:
 	await _save(view, "21-settings-access")
 	view.queue_free()
 	Save.colour_help = false
+	ColourHelp.on = false
+
+## A board with Colour help on: each colour's shape on its marbles and in its holes.
+func _colour() -> void:
+	ColourHelp.on = true
+	Pack.use(Pack.Section.MAIN)
+	Pack.current = SOLVED
+	var view: SubViewport = _stage(StreetPlay.SCENE)
+	await _seconds(1.4)
+	await _save(view, "22-colour-help")
+	view.queue_free()
 	ColourHelp.on = false
 
 ## The milestone at door 40: the house rising under fireworks, then the family out and waving.
