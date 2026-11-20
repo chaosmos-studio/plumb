@@ -26,10 +26,12 @@ class _FirebaseBuild extends EditorExportPlugin:
 		"google_analytics_adid_collection_enabled",
 		"google_analytics_ssaid_collection_enabled",
 	]
-	## Analytics' ad attribution through Android's Privacy Sandbox, which nothing here uses.
+	## Android's Privacy Sandbox, asked for by Analytics and by Unity Ads, which nothing here uses: the
+	## build keeps a smaller data footprint without them.
 	const UNUSED_PERMISSIONS: PackedStringArray = [
 		"android.permission.ACCESS_ADSERVICES_ATTRIBUTION",
 		"android.permission.ACCESS_ADSERVICES_AD_ID",
+		"android.permission.ACCESS_ADSERVICES_TOPICS",
 	]
 
 	func _get_name() -> String:
