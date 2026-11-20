@@ -1296,3 +1296,46 @@ relative to the screen, as Codex painted it.
 - `SWING_DAMPING` in `door_card.gd` to 2: the card keeps swinging for seconds. To 19: it settles with no swing.
 - `SWING_STIFFNESS` to 30: a slower, heavier swing, as on a longer string.
 - `HOP` in `homecoming.gd` to 400: the marbles leap home over the roofs.
+
+## 27. Tap anything: the wobble
+
+In Street, a tap on anything (a house, a tree, the sun, a marble, a button) makes it wobble like a jelly, as in
+Candy Crush. One small script makes every wobble, `scripts/street/jiggle.gd`.
+
+**One number on a spring.** The wobble is a single number, the squash `s`: 0 at rest, positive for wider and shorter,
+negative for narrower and taller. It hangs on the same damped spring as the start card (section 26), stepped each
+frame:
+
+    v += (-STIFFNESS · s - DAMPING · v) · dt
+    s += v · dt
+
+A tap does not move `s` at all. It gives it a speed, `v += KICK`, the way a flick sets a ruler twanging. The spring
+then carries it out, back through rest and out the other way, each swing smaller than the last.
+
+**How it feels comes from two numbers.** STIFFNESS 400 sets how fast it wobbles: √400 = 20 radians a second, about
+three wobbles a second. DAMPING 18 sets how fast it calms: each wobble's size shrinks as e^(−9t), half again
+every 0.08 s, so each bounce is about a fifth of the one before and it is still within half a second. The damping
+ratio, 18 / (2 · 20) = 0.45, is the jelly: at 1 it would ease back without a single bounce, and near 0 it would
+wobble for seconds.
+
+**The area stays the same.** Squash something and it should bulge, as a ball of dough does, not shrink. So the width
+is `1 + s` and the height `1 / (1 + s)`: their product, the area, is always exactly 1.
+
+**A rock, a quarter of a beat late.** The tilt follows the squash's speed `v`, not the squash itself. A sine's speed is
+a cosine, a quarter of a wobble out of step, so the piece leans most while it passes through its rest shape and
+stands straight at the widest and tallest moments. That lean is what makes it look loose rather than mechanical.
+
+**Steady at any frame rate.** A long frame is stepped in slices of 1/120 s, so a phone that stutters wobbles exactly
+as one that does not. A test checks that one slow frame and twelve quick ones land on the same squash.
+
+**Idle life uses plain sines** instead, each with its own phase from the thing's number so nothing moves in step:
+trees and bushes lean (`StreetProp.SWAY`), the cast breathes (a squash of 2.5% at 1.7 radians a second, the area
+kept the same way), buttons breathe, and the sun turns. Reduce motion stops all of it, and a tap then answers with a
+short fade instead of a wobble.
+
+### Things to try
+
+- `DAMPING` in `jiggle.gd` to 8: a long, floppy jelly. To 40: one firm squash with no bounce.
+- `STIFFNESS` to 150: a slow, heavy wobble, like a water balloon.
+- `KICK` to 8: a tap that nearly flattens it.
+- `TILT` to 0: it bounces straight up and down, and loses most of its life.

@@ -55,6 +55,7 @@ func _initialize() -> void:
 	_test_street_projection()
 	_test_street_path()
 	_test_street_layout()
+	_test_jiggle()
 	if not OS.get_cmdline_user_args().has("quick"):
 		_test_level_pack()
 	_test_opening()
@@ -702,6 +703,35 @@ func _test_street_path() -> void:
 	_check("a wide screen's meadow holds trees and bushes in their own bands", meadow)
 	_check("and about FAR_SHARE of its spots are filled",
 		absf(float(filled) / (4000.0 * 2.0 * 4.0) * 100.0 - StreetPath.FAR_SHARE) < 3.0)
+
+# A tap's wobble (MATH.md section 27): it squashes about an eighth, keeps its area, rocks a little, and rests
+# within about half a second, the same however the frames fall.
+func _test_jiggle() -> void:
+	var j: Jiggle = Jiggle.new()
+	j.kick()
+	var peak: float = 0.0
+	var area: bool = true
+	var tilt: float = 0.0
+	var t: float = 0.0
+	while j.step(1.0 / 60.0) and t < 3.0:
+		t += 1.0 / 60.0
+		peak = maxf(peak, j.s)
+		var sq: Vector2 = j.squash()
+		area = area and absf(sq.x * sq.y - 1.0) < 0.0001
+		tilt = maxf(tilt, absf(j.tilt()))
+	_check("a tap squashes about an eighth", peak > 0.09 and peak < 0.16)
+	_check("the wobble keeps the area", area)
+	_check("it rocks a few degrees at most", tilt > 0.02 and tilt < 0.09)
+	_check("and rests in 0.35 to 0.6 s", t > 0.35 and t < 0.6)
+	_check("at rest it is exactly still", j.squash() == Vector2.ONE and j.tilt() == 0.0)
+	var slow: Jiggle = Jiggle.new()
+	slow.kick()
+	var fast: Jiggle = Jiggle.new()
+	fast.kick()
+	slow.step(0.1)
+	for i: int in range(12):
+		fast.step(0.1 / 12.0)
+	_check("a slow frame lands where many quick ones do", absf(slow.s - fast.s) < 0.001)
 
 # Shravan's rule: portrait is the design and a wide screen gets its own layout, on a base whose short side is 720
 # units, so the hand sees one size either way (REVAMP_PLAN.md section 16).
