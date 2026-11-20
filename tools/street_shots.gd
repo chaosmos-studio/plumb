@@ -1,15 +1,19 @@
 extends Node
 
-## Pictures of Street at a phone's full size (1084 x 2412, the A142's screen), rendered offscreen in one run, so only
-## one window opens on the display. Each scene runs in a SubViewport that shows the 720-wide design at that size, on a
-## save of its own (user://street_shots.cfg) where doors 1 to 11 are solved. They land in build/review/street/.
+## Pictures of Street at full size on every screen shape it must compose for (REVAMP_PLAN.md section 16): a portrait
+## and a landscape phone, a 16:9 and a 21:9 desktop and a turned tablet. They render offscreen in one run, so only one
+## window opens on the display. Each scene runs in a SubViewport at the screen's pixels showing the design size the
+## game's stretch gives that screen (StreetLayout), on a save of its own (user://street_shots.cfg) where doors 1 to 11
+## are solved. They land in build/review/street/<width>x<height>/.
 ##
-## Run: DISPLAY=:0 godot --path . res://tools/street_shots.tscn [-- name ...]
+## Run: DISPLAY=:0 godot --path . res://tools/street_shots.tscn [-- name ... size ...], such as `-- map 2400x1080`.
 
 const OUT: String = "res://build/review/street/"
-const PHONE: Vector2i = Vector2i(1084, 2412)
-const DESIGN: Vector2i = Vector2i(720, 1602)
+const SIZES: Array[Vector2i] = [Vector2i(1080, 2400), Vector2i(2400, 1080), Vector2i(1920, 1080), Vector2i(2560, 1080),
+	Vector2i(2048, 1536)]
 const SOLVED: int = 11
+var _pixels: Vector2i = SIZES[0]
+var _folder: String = OUT
 const STARS: PackedByteArray = [3, 3, 2, 3, 1, 3, 2, 3, 3, 2, 3]
 
 func _ready() -> void:
@@ -22,19 +26,32 @@ func _ready() -> void:
 	# The glossy marbles a new player starts with, whatever this desktop's own save has chosen.
 	Save.look = ""
 	GameLooks.use("classic")
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
-	var only: PackedStringArray = OS.get_cmdline_user_args()
+	var args: PackedStringArray = OS.get_cmdline_user_args()
+	var names: PackedStringArray = []
+	var sizes: Array[Vector2i] = []
+	for arg: String in args:
+		var parts: PackedStringArray = arg.split("x")
+		if parts.size() == 2 and parts[0].is_valid_int() and parts[1].is_valid_int():
+			sizes.append(Vector2i(parts[0].to_int(), parts[1].to_int()))
+		else:
+			names.append(arg)
+	if sizes.is_empty():
+		sizes = SIZES.duplicate()
 	var shots: Array[Callable] = [_chooser, _map, _card, _play, _win, _walk]
-	for shot: Callable in shots:
-		if only.is_empty() or only.has(shot.get_method().trim_prefix("_")):
-			await shot.call()
+	for pixels: Vector2i in sizes:
+		_pixels = pixels
+		_folder = OUT + "%dx%d/" % [pixels.x, pixels.y]
+		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_folder))
+		for shot: Callable in shots:
+			if names.is_empty() or names.has(shot.get_method().trim_prefix("_")):
+				await shot.call()
 	print("STREET_SHOTS_DONE")
 	get_tree().quit()
 
 func _stage(scene: String) -> SubViewport:
 	var view: SubViewport = SubViewport.new()
-	view.size = PHONE
-	view.size_2d_override = DESIGN
+	view.size = _pixels
+	view.size_2d_override = Vector2i(StreetLayout.design_size(Vector2(_pixels)).round())
 	view.size_2d_override_stretch = true
 	view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	add_child(view)
@@ -50,7 +67,7 @@ func _seconds(s: float) -> void:
 
 func _save(view: SubViewport, name: String) -> void:
 	await RenderingServer.frame_post_draw
-	var path: String = ProjectSettings.globalize_path(OUT + name + ".png")
+	var path: String = ProjectSettings.globalize_path(_folder + name + ".png")
 	view.get_texture().get_image().save_png(path)
 	print("STREET_SHOT ", path)
 
