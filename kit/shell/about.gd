@@ -14,6 +14,7 @@ static func open(host: Node) -> Sheet:
 	# Wraps, so a longer tagline or a two-digit patch number never pushes the sheet past a phone's width.
 	var line: Label = UI.caption("%s   version %s" % [Brand.TAGLINE, version] if version != "" else Brand.TAGLINE, 20)
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	TestAds.listen(line)
 	c.add_child(line)
 	c.add_child(UI.spacer(8))
 	c.add_child(UI.caption("Made by", 20))
