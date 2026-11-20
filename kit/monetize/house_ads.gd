@@ -3,23 +3,16 @@ extends AdBackend
 
 ## The studio's own ads: a banner for another of its games where an ad's banner would be, and nothing else. No
 ## interstitials and no stand-in for a video, since a reward with no video to play is simply given (Ads.rewarded).
-## They stand in for AdMob while it is switched off (GameMonetize.ADMOB false), and fill the banner's strip under
-## it whenever it has none to give. Standing in on Android, they still ask Google's consent service whether this
-## phone needs consent, since Analytics waits on that answer before it counts.
+## They stand in for LevelPlay while it is switched off (GameMonetize.ADS false) or has no app key yet, and fill
+## the banner's strip under it whenever it has none to give.
 
 ## The game the next banner shows: they take turns.
 static var _turn: int = 0
 
-## False when filling in under AdMob, which asks for consent itself.
-var consent: bool = true
 var _layer: CanvasLayer
 var _banner: HouseBanner
 var _height: float = 0.0
 var _pending: bool = false
-
-func _ready() -> void:
-	if consent and OS.has_feature("android") and Engine.has_singleton("PoingGodotAdMob"):
-		add_child(load("res://kit/monetize/android/consent.gd").new() as Node)
 
 func ready_to_show(_kind: StringName) -> bool:
 	return false

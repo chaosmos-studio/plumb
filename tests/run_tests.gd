@@ -6,8 +6,7 @@ extends SceneTree
 
 const InputMapGen: GDScript = preload("res://tools/make_input_map.gd")
 const LevelTool: GDScript = preload("res://tools/generate_levels.gd")
-const ADMOB_SETTINGS: GDScript = preload("res://addons/admob/internal/services/project_settings_service.gd")
-const APP_ID_SETTING: String = "admob/general/android/app_id"
+const FakeIntermission: GDScript = preload("res://tests/fake_intermission.gd")
 ## The least contrast each pairing needs, as a WCAG ratio, in both palettes: body text, the quiet
 ## captions, the primary button's label and the reset warning.
 const CONTRAST: Array = [["ink", "bg", 7.0], ["ink", "surface", 7.0], ["muted", "bg", 3.0],
@@ -76,9 +75,11 @@ func _initialize() -> void:
 	_test_banner_pacing()
 	_test_interstitial_pacing()
 	_test_hint_pacing()
-	_test_adaptive_banner()
+	_test_banner_size()
 	_test_monetize_ids()
 	_test_presets_and_plugins()
+	_test_consent()
+	_test_test_ads()
 	_test_changelog()
 	_test_saved_monetization()
 	_test_settings_variants()
@@ -120,6 +121,7 @@ func _initialize() -> void:
 	_test_play_screen_banner()
 	await _test_go_back()
 	_test_house_ads()
+	await _test_levelplay_backend()
 	await _test_sheet_rises_before_layout()
 	await _test_sheet_drags_closed()
 	await _test_levels_swipe()
@@ -1613,36 +1615,51 @@ func _test_hint_pacing() -> void:
 	_check("yesterday's hints are forgotten at midnight", AdPacing.used_today("2026-09-29", 3, "2026-09-30") == 0)
 	_check("a never-saved day counts none", AdPacing.used_today("", 3, "2026-09-30") == 0)
 
-func _test_adaptive_banner() -> void:
+func _test_banner_size() -> void:
 	var ads: GDScript = load("res://kit/monetize/ads.gd")
-	_check("a 360 dp phone gets a 56 dp banner", is_equal_approx(ads.call("adaptive_height_dp", 360.0, 800.0), 56.0))
-	_check("a 412 dp phone gets 64 dp", is_equal_approx(ads.call("adaptive_height_dp", 412.0, 915.0), 64.0))
-	_check("never under 50 dp", is_equal_approx(ads.call("adaptive_height_dp", 240.0, 300.0), 50.0))
-	_check("never over 90 dp", is_equal_approx(ads.call("adaptive_height_dp", 1000.0, 1400.0), 90.0))
-	_check("never over 15% of a short screen", is_equal_approx(ads.call("adaptive_height_dp", 412.0, 400.0), 60.0))
+	_check("the banner is LevelPlay's 50 dp one", is_equal_approx(ads.get("BANNER_DP"), 50.0))
+	var host: Node = Node.new()
+	var view: Vector2 = root.get_visible_rect().size
+	var window: Vector2 = Vector2(DisplayServer.window_get_size())
+	var dpi: float = float(DisplayServer.screen_get_dpi())
+	var width_dp: float = window.x * 160.0 / dpi if dpi > 0.0 and window.x > 0.0 else ads.get("PREVIEW_WIDTH_DP")
+	_check("its height in design pixels follows the screen's density",
+		is_equal_approx(ads.call("banner_height", host), 50.0 * view.x / width_dp))
+	host.free()
 
-# The plugin writes the project setting into the manifest (falling back to Google's test app when it is
-# unset), so the one the game's code names must be the one that ships.
+# LevelPlay's app keys are short hex strings and its ad unit ids 16 letters and digits. They ship in the app.
 func _test_monetize_ids() -> void:
-	var setting: String = ProjectSettings.get_setting(APP_ID_SETTING, ADMOB_SETTINGS.ANDROID_DEFAULT_APP_ID)
-	_check("the manifest's AdMob app id is GameMonetize.APP_ID (%s)" % setting, setting == GameMonetize.APP_ID)
-	var app: RegEx = RegEx.create_from_string("^ca-app-pub-\\d{16}~\\d{10}$")
-	var unit: RegEx = RegEx.create_from_string("^ca-app-pub-\\d{16}/\\d{10}$")
-	_check("the app id is an AdMob app id", app.search(GameMonetize.APP_ID) != null)
-	for id: String in [GameMonetize.BANNER_ID, GameMonetize.INTERSTITIAL_ID, GameMonetize.REWARDED_ID]:
-		_check("%s is an AdMob unit id" % id, unit.search(id) != null)
-	var ids: Array[String] = [GameMonetize.BANNER_ID, GameMonetize.INTERSTITIAL_ID, GameMonetize.REWARDED_ID]
-	_check("each placement has its own unit", ids[0] != ids[1] and ids[1] != ids[2] and ids[0] != ids[2])
+	var key: RegEx = RegEx.create_from_string("^[0-9a-f]{8,10}$")
+	var unit: RegEx = RegEx.create_from_string("^[0-9a-z]{16}$")
+	_check("the LevelPlay app key looks like one", key.search(GameMonetize.LEVELPLAY_APP_KEY) != null)
+	var ids: Array[String] = [GameMonetize.LEVELPLAY_BANNER_ID, GameMonetize.LEVELPLAY_INTERSTITIAL_ID,
+		GameMonetize.LEVELPLAY_REWARDED_ID]
+	for id: String in ids:
+		_check("%s is a LevelPlay ad unit id" % id, unit.search(id) != null)
+	_check("each format has its own ad unit", ids[0] != ids[1] and ids[1] != ids[2] and ids[0] != ids[2])
+	_check("ads are on", GameMonetize.ADS)
+	_check("the Unity Ads placements are bidding ones, for LevelPlay to fill",
+		Array(GameMonetize.UNITY_PLACEMENTS).all(func(p: String) -> bool: return p.begins_with("BP_")))
 	_check("the Supporter pack is the product 'supporter'", GameMonetize.SUPPORTER_ID == "supporter")
+	var ads: GDScript = load("res://kit/monetize/ads.gd")
+	_check("LevelPlay runs where it is on, in the build and has a key",
+		ads.call("network_ads", true, true, "29be3810d", false))
+	_check("a debug build needs no key, since it asks LevelPlay's demo app", ads.call("network_ads", true, true, "", true))
+	_check("a release build without a key shows the house banner", not ads.call("network_ads", true, true, "", false))
+	_check("so does a build without the plugin", not ads.call("network_ads", true, false, "29be3810d", true))
+	_check("and ads switched off", not ads.call("network_ads", false, true, "29be3810d", false))
 
 func _test_presets_and_plugins() -> void:
 	var enabled: PackedStringArray = ProjectSettings.get_setting("editor_plugins/enabled", PackedStringArray())
-	_check("the AdMob plugin is enabled", enabled.has("res://addons/admob/plugin.cfg"))
+	_check("the Intermission plugin is enabled", enabled.has("res://addons/intermission/plugin.cfg"))
+	_check("and the AdMob one is gone", not enabled.has("res://addons/admob/plugin.cfg")
+		and not DirAccess.dir_exists_absolute("res://addons/admob"))
 	_check("the Play billing plugin is enabled", enabled.has("res://addons/GodotGooglePlayBilling/plugin.cfg"))
-	_check("the Android binaries are in place, so no build downloads them",
-		FileAccess.file_exists("res://addons/admob/android/bin/ads/libs/poing-godot-admob-ads-release.aar")
-		and FileAccess.file_exists("res://addons/admob/android/bin/package.gd")
-		and FileAccess.file_exists("res://addons/admob/ios/bin/package.gd"))
+	var export_plugin: GDScript = load("res://addons/intermission/export_plugin.gd")
+	for debug: bool in [true, false]:
+		for aar: String in export_plugin.call("libraries", "levelplay", debug):
+			_check("res://addons/%s is in place, so no build downloads it" % aar,
+				FileAccess.file_exists("res://addons/".path_join(aar)))
 	_check("the Firebase plugins are enabled", enabled.has("res://addons/godotx_firebase/plugin.cfg")
 		and enabled.has("res://addons/firebase_build/plugin.cfg"))
 	_check("the Play Core plugin is enabled, with the Java helper it builds in",
@@ -1665,7 +1682,9 @@ func _test_presets_and_plugins() -> void:
 			_check("%s may use the network" % preset_name, bool(presets.get_value(options, "permissions/internet", false)))
 			_check("%s builds with Gradle, which the plugins need" % preset_name,
 				bool(presets.get_value(options, "gradle_build/use_gradle_build", false)))
-			_check("%s leaves the plugin's samples out" % preset_name, exclude.contains("addons/admob/gdscript/sample/*"))
+			_check("%s leaves the Intermission editor scripts out" % preset_name,
+				exclude.contains("addons/intermission/intermission_plugin.gd")
+				and exclude.contains("addons/intermission/export_plugin.gd"))
 			# Android's own backup carries user:// to the player's next install, so progress survives a reinstall.
 			_check("%s lets Android back up the save" % preset_name, bool(presets.get_value(options, "user_data_backup/allow", false)))
 			_check("%s builds Firebase Core and Analytics" % preset_name,
@@ -1714,14 +1733,89 @@ func _test_changelog() -> void:
 			"## 1.0.0\n-\n", "## 1.0.0\n- " + "x".repeat(Changelog.PLAY_LIMIT - 1)]:
 		_check("the release rules refuse \"%s\"" % bad.left(40).c_escape(), Changelog.parse(bad).error != "")
 
-# UMP consent status: 0 unknown, 1 not required, 2 required, 3 obtained. Only 1 counts. Levels reach
-# Analytics numbered from 1, as players see them.
+# The sheet is asked in the EEA, the UK and Switzerland, guessed from the locale's region or a European clock.
+func _test_consent() -> void:
+	var consent: GDScript = load("res://kit/monetize/consent.gd")
+	var status: Dictionary = consent.get_script_constant_map()["Status"]
+	for locale: String in ["de_DE", "en_GB", "fr_CH", "nb_NO", "sr_Latn_SI", "en_IE"]:
+		_check("a phone set to %s is asked" % locale, consent.call("needs", locale, 330))
+	for locale: String in ["en_IN", "hi_IN", "en_US", "pt_BR", "ja_JP", "en"]:
+		_check("a phone set to %s on Indian time is not asked" % locale, not consent.call("needs", locale, 330))
+	_check("a European phone set to US English is asked by its clock", consent.call("needs", "en_US", 60))
+	_check("so is one on Lisbon's winter clock", consent.call("needs", "en_US", 0))
+	_check("but not one on New York's", not consent.call("needs", "en_US", -300))
+	_check("a locale's region is read whatever its script", consent.call("country", "sr_Latn_RS") == "RS")
+	_check("a locale with no region has none", consent.call("country", "en") == "")
+	var old_path: String = consent.get("path")
+	consent.set("path", "user://test_consent.cfg")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(consent.get("path")))
+	_check("nothing is forced without the debug key", not consent.call("forced"))
+	var forced: ConfigFile = ConfigFile.new()
+	forced.set_value("debug", "force", true)
+	forced.save(consent.get("path"))
+	_check("a debug build can be made to ask anywhere", consent.call("required") and consent.call("forced"))
+	_check("asked and not answered yet", consent.call("status") == status["UNKNOWN"])
+	consent.call("answer", false)
+	_check("a refusal is kept", consent.call("status") == status["DENIED"])
+	consent.call("answer", true)
+	_check("and so is a yes", consent.call("status") == status["GRANTED"])
+	_check("Analytics counts where no consent is needed or the player said yes",
+		consent.call("counts", status["NOT_REQUIRED"]) and consent.call("counts", status["GRANTED"]))
+	_check("and nowhere else", not consent.call("counts", status["UNKNOWN"]) and not consent.call("counts", status["DENIED"]))
+	var host: Node = Node.new()
+	var sheet: Control = consent.call("ask", host, func() -> void: pass, false)
+	var texts: PackedStringArray = []
+	for b: Node in host.find_children("*", "Button", true, false):
+		texts.append((b as Button).text)
+	_check("the sheet offers both answers alike and the policy (%s)" % ", ".join(texts),
+		texts.has("Allow") and texts.has("Don't allow") and texts.has("Privacy policy"))
+	_check("the launch sheet cannot be swiped away unanswered", not bool(sheet.get("dismissable")))
+	host.free()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(consent.get("path")))
+	consent.set("path", old_path)
+
+# Test ads on every phone that is not a player's: debug builds, and the tester switch, seven quick taps.
+func _test_test_ads() -> void:
+	var test_ads: GDScript = load("res://kit/monetize/test_ads.gd")
+	var taps: int = test_ads.get("TAPS")
+	var old_path: String = test_ads.get("path")
+	test_ads.set("path", "user://test_ads.cfg")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(test_ads.get("path")))
+	_check("a debug build asks for test ads", test_ads.call("test_mode"))
+	_check("the switch starts off", not test_ads.call("tester"))
+	var host: Node = Node.new()
+	var flipped: int = 0
+	for i: int in range(taps):
+		if test_ads.call("tap", host):
+			flipped += 1
+	_check("seven quick taps turn the switch on", flipped == 1 and test_ads.call("tester"))
+	for i: int in range(taps - 1):
+		test_ads.call("tap", host)
+	_check("six more do nothing yet", test_ads.call("tester"))
+	test_ads.set("_last_tap", -10.0)
+	test_ads.call("tap", host)
+	_check("and a slow tap starts the count again", test_ads.call("tester"))
+	for i: int in range(taps - 1):
+		test_ads.call("tap", host)
+	_check("seven more turn it off", not test_ads.call("tester"))
+	host.free()
+	var own: ConfigFile = ConfigFile.new()
+	own.set_value("testing", "own_app", true)
+	own.save(test_ads.get("path"))
+	_check("a debug build on a registered test device can ask the game's own app", not test_ads.call("test_mode"))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(test_ads.get("path")))
+	test_ads.set("path", old_path)
+
+# Counted where no consent is needed or the player said yes, never in a debug build. Levels reach Analytics
+# numbered from 1, as players see them.
 func _test_analytics() -> void:
 	var analytics: GDScript = load("res://kit/monetize/analytics.gd")
-	_check("a release build counts where no consent is needed", analytics.counts(1, false))
-	_check("a debug build never counts", not analytics.counts(1, true))
-	for status: int in [0, 2, 3]:
-		_check("consent status %d counts nothing" % status, not analytics.counts(status, false))
+	var status: Dictionary = (load("res://kit/monetize/consent.gd") as GDScript).get_script_constant_map()["Status"]
+	_check("a release build counts where no consent is needed", analytics.counts(status["NOT_REQUIRED"], false))
+	_check("and where the player said yes", analytics.counts(status["GRANTED"], false))
+	_check("a debug build never counts", not analytics.counts(status["NOT_REQUIRED"], true))
+	for state: String in ["UNKNOWN", "DENIED"]:
+		_check("consent %s counts nothing" % state, not analytics.counts(status[state], false))
 	_check("nothing is counted off Android", not analytics.counting())
 	var heard: Array[Array] = []
 	analytics.sink = func(event: StringName, params: Dictionary) -> void: heard.append([event, params])
@@ -3030,7 +3124,7 @@ func _test_sheets_fit_a_phone() -> void:
 	shop.set("prices", prices)
 	supporter.set("on_play", old)
 
-# With AdMob off, the studio's house banner stands in, as tall as a phone's ad: no interstitials and nothing in a
+# With LevelPlay off, the studio's house banner stands in, as tall as a phone's ad: no interstitials and nothing in a
 # video's place. A reward with no video to play is simply given. The banner has a light and a dark look per game.
 func _test_house_ads() -> void:
 	var house: GDScript = load("res://kit/monetize/house_ads.gd")
@@ -3053,7 +3147,7 @@ func _test_house_ads() -> void:
 	_check("with no video to play, a reward is simply given", given[0])
 	_check("and the buttons that offer one say it is free", String(ads.call("with_one")) == "free")
 	ads.call("use", _VideoAds.new())
-	_check("once AdMob has a video, they offer it", String(ads.call("with_one")) == "with a video")
+	_check("once LevelPlay has a video, they offer it", String(ads.call("with_one")) == "with a video")
 	ads.call("use", null)
 	var styles: Dictionary = looks.get_script_constant_map()["STYLES"]
 	var both: Array[String] = []
@@ -3065,6 +3159,110 @@ func _test_house_ads() -> void:
 			both.append(name)
 	_check("every house game has a readable light banner and a readable dark one (%s)" % ", ".join(both),
 		both.size() == styles.size() and both.size() >= 4)
+
+# The LevelPlay backend against a stand-in for the plugin: consent and test mode before the SDK starts, both
+# full-screen formats loaded once it has, a video's reward kept, the house banner holding the strip until
+# LevelPlay's loads, an ad that leaves the app or never ends logged as trouble, and nothing for a Supporter.
+func _test_levelplay_backend() -> void:
+	var ads: GDScript = load("res://kit/monetize/ads.gd")
+	var save: Node = root.get_node("Save")
+	var old_supporter: bool = save.get("supporter")
+	save.set("supporter", false)
+	var consent_script: GDScript = load("res://kit/monetize/consent.gd")
+	var test_ads: GDScript = load("res://kit/monetize/test_ads.gd")
+	var analytics: GDScript = load("res://kit/monetize/analytics.gd")
+	var old_consent: String = consent_script.get("path")
+	var old_test: String = test_ads.get("path")
+	consent_script.set("path", "user://test_consent.cfg")
+	test_ads.set("path", "user://test_ads.cfg")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(test_ads.get("path")))
+	# Asked and answered, wherever the machine running the tests is.
+	var consent: ConfigFile = ConfigFile.new()
+	consent.set_value("debug", "force", true)
+	consent.set_value("consent", "answer", "granted")
+	consent.save(consent_script.get("path"))
+	var heard: Array[Array] = []
+	analytics.sink = func(event: StringName, params: Dictionary) -> void: heard.append([event, params])
+	var plugin: RefCounted = FakeIntermission.new()
+	var backend: AdBackend = (load("res://kit/monetize/android/levelplay.gd") as GDScript).new()
+	backend.set("plugin", plugin)
+	var heights: Array[float] = []
+	backend.banner_changed.connect(func(h: float) -> void: heights.append(h))
+	var done: Array[Array] = []
+	backend.finished.connect(func(kind: StringName, shown: bool, earned: bool) -> void: done.append([kind, shown, earned]))
+	ads.call("use", backend)
+	var calls: PackedStringArray = plugin.get("calls")
+	var key: String = GameMonetize.LEVELPLAY_APP_KEY
+	_check("consent and test mode go to the SDK before it starts (%s)" % ", ".join(calls), calls == PackedStringArray([
+		"overlong 75.0", "gdpr true", "coppa false", "test suite", "initialize %s true" % key]))
+	_check("nothing is ready before the SDK is", not backend.video_ready())
+	plugin.emit_signal(&"initialized", true, "none", 0, "")
+	calls = plugin.get("calls")
+	var interstitial: String = GameMonetize.LEVELPLAY_INTERSTITIAL_ID
+	var rewarded: String = GameMonetize.LEVELPLAY_REWARDED_ID
+	_check("both full-screen formats load once it starts", calls.has("load interstitial %s" % interstitial)
+		and calls.has("load rewarded %s" % rewarded))
+	plugin.call("fill", "rewarded", rewarded)
+	_check("a loaded video is offered", backend.video_ready() and String(ads.call("with_one")) == "with a video")
+	var given: Array[int] = [0]
+	ads.call("rewarded", func() -> void: given[0] += 1)
+	_check("the video plays at its placement", (plugin.get("calls") as PackedStringArray).has("show %s reward" % rewarded))
+	plugin.emit_signal(&"ad_shown", "rewarded", rewarded, "ironSource")
+	plugin.emit_signal(&"app_left", "rewarded", rewarded, false)
+	plugin.emit_signal(&"ad_overlong", "rewarded", rewarded, 75.5)
+	plugin.emit_signal(&"app_left", "rewarded", rewarded, true)
+	plugin.emit_signal(&"ad_rewarded", rewarded, "Hints", 3)
+	plugin.emit_signal(&"ad_closed", "rewarded", rewarded, true)
+	await process_frame
+	await process_frame
+	_check("a video watched through gives its reward once", given[0] == 1 and done.back() == [&"rewarded", true, true])
+	var trouble: Array[Dictionary] = []
+	for event: Array in heard:
+		if event[0] == &"ad_trouble":
+			trouble.append(event[1])
+	_check("an ad that left the app by itself and one that ran long are trouble, a tap is not (%s)" % str(trouble),
+		trouble.size() == 2 and trouble[0]["kind"] == "left_app" and trouble[0]["network"] == "ironSource"
+		and trouble[1]["kind"] == "overlong" and trouble[1]["seconds"] == 75 and trouble[0]["format"] == "rewarded")
+	_check("the next video loads after one is shown",
+		(plugin.get("calls") as PackedStringArray).count("load rewarded %s" % rewarded) == 2)
+	plugin.call("fill", "rewarded", rewarded)
+	ads.call("rewarded", func() -> void: given[0] += 1)
+	plugin.emit_signal(&"ad_shown", "rewarded", rewarded, "ironSource")
+	plugin.emit_signal(&"ad_closed", "rewarded", rewarded, false)
+	await process_frame
+	await process_frame
+	_check("a video closed early gives nothing", given[0] == 1 and done.back() == [&"rewarded", true, false])
+	plugin.call("fill", "interstitial", interstitial)
+	backend.present(AdBackend.INTERSTITIAL)
+	plugin.emit_signal(&"ad_failed_to_show", "interstitial", interstitial, "expired", 0, "")
+	await process_frame
+	await process_frame
+	_check("an ad that fails to show ends at once, unshown", done.back() == [&"interstitial", false, false])
+	backend.set_banner(true)
+	calls = plugin.get("calls")
+	_check("the banner loads at its size and stands at the foot",
+		calls.has("banner %s banner screen_foot" % GameMonetize.LEVELPLAY_BANNER_ID) and calls.has("show banner bottom"))
+	_check("the house banner holds the strip meanwhile", heights.size() == 1 and heights[0] > 0.0)
+	plugin.emit_signal(&"banner_loaded", GameMonetize.LEVELPLAY_BANNER_ID, 320, 50)
+	_check("LevelPlay's banner takes over at its own height", heights.size() == 2 and heights[1] > 0.0)
+	plugin.emit_signal(&"banner_loaded", GameMonetize.LEVELPLAY_BANNER_ID, 320, 50)
+	_check("a refresh at the same size changes nothing", heights.size() == 2)
+	backend.set_banner(false)
+	_check("leaving the screen hides it", (plugin.get("calls") as PackedStringArray).has("hide banner"))
+	ads.call("stop")
+	_check("a Supporter's purchase takes the banner away", (plugin.get("calls") as PackedStringArray).has("destroy banner")
+		and is_zero_approx(heights.back()))
+	var loads: int = (plugin.get("calls") as PackedStringArray).size()
+	save.set("supporter", true)
+	ads.call("start")
+	_check("and nothing starts again for a Supporter", (plugin.get("calls") as PackedStringArray).size() == loads
+		and not bool(ads.call("live")))
+	ads.call("use", null)
+	analytics.sink = Callable()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(consent_script.get("path")))
+	consent_script.set("path", old_consent)
+	test_ads.set("path", old_test)
+	save.set("supporter", old_supporter)
 
 # Android's back button goes back a screen and asks before the game closes, instead of quitting outright.
 func _test_go_back() -> void:

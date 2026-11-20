@@ -5,8 +5,8 @@ extends RefCounted
 ## `dress` whenever a hint is used or the settings change, and `Save.hint_day`, `Save.hints_used` and
 ## `Save.set_hints(day, used)`.
 
-## A hint that would ask for a video is free while none is ready to play: the house banner standing in for AdMob,
-## offline, no fill or an ad blocker. Nothing would earn from the ask.
+## A hint that would ask for a video is free while none is ready to play: the house banner standing in for
+## LevelPlay, offline, no fill or an ad blocker. Nothing would earn from the ask.
 static func cost(level: int) -> AdPacing.Hint:
 	if not Ads.rewards():
 		return AdPacing.Hint.FREE
