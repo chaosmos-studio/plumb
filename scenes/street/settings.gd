@@ -35,8 +35,8 @@ const TOGGLE_X: float = 714.0
 const TOGGLE_W: float = 208.0
 const KNOB: float = 74.0
 const KNOB_SHIFT: float = 57.0
-const LABEL_SIZE: int = 52
-const TAB_LABEL_SIZE: int = 54
+const LABEL_SIZE: int = 60
+const TAB_LABEL_SIZE: int = 60
 ## The board's foot below its last row.
 const BOARD_FOOT: float = 70.0
 ## The board's drop, and a toggle's slide.
