@@ -1255,10 +1255,25 @@ which draws its shapes one by one, draw calls rose to 32 to 179 and 13 of 4,308 
 stand-ins first drew in code, shape by shape, at 541 draw calls a screen. Baked into one texture they batch, which
 is why the painted art comes as cut-outs packed into an atlas.
 
+**A camera tilted down at the street.** The drum alone shrinks things only near the horizon, since its depth grows
+with the square of the distance along it. The concepts show the next door about three quarters the size of the one at
+rest, and the one after about half. So the depth also grows in step with the distance, `depth = R (1 - cos θ) + tilt ·
+s_rel`, as it does for a camera looking down at a slope: with TILT 0.6, each door is drawn smaller than the one before
+by a steady share. The scale is then multiplied by a `gain` chosen so the door at rest is drawn at exactly its painted
+size, and the road, the houses and the cast are all sized against that door. The drum's radius grows with the
+screen's height, so a 16:9 phone keeps the same sky as a 20:9 one.
+
+**The road winds past every door.** Its big swing is a sine one door long each way, timed to peak just in front of
+each door on that door's side: `road_x = SWAY_A sin(2π s / (2 DOOR_GAP) + phase)`. So the road passes the front of
+every house, as in the concept, and the cast stands on it there. On a bend the road is measured square to itself
+(`across / √(1 + slope²)`), so it is as wide on a bend as on a straight.
+
 ### Things to try
 
 - `RADIUS` in `scenes/street/map.gd` to 700: a tight little planet with a low horizon. To 100000: the flat scroll of
   Reduce motion.
+- `TILT` to 0: the bare drum, where the next doors stay almost as big as the one at rest. To 1.5: a steep camera,
+  the far doors tiny.
 - `FOCAL` to 400: things shrink much faster with depth, as through a wide lens.
 - `BOW` to 0: the street becomes a log rolling toward you instead of a planet.
 - `StreetPath.SWAY_A` to 0: the road runs almost straight up the middle.
