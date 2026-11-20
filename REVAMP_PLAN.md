@@ -666,3 +666,25 @@ Version 2.0.0 is Play's version code 20000.
 14. **A dark look for Street.** Recommendation: light only in 2.0, with a dusk street (a tint and lit windows) after.
 15. **Lanterns and a daily post-box letter** from the study are left out of 2.0, since the brief did not ask for them.
 16. **A welcome purse** for players who were already playing, 5 coins a star.
+
+## 16. Screen shapes: portrait first, wide composed
+
+Shravan's rule, 20 November, for this revamp and every one after it: the game is designed for portrait, and it is landscape friendly in a very good way, so it looks good on a desktop too. A wide screen (a phone or tablet turned sideways, a Chromebook, a desktop or web window) gets its own composed layout, never a stretched or letterboxed portrait.
+
+**The mechanism** (`scripts/street/layout.gd`, `StreetLayout`). The stretch stays `canvas_items` with `expand`, and its base turns with the window: 720 x 1280 when the window is tall or square, 1280 x 720 when it is wide. So a phone is 720 units across its short side either way, and a button is the same size in the hand. A squarer screen shows more than the base along one side (a turned tablet is 1280 x 960). Each screen asks `StreetLayout.wide(size)` and lays itself out, and every layout runs again on `size_changed`, so turning the phone or resizing a window keeps all state. The alternative, one portrait base with `expand`, was rejected: a landscape phone would see the design shrunk to about 56%. Classic keeps its own rule (a phone held in portrait, a large screen turning around a centred column), and `AppLook.use` switches between the two.
+
+| Screen | Portrait | Wide |
+| --- | --- | --- |
+| Map | The rolling street fills the screen, buttons in a row along the foot | The street is a world 1280 units tall scaled to the screen's height, its bow eased so the edges sink as in portrait, bands of meadow trees out to its edges (`StreetPath.far_scenery`), the buttons in a column down the right edge |
+| Start card | The concept's tall card | A wide card under the same ribbon: marbles, holes and par on the left, helpers and Play on the right |
+| Play | Sign, moves and faces above the board, buttons below | The board a large square in the middle, the sign and the moves on the left rail, the faces standing up and the buttons in a column on the right rail |
+| Win | The concept's composition | The same scene scaled to the height, the stars clear above the roofs |
+| Chooser | Two cards side by side | Two cards sized by the height, side by side |
+
+Whole-screen paintings come in a portrait and a wide version (`<name>_wide.png`, 2560 x 1440, with everything that matters inside the crop every wide shape shows). `StreetArt.backdrop` picks the one for the screen's shape.
+
+**Input.** Touch, mouse and keyboard all work. The mouse acts as a finger (`emulate_touch_from_mouse`), and the wheel rolls the street. Arrow keys tilt the board and walk the street a door at a time, Enter opens the next door's card and plays it, and Esc goes back or closes.
+
+**Export settings.** `display/window/handheld/orientation` stays Sensor (6), so the manifest locks nothing, and Street sets `ScreenLock.phones_turn` so phones turn too while Classic holds them in portrait. Godot's Android template writes `android:resizeableActivity="false"`. Android 12 and later ignore it on large screens (600 dp and up) and allow multi-window and free-form desktop windows anyway, and apps that target API 36, as Plumb does, can no longer restrict orientation or resizing on large screens. A phone in split screen is the one case it still blocks, and it is left as it is for 2.0.
+
+**Tests.** `tools/street_shots.gd` renders every screen at 1080 x 2400 (portrait phone), 2400 x 1080 (landscape phone), 1920 x 1080 and 2560 x 1080 (desktop) and 2048 x 1536 (tablet), and every gate's pictures include a landscape one. `tests/run_tests.gd` checks the base rule and the meadow's bands.
