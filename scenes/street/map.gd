@@ -36,6 +36,9 @@ const CAST_RADIUS: float = 30.0
 const AUTO_FLING: float = 3400.0
 const AUTO_STEADY: float = 950.0
 const AUTO_DOOR: int = 300
+## How many rounds the measuring run plays, and how many flings each way in each stretch.
+const AUTO_ROUNDS: int = 3
+const AUTO_FLINGS: int = 2
 
 const SKY_SHADER: String = """
 shader_type canvas_item;
@@ -207,6 +210,7 @@ func _rubber(want: float) -> float:
 func _process(delta: float) -> void:
 	if not _built:
 		return
+	var started_us: int = Time.get_ticks_usec()
 	if not _dragging:
 		if _steady != 0.0:
 			_scroll += _steady * delta
@@ -218,6 +222,7 @@ func _process(delta: float) -> void:
 			_scroll = lerpf(_scroll, inside, 1.0 - exp(-SPRING * delta))
 			_velocity *= exp(-SPRING * delta)
 	_place()
+	_probe.note(float(Time.get_ticks_usec() - started_us) / 1000.0)
 	if _readout != null:
 		_readout_at -= delta
 		if _readout_at <= 0.0:
@@ -236,7 +241,8 @@ func _place() -> void:
 	var last: int = clampi(StreetPath.door_near(far) + 1, 1, LAST_DOOR)
 	for n: Variant in _houses.keys():
 		var door: int = n
-		if door < first or door > last:
+		var at_s: float = StreetPath.door_s(door)
+		if door < first or door > last or at_s < near or at_s > far:
 			_recycle(_houses[door])
 			_houses.erase(door)
 	for door: int in range(first, last + 1):
@@ -304,33 +310,37 @@ func _recycle(prop: StreetProp) -> void:
 	prop.visible = false
 	_pool.append(prop)
 
-## The scripted scroll for measuring: flings both ways, a steady roll both ways, then a rest, each logged. It runs
-## with the cast, then again without, since the cast's marbles cost far more draw calls than the street.
+## The scripted scroll for measuring: flings both ways, a steady roll both ways, then a rest, each logged. It runs with
+## the cast and again without, since the cast's marbles cost far more draw calls than the street. Android keeps vsync
+## on whatever the game asks, so the room left is read from the phone's own CPU load instead.
 func _auto_scroll() -> void:
 	print("STREET_DEVICE %s" % JSON.stringify({"adapter": RenderingServer.get_video_adapter_name(),
 		"api": RenderingServer.get_video_adapter_api_version(), "screen": DisplayServer.screen_get_size(),
 		"viewport": get_viewport_rect().size, "refresh_hz": DisplayServer.screen_get_refresh_rate()}))
 	_scroll = _scroll_for(AUTO_DOOR)
 	await get_tree().create_timer(2.5).timeout
-	await _auto_pass("")
-	for marble: Marble in _cast:
-		marble.process_mode = Node.PROCESS_MODE_DISABLED
-	_cast_hidden = true
-	await _auto_pass("_no_cast")
+	# Rounds alternate with and without the cast, so anything that drifts with time, such as the phone's clocks or
+	# its other apps, weighs on both alike.
+	for round: int in range(AUTO_ROUNDS):
+		for cast: bool in [true, false]:
+			_cast_hidden = not cast
+			for marble: Marble in _cast:
+				marble.process_mode = Node.PROCESS_MODE_INHERIT if cast else Node.PROCESS_MODE_DISABLED
+			await _auto_pass(("_cast_" if cast else "_street_") + str(round + 1))
 	_cast_hidden = false
 	for marble: Marble in _cast:
 		marble.process_mode = Node.PROCESS_MODE_INHERIT
 	print("STREET_AUTO_DONE")
 
 func _auto_pass(suffix: String) -> void:
-	_probe.begin("fling" + suffix)
-	for i: int in range(4):
+	_begin("fling" + suffix)
+	for i: int in range(AUTO_FLINGS):
 		_velocity = AUTO_FLING
 		await get_tree().create_timer(2.2).timeout
 		_velocity = -AUTO_FLING
 		await get_tree().create_timer(2.2).timeout
 	_probe.end()
-	_probe.begin("steady" + suffix)
+	_begin("steady" + suffix)
 	_steady = AUTO_STEADY
 	await get_tree().create_timer(4.0).timeout
 	_steady = -AUTO_STEADY
@@ -338,7 +348,12 @@ func _auto_pass(suffix: String) -> void:
 	_steady = 0.0
 	_velocity = 0.0
 	_probe.end()
-	_probe.begin("rest" + suffix)
-	await get_tree().create_timer(4.0).timeout
+	_begin("rest" + suffix)
+	await get_tree().create_timer(3.0).timeout
 	_probe.end()
 	_scroll = _scroll_for(AUTO_DOOR)
+
+## The marker lets a host reading the log time its own measurements, such as SurfaceFlinger's frame times.
+func _begin(label: String) -> void:
+	print("STREET_BEGIN %s" % label)
+	_probe.begin(label)
