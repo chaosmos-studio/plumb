@@ -46,6 +46,8 @@ const DROP_TIME: float = 0.45
 const SWING_START: float = 0.06
 const SWING_STIFFNESS: float = 90.0
 const SWING_DAMPING: float = 7.0
+## A tap on the card pushes its swing this hard, in radians a second, away from the side tapped.
+const TAP_SWING: float = 0.9
 const RISE_TIME: float = 0.28
 ## How far the street dims behind the card: lightly, as in the concept, so the street still shows.
 const DIM: float = 0.16
@@ -120,6 +122,20 @@ func _ready() -> void:
 	_card = _Card.new()
 	_card.owner_card = self
 	add_child(_card)
+	# A tap on the card sets it swinging on its string again, or dims it for a moment under Reduce motion.
+	_card.gui_input.connect(func(event: InputEvent) -> void:
+		if not _open or not (event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed):
+			return
+		Audio.play(&"pop", StreetWobbler.VOICE_DB, randf_range(0.9, 1.1))
+		Audio.buzz(StreetWobbler.BUZZ_MS, StreetWobbler.BUZZ)
+		if Save.reduce_motion:
+			var t: Tween = _card.create_tween()
+			t.tween_property(_card, "modulate:a", StreetWobbler.FADE_TO, StreetWobbler.FADE_TIME * 0.4)
+			t.tween_property(_card, "modulate:a", 1.0, StreetWobbler.FADE_TIME * 0.6)
+			return
+		var side: float = signf((event as InputEventScreenTouch).position.x - _card.size.x * 0.5)
+		_spin += TAP_SWING * (side if side != 0.0 else 1.0)
+		_swinging = true)
 	_play_button = Button.new()
 	_play_button.flat = true
 	_play_button.focus_mode = Control.FOCUS_NONE

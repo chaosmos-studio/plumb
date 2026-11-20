@@ -10,6 +10,8 @@ extends Node2D
 ## tighter little world, and a very large one a flat scroll.
 const RADIUS: float = 1340.0
 const FLAT_RADIUS: float = 100000.0
+## The screen height RADIUS is set for: the A142's, which the concepts were drawn at.
+const DESIGN_HEIGHT: float = 1602.0
 const FOCAL: float = 600.0
 ## The camera's tilt down at the street (StreetProjection.tilt): things shrink steadily up the screen, as in the
 ## concepts, where the next door is about three quarters the size of the one at rest.
@@ -185,8 +187,9 @@ func _world_size() -> Vector2:
 	return get_viewport_rect().size / _world_scale()
 
 ## The drum's radius: RADIUS, or under Reduce motion one so large the street scrolls flat (MATH.md section 25).
+## The drum grows and shrinks with the screen's height, so a shorter phone keeps the same sky and street.
 func _radius() -> float:
-	return FLAT_RADIUS if Save.reduce_motion else RADIUS
+	return FLAT_RADIUS if Save.reduce_motion else RADIUS * _world_size().y / DESIGN_HEIGHT
 
 func _layout() -> void:
 	var size: Vector2 = _world_size()
