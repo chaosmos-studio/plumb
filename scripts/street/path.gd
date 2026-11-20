@@ -5,25 +5,25 @@ extends RefCounted
 ## and the tests agree (MATH.md section 25). `s` runs along the street from its start and `x` across it from the middle
 ## of the screen, in design pixels. The ground shader takes the same sway constants as uniforms.
 
-## Doors, one a level, alternating sides of the road.
-const FIRST_DOOR: float = 300.0
-const DOOR_GAP: float = 230.0
-const ROAD_HALF: float = 64.0
+## Doors, one a level, alternating sides of the road, as far apart as the concept's (build/review/revamp2/1-map.png).
+const FIRST_DOOR: float = 360.0
+const DOOR_GAP: float = 390.0
+const ROAD_HALF: float = 92.0
 ## How far a house's middle stands from the road's edge.
-const HOUSE_SET: float = 128.0
+const HOUSE_SET: float = 186.0
 ## The road's sway: two sines of different lengths, so the bends never repeat in a way the eye catches.
-const SWAY_A: float = 115.0
-const SWAY_A_LENGTH: float = 1730.0
-const SWAY_B: float = 40.0
-const SWAY_B_LENGTH: float = 610.0
+const SWAY_A: float = 92.0
+const SWAY_A_LENGTH: float = 2300.0
+const SWAY_B: float = 30.0
+const SWAY_B_LENGTH: float = 860.0
 const SWAY_B_PHASE: float = 1.3
 
 ## Scenery stands in slots this far apart along each side, and keeps this far along from a door on its side.
-const SLOT_GAP: float = 88.0
-const DOOR_CLEAR: float = 120.0
+const SLOT_GAP: float = 130.0
+const DOOR_CLEAR: float = 170.0
 ## Lamps stand at the road's edge, everything else this far out from the road's middle.
-const LAMP_SET: float = 26.0
-const SCENERY_SET: Vector2 = Vector2(250.0, 470.0)
+const LAMP_SET: float = 30.0
+const SCENERY_SET: Vector2 = Vector2(300.0, 540.0)
 
 enum Kind { NONE, TREE, BUSH, LAMP, FENCE, FLOWERS }
 ## Out of 100: how often a slot holds each kind, in Kind's order after NONE. The rest stay empty.

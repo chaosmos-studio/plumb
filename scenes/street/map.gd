@@ -1,13 +1,15 @@
+class_name StreetMap
 extends Node2D
 
-## Street's Home: the rolling street (REVAMP_PLAN.md section 3, MATH.md section 25). M1 is the spike: the projection,
-## the ground, stand-in houses and scenery, the cast at the current door, drag and fling, and a frame probe. A build
-## with the street_spike feature, or a run with `-- --auto-scroll`, plays a scripted scroll and logs its frames.
+## Street's Home: the rolling street, one house a level (REVAMP_PLAN.md section 3, MATH.md section 25). The lit door is
+## the level to play next. A tap on it, or on a solved door, drops in its start card. After a win the cast walks on
+## to the next door and its card drops in by itself. In a debug build, a run with `-- --auto-scroll`, or the file
+## user://measure_street, plays a scripted scroll and logs its frames instead.
 
 ## The drum: its radius and the camera's focal length, in design pixels (StreetProjection). A smaller radius is a
 ## tighter little world, and a very large one a flat scroll.
-const RADIUS: float = 1150.0
-const FOCAL: float = 900.0
+const RADIUS: float = 1340.0
+const FOCAL: float = 1000.0
 ## The drum's near edge sits this far below the screen's foot.
 const NEAR_BELOW: float = 60.0
 ## How far a point sinks toward the sides, per pixel squared across: the street reads as a small planet.
@@ -16,7 +18,7 @@ const BOW: float = 0.00022
 const ROWS: int = 72
 const COLUMNS: int = 28
 ## Where the current door rests, as a share of the screen's height from the top.
-const REST_AT: float = 0.7
+const REST_AT: float = 0.66
 ## A fling dies away by this rate a second, and a drag past either end follows the finger by this share.
 const FRICTION: float = 2.6
 const RUBBER: float = 0.35
@@ -24,115 +26,139 @@ const RUBBER: float = 0.35
 const SPRING: float = 9.0
 ## A finger's speed is averaged over about this long, in seconds.
 const VELOCITY_SMOOTHING: float = 0.05
-## Stand-ins for M1: the door to play next and the last door the street runs to.
-const CURRENT_DOOR: int = 12
-const LAST_DOOR: int = 5000
-## The cast stands this far in front of the current door, spread across the road.
-const CAST_BEFORE: float = 70.0
-const CAST_SPREAD: float = 46.0
-const CAST_RADIUS: float = 30.0
-## The scripted scroll: the fling speed, the steady speed, in strip pixels a second, and the door it starts from, far
-## enough along that no fling reaches either end.
+## A touch that moves less than this, in pixels, and lifts within this long, in seconds, is a tap.
+const TAP_SLOP: float = 14.0
+const TAP_TIME: float = 0.4
+## The cast stands this far in front of the current door, along the street.
+const CAST_BEFORE: float = 125.0
+## After a win: the cast's walk to the next door, and the pause before its card drops in.
+const WALK_TIME: float = 1.1
+const CARD_DELAY: float = 0.35
+## The street can be scrolled this many doors past the current one, to see what is coming.
+const AHEAD: int = 6
+## Doors after the current one that show their number. Further ones show a padlock.
+const NUMBERED_AHEAD: int = 3
+## The bottom row of buttons: their size, and their distance from the screen's foot.
+const BUTTON: float = 132.0
+const BUTTON_LIFT: float = 54.0
+## A round "back home" button shows once the current door is this far off screen, in design pixels.
+const PIN_AFTER: float = 140.0
+## A tap on a locked door wiggles it this far, in radians, for this long.
+const WIGGLE: float = 0.06
+const WIGGLE_TIME: float = 0.32
+## The scripted scroll: the fling speed, the steady speed, in strip pixels a second, the door it starts from, the rounds
+## it plays and the flings each way in each stretch.
 const AUTO_FLING: float = 3400.0
 const AUTO_STEADY: float = 950.0
 const AUTO_DOOR: int = 300
-## How many rounds the measuring run plays, and how many flings each way in each stretch.
 const AUTO_ROUNDS: int = 3
 const AUTO_FLINGS: int = 2
+const MEASURE_FLAG: String = "user://measure_street"
+const SCENE: String = AppLook.MAP_SCENE
 
-const SKY_SHADER: String = """
-shader_type canvas_item;
-uniform vec4 top : source_color = vec4(0.16, 0.56, 0.94, 1.0);
-uniform vec4 low : source_color = vec4(0.73, 0.89, 0.99, 1.0);
-uniform float horizon = 0.25;
-void fragment() {
-	COLOR = vec4(mix(top.rgb, low.rgb, smoothstep(0.0, horizon + 0.08, UV.y)), 1.0);
-}
-"""
+## The door just won, set by the play screen before it comes back here, or 0.
+static var arrival: int = 0
+## Set while the look chooser makes its live preview: no buttons, card, banner or intro, and a gentle roll on its own.
+static var preview: bool = false
+## How far the preview rolls each way from the current door, in strip pixels, and how fast.
+const PREVIEW_ROLL: float = 300.0
+const PREVIEW_SPEED: float = 0.4
 
 var _proj: StreetProjection
 var _scroll: float = 0.0
 var _velocity: float = 0.0
 var _steady: float = 0.0
 var _bounds: Vector2 = Vector2.ZERO
-var _sky: ColorRect
+var _sky: StreetSky
 var _ground: MeshInstance2D
 var _ground_material: ShaderMaterial
 var _props: Node2D
 var _houses: Dictionary = {}
 var _scenery: Dictionary = {}
 var _pool: Array[StreetProp] = []
-var _cast: Array[Marble] = []
+var _cast: StreetCast
+## Where the cast stands along the street, and the door to play next.
+var _cast_s: float = 0.0
+var _current: int = 1
+var _last: int = 1
 var _dragging: bool = false
 var _grab_s: float = 0.0
 var _last_drag_us: int = 0
+var _press_at: Vector2 = Vector2.ZERO
+var _press_us: int = 0
+var _moved: bool = false
+var _busy: bool = false
+var _card: StreetDoorCard
+var _hud: CanvasLayer
+var _buttons: HBoxContainer
+var _pin: StreetUI.RoundButton
+var _banner_room: float = 0.0
 var _probe: FrameProbe
-var _readout: Label
-var _readout_at: float = 0.0
-## Set once the atlas is baked: nothing is placed before.
-var _built: bool = false
-## The measuring run's second pass leaves the cast out.
+var _time: float = 0.0
+var _measuring: bool = false
 var _cast_hidden: bool = false
-## The door to play next: CURRENT_DOOR, or AUTO_DOOR while measuring.
-var _current: int = CURRENT_DOOR
+var _preview: bool = false
 
 func _ready() -> void:
-	_sky = ColorRect.new()
-	_sky.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var sky_shader: Shader = Shader.new()
-	sky_shader.code = SKY_SHADER
-	var sky_material: ShaderMaterial = ShaderMaterial.new()
-	sky_material.shader = sky_shader
-	_sky.material = sky_material
+	_preview = preview
+	Palette.use_street()
+	Pack.use(Pack.Section.MAIN)
+	_last = Pack.main_count()
+	_current = clampi(Save.main_frontier() + 1, 1, _last)
+	_measuring = OS.is_debug_build() and (OS.get_cmdline_user_args().has("--auto-scroll")
+		or FileAccess.file_exists(MEASURE_FLAG))
+	if _measuring:
+		_current = AUTO_DOOR
+	_sky = StreetSky.new()
 	_sky.z_index = -10
 	add_child(_sky)
 	_ground = MeshInstance2D.new()
 	_ground_material = ShaderMaterial.new()
 	_ground_material.shader = load("res://scenes/street/ground.gdshader")
+	_ground_material.set_shader_parameter("grass", load("res://assets/street/grass.png"))
+	_ground_material.set_shader_parameter("road", load("res://assets/street/road.png"))
 	_ground.material = _ground_material
 	add_child(_ground)
 	_props = Node2D.new()
 	_props.y_sort_enabled = true
 	_props.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	add_child(_props)
-	for who: int in range(4):
-		var marble: Marble = Marble.new()
-		marble.radius = CAST_RADIUS
-		marble.colour = Palette.marble(who)
-		marble.who = who
-		_props.add_child(marble)
-		_cast.append(marble)
+	_cast = StreetCast.new()
+	_props.add_child(_cast)
 	_probe = FrameProbe.new()
 	add_child(_probe)
-	if OS.is_debug_build():
-		var layer: CanvasLayer = CanvasLayer.new()
-		layer.layer = 5
-		add_child(layer)
-		_readout = Label.new()
-		_readout.position = Vector2(24, 60)
-		_readout.add_theme_font_size_override("font_size", 22)
-		_readout.add_theme_color_override("font_color", Color(0.1, 0.12, 0.2, 0.8))
-		layer.add_child(_readout)
 	_set_ground_uniforms()
+	if not _preview:
+		_build_hud()
 	get_viewport().size_changed.connect(_layout)
 	_layout()
-	var measuring: bool = OS.has_feature("street_spike") or OS.get_cmdline_user_args().has("--auto-scroll")
-	_current = AUTO_DOOR if measuring else CURRENT_DOOR
+	_cast_s = StreetPath.door_s(_current) - CAST_BEFORE
 	_scroll = _scroll_for(_current)
-	await StreetAtlas.bake(self)
-	_built = true
+	var walked_from: int = arrival
+	arrival = 0
+	if walked_from > 0 and walked_from + 1 == _current and not _measuring:
+		_cast_s = StreetPath.door_s(walked_from) - CAST_BEFORE
+		_scroll = _scroll_for(walked_from)
 	_place()
-	if measuring:
+	if _preview:
+		return
+	Intro.play(self)
+	if not _measuring:
+		Ads.show_banner(self, _on_banner)
+	if _measuring:
 		_auto_scroll()
+	elif walked_from > 0 and walked_from + 1 == _current:
+		_walk_on()
 
 func _layout() -> void:
 	var size: Vector2 = get_viewport_rect().size
-	_sky.size = size
 	_proj = StreetProjection.new(RADIUS, FOCAL, size.y + NEAR_BELOW, size.x * 0.5, BOW)
-	(_sky.material as ShaderMaterial).set_shader_parameter("horizon", clampf(_proj.horizon_y() / size.y, 0.0, 1.0))
+	_sky.horizon_y = _proj.horizon_y()
 	_ground.mesh = _ground_mesh(size)
 	_ground_material.set_shader_parameter("radius", RADIUS)
-	_bounds = Vector2(_scroll_for(1), _scroll_for(LAST_DOOR))
+	_bounds = Vector2(_scroll_for(1), _scroll_for(mini(_current + AHEAD, _last)))
+	if _buttons != null:
+		_place_hud()
 
 ## The scroll that rests door `n` at REST_AT.
 func _scroll_for(n: int) -> float:
@@ -179,17 +205,81 @@ func _set_ground_uniforms() -> void:
 	_ground_material.set_shader_parameter("sway_b_phase", StreetPath.SWAY_B_PHASE)
 	_ground_material.set_shader_parameter("road_half", StreetPath.ROAD_HALF)
 
+func _build_hud() -> void:
+	_hud = CanvasLayer.new()
+	_hud.layer = 2
+	add_child(_hud)
+	var root: Control = Control.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud.add_child(root)
+	_buttons = HBoxContainer.new()
+	_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	_buttons.add_theme_constant_override("separation", 56)
+	_buttons.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_buttons)
+	var daily: StreetUI.RoundButton = StreetUI.RoundButton.new(StreetUI.RED, &"calendar", BUTTON)
+	daily.pressed.connect(_on_daily)
+	var shop: StreetUI.RoundButton = StreetUI.RoundButton.new(StreetUI.ORANGE, &"stall", BUTTON)
+	shop.pressed.connect(func() -> void: Shop.open(self))
+	var settings: StreetUI.RoundButton = StreetUI.RoundButton.new(StreetUI.PURPLE, &"gear", BUTTON)
+	settings.pressed.connect(func() -> void: Settings.open(self))
+	for b: StreetUI.RoundButton in [daily, shop, settings]:
+		_buttons.add_child(b)
+	_pin = StreetUI.RoundButton.new(StreetUI.TEAL, &"home", BUTTON * 0.72)
+	_pin.visible = false
+	_pin.pressed.connect(_go_home)
+	root.add_child(_pin)
+	_card = StreetDoorCard.new()
+	_card.layer = 4
+	_card.play.connect(_on_play)
+	_card.closed.connect(func() -> void: _busy = false)
+	add_child(_card)
+	_place_hud()
+
+func _place_hud() -> void:
+	var size: Vector2 = get_viewport_rect().size
+	var safe: Dictionary = UI.safe_margins(get_viewport())
+	var lift: float = BUTTON_LIFT + float(safe["bottom"]) + _banner_room
+	_buttons.position = Vector2(0.0, size.y - lift - BUTTON)
+	_buttons.size = Vector2(size.x, BUTTON)
+	_pin.position = Vector2(size.x * 0.5 - _pin.size.x * 0.5, _buttons.position.y - _pin.size.y - 28.0)
+
+func _on_banner(height: float) -> void:
+	_banner_room = height
+	_place_hud()
+
+func _on_daily() -> void:
+	if Daily.is_open():
+		Screens.go(Daily.SCENE)
+	else:
+		Toast.say(self, "The daily puzzle opens after level %d" % Daily.opens_after())
+
 func _unhandled_input(event: InputEvent) -> void:
+	if _busy or _measuring or _preview:
+		return
 	if event is InputEventScreenTouch:
 		var touch: InputEventScreenTouch = event
-		_dragging = touch.pressed
 		if touch.pressed:
+			_dragging = true
+			_moved = false
+			_press_at = touch.position
+			_press_us = Time.get_ticks_usec()
 			_steady = 0.0
 			_velocity = 0.0
 			_grab_s = _scroll + _proj.s_rel_at(touch.position.y)
-			_last_drag_us = Time.get_ticks_usec()
+			_last_drag_us = _press_us
+		else:
+			_dragging = false
+			if not _moved and Time.get_ticks_usec() - _press_us < int(TAP_TIME * 1000000.0):
+				_velocity = 0.0
+				_tap(touch.position)
 	elif event is InputEventScreenDrag and _dragging:
 		var drag: InputEventScreenDrag = event
+		_cast.look_toward(drag.position)
+		if not _moved and drag.position.distance_to(_press_at) < TAP_SLOP:
+			return
+		_moved = true
 		var want: float = _grab_s - _proj.s_rel_at(drag.position.y)
 		var now: int = Time.get_ticks_usec()
 		var dt: float = maxf(float(now - _last_drag_us) / 1000000.0, 0.001)
@@ -207,29 +297,86 @@ func _rubber(want: float) -> float:
 		return _bounds.y + (want - _bounds.y) * RUBBER
 	return want
 
-func _process(delta: float) -> void:
-	if not _built:
+## The nearest house under the finger, front first.
+func _tap(at: Vector2) -> void:
+	_cast.look_toward(at)
+	var hit: StreetProp = null
+	for n: Variant in _houses.keys():
+		var house: StreetProp = _houses[n]
+		if not house.visible or house.z_index < 0 or house.scale.x <= 0.0:
+			continue
+		var local: Vector2 = (at - house.position) / house.scale.x
+		if house.bounds().has_point(local) and (hit == null or house.position.y > hit.position.y):
+			hit = house
+	if hit == null:
 		return
+	if hit.state == StreetProp.Door.FAR or hit.state == StreetProp.Door.LOCKED:
+		_wiggle(hit)
+		return
+	_open_card(hit.door)
+
+func _wiggle(house: StreetProp) -> void:
+	Audio.play(&"knock", -6.0)
+	Audio.buzz(12, 0.3)
+	var t: Tween = house.create_tween()
+	for k: int in range(4):
+		t.tween_property(house, "rotation", WIGGLE * (1.0 if k % 2 == 0 else -1.0) * (1.0 - k * 0.22),
+			WIGGLE_TIME / 5.0).set_trans(Tween.TRANS_SINE)
+	t.tween_property(house, "rotation", 0.0, WIGGLE_TIME / 5.0)
+
+func _open_card(door: int) -> void:
+	_busy = true
+	_velocity = 0.0
+	_card.open(door, Pack.board(door - 1), Pack.par(door - 1), Save.best_in(false, door - 1))
+
+func _on_play(door: int) -> void:
+	Pack.use(Pack.Section.MAIN)
+	Pack.current = door - 1
+	var go: Callable = func() -> void: Screens.go(StreetPlay.SCENE)
+	# Decision 7: an ad between levels comes only after a tap on Play, with the kit's usual spacing.
+	if door > 1:
+		RatePrompt.or_ad(self, go, false)
+	else:
+		go.call()
+
+func _go_home() -> void:
+	_velocity = 0.0
+	var t: Tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	t.tween_property(self, "_scroll", _scroll_for(_current), 0.6)
+
+## After a win: the cast hops along the road to the next door while the street rolls with it, then its card drops in.
+func _walk_on() -> void:
+	_busy = true
+	await get_tree().create_timer(0.45).timeout
+	_cast.hopping = true
+	Audio.play(&"roll", -10.0)
+	var t: Tween = create_tween().set_parallel().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_property(self, "_cast_s", StreetPath.door_s(_current) - CAST_BEFORE, WALK_TIME)
+	t.tween_property(self, "_scroll", _scroll_for(_current), WALK_TIME)
+	await t.finished
+	_cast.hopping = false
+	_cast.cheer()
+	Audio.play(&"pop", -6.0)
+	await get_tree().create_timer(CARD_DELAY).timeout
+	_open_card(_current)
+
+func _process(delta: float) -> void:
+	_time += delta
 	var started_us: int = Time.get_ticks_usec()
-	if not _dragging:
+	if _preview:
+		_scroll = _scroll_for(_current) + PREVIEW_ROLL * sin(_time * PREVIEW_SPEED)
+	elif not _dragging:
 		if _steady != 0.0:
 			_scroll += _steady * delta
 		else:
 			_scroll += _velocity * delta
 			_velocity *= exp(-FRICTION * delta)
 		var inside: float = clampf(_scroll, _bounds.x, _bounds.y)
-		if inside != _scroll:
+		if inside != _scroll and not _busy:
 			_scroll = lerpf(_scroll, inside, 1.0 - exp(-SPRING * delta))
 			_velocity *= exp(-SPRING * delta)
 	_place()
 	_probe.note(float(Time.get_ticks_usec() - started_us) / 1000.0)
-	if _readout != null:
-		_readout_at -= delta
-		if _readout_at <= 0.0:
-			_readout_at = 0.25
-			_readout.text = "%d fps  %d draws  door %d" % [Engine.get_frames_per_second(),
-				int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
-				StreetPath.door_near(_scroll + _proj.s_rel_at(get_viewport_rect().size.y * REST_AT))]
 
 ## Puts everything in view where the drum shows it, recycling what has left the view.
 func _place() -> void:
@@ -237,8 +384,8 @@ func _place() -> void:
 	_ground_material.set_shader_parameter("scroll", _scroll)
 	var near: float = _scroll + _proj.near_s_rel(size.y)
 	var far: float = _scroll + _proj.far_s_rel(0.0)
-	var first: int = clampi(StreetPath.door_near(near) - 1, 1, LAST_DOOR)
-	var last: int = clampi(StreetPath.door_near(far) + 1, 1, LAST_DOOR)
+	var first: int = clampi(StreetPath.door_near(near) - 1, 1, _last)
+	var last: int = clampi(StreetPath.door_near(far) + 1, 1, _last)
 	for n: Variant in _houses.keys():
 		var door: int = n
 		var at_s: float = StreetPath.door_s(door)
@@ -252,9 +399,12 @@ func _place() -> void:
 		var house: StreetProp = _houses.get(door, null)
 		if house == null:
 			house = _take()
-			house.dress_house(door, _state(door), 1 + StreetPath.mix(door) % 3)
+			house.dress_house(door, _state(door), Save.best_in(false, door - 1))
 			_houses[door] = house
 		_stand(house, s, StreetPath.door_x(door))
+		if house.state == StreetProp.Door.CURRENT:
+			house.pulse = _time
+			house.queue_redraw()
 	var from_slot: int = floori(near / StreetPath.SLOT_GAP)
 	var to_slot: int = ceili(far / StreetPath.SLOT_GAP)
 	for key: Variant in _scenery.keys():
@@ -274,14 +424,14 @@ func _place() -> void:
 				prop.dress_scenery(int(spot.x), StreetPath.mix(slot * 7 + side))
 				_scenery[key] = prop
 			_stand(prop, StreetPath.slot_s(slot), spot.y)
-	var door_s: float = StreetPath.door_s(_current) - CAST_BEFORE
-	for who: int in range(_cast.size()):
-		var marble: Marble = _cast[who]
-		var x: float = StreetPath.road_x(door_s) + (float(who) - 1.5) * CAST_SPREAD
-		var at: Vector3 = _proj.place(door_s - _scroll, x)
-		marble.visible = not _cast_hidden and door_s > near and door_s < far and not _proj.behind_crest(door_s - _scroll)
-		marble.position = Vector2(at.x, at.y - CAST_RADIUS * at.z)
-		marble.scale = Vector2(at.z, at.z)
+	var cast_at: Vector3 = _proj.place(_cast_s - _scroll, StreetPath.road_x(_cast_s))
+	_cast.visible = not _cast_hidden and _cast_s > near and _cast_s < far and not _proj.behind_crest(_cast_s - _scroll)
+	_cast.position = Vector2(cast_at.x, cast_at.y)
+	_cast.scale = Vector2(cast_at.z, cast_at.z)
+	if _pin != null:
+		var home_y: float = _proj.place(StreetPath.door_s(_current) - _scroll, 0.0).y
+		_pin.visible = not _busy and not _measuring and (home_y > size.y + PIN_AFTER
+			or _proj.behind_crest(StreetPath.door_s(_current) - _scroll))
 
 ## Behind the crest a prop is drawn before the ground, which hides its foot, so it rises over the horizon.
 func _stand(prop: StreetProp, s: float, x: float) -> void:
@@ -291,11 +441,11 @@ func _stand(prop: StreetProp, s: float, x: float) -> void:
 	prop.z_index = -1 if _proj.behind_crest(s - _scroll) else 0
 
 func _state(door: int) -> StreetProp.Door:
-	if door < _current:
-		return StreetProp.Door.SOLVED
 	if door == _current:
 		return StreetProp.Door.CURRENT
-	return StreetProp.Door.LOCKED if door <= _current + 3 else StreetProp.Door.FAR
+	if door < _current:
+		return StreetProp.Door.SOLVED if Save.best_in(false, door - 1) > 0 else StreetProp.Door.OPEN
+	return StreetProp.Door.LOCKED if door <= _current + NUMBERED_AHEAD else StreetProp.Door.FAR
 
 func _take() -> StreetProp:
 	if not _pool.is_empty():
@@ -308,28 +458,26 @@ func _take() -> StreetProp:
 
 func _recycle(prop: StreetProp) -> void:
 	prop.visible = false
+	prop.rotation = 0.0
 	_pool.append(prop)
 
-## The scripted scroll for measuring: flings both ways, a steady roll both ways, then a rest, each logged. It runs with
-## the cast and again without, since the cast's marbles cost far more draw calls than the street. Android keeps vsync
-## on whatever the game asks, so the room left is read from the phone's own CPU load instead.
+## The scripted scroll for measuring: flings both ways, a steady roll both ways, then a rest, each logged, in rounds
+## with the cast and without, so anything that drifts with time weighs on both alike (MATH.md section 25).
 func _auto_scroll() -> void:
 	print("STREET_DEVICE %s" % JSON.stringify({"adapter": RenderingServer.get_video_adapter_name(),
 		"api": RenderingServer.get_video_adapter_api_version(), "screen": DisplayServer.screen_get_size(),
 		"viewport": get_viewport_rect().size, "refresh_hz": DisplayServer.screen_get_refresh_rate()}))
+	_buttons.visible = false
+	_bounds = Vector2(_scroll_for(1), _scroll_for(_last))
 	_scroll = _scroll_for(AUTO_DOOR)
 	await get_tree().create_timer(2.5).timeout
-	# Rounds alternate with and without the cast, so anything that drifts with time, such as the phone's clocks or
-	# its other apps, weighs on both alike.
 	for round: int in range(AUTO_ROUNDS):
 		for cast: bool in [true, false]:
 			_cast_hidden = not cast
-			for marble: Marble in _cast:
-				marble.process_mode = Node.PROCESS_MODE_INHERIT if cast else Node.PROCESS_MODE_DISABLED
+			_cast.process_mode = Node.PROCESS_MODE_INHERIT if cast else Node.PROCESS_MODE_DISABLED
 			await _auto_pass(("_cast_" if cast else "_street_") + str(round + 1))
 	_cast_hidden = false
-	for marble: Marble in _cast:
-		marble.process_mode = Node.PROCESS_MODE_INHERIT
+	_cast.process_mode = Node.PROCESS_MODE_INHERIT
 	print("STREET_AUTO_DONE")
 
 func _auto_pass(suffix: String) -> void:
