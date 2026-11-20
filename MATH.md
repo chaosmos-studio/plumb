@@ -1365,3 +1365,36 @@ short fade instead of a wobble.
 - `STIFFNESS` to 150: a slow, heavy wobble, like a water balloon.
 - `KICK` to 8: a tap that nearly flattens it.
 - `TILT` to 0: it bounces straight up and down, and loses most of its life.
+
+## 28. Rewards as a function of the door
+
+Every reward Street gives is worked out from the door's number alone, in `scripts/street/rewards.gd`, never stored
+as a list. Door `n` has a parcel when `n % 5 == 0`, unless `n % 20 == 0`, where a milestone stands instead. A pure
+rule like this means the map, the parcel, the save and the tests all agree without talking to each other, and a
+street a thousand doors long costs no memory.
+
+**What a parcel holds** cycles with `k = n / 5`, the parcel's count along the street. The first three (doors 5, 10
+and 15) each bring a new helper, three of it. After that every parcel has 60 coins and, in turn, a helper or a hat:
+`k % 3 == 2` gives hat `k % 4`, and otherwise helper `k % 3`. Two different cycles (3 and 4) mean the hats and
+helpers drift against each other, so the pattern takes twelve parcels to repeat and never feels like a timetable.
+
+**A win's coins** are `10 + 5 × stars`, and 5 more when no undo, restart or hint was used. Three stars clean is 30,
+one star with help is 15: a win always pays, and care pays double.
+
+**The golden knocker** needs `moves ≤ par` with no hint, no helper and no restart. The spare step's leeway counts
+only toward stars (`StreetRewards.stars` takes one move off before it compares), so a knocker always means par by
+the board's own measure.
+
+**Coins that add up.** When a moment flies coins into the pill, it sends up to a dozen, each worth
+`amount / count` rounded down, and the last one carries what is left over: `amount - share × (count - 1)`. The pill
+counts up by each share as it lands, so it always ends on exactly the purse in the save, however the division falls.
+
+**A rewards moment never loses anything.** The parcel and the milestone put their contents in the save the moment
+they open, before anything moves. If the app closes mid-animation, the player keeps it all, and a parcel won but
+never opened (the app closed before the walk) opens the next time the street loads.
+
+### Things to try
+
+- `PARCEL_COINS` or `MILESTONE_COINS` in `rewards.gd`: watch the pill count the difference.
+- `BOOSTER_FIRST` to 5: each new helper arrives five at a time.
+- `WIN_CLEAN` to 20: clean solves become the way to earn.

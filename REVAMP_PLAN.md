@@ -643,6 +643,15 @@ All headless tests run in `tests/run_tests.gd` (`godot --headless --path . -s re
 
 Version 2.0.0 is Play's version code 20000.
 
+### M3 as built (21 November)
+
+- **Rewards** are pure rules in `scripts/street/rewards.gd` (MATH.md section 28), the purse and keepsakes in Save's `[street]` section (coins, helpers, opened gifts, knockers, things owned, hats worn).
+- **The map** shows a coin pill in the sky's corner (a tap opens the shop), the golden knocker on doors won at par, and at every 20th door an empty plot whose sign carries the number, with the finish ribbon in front of it. After its milestone the family's house stands on the plot with its family in front (`StreetFamilies`, `StreetFolk`), the windmill's sails turning.
+- **The parcel and the milestone** are overlays on the map (`StreetGift`, `StreetMilestone`, on `StreetMoment`) over Codex's gift backdrop and the win square. Their contents go in the save the moment they open, and one won but never opened opens the next time the street loads.
+- **Helpers** are picked on the start card. Footprints shows the solver's first two tilts as the hint trail while the player follows them. Ghost marbles makes the next swipe wait for the finger to lift and shows faint marbles where it would leave them. Spare step adds a move of leeway for the stars only. Footprints and ghosts count as help for the knocker and the clean bonus.
+- **The shop and Settings** are overlays too (`StreetShop`, `StreetSettings`), not scenes of their own, so the street stays loaded under them and closing them is instant. The shop sells hats (each worn by the cast member of its colour), the seven marble sets (one bought here is open in Classic as well, through `Looks.is_open`) and helpers, plus the Supporter row through the kit's own offer. Settings' General tab holds Sound, Music, Faces, Pets, phone tilt where the phone can feel it, the Street look and More (the kit's sheet: How to play, About, Credits, privacy, reset). Accessibility holds Reduce motion, Colour help (a shape per colour on marbles and holes, in both looks) and Haptic feedback.
+- **Left for later:** street decorations in the shop (no art or rules yet), Larger text, the daily's 30 coins (the daily screen is the kit's), the welcome purse (question 16) and the cloud-save join for the new keys (M4).
+
 ## 15. Decisions and open questions
 
 ### Decided by the lead, 20 November
