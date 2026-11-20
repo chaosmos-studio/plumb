@@ -6,7 +6,7 @@ The concepts are `build/review/revamp2/` (round 2, the vivid colours) and `build
 This file says how it gets built: the architecture, the data, the delivery format, the analytics, the motion, the sound, the art, the risks and the tests.
 Work happens on the branch `sg/revamp`, in milestones M0 to M5, with a gate after each.
 
-Status: **M0, this plan, written 20 November 2026 and waiting for the lead's review.**
+Status: **M0 approved by the lead on 20 November 2026, with the decisions in section 15. M1 under way.**
 
 ## 1. The game in one page
 
@@ -40,7 +40,7 @@ Edits to Plumb's copy of the kit stay small and are listed in 2.3, so they can b
 | Service | Where | What changes |
 | --- | --- | --- |
 | Saving and the cloud save | `autoload/save.gd`, `kit/play_games/cloud_save.gd` | Progress by board id (save layout 3), the street, the rating, coins, boosters, the look choice, new merge rules |
-| Ads and their pacing, consent | `kit/monetize/ads.gd`, `pacing.gd`, `android/consent.gd` | `Ads.solved()` counts solves by id. Street calls the interstitial from the start card's Play (open question 7) |
+| Ads and their pacing, consent | `kit/monetize/ads.gd`, `pacing.gd`, `android/consent.gd` | `Ads.solved()` counts solves by id. Street calls the interstitial from the start card's Play (decision 7) |
 | Billing, Supporter, restore | `kit/monetize/supporter.gd`, `shop.gd`, `android/play_billing.gd` | None in billing. Street's shop presents only the Supporter pack for money |
 | The hint gate | `kit/monetize/hint_gate.gd` | None. Street passes its door number for the free-first-15 rule |
 | The daily's logic | `kit/daily/daily.gd` | None. The board stays the same for everyone |
@@ -120,8 +120,8 @@ Per the workspace's GodotPrompter rule, each system names its pattern, the alter
 | Shop | `scenes/street/shop.tscn` | The market stall with soft trays (concept `6-shop.png`) |
 | Settings | `scenes/street/settings.tscn` | General and Accessibility (concept `7-settings.png`), with Help and account one level down |
 | Update card | `scenes/street/update_card.gd` | The game's own card for a new version (section 7) |
-| Daily | the kit's `kit/daily/daily.tscn` for 2.0 | Reached from the calendar button. A Street-styled daily is a later step (open question 8) |
-| Hard | open question 6 | |
+| Daily | the kit's `kit/daily/daily.tscn` for 2.0 | Reached from the calendar button. A Street-styled daily is a later step (open question 10) |
+| Hard | `scenes/street/map.tscn`, a side road | A hill road off the first milestone, holding the Hard levels in their fixed order (decision 6) |
 
 About, Credits, How to play, Restore purchases, Support, Privacy choices and the guarded reset live under Settings > General > Help, built in Street's theme from the kit's sheets.
 
@@ -140,7 +140,7 @@ Street's flow state lives in `scripts/street/flow.gd`, so the order of moments i
 
 ### 3.3 The look chooser
 
-- Shown once, on the first launch of 2.0, to new players and to players updating (open question 3).
+- Shown once, on the first launch of 2.0, to new players and to players updating, with no default (decision 3).
 - Two cards side by side, each a live `SubViewport` running a small slice of its look: Street's map rolling slowly with the cast, Classic's seesaw title.
 - The only words are none, or at most a tick on the chosen card. A tap picks: the chosen card grows to fill the screen and becomes the game, the other slides away.
 - Saved as `Save.app_look` (`"street"` or `"classic"`), sent as the user property `app_look` and the event `look_choose`.
@@ -189,12 +189,14 @@ Pure, in `scripts/street/picker.gd`, seeded by the player id and the door number
 **The climb position.** Each player has a climb position `p`, measured in levels of the main path, which acts as the curriculum: the tiles taught by `p` are the main path's chapters up to `p`, and the reference difficulty at `p` is the main path's difficulty there, made non-decreasing.
 After a solve, `p` moves on by the pace `m`, between `PACE_MIN` (0.6) and `PACE_MAX` (2.5) levels a door.
 A pace of 1 is today's main path. A fast player skips boards and meets the next tile sooner, a slow player meets more boards at each step.
-`p` never goes back. Past the end of the main path the curriculum continues with remix episodes (two or three known tiles at once), and the target creeps up very slowly.
+`p` never goes back. Past the end of the main path the curriculum continues with remix episodes (two or three known tiles at once), and the target holds at the ceiling.
 
 **The pace** comes from the rating gap, `m = 2^((μ - R(d_ref) - g0) / W)` clamped, where `R(d)` is a board's rating, `g0` the gap at which the player is expected to do as well as the target success `E*` (0.75), and `W` (200) the gap that doubles the pace.
 
-**Never drops.** Below the comfort ceiling, a candidate must have par no lower than the last board's and `d` no lower than the hardest board solved so far, within `SAME_WITHIN` (0.25 bits, below the spacing of the bits lattice).
-At the ceiling, today's plateau band (par 12 to 13, 18.85 to 20.35 bits) counts as one step, and no board falls below its floor. The exact rule is open question 1.
+**Never drops** (Shravan's rule, kept strictly in Street, decision 1). Street has no chapters, so it has no chapter-start dips.
+The target for the next door is never below the last door's, a candidate's `d` is never below the last door's, and par never falls. There is no allowance.
+The target climbs until it reaches the comfort ceiling, today's plateau band (par 12 to 13, 18.85 to 20.35 bits), and then holds flat at the band's top: it rises no further, and no board falls below the band's floor.
+Classic keeps its current behaviour.
 
 **Choosing.** Candidates: unplayed by this player, not retired, rules this client knows, tiles taught, `d` and par at or above the floor, the ceiling's board size limits, not the same layout bucket as the last few doors.
 Each is costed by its distance from the target, whether it needs the newest tile while that tile is in its first run of doors, and whether its feel repeats the last door's (roomy and tight alternate, as `CASUAL_HITS_STUDY.md` suggests).
@@ -288,7 +290,7 @@ A board played with a booster or a hint scores a lower outcome for the rating (4
 The start card shows all three slots from door 1, locked ones with the door number they open at, so the next gift is always in view.
 
 **The shop** sells hats (20), marble sets (40, the existing finishes from `looks.gd`), street decorations (60) and boosters (30) for coins, on soft trays with one quiet price pill each, and the Supporter pack for money in one row below.
-No timers, no fake discounts, no offers between levels. Classic's shop stays as it is (open question 5).
+No timers, no fake discounts, no offers between levels. Classic's shop stays as it is (decision 5).
 
 ## 5. Analytics
 
@@ -505,7 +507,7 @@ New buses: Music and SFX under Master, in `default_bus_layout.tres`. The sliders
 
 1. The score is written as code (MIDI from Python, the way `music-machine-reels` writes songs).
 2. Rendered from VSCO 2 Community Edition (CC0) and Virtual Playing Orchestra 3 (commercial music allowed), short-note instruments first (pizzicato, harp, celesta, glockenspiel, woodwinds, light percussion), since they are what free samples do well.
-3. Rendered with `sfizz_render` if it can be installed (it needs `dnf`, so Shravan's OK), or a small SFZ sample player in Python under `tools/music/`. Neither is on this laptop yet.
+3. Rendered with a small SFZ sample player in Python under `tools/music/` (decision 9: no `dnf` installs).
 4. Samples are fetched instrument by instrument with a sparse checkout, each download's byte count checked (large downloads truncate here), kept in `studio/game-assets` and recorded in its `PROVENANCE.md` and Plumb's `CREDITS.md`.
 5. Mixed and looped in Python, loops folded so the seam is sample-exact, exported as OGG.
 6. Two or three versions of the theme go to Shravan on the phone's speaker before any stems are made. If none is good enough, the theme alone could be commissioned once the games earn.
@@ -555,7 +557,7 @@ M1 uses code-drawn placeholders only.
 - memory under 300 MB
 - the map's first frame within 1.5 s of the studio beat ending
 
-**How it is measured:** a dev build under the separate package `com.shravangoswami.plumb.dev` ("Plumb Dev", debug-signed, Firebase off because the shared `google-services.json` has no app for that package), with a frame logger (frame times, process time, GPU time where the driver reports it, draw calls) writing a CSV that `adb exec-out run-as` pulls.
+**How it is measured:** a dev build under the separate package `com.shravangoswami.plumb.dev` ("Plumb Dev", debug-signed, with Firebase off until its own Firebase app is made for the analytics work, decision 8), with a frame logger (frame times, process time, GPU time where the driver reports it, draw calls) writing a CSV that `adb exec-out run-as` pulls.
 A scripted scroll (fling, coast, reverse, repeat) makes runs comparable. Screen recordings are made with `adb shell screenrecord` and deleted from the phone after pulling.
 The live Plumb (`com.shravangoswami.plumb`) is never installed over, cleared or opened, and no other app is touched.
 
@@ -567,14 +569,14 @@ The live Plumb (`com.shravangoswami.plumb`) is never installed over, cleared or 
 | --- | --- | --- |
 | The migration | A live player loses stars or progress, the worst outcome of the whole revamp | Pure function, fixture saves of every layout and shape (gaps, keys, gate-opened chapters, Hard stars, an old cloud copy), a backup file, idempotence, a real 1.5.1 to 2.0 upgrade on the dev package, a closed-track release first and a staged production rollout |
 | Pool coverage | A slow climber or an early tile meets no fitting board | The coverage report and generated extras in M4, the fallback order, recycling by symmetry |
-| "Never drops" against the plateau | The shipped plateau falls back to its floor at each chapter start | Open question 1, decided before M4 |
+| "Never drops" at the ceiling | Strictly rising boards need enough par-13 boards near the band's top for every tile | Decision 1. The coverage report counts boards at the top of the band per tile, and episodes fill the gaps |
 | Two looks | Twice the screens to test and keep alive | Shared services and play core, Classic frozen apart from the Look row and the update card, both smoke robots in every test run |
 | Performance | The rolling map stutters on the A142 | M1 measures before any art, the budgets in section 11 |
 | Analytics plumbing | User properties need a Java helper in the build | The same pattern as `PlayCore.java`, which ships today. Checked in DebugView before release |
 | The signing key | A lost key stops updates to the pool, a leaked one lets someone sign boards | Two embedded public keys for rotation, the private key only in `release-keys` and the vault, boards still checked by the solver before play |
 | Music quality | Free samples sound stiff on long notes | Write for short notes, Shravan's ear decides, commission the theme later if needed |
 | Painted art | Codex's pieces drift from the concepts or from each other | Full-size reviews beside the concept, one palette and outline in every brief, an atlas test |
-| Ads in a flow with nothing to press | An interstitial landing without a tap breaks AdMob's rules | The interstitial only after the Play tap on a card, with today's pacing. The banner on the map only (open question 7) |
+| Ads in a flow with nothing to press | An interstitial landing without a tap breaks AdMob's rules | The interstitial only after the Play tap on a card, with today's pacing. The banner on the map only (decision 7) |
 | Cloud save | Two phones grow different streets | The copy with more solved doors wins the street, stars join per id, coins take the larger side |
 | Update reach | 88% of players were still on 1.4.10 on 20 November, and the new card only ships with 2.0 | Nothing in-game can fix the old builds. Play's own auto-update and a Play "Events and offers" card for 2.0 |
 | The shared phone | The A142 is locked or in use | Ask the lead. Desktop measurements never stand in for the phone's |
@@ -626,7 +628,7 @@ All headless tests run in `tests/run_tests.gd` (`godot --headless --path . -s re
 
 **On the phone:** frame logs and a recording for the map (M1), the full flow (M2 and M3), and a real upgrade from a 1.5.1 build to 2.0, both under the dev package (M4).
 
-**Release:** DebugView on a build that counts (open question 11), the AAB's manifest checks as today, then the closed track.
+**Release:** DebugView on a build that counts (decision 8), the AAB's manifest checks as today, then the closed track.
 
 ## 14. Milestones
 
@@ -641,23 +643,26 @@ All headless tests run in `tests/run_tests.gd` (`godot --headless --path . -s re
 
 Version 2.0.0 is Play's version code 20000.
 
-## 15. Open questions
+## 15. Decisions and open questions
 
-For the lead, and Shravan where it is his call. Each has a recommendation, which the build follows until told otherwise.
+### Decided by the lead, 20 November
 
-1. **What "never drops" means at the comfort ceiling.** Today's plateau starts each chapter back at its floor, inside a band of one move and 1.5 bits. Recommendation: below the ceiling, par never falls and no board is easier than the hardest solved (within 0.25 bits, the measure's own noise). At the ceiling the band counts as one step and nothing falls below its floor, as the shipped plateau already treats it. The alternative, strictly rising at the ceiling too, needs boards made in a narrow window at the band's top for every tile, which the generator can do but slowly.
-2. **Tiles paced by the climb, not by door number.** Recommendation: by the climb (4.3), so a fast player meets stop pads sooner, and the every-20 milestone is about the street, not a new rule.
-3. **The chooser for players updating from 1.5.** Recommendation: yes, shown once, with no default, since it is the one moment to tell them the new look exists and their progress carries over either way.
-4. **Classic stays exactly as it is.** Recommendation: its fixed paths, chapters, gate, Hard, ending, shop and music unchanged, no adaptive picking in Classic. It still shares stars by id, and its play updates the rating.
-5. **Paid products.** Recommendation: Street sells only the Supporter pack for money. Classic's shop stays as it is for 2.0. Owners of packs keep everything in both looks. Level keys, Every level and the themes pack mean nothing in Street and are not shown there. Retiring them in Classic waits for the numbers.
-6. **Hard in Street.** Recommendation: a hill road branching off the street at the first milestone, holding the Hard levels in their fixed order, so their stars stay meaningful. The alternative is no Hard in Street, since strong players climb past the comfort ceiling anyway.
-7. **Ads in Street.** Recommendation: the banner at the foot of the map only, never in play (`REFERENCE_GAMES.md`'s calm games). The interstitial only after the Play tap on a start card, with today's pacing.
-8. **The daily in Street.** Recommendation: the kit's daily screen for 2.0, reached from the calendar button, and a Street-styled daily with its calendar after.
-9. **The wordmark and icon.** Recommendation: keep today's. The concepts' chunky PLUMB is not adopted unless Shravan asks.
-10. **The families.** His taste. M3 shows options as images first.
-11. **A Firebase app for the dev package,** so analytics can be checked in DebugView on the phone without touching the live Plumb. It adds one stream to GA4, left out of every report by a stream filter.
-12. **The feed's address and key.** `levels.chaosmos.studio` on R2, and the signing key in `release-keys` and the vault.
-13. **A dark look for Street.** Recommendation: light only in 2.0, with a dusk street (a tint and lit windows) after.
-14. **Installing `sfizz`** through `dnf`, or the Python sample player.
+1. **"Never drops" is kept strictly in Street** (4.3). The next door's target is never below the last door's and par never falls, with no allowance. At the comfort ceiling it holds flat at the top and never falls below the band's floor. Classic keeps its current behaviour.
+2. **New tiles arrive by the climb**, not by door number.
+3. **Updating players see the look chooser once**, with no default: two live previews and almost no words.
+4. **Classic gets no adaptive levels.** It shares stars by id, and its play updates the rating.
+5. **Street sells only the Supporter pack for money.** Classic's shop stays as it is, and buyers keep everything in both looks. Level keys, Every level and the themes pack are not shown in Street.
+6. **Hard is a hill road** off the first milestone, its levels in their fixed order.
+7. **Ads:** the banner on the map only, never in play. Interstitials keep today's rules (none before 12 solved levels, and the existing spacing), shown only after a Play tap on a start card. Every reward is free when no video is ready.
+8. **The dev package gets its own Firebase app,** `com.shravangoswami.plumb.dev` in project `chaosmos-studio`, made with the Firebase CLI and its config fetched with `apps:sdkconfig`. Its SHA keys are not added to the shared Android API key's restrictions without telling the lead.
+9. **No `dnf` installs.** The music is rendered with a small Python sample player.
+
+### Still open
+
+10. **The daily in Street.** Recommendation: the kit's daily screen for 2.0, reached from the calendar button, and a Street-styled daily with its calendar after.
+11. **The wordmark and icon.** Recommendation: keep today's. The concepts' chunky PLUMB is not adopted unless Shravan asks.
+12. **The families.** His taste. M3 shows options as images first.
+13. **The feed's address and key.** `levels.chaosmos.studio` on R2, and the signing key in `release-keys` and the vault.
+14. **A dark look for Street.** Recommendation: light only in 2.0, with a dusk street (a tint and lit windows) after.
 15. **Lanterns and a daily post-box letter** from the study are left out of 2.0, since the brief did not ask for them.
 16. **A welcome purse** for players who were already playing, 5 coins a star.
