@@ -8,7 +8,7 @@ extends Node2D
 enum Pose { CALM, HAPPY, LAUGH, WONDER }
 
 ## The bodies' size at the near edge, as a share of the painted body.
-const SCALE: float = 0.62
+const SCALE: float = 0.52
 ## Their spacing, as a share of a body's width.
 const SPREAD: float = 1.04
 ## Bobbing on the spot: how high, in body widths, and how fast.

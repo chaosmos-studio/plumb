@@ -7,8 +7,8 @@ extends Node2D
 const SKY: String = "res://assets/street/sky.png"
 const HILLS: String = "res://assets/street/hills.png"
 ## The sun's place, as shares of the screen, and its size beside its painting.
-const SUN_AT: Vector2 = Vector2(0.84, 0.065)
-const SUN_SCALE: float = 0.62
+const SUN_AT: Vector2 = Vector2(0.86, 0.025)
+const SUN_SCALE: float = 0.95
 ## The sun turns this fast, in radians a second.
 const SUN_SPIN: float = 0.12
 ## Clouds: their height as a share of the space above the horizon, their size, and their drift in pixels a second.

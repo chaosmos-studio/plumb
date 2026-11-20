@@ -9,17 +9,27 @@ enum Door { FAR, LOCKED, OPEN, CURRENT, SOLVED }
 
 const HOUSE: int = -1
 const INK: Color = Color("fff3df")
-## A house's size at the near edge beside its painting (StreetArt), and its number's size there.
-const HOUSE_SCALE: float = 1.12
-const NUMBER_SIZE: int = 112
+## A house's size at the near edge beside its painting (StreetArt), and its number's height as a share of its door's
+## radius. The houses are as big as Codex's street paste-up, so the current door nearly fills the screen's width.
+const HOUSE_SCALE: float = 1.3
+const NUMBER_HEIGHT: float = 0.95
+## A side house, filling the screen's edges, at this size beside a door's house.
+const SIDE_HOUSE_SCALE: float = 1.15
 ## Scenery's size beside the houses, as Codex painted each at its own canvas.
 const SCENERY_SCALE: Dictionary = {
-	StreetPath.Kind.TREE: 1.05,
-	StreetPath.Kind.BUSH: 0.78,
-	StreetPath.Kind.LAMP: 0.86,
-	StreetPath.Kind.FENCE: 0.8,
-	StreetPath.Kind.FLOWERS: 0.72,
+	StreetPath.Kind.TREE: 1.15,
+	StreetPath.Kind.BUSH: 1.15,
+	StreetPath.Kind.LAMP: 1.2,
+	StreetPath.Kind.FENCE: 1.05,
+	StreetPath.Kind.FLOWERS: 1.1,
+	StreetPath.Kind.BUNTING: 1.15,
+	StreetPath.Kind.SIDE_HOUSE: SIDE_HOUSE_SCALE,
 }
+## The dressing at a door's house's feet: a flowerbed or a bush at each corner, as in the concepts.
+const FOOT_SCALE: float = 0.95
+## And the trees and big bushes behind it.
+const BEHIND_TREE: float = 1.25
+const BEHIND_BUSH: float = 1.0
 ## The breeze: how far each kind leans, in radians, and how fast it sways.
 const SWAY: Dictionary = {
 	StreetPath.Kind.TREE: 0.03,
@@ -80,6 +90,10 @@ func wobble_scale() -> Vector2:
 func wobble_turn() -> float:
 	return jiggle.tilt() if jiggle != null else 0.0
 
+## Whether it is tall enough to hide the road and the cast when it stands near the screen's foot.
+func tall() -> bool:
+	return kind == HOUSE or kind == StreetPath.Kind.SIDE_HOUSE
+
 ## Its idle lean in the breeze at time `t`: trees, bushes and flowers sway, each in its own time, and nothing else.
 func sway(t: float) -> float:
 	var reach: float = SWAY.get(kind, 0.0)
@@ -91,7 +105,8 @@ func sway(t: float) -> float:
 ## The piece's outline on screen at near-edge size, for taps.
 func bounds() -> Rect2:
 	var piece: String = _piece()
-	var s: Vector2 = StreetArt.size(piece) * (HOUSE_SCALE if kind == HOUSE else SCENERY_SCALE.get(kind, 0.7))
+	var k: float = HOUSE_SCALE if kind == HOUSE else SCENERY_SCALE.get(kind, 0.7)
+	var s: Vector2 = StreetArt.size(piece) * k
 	return Rect2(Vector2(-s.x * 0.5, -s.y), s)
 
 func _piece() -> String:
@@ -101,15 +116,24 @@ func _piece() -> String:
 		StreetPath.Kind.TREE:
 			return "tree_%d" % (1 + door % 3)
 		StreetPath.Kind.BUSH:
-			return "bush_%d" % (1 + door % 3)
+			return ("bush_%d" % (1 + door % 3)) if door % 5 < 3 else ("bush_big_%d" % (1 + door % 2))
 		StreetPath.Kind.LAMP:
 			return "lamp_post"
 		StreetPath.Kind.FENCE:
-			return "fence"
+			return "fence_long" if door % 3 != 0 else "fence"
+		StreetPath.Kind.FLOWERS:
+			return "flowerbed_%d" % (1 + door % 3)
+		StreetPath.Kind.BUNTING:
+			return "bunting_posts"
+		StreetPath.Kind.SIDE_HOUSE:
+			return "house_%s_%d" % [StreetArt.COLOURS[door % 4], 1 + (door >> 2) % StreetArt.SHAPES]
 	return "planter"
 
 func _draw() -> void:
 	if kind == StreetPath.Kind.NONE:
+		return
+	if kind == StreetPath.Kind.SIDE_HOUSE:
+		_side_house()
 		return
 	if kind != HOUSE:
 		var scale_k: float = SCENERY_SCALE.get(kind, 0.7)
@@ -119,18 +143,51 @@ func _draw() -> void:
 		return
 	_house()
 
-## Every atlas piece first and the number last, so a house costs the renderer two runs, not one per piece.
+## A house with no door to play: it fills the street's edges, its door shut, flowers at its feet.
+func _side_house() -> void:
+	var house: String = _piece()
+	var k: float = SIDE_HOUSE_SCALE
+	var d: Vector3 = StreetArt.door(house) * k
+	_behind(house, k)
+	StreetArt.draw(self, "shadow", Vector2.ZERO, StreetArt.size(house).x * k * SHADOW_SHARE / StreetArt.size("shadow").x)
+	StreetArt.draw(self, house, Vector2.ZERO, k)
+	StreetArt.draw(self, "door_" + StreetArt.COLOURS[door % 4], Vector2(d.x, d.y), k)
+	_feet(house, k)
+
+## Greenery growing up behind a house, as in every concept: a tree or a big bush at one or both back corners.
+func _behind(house: String, k: float) -> void:
+	var size: Vector2 = StreetArt.size(house) * k
+	for side: int in [-1, 1]:
+		var pick: int = StreetPath.mix(door * 5 + side + 23) % 6
+		if pick == 5:
+			continue
+		var piece: String = ("tree_%d" % (1 + pick % 3)) if pick < 3 else ("bush_big_%d" % (1 + pick % 2))
+		var reach: float = BEHIND_TREE if pick < 3 else BEHIND_BUSH
+		StreetArt.draw(self, piece, Vector2(side * size.x * 0.4, -size.y * 0.12), reach * k / HOUSE_SCALE)
+
+## A flowerbed or a bush at each front corner of a house, chosen by its number.
+func _feet(house: String, k: float) -> void:
+	var half: float = StreetArt.size(house).x * k * 0.42
+	for side: int in [-1, 1]:
+		var pick: int = StreetPath.mix(door * 7 + side + 11) % 5
+		var piece: String = ("flowerbed_%d" % (1 + pick % 3)) if pick < 3 else ("bush_%d" % (1 + pick % 3))
+		StreetArt.draw(self, piece, Vector2(side * half, 6.0), FOOT_SCALE * k / HOUSE_SCALE)
+
+## Everything, the number's digits too, comes from the atlas, so a whole street of houses batches into a few runs.
 func _house() -> void:
 	var house: String = _piece()
 	var colour: String = StreetArt.COLOURS[StreetArt.colour_of(door)]
 	var k: float = HOUSE_SCALE
 	var d: Vector3 = StreetArt.door(house) * k
 	var centre: Vector2 = Vector2(d.x, d.y)
+	_behind(house, k)
 	StreetArt.draw(self, "shadow", Vector2.ZERO, StreetArt.size(house).x * k * SHADOW_SHARE / StreetArt.size("shadow").x)
 	StreetArt.draw(self, house, Vector2.ZERO, k)
+	_feet(house, k)
 	if state == Door.CURRENT:
 		StreetArt.draw(self, "glow", centre, k * (1.0 + PULSE * sin(pulse * PULSE_SPEED)))
-	StreetArt.draw(self, "door_" + colour, centre, k)
+	# The door to play next wears a gold ring, whatever its house's colour, as door 12 in the concept.
+	StreetArt.draw(self, "door_yellow" if state == Door.CURRENT else "door_" + colour, centre, k)
 	if state == Door.SOLVED:
 		for w: Rect2 in StreetArt.windows(house):
 			StreetArt.draw(self, "window_lit", w.get_center() * k, k)
@@ -144,8 +201,14 @@ func _house() -> void:
 	if state == Door.FAR:
 		StreetArt.draw(self, "padlock", centre + Vector2(0, 4), k * 0.9)
 		return
-	var font: Font = StreetArt.number_font()
-	var text: String = str(door)
-	var size: int = NUMBER_SIZE if text.length() < 3 else roundi(NUMBER_SIZE * 0.8)
-	var lift: float = -d.z * 0.16 if state == Door.SOLVED else 0.0
-	draw_string(font, centre + Vector2(-d.z, size * 0.36 + lift), text, HORIZONTAL_ALIGNMENT_CENTER, d.z * 2.0, size, INK)
+	# A door with a parcel waiting (every 5th) shows it under its number until it is solved, as door 15 in the concept.
+	var gift: bool = door % 5 == 0 and state != Door.SOLVED
+	var lift: float = -d.z * (0.32 if gift else 0.2) if state == Door.SOLVED or gift else 0.0
+	var digits: int = str(door).length()
+	var height: float = d.z * NUMBER_HEIGHT * (1.0 if digits < 3 else 0.78) * (0.74 if gift else 1.0)
+	StreetArt.draw_number(self, door, centre + Vector2(0.0, lift), height)
+	if gift:
+		var box: float = d.z * 0.8 / StreetArt.size("parcel_body").x
+		StreetArt.draw(self, "parcel_body", centre + Vector2(0.0, d.z * 0.62), box)
+		StreetArt.draw(self, "parcel_lid", centre + Vector2(0.0, d.z * 0.12), box)
+		StreetArt.draw(self, "parcel_bow", centre + Vector2(0.0, d.z * 0.02), box)

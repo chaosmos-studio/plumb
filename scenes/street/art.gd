@@ -29,7 +29,6 @@ static var _textures: Array[Texture2D] = []
 static var _pieces: Dictionary = {}
 static var _nines: Dictionary = {}
 static var _font: Font
-static var _number_font: Font
 
 ## The map's atlas, loading both pages on first use.
 static func texture() -> Texture2D:
@@ -119,6 +118,26 @@ static func draw_nine(ci: CanvasItem, piece: String, area: Rect2, scale: float =
 	ci.draw_style_box(style, Rect2(Vector2.ZERO, area.size / k))
 	ci.draw_set_transform(Vector2.ZERO)
 
+## Draws the number `n` in the atlas's digits, centred on `centre`, its digits `height` tall: a door's number batches
+## with its house instead of breaking the run with text.
+static func draw_number(ci: CanvasItem, n: int, centre: Vector2, height: float, tint: Color = Color.WHITE) -> void:
+	var text: String = str(n)
+	var k: float = height / size("digit_0").y
+	var width: float = 0.0
+	for c: String in text:
+		width += _advance("digit_" + c)
+	width *= _k("digit_0") * k
+	var x: float = centre.x - width * 0.5
+	for c: String in text:
+		var piece: String = "digit_" + c
+		var step: float = _advance(piece) * _k(piece) * k
+		draw(ci, piece, Vector2(x + step * 0.5, centre.y), k, tint)
+		x += step
+
+static func _advance(piece: String) -> float:
+	texture()
+	return float((_pieces[piece] as Dictionary).get("advance", rect(piece).size.x))
+
 ## A house's door, relative to its base point at near-edge size: centre and radius.
 static func door(house: String) -> Vector3:
 	texture()
@@ -145,8 +164,13 @@ static func colour_of(n: int) -> int:
 	var direction: int = 1 if StreetPath.mix(block * 5 + 2) % 2 == 0 else -1
 	return posmod(start + direction * step, COLOURS.size())
 
+## A door's house: the cottage, the shop-house or the attic house, the concepts' wide shapes. The tall house (shape 2)
+## stands only at the street's edges, where it reads as a neighbour's.
+const DOOR_SHAPES: PackedInt32Array = [1, 3, 4, 1]
+
 static func house_of(n: int) -> String:
-	return "house_%s_%d" % [COLOURS[colour_of(n)], 1 + StreetPath.mix(n * 13 + 3) % SHAPES]
+	var shape: int = DOOR_SHAPES[StreetPath.mix(n * 13 + 3) % DOOR_SHAPES.size()]
+	return "house_%s_%d" % [COLOURS[colour_of(n)], shape]
 
 ## Street's type: Baloo 2 at its heaviest.
 static func font() -> Font:
@@ -160,16 +184,3 @@ static func font() -> Font:
 ## Godot keys a variable font's axes by their OpenType tag as a number.
 static func _weight_tag() -> int:
 	return TextServerManager.get_primary_interface().name_to_tag("wght")
-
-## The same, drawn as a signed distance field for the doors, which the map scales every frame.
-static func number_font() -> Font:
-	if _number_font == null:
-		var msdf: FontFile = (load(FONT) as FontFile).duplicate() as FontFile
-		msdf.multichannel_signed_distance_field = true
-		msdf.msdf_pixel_range = 16
-		msdf.msdf_size = 64
-		var variation: FontVariation = FontVariation.new()
-		variation.base_font = msdf
-		variation.variation_opentype = {_weight_tag(): WEIGHT}
-		_number_font = variation
-	return _number_font

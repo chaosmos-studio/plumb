@@ -9,7 +9,15 @@ extends Node2D
 ## The drum: its radius and the camera's focal length, in design pixels (StreetProjection). A smaller radius is a
 ## tighter little world, and a very large one a flat scroll.
 const RADIUS: float = 1340.0
-const FOCAL: float = 1000.0
+const FLAT_RADIUS: float = 100000.0
+const FOCAL: float = 600.0
+## The camera's tilt down at the street (StreetProjection.tilt): things shrink steadily up the screen, as in the
+## concepts, where the next door is about three quarters the size of the one at rest.
+const TILT: float = 0.6
+## At rest, a door's house below the one at rest fades out toward the screen's foot, which the concepts keep for the
+## road, the cast and the buttons: fully gone below FADE_FROM of the screen's height, fully there above FADE_TO.
+const FADE_FROM: float = 0.93
+const FADE_TO: float = 0.86
 ## The drum's near edge sits this far below the screen's foot.
 const NEAR_BELOW: float = 60.0
 ## How far a point sinks toward the sides, per pixel squared across: the street reads as a small planet. It is set for
@@ -23,7 +31,7 @@ const WIDE_WORLD_HEIGHT: float = 1602.0
 const ROWS: int = 72
 const COLUMNS: int = 28
 ## Where the current door rests, as a share of the screen's height from the top.
-const REST_AT: float = 0.66
+const REST_AT: float = 0.77
 ## A fling dies away by this rate a second, and a drag past either end follows the finger by this share.
 const FRICTION: float = 2.6
 const RUBBER: float = 0.35
@@ -37,7 +45,9 @@ const TAP_TIME: float = 0.4
 ## A notch of the mouse wheel flings the street at this speed, in strip pixels a second.
 const WHEEL_SPEED: float = 900.0
 ## The cast stands this far in front of the current door, along the street.
-const CAST_BEFORE: float = 125.0
+const CAST_BEFORE: float = 100.0
+## How far from the road's middle toward the door it waits at the cast stands.
+const CAST_TOWARD_DOOR: float = 0.35
 ## After a win: the cast's walk to the next door, and the pause before its card drops in.
 const WALK_TIME: float = 1.1
 const CARD_DELAY: float = 0.35
@@ -139,6 +149,7 @@ func _ready() -> void:
 	if not _preview:
 		_build_hud()
 	get_viewport().size_changed.connect(_layout)
+	EventBus.settings_changed.connect(_layout)
 	_layout()
 	_cast_s = StreetPath.door_s(_current) - CAST_BEFORE
 	_scroll = _scroll_for(_current)
@@ -167,16 +178,26 @@ func _world_scale() -> float:
 func _world_size() -> Vector2:
 	return get_viewport_rect().size / _world_scale()
 
+## The drum's radius: RADIUS, or under Reduce motion one so large the street scrolls flat (MATH.md section 25).
+func _radius() -> float:
+	return FLAT_RADIUS if Save.reduce_motion else RADIUS
+
 func _layout() -> void:
 	var size: Vector2 = _world_size()
 	scale = Vector2.ONE * _world_scale()
 	var bow: float = BOW * pow(StreetLayout.SHORT / size.x, 2.0) if size.x > StreetLayout.SHORT else BOW
-	_proj = StreetProjection.new(RADIUS, FOCAL, size.y + NEAR_BELOW, size.x * 0.5, bow)
+	_proj = StreetProjection.new(_radius(), FOCAL, size.y + NEAR_BELOW, size.x * 0.5, bow)
+	if not Save.reduce_motion:
+		_proj.tilt = TILT
+		_proj.normalise_at(_proj.s_rel_at(size.y * REST_AT))
 	_sky.horizon_y = _proj.horizon_y()
 	_sky.area = size
 	_ground.mesh = _ground_mesh(size)
-	_ground_material.set_shader_parameter("radius", RADIUS)
-	_far_bands = maxi(0, ceili((size.x * 0.5 + 60.0 - StreetPath.SCENERY_SET.y) / StreetPath.FAR_BAND))
+	_ground_material.set_shader_parameter("radius", _radius())
+	# Up the street things shrink, so the screen shows more meadow either side: enough bands to reach its edges where
+	# the street is a third of the way down the screen.
+	var far_k: float = _proj.scale_at(_proj.s_rel_at(size.y * 0.35) / _radius())
+	_far_bands = maxi(0, ceili((size.x * 0.5 / far_k + 60.0 - StreetPath.SCENERY_SET.y) / StreetPath.FAR_BAND))
 	for key: Variant in _scenery.keys():
 		_recycle(_scenery[key])
 	_scenery.clear()
@@ -193,14 +214,15 @@ func _scroll_for(n: int) -> float:
 func _ground_mesh(size: Vector2) -> ArrayMesh:
 	var bottom: float = size.y + 40.0
 	var top: float = maxf(_proj.horizon_y(), -40.0)
-	var top_s: float = _proj.s_rel_at(top) if _proj.horizon_y() < -40.0 else RADIUS * PI * 0.5
-	var far_k: float = _proj.scale_at(top_s / RADIUS)
+	var radius: float = _radius()
+	var top_s: float = _proj.s_rel_at(top) if _proj.horizon_y() < -40.0 else radius * PI * 0.5
+	var far_k: float = _proj.scale_at(top_s / radius)
 	var half_width: float = (size.x * 0.5 + 120.0) / far_k
 	var vertices: PackedVector2Array = PackedVector2Array()
 	var uvs: PackedVector2Array = PackedVector2Array()
 	for row: int in range(ROWS + 1):
 		var y: float = lerpf(bottom, top, float(row) / float(ROWS))
-		var s_rel: float = top_s if row == ROWS else RADIUS * asin(clampf((_proj.near_y - y) / RADIUS, -1.0, 1.0))
+		var s_rel: float = top_s if row == ROWS else radius * asin(clampf((_proj.near_y - y) / radius, -1.0, 1.0))
 		for column: int in range(COLUMNS + 1):
 			var x: float = lerpf(-half_width, half_width, float(column) / float(COLUMNS))
 			var at: Vector3 = _proj.place(s_rel, x)
@@ -224,6 +246,7 @@ func _ground_mesh(size: Vector2) -> ArrayMesh:
 func _set_ground_uniforms() -> void:
 	_ground_material.set_shader_parameter("sway_a", StreetPath.SWAY_A)
 	_ground_material.set_shader_parameter("sway_a_length", StreetPath.SWAY_A_LENGTH)
+	_ground_material.set_shader_parameter("sway_a_phase", StreetPath.SWAY_A_PHASE)
 	_ground_material.set_shader_parameter("sway_b", StreetPath.SWAY_B)
 	_ground_material.set_shader_parameter("sway_b_length", StreetPath.SWAY_B_LENGTH)
 	_ground_material.set_shader_parameter("sway_b_phase", StreetPath.SWAY_B_PHASE)
@@ -237,6 +260,8 @@ func _build_hud() -> void:
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hud.add_child(root)
+	var front: _Front = _Front.new()
+	root.add_child(front)
 	_buttons = BoxContainer.new()
 	_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	_buttons.add_theme_constant_override("separation", 56)
@@ -360,7 +385,7 @@ func _tap(at: Vector2) -> void:
 	for prop: Node in _props.get_children():
 		var item: StreetProp = prop as StreetProp
 		if item == null or not item.visible or item.z_index < 0 or item.scale.y <= 0.0 \
-				or item.kind == StreetPath.Kind.NONE:
+				or item.kind == StreetPath.Kind.NONE or item.modulate.a < 0.5:
 			continue
 		var local: Vector2 = (world - item.position) / item.scale.y
 		if item.bounds().has_point(local) and (hit == null or item.position.y > hit.position.y):
@@ -491,9 +516,10 @@ func _place() -> void:
 			_scenery.erase(slot)
 	for slot: int in range(maxi(from_slot, 0), to_slot + 1):
 		for side: int in [-1, 1]:
-			# Band 0 is the street's own scenery, and a wide world adds bands of meadow out to its edges.
-			for band: int in range(_far_bands + 1):
-				var spot: Vector2 = StreetPath.scenery(slot, side) if band == 0 else StreetPath.far_scenery(slot, side, band)
+			# Band 0 is the road's edge and band 1 the row behind it, and the meadow adds bands out to the screen's edges.
+			for band: int in range(_far_bands + 2):
+				var spot: Vector2 = StreetPath.scenery(slot, side, band == 1) if band < 2 \
+					else StreetPath.far_scenery(slot, side, band - 1)
 				if int(spot.x) == StreetPath.Kind.NONE:
 					continue
 				var key: Vector2i = Vector2i(slot, side * (band + 1))
@@ -503,14 +529,29 @@ func _place() -> void:
 					prop.dress_scenery(int(spot.x), StreetPath.mix(slot * 7 + side + band * 3))
 					_scenery[key] = prop
 				_stand(prop, StreetPath.slot_s(slot), spot.y)
-	var cast_at: Vector3 = _proj.place(_cast_s - _scroll, StreetPath.road_x(_cast_s))
+	var cast_at: Vector3 = _proj.place(_cast_s - _scroll, _cast_x(_cast_s))
 	_cast.visible = not _cast_hidden and _cast_s > near and _cast_s < far and not _proj.behind_crest(_cast_s - _scroll)
-	_cast.position = Vector2(cast_at.x, cast_at.y)
+	# The cast keeps whole on the screen, however far the road swings.
+	var half_row: float = StreetCast.body_width() * cast_at.z * (float(_cast.members.size()) * StreetCast.SPREAD * 0.5)
+	_cast.position = Vector2(clampf(cast_at.x, half_row + 34.0, size.x - half_row - 34.0), cast_at.y)
 	_cast.scale = Vector2(cast_at.z, cast_at.z)
 	if _pin != null:
 		var home_y: float = _proj.place(StreetPath.door_s(_current) - _scroll, 0.0).y
 		_pin.visible = not _busy and not _measuring and (home_y > size.y + PIN_AFTER
 			or _proj.behind_crest(StreetPath.door_s(_current) - _scroll))
+
+## Where the cast stands across the street at `s`: on the road, drawn CAST_TOWARD_DOOR of the way toward the door it
+## waits at, blending from one door's side to the next as it walks, so it stands before the door as in the concept.
+func _cast_x(s: float) -> float:
+	var ahead: float = s + CAST_BEFORE
+	var a: int = clampi(floori((ahead - StreetPath.FIRST_DOOR) / StreetPath.DOOR_GAP) + 1, 1, _last)
+	var b: int = mini(a + 1, _last)
+	var t: float = clampf((ahead - StreetPath.door_s(a)) / StreetPath.DOOR_GAP, 0.0, 1.0)
+	t = t * t * (3.0 - 2.0 * t)
+	var road: float = StreetPath.road_x(s)
+	var toward: float = lerpf(StreetPath.door_x(a) - StreetPath.road_x(StreetPath.door_s(a)),
+		StreetPath.door_x(b) - StreetPath.road_x(StreetPath.door_s(b)), t)
+	return road + toward * CAST_TOWARD_DOOR
 
 ## Behind the crest a prop is drawn before the ground, which hides its foot, so it rises over the horizon. Its depth
 ## scale carries any tap's wobble, and trees and bushes lean in the breeze.
@@ -520,6 +561,9 @@ func _stand(prop: StreetProp, s: float, x: float) -> void:
 	prop.scale = Vector2(at.z, at.z) * prop.wobble_scale()
 	prop.rotation = prop.wobble_turn() + (0.0 if Save.reduce_motion else prop.sway(_time))
 	prop.z_index = -1 if _proj.behind_crest(s - _scroll) else 0
+	if prop.tall():
+		var h: float = _world_size().y
+		prop.modulate.a = clampf((h * FADE_FROM - at.y) / (h * (FADE_FROM - FADE_TO)), 0.0, 1.0)
 
 func _state(door: int) -> StreetProp.Door:
 	if door == _current:
@@ -586,3 +630,33 @@ func _auto_pass(suffix: String) -> void:
 func _begin(label: String) -> void:
 	print("STREET_BEGIN %s" % label)
 	_probe.begin(label)
+
+
+## What frames the street on the screen itself, under the buttons, as in every concept: the PLUMB title in the sky,
+## a strip of grass and flowers along the foot, and leafy corners growing up from the bottom corners.
+class _Front extends Node2D:
+	const TITLE_WIDTH: float = 620.0
+	const TITLE_TOP: float = 120.0
+	const GRASS_HEIGHT: float = 150.0
+	const CORNER_WIDTH: float = 300.0
+
+	func _ready() -> void:
+		get_viewport().size_changed.connect(queue_redraw)
+
+	func _draw() -> void:
+		var size: Vector2 = get_viewport_rect().size
+		var safe: Dictionary = UI.safe_margins(get_viewport())
+		var title_w: float = minf(TITLE_WIDTH, size.x * 0.86)
+		var title_k: float = title_w / StreetArt.size("title_plumb").x
+		var title_h: float = StreetArt.size("title_plumb").y * title_k
+		StreetArt.draw(self, "title_plumb", Vector2(size.x * 0.5, float(safe["top"]) + TITLE_TOP + title_h * 0.5), title_k)
+		var grass_k: float = GRASS_HEIGHT / StreetArt.size("grass_front").y
+		var step: float = StreetArt.size("grass_front").x * grass_k
+		var x: float = 0.0
+		while x < size.x:
+			StreetArt.draw_at(self, "grass_front", Vector2(x, size.y - GRASS_HEIGHT), grass_k)
+			x += step - 1.0
+		var corner_k: float = CORNER_WIDTH / StreetArt.size("front_left").x
+		var corner: Vector2 = StreetArt.size("front_left") * corner_k
+		StreetArt.draw_at(self, "front_left", Vector2(0.0, size.y - corner.y), corner_k)
+		StreetArt.draw_at(self, "front_right", Vector2(size.x - corner.x, size.y - corner.y), corner_k)
