@@ -40,6 +40,9 @@ var earned: int = 0
 ## Where the marbles start: the board's middle on screen.
 var from: Vector2 = Vector2.ZERO
 var _rays: _Piece
+var _balls: Array[_Ball] = []
+var _houses: Array[_Piece] = []
+var _wobbler: StreetWobbler
 
 func play() -> float:
 	var size: Vector2 = get_viewport_rect().size
@@ -123,6 +126,10 @@ func play() -> float:
 			add_child(p)
 	for b: _Ball in balls:
 		add_child(b)
+	_balls = balls
+	_houses = houses
+	_wobbler = StreetWobbler.new()
+	add_child(_wobbler)
 	_rays = _Piece.new("rays", 1.1)
 	_rays.position = Vector2(size.x * 0.5, stars_y)
 	_rays.scale = Vector2.ONE * u
@@ -215,6 +222,19 @@ func play() -> float:
 				add_child(burst)).set_delay(end + 0.2)
 		end += 1.6
 	return end + 0.5
+
+## A tap at `at`: the marble or the house under it wobbles. Answers whether one did.
+func poke(at: Vector2) -> bool:
+	for b: _Ball in _balls:
+		if b.modulate.a > 0.5 and at.distance_to(b.position) < b.width * 0.6:
+			_wobbler.tap(b, StreetWobbler.Voice.BOING)
+			return true
+	for h: _Piece in _houses:
+		var size: Vector2 = StreetArt.size(h.piece) * h.k
+		if Rect2(h.position - Vector2(size.x * 0.5, size.y), size).has_point(at):
+			_wobbler.tap(h, StreetWobbler.Voice.KNOCK)
+			return true
+	return false
 
 func _process(delta: float) -> void:
 	if _rays != null:

@@ -47,6 +47,8 @@ const SWING_START: float = 0.06
 const SWING_STIFFNESS: float = 90.0
 const SWING_DAMPING: float = 7.0
 const RISE_TIME: float = 0.28
+## How far the street dims behind the card: lightly, as in the concept, so the street still shows.
+const DIM: float = 0.16
 
 var _door: int = 0
 var _colours: PackedInt32Array = PackedInt32Array()
@@ -165,7 +167,7 @@ func open(door: int, board: TiltBoard, par: int, best: int) -> void:
 	Audio.play(&"tap", -4.0, 0.8)
 	var t: Tween = create_tween().set_parallel()
 	t.tween_property(_card, "position:y", top, DROP_TIME).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	t.tween_property(_dim, "color:a", 0.32, DROP_TIME)
+	t.tween_property(_dim, "color:a", DIM, DROP_TIME)
 	t.chain().tween_callback(func() -> void:
 		_angle = SWING_START
 		_spin = 0.0

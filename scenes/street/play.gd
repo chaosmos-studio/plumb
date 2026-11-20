@@ -63,6 +63,7 @@ var _retried: bool = false
 var _celebrating: bool = false
 var _hurry: bool = false
 var _finger: _Finger
+var _homecoming: StreetHomecoming
 var _started_us: int = 0
 
 func _ready() -> void:
@@ -187,7 +188,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _celebrating:
 		if event.is_pressed() and not event.is_echo() and not event is InputEventMouseMotion:
-			_hurry = true
+			# A tap on a house or a marble wobbles it, and anywhere else hurries the homecoming along.
+			var at: Vector2 = (event as InputEventScreenTouch).position if event is InputEventScreenTouch else Vector2(-1, -1)
+			if not (is_instance_valid(_homecoming) and _homecoming.poke(at)):
+				_hurry = true
 		return
 	if is_instance_valid(_memorial):
 		if event.is_pressed() and not event.is_echo() and not event is InputEventMouseMotion:
@@ -197,6 +201,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventScreenTouch:
 		var touch: InputEventScreenTouch = event
+		# A touch that lifts without swiping is a tap: the sign, the moves or the faces under it wobble.
+		if not touch.pressed and _touching and not _swiped and touch.position.distance_to(_touch_from) < SWIPE_MIN:
+			_hud.poke(touch.position)
 		_touching = touch.pressed
 		_swiped = false
 		_touch_from = touch.position
@@ -382,6 +389,7 @@ func _show_won() -> void:
 		if c != TiltBoard.STONE and not colours.has(c):
 			colours.append(c)
 	var home: StreetHomecoming = StreetHomecoming.new()
+	_homecoming = home
 	home.colours = colours
 	home.earned = earned
 	home.from = _view.get_global_transform_with_canvas() * _view.bounds().get_center()
@@ -441,7 +449,39 @@ class _Hud extends Control:
 	const WIDE_MOVES_Y: float = 300.0
 	const WIDE_FACES_GAP: float = 30.0
 
+	## A tapped sign swings on its chains this many times further than a squash rocks.
+	const SIGN_SWING: float = 4.0
+
 	var play: StreetPlay
+	## The sign, the moves and the faces: each one's tap wobble, where it was last drawn, and the point it wobbles about.
+	var _springs: Array[Jiggle] = [Jiggle.new(), Jiggle.new(), Jiggle.new()]
+	var _rects: Array[Rect2] = [Rect2(), Rect2(), Rect2()]
+
+	## A tap at `at`: the part under it wobbles, with a sound and a tick.
+	func poke(at: Vector2) -> void:
+		for i: int in range(_rects.size()):
+			if _rects[i].has_point(at):
+				if not Save.reduce_motion:
+					_springs[i].kick(1.2 if i == 0 else 1.0)
+				Audio.play([&"knock", &"pop", &"boing"][i], StreetWobbler.VOICE_DB, randf_range(0.95, 1.2))
+				Audio.buzz(StreetWobbler.BUZZ_MS, StreetWobbler.BUZZ)
+				set_process(true)
+				return
+
+	func _process(delta: float) -> void:
+		var moving: bool = false
+		for spring: Jiggle in _springs:
+			moving = spring.step(delta) or moving
+		queue_redraw()
+		if not moving:
+			set_process(false)
+
+	## Draws what follows wobbling by spring `i` about `pivot`, the sign swinging from its chains' tops.
+	func _wobble(i: int, pivot: Vector2) -> void:
+		var spring: Jiggle = _springs[i]
+		var turn: float = spring.tilt() * (SIGN_SWING if i == 0 else 1.0)
+		var squash: Vector2 = Vector2.ONE if i == 0 else spring.squash()
+		draw_set_transform_matrix(Transform2D(turn, squash, 0.0, pivot) * Transform2D(0.0, -pivot))
 
 	func _draw() -> void:
 		if play == null or play.board == null:
@@ -465,6 +505,8 @@ class _Hud extends Control:
 		var hang_b: Vector2 = Vector2(float(hang[1][0]), float(hang[1][1]))
 		var sign_k: float = hook_a.distance_to(hook_b) / (hang_a.distance_to(hang_b) * StreetArt.DESIGN_PER_PIXEL)
 		var sign_at: Vector2 = hook_a - hang_a * StreetArt.DESIGN_PER_PIXEL * sign_k
+		_rects[0] = Rect2(sign_at, StreetArt.size("sign_board") * sign_k)
+		_wobble(0, (hook_a + hook_b) * 0.5)
 		StreetArt.draw_at(self, "sign_board", sign_at, sign_k)
 		var face: Rect2 = StreetArt.meta_rect("sign_board", "face")
 		face = Rect2(sign_at + face.position * StreetArt.DESIGN_PER_PIXEL * sign_k,
@@ -478,6 +520,8 @@ class _Hud extends Control:
 			pill.position = Vector2(area.position.x * 0.5 + float(safe["left"]) * 0.5 - MOVES_RECT.size.x * 0.5,
 				top + WIDE_MOVES_Y)
 		var k: float = pill.size.y / StreetArt.size("pill_cream").y
+		_rects[1] = pill
+		_wobble(1, pill.get_center())
 		StreetArt.draw_nine(self, "pill_cream", pill, k)
 		var red: float = float(StreetArt.meta("pill_cream", "nine")[0]) * StreetArt.DESIGN_PER_PIXEL * k * 0.86
 		var moves: int = play.history.size()
@@ -504,7 +548,9 @@ class _Hud extends Control:
 		if wide:
 			# Standing up beside the board, centred on it.
 			bar = Rect2(area.end.x + WIDE_FACES_GAP, area.get_center().y - bar_length * 0.5, FACES_HEIGHT, bar_length)
-		else:
+		_rects[2] = bar
+		_wobble(2, bar.get_center())
+		if not wide:
 			StreetUI.sparks(self, bar, 40.0)
 		var bar_box: StyleBoxFlat = StyleBoxFlat.new()
 		bar_box.bg_color = BAR
@@ -528,6 +574,7 @@ class _Hud extends Control:
 			StreetArt.draw(self, eye, centre + Vector2(-0.17, -0.04) * body, k)
 			StreetArt.draw(self, eye, centre + Vector2(0.17, -0.04) * body, k)
 			StreetArt.draw(self, "mouth_grin" if happy else "mouth_smile", centre + Vector2(0.0, 0.16) * body, k)
+		draw_set_transform(Vector2.ZERO)
 
 
 ## Door 1's teacher: a finger that swipes the solver's first tilt, again and again, with one word.

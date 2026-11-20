@@ -292,7 +292,9 @@ func _build_hud() -> void:
 	_card = StreetDoorCard.new()
 	_card.layer = 4
 	_card.play.connect(_on_play)
-	_card.closed.connect(func() -> void: _busy = false)
+	_card.closed.connect(func() -> void:
+		_busy = false
+		_title.create_tween().tween_property(_title, "modulate:a", 1.0, 0.25))
 	add_child(_card)
 	_place_hud()
 
@@ -434,6 +436,8 @@ func _wobble(prop: StreetProp) -> void:
 func _open_card(door: int) -> void:
 	_busy = true
 	_velocity = 0.0
+	# The title makes way for the card's ribbon, and comes back when the card goes.
+	_title.create_tween().tween_property(_title, "modulate:a", 0.0, 0.2)
 	_card.open(door, Pack.board(door - 1), Pack.par(door - 1), Save.best_in(false, door - 1))
 
 func _on_play(door: int) -> void:
