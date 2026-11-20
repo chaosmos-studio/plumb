@@ -661,7 +661,7 @@ Version 2.0.0 is Play's version code 20000.
 
 10. **The daily in Street.** Recommendation: the kit's daily screen for 2.0, reached from the calendar button, and a Street-styled daily with its calendar after.
 11. **The wordmark and icon.** Recommendation: keep today's. The concepts' chunky PLUMB is not adopted unless Shravan asks.
-12. **The families.** His taste. M3 shows options as images first.
+12. **The families.** Decided by Shravan, 20 November: marble folk (`build/review/art/families-1.png`), round marbles like the cast in new colours, each family told apart by small props and the cast's faces. He gave creative freedom on the details. They are drawn in M3, after the M2 parity pass.
 13. **The feed's address and key.** `levels.chaosmos.studio` on R2, and the signing key in `release-keys` and the vault.
 14. **A dark look for Street.** Recommendation: light only in 2.0, with a dusk street (a tint and lit windows) after.
 15. **Lanterns and a daily post-box letter** from the study are left out of 2.0, since the brief did not ask for them.
