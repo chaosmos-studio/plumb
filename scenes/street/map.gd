@@ -50,9 +50,6 @@ const BUTTON: float = 132.0
 const BUTTON_LIFT: float = 54.0
 ## A round "back home" button shows once the current door is this far off screen, in design pixels.
 const PIN_AFTER: float = 140.0
-## A tap on a locked door wiggles it this far, in radians, for this long.
-const WIGGLE: float = 0.06
-const WIGGLE_TIME: float = 0.32
 ## The scripted scroll: the fling speed, the steady speed, in strip pixels a second, the door it starts from, the rounds
 ## it plays and the flings each way in each stretch.
 const AUTO_FLING: float = 3400.0
@@ -107,6 +104,8 @@ var _cast_hidden: bool = false
 var _preview: bool = false
 ## Bands of meadow scenery beyond the street's own, as many as the world's width needs.
 var _far_bands: int = 0
+## Props whose tap wobble is still moving.
+var _wobbling: Array[StreetProp] = []
 
 func _ready() -> void:
 	_preview = preview
@@ -325,7 +324,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if not _moved and Time.get_ticks_usec() - _press_us < int(TAP_TIME * 1000000.0):
 				_velocity = 0.0
 				_cast.look_toward(touch.position)
-				_tap(touch.position / scale.x)
+				_tap(touch.position)
 	elif event is InputEventScreenDrag and _dragging:
 		var drag: InputEventScreenDrag = event
 		_cast.look_toward(drag.position)
@@ -349,31 +348,45 @@ func _rubber(want: float) -> float:
 		return _bounds.y + (want - _bounds.y) * RUBBER
 	return want
 
-## The nearest house under the finger, front first, `at` in world units.
+## A tap on the street, `at` in screen units: whatever is under the finger, front first, wobbles. A cast member
+## laughs, and an open door's house opens its card too.
 func _tap(at: Vector2) -> void:
+	var member: int = _cast.member_at(at) if _cast.visible else -1
+	if member >= 0:
+		_cast.poke(member)
+		return
+	var world: Vector2 = at / scale.x
 	var hit: StreetProp = null
-	for n: Variant in _houses.keys():
-		var house: StreetProp = _houses[n]
-		if not house.visible or house.z_index < 0 or house.scale.x <= 0.0:
+	for prop: Node in _props.get_children():
+		var item: StreetProp = prop as StreetProp
+		if item == null or not item.visible or item.z_index < 0 or item.scale.y <= 0.0 \
+				or item.kind == StreetPath.Kind.NONE:
 			continue
-		var local: Vector2 = (at - house.position) / house.scale.x
-		if house.bounds().has_point(local) and (hit == null or house.position.y > hit.position.y):
-			hit = house
+		var local: Vector2 = (world - item.position) / item.scale.y
+		if item.bounds().has_point(local) and (hit == null or item.position.y > hit.position.y):
+			hit = item
 	if hit == null:
+		if _sky.poke(world):
+			Audio.play(&"clink", -12.0, randf_range(1.0, 1.3))
+		return
+	_wobble(hit)
+	if hit.kind != StreetProp.HOUSE:
+		Audio.play(&"pop", StreetWobbler.VOICE_DB, randf_range(0.95, 1.3))
 		return
 	if hit.state == StreetProp.Door.FAR or hit.state == StreetProp.Door.LOCKED:
-		_wiggle(hit)
+		Audio.play(&"knock", -6.0)
 		return
 	_open_card(hit.door)
 
-func _wiggle(house: StreetProp) -> void:
-	Audio.play(&"knock", -6.0)
-	Audio.buzz(12, 0.3)
-	var t: Tween = house.create_tween()
-	for k: int in range(4):
-		t.tween_property(house, "rotation", WIGGLE * (1.0 if k % 2 == 0 else -1.0) * (1.0 - k * 0.22),
-			WIGGLE_TIME / 5.0).set_trans(Tween.TRANS_SINE)
-	t.tween_property(house, "rotation", 0.0, WIGGLE_TIME / 5.0)
+## Kicks a prop's wobble and steps it until it rests, with a tick on a phone.
+func _wobble(prop: StreetProp) -> void:
+	Audio.buzz(StreetWobbler.BUZZ_MS, StreetWobbler.BUZZ)
+	if prop.kick() and not _wobbling.has(prop):
+		_wobbling.append(prop)
+	elif Save.reduce_motion:
+		var t: Tween = prop.create_tween()
+		t.tween_property(prop, "modulate:a", StreetWobbler.FADE_TO, StreetWobbler.FADE_TIME * 0.4)
+		t.tween_property(prop, "modulate:a", 1.0, StreetWobbler.FADE_TIME * 0.6)
 
 func _open_card(door: int) -> void:
 	_busy = true
@@ -422,6 +435,11 @@ func _walk_on() -> void:
 func _process(delta: float) -> void:
 	_time += delta
 	var started_us: int = Time.get_ticks_usec()
+	var i: int = _wobbling.size() - 1
+	while i >= 0:
+		if not _wobbling[i].jiggle.step(delta):
+			_wobbling.remove_at(i)
+		i -= 1
 	if _preview:
 		_scroll = _scroll_for(_current) + PREVIEW_ROLL * sin(_time * PREVIEW_SPEED)
 	elif not _dragging:
@@ -494,11 +512,13 @@ func _place() -> void:
 		_pin.visible = not _busy and not _measuring and (home_y > size.y + PIN_AFTER
 			or _proj.behind_crest(StreetPath.door_s(_current) - _scroll))
 
-## Behind the crest a prop is drawn before the ground, which hides its foot, so it rises over the horizon.
+## Behind the crest a prop is drawn before the ground, which hides its foot, so it rises over the horizon. Its depth
+## scale carries any tap's wobble, and trees and bushes lean in the breeze.
 func _stand(prop: StreetProp, s: float, x: float) -> void:
 	var at: Vector3 = _proj.place(s - _scroll, x)
 	prop.position = Vector2(at.x, at.y)
-	prop.scale = Vector2(at.z, at.z)
+	prop.scale = Vector2(at.z, at.z) * prop.wobble_scale()
+	prop.rotation = prop.wobble_turn() + (0.0 if Save.reduce_motion else prop.sway(_time))
 	prop.z_index = -1 if _proj.behind_crest(s - _scroll) else 0
 
 func _state(door: int) -> StreetProp.Door:

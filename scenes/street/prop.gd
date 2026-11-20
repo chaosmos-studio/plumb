@@ -20,6 +20,13 @@ const SCENERY_SCALE: Dictionary = {
 	StreetPath.Kind.FENCE: 0.8,
 	StreetPath.Kind.FLOWERS: 0.72,
 }
+## The breeze: how far each kind leans, in radians, and how fast it sways.
+const SWAY: Dictionary = {
+	StreetPath.Kind.TREE: 0.03,
+	StreetPath.Kind.BUSH: 0.02,
+	StreetPath.Kind.FLOWERS: 0.045,
+}
+const SWAY_SPEED: float = 1.2
 ## A solved door's plaque, as a multiple of the door's radius.
 const PLAQUE_WIDTH: float = 1.6
 ## The current door's glow breathes this much, this fast.
@@ -34,20 +41,52 @@ var door: int = 0
 var state: Door = Door.FAR
 var stars: int = 0
 var pulse: float = 0.0
+## Its tap wobble (Jiggle), made on its first tap and kept while it is recycled.
+var jiggle: Jiggle
 
 func dress_house(number: int, door_state: Door, earned: int) -> void:
 	kind = HOUSE
 	door = number
 	state = door_state
 	stars = earned
-	rotation = 0.0
+	_still()
 	queue_redraw()
 
 func dress_scenery(scenery_kind: int, variety: int) -> void:
 	kind = scenery_kind
 	door = variety
-	rotation = 0.0
+	_still()
 	queue_redraw()
+
+func _still() -> void:
+	rotation = 0.0
+	if jiggle != null:
+		jiggle.s = 0.0
+		jiggle.v = 0.0
+
+## A tap: it wobbles. Answers whether it is now moving, so the map can step it.
+func kick(strength: float = 1.0) -> bool:
+	if Save.reduce_motion:
+		return false
+	if jiggle == null:
+		jiggle = Jiggle.new()
+	jiggle.kick(strength)
+	return true
+
+## The wobble's scale and rock, to multiply into the depth scale the map sets.
+func wobble_scale() -> Vector2:
+	return jiggle.squash() if jiggle != null else Vector2.ONE
+
+func wobble_turn() -> float:
+	return jiggle.tilt() if jiggle != null else 0.0
+
+## Its idle lean in the breeze at time `t`: trees, bushes and flowers sway, each in its own time, and nothing else.
+func sway(t: float) -> float:
+	var reach: float = SWAY.get(kind, 0.0)
+	if reach == 0.0:
+		return 0.0
+	var phase: float = float(StreetPath.mix(door * 17 + kind) % 1000) / 1000.0 * TAU
+	return reach * sin(t * SWAY_SPEED * (0.85 + 0.3 * phase / TAU) + phase)
 
 ## The piece's outline on screen at near-edge size, for taps.
 func bounds() -> Rect2:

@@ -161,9 +161,14 @@ static func glyph(ci: CanvasItem, name: StringName, c: Vector2, s: float, colour
 
 ## A round, glossy button with a glyph, which squashes when pressed and springs back.
 class RoundButton extends Button:
+	## Breathing at rest: this deep, this fast. Each button starts at its own point in the breath.
+	const BREATHE: float = 0.025
+	const BREATHE_SPEED: float = 1.9
+
 	var fill: Color = StreetUI.RED
 	var symbol: StringName = &"play"
-	var _tween: Tween
+	var _spring: Jiggle = Jiggle.new()
+	var _t: float = randf() * TAU
 
 	func _init(colour: Color, glyph_name: StringName, diameter: float) -> void:
 		fill = colour
@@ -172,21 +177,29 @@ class RoundButton extends Button:
 		focus_mode = Control.FOCUS_NONE
 		custom_minimum_size = Vector2(diameter, diameter)
 		size = custom_minimum_size
-		button_down.connect(func() -> void: _squash(0.9, 0.07))
-		button_up.connect(func() -> void: _squash(1.0, 0.24))
+		button_down.connect(_press)
 		resized.connect(func() -> void: pivot_offset = size * 0.5)
 
 	func _ready() -> void:
 		pivot_offset = size * 0.5
 
-	func _squash(to: float, time: float) -> void:
-		if _tween != null:
-			_tween.kill()
-		_tween = create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		_tween.tween_property(self, "scale", Vector2(to, to), time)
-		if to < 1.0:
-			Audio.play(&"tap", -10.0)
-			Audio.buzz(10, 0.3)
+	## A press squashes it on the tap wobble's spring, with a tap and a tick, or dims it under Reduce motion.
+	func _press() -> void:
+		Audio.play(&"tap", -10.0)
+		Audio.buzz(10, 0.3)
+		if Save.reduce_motion:
+			var t: Tween = create_tween()
+			t.tween_property(self, "modulate:a", StreetWobbler.FADE_TO, StreetWobbler.FADE_TIME * 0.4)
+			t.tween_property(self, "modulate:a", 1.0, StreetWobbler.FADE_TIME * 0.6)
+			return
+		_spring.kick(1.4)
+
+	func _process(delta: float) -> void:
+		_t += delta
+		_spring.step(delta)
+		var breath: float = 0.0 if Save.reduce_motion or disabled else BREATHE * sin(_t * BREATHE_SPEED)
+		scale = _spring.squash() * (1.0 + breath)
+		rotation = _spring.tilt()
 
 	func _draw() -> void:
 		var r: float = minf(size.x, size.y) * 0.5
