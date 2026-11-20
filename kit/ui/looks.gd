@@ -34,8 +34,10 @@ static func is_free(id: String) -> bool:
 static func current() -> String:
 	return Save.look if ids().has(Save.look) and is_open(Save.look) else free_id()
 
+## A look is open when it is free, when the pack is bought, or (Plumb's Street) when its marble set was bought there
+## with coins, so a set bought in either look is the player's in both.
 static func is_open(id: String) -> bool:
-	return is_free(id) or Shop.looks_open()
+	return is_free(id) or Shop.looks_open() or Save.street_owned.has("marbles_" + id)
 
 static func name_of(id: String) -> String:
 	for look: Dictionary in GameLooks.LOOKS:
