@@ -1,9 +1,9 @@
 class_name Analytics
 extends RefCounted
 
-## Counting waits for UMP to say no consent is needed here, so the EEA, the UK and Switzerland are never
-## counted. Nothing counted serves ads: every advertising signal stays denied and addons/firebase_build
-## keeps the advertising id out of the build.
+## Counting follows the consent sheet (Consent): where no consent is needed, and in the EEA, the UK and
+## Switzerland only once the player allowed it there. Nothing counted serves ads: every advertising signal
+## stays denied and addons/firebase_build keeps the advertising id out of Firebase.
 ##
 ## The kit expects from the game:
 ## - `Save._ready` calling `Analytics.start()` after `Ads.start()`.
@@ -14,10 +14,6 @@ extends RefCounted
 
 const FIREBASE_CORE: String = "GodotxFirebaseCore"
 const FIREBASE: String = "GodotxFirebaseAnalytics"
-## Read from the AdMob plugin's singleton rather than its classes, which the web build leaves out.
-const CONSENT: String = "PoingGodotAdMobConsentInformation"
-## UMP's ConsentStatus.NOT_REQUIRED.
-const CONSENT_NOT_REQUIRED: int = 1
 
 ## Totals of solved levels that each send one event (solved_100 and so on), and solved_all once every level
 ## is solved. A custom insight in Google Analytics turns them into an email, so the studio hears when players
@@ -48,15 +44,12 @@ static func start() -> void:
 static func refresh() -> void:
 	if _firebase == null:
 		return
-	var status: int = 0
-	if Engine.has_singleton(CONSENT):
-		status = int(Engine.get_singleton(CONSENT).call("get_consent_status"))
-	_counting = counts(status, OS.is_debug_build())
+	_counting = counts(Consent.status(), OS.is_debug_build())
 	_firebase.call("set_consent", {"analytics_storage": "granted" if _counting else "denied"})
 	_firebase.call("set_analytics_collection_enabled", _counting)
 
-static func counts(consent_status: int, debug: bool) -> bool:
-	return consent_status == CONSENT_NOT_REQUIRED and not debug
+static func counts(consent: Consent.Status, debug: bool) -> bool:
+	return Consent.counts(consent) and not debug
 
 static func counting() -> bool:
 	return _counting

@@ -4,30 +4,33 @@ extends RefCounted
 ## An ad that is not loaded simply does not show, so the game never waits for one.
 ##
 ## The kit expects from the game:
-## - `GameMonetize` (res://monetize.gd) with ADMOB, APP_ID, BANNER_ID, INTERSTITIAL_ID, REWARDED_ID and
-##   SUPPORTER_ID. Debug builds use Google's test units whatever it says. With ADMOB false the studio's own
-##   house banner stands in (HouseAds), one line to switch back. With it on the house banner still fills
-##   in, under AdMob, whenever AdMob has no banner to give.
-## - The AdMob plugin in addons/admob, enabled, with the project setting admob/general/android/app_id
-##   equal to GameMonetize.APP_ID, since the plugin writes that setting into the manifest.
-## - Save._ready calling `Supporter.start()` and then `Ads.start()` once progress is restored.
-## - `EventBus.level_won` on every solve, `Save.best`, `Pack.count`, and `Save.sound_on`, since ads start
-##   muted for a player who turned sound off.
+## - `GameMonetize` (res://monetize.gd) with ADS, the LevelPlay app key and ad unit ids, and SUPPORTER_ID.
+##   Debug builds always ask for test ads (TestAds). With ADS false, or in a release build whose app key is
+##   still empty, the studio's own house banner stands in (HouseAds), one line to switch back. With it on the
+##   house banner still fills in whenever LevelPlay has no banner to give.
+## - The Intermission plugin in addons/intermission, enabled.
+## - Save._ready calling `Supporter.start()` and then `Ads.start()` once progress is restored. Nothing here, the
+##   ad SDK included, starts for a Supporter.
+## - `EventBus.level_won` on every solve, `Save.best` and `Pack.count`.
 ## - The play screen calling `RatePrompt.or_ad` on its Next level path and nowhere else, and routing its
 ##   hint through HintGate.
 
-## Any phone in portrait gets about the same adaptive banner, so the stand-in assumes one width.
+## The Android plugin's singleton, named here rather than through its class, which the web build leaves out.
+const PLUGIN: String = "IntermissionAndroid"
+## The banner LevelPlay shows, 320 by 50 dp, which every network it mediates can fill.
+const BANNER_DP: float = 50.0
+## A portrait phone's usual width, for a screen that cannot be measured.
 const PREVIEW_WIDTH_DP: float = 360.0
 ## Clear space between the banner and the system navigation (the gesture bar or the buttons), in dp, so a
 ## swipe home or back never starts on the ad: with Android's 24 dp gesture bar that keeps the ad 48 dp, a
-## full touch target, from the screen's edge. AdMob counts a tap made while leaving the app as invalid.
+## full touch target, from the screen's edge. Ad networks count a tap made while leaving the app as invalid.
 const EDGE_DP: float = 24.0
 ## The least the banner's bottom ever sits above the screen's edge, in dp. A game runs full screen with the
 ## navigation hidden, where the inset is 0 but Android still keeps a 32 dp strip at the bottom for the swipe home
 ## (its mandatory system gestures, measured on a Nothing phone): 24 dp alone left the ad's lowest 8 dp in it.
 const FLOOR_DP: float = 48.0
 
-## Desktop captures only: shows a stand-in banner at the real adaptive size.
+## Desktop captures only: shows a stand-in banner at the real banner's size.
 static var preview: bool = false
 ## Lets a robot skip the pacing gaps without waiting.
 static var skew: float = 0.0
@@ -37,7 +40,7 @@ static var _since: int = 0
 static var _last_fullscreen: float = -1.0
 static var _busy: bool = false
 static var _covers: int = 0
-## A banner drawn by the game (the house banner, the capture's stand-in) sits above sheets, as AdMob's native
+## A banner drawn by the game (the house banner, the capture's stand-in) sits above sheets, as the plugin's native
 ## view does, so a result sheet's strip shows it rather than covering it. Every other sheet hides it.
 const BANNER_LAYER: int = Sheet.LAYER + 1
 ## The banner's own height in design pixels while one is loaded, else 0.
@@ -68,17 +71,21 @@ static func start() -> void:
 		return
 	if not OS.has_feature("android"):
 		return
-	if not GameMonetize.ADMOB:
+	if not network_ads(GameMonetize.ADS, Engine.has_singleton(PLUGIN), GameMonetize.LEVELPLAY_APP_KEY,
+			OS.is_debug_build()):
 		_attach(HouseAds.new(), true)
 		return
-	if not Engine.has_singleton("PoingGodotAdMob"):
-		return
-	var admob: GDScript = load("res://kit/monetize/android/admob.gd")
-	_attach(admob.new(), true)
+	var levelplay: GDScript = load("res://kit/monetize/android/levelplay.gd")
+	_attach(levelplay.new(), true)
 
-## How a reward is earned, for the buttons that offer one: a video when AdMob has one ready, and otherwise it is
-## free, while the house ads stand in and whenever AdMob has none (offline, no fill, an ad blocker). Nothing earns
-## then anyway, so the player gets the good feeling instead.
+## LevelPlay's ads rather than the house banner alone: switched on, the plugin in the build, and an app key, which
+## a debug build can do without since it only ever asks for test ads.
+static func network_ads(on: bool, plugin: bool, app_key: String, debug: bool) -> bool:
+	return on and plugin and (app_key != "" or debug)
+
+## How a reward is earned, for the buttons that offer one: a video when LevelPlay has one ready, and otherwise it
+## is free, while the house ads stand in and whenever LevelPlay has none (offline, no fill, an ad blocker).
+## Nothing earns then anyway, so the player gets the good feeling instead.
 static func with_one() -> String:
 	return "with a video" if video_ready() else "free"
 
@@ -167,7 +174,7 @@ static func clearance() -> float:
 	var inset_dp: float = float(UI.safe_margins(root)["bottom"]) / per_dp
 	return gap_dp(inset_dp) * per_dp
 
-## The gap in dp above an inset `inset_dp` tall, which AdMob's own banner keeps too.
+## The gap in dp above an inset `inset_dp` tall, which LevelPlay's banner keeps too.
 static func gap_dp(inset_dp: float) -> float:
 	return maxf(EDGE_DP, FLOOR_DP - inset_dp)
 
@@ -176,7 +183,7 @@ static func gap_dp(inset_dp: float) -> float:
 static func banner_bottom(host: Node) -> float:
 	return float(UI.safe_margins(host.get_viewport())["bottom"]) + clearance()
 
-## The height a phone's adaptive banner takes, in design pixels.
+## The height the banner takes, in design pixels.
 static func banner_height(host: Node) -> float:
 	# A node not yet in the tree has no viewport: the root's is the same screen. A release build does not stop
 	# at a call on null as a debug build does, it crashes (puzzle-kit.md, Release builds crash where debug ones
@@ -186,8 +193,7 @@ static func banner_height(host: Node) -> float:
 	var window: Vector2 = Vector2(DisplayServer.window_get_size())
 	var dpi: float = float(DisplayServer.screen_get_dpi())
 	var width_dp: float = window.x * 160.0 / dpi if dpi > 0.0 and window.x > 0.0 else PREVIEW_WIDTH_DP
-	var per_dp: float = view.x / width_dp
-	return adaptive_height_dp(width_dp, view.y / per_dp) * per_dp
+	return BANNER_DP * view.x / width_dp
 
 ## The banner's room while it is on screen, else 0: what a Sheet that keeps the banner leaves clear below it.
 static func banner_room() -> float:
@@ -198,12 +204,6 @@ static func banner_room() -> float:
 static func cover(on: bool) -> void:
 	_covers = maxi(_covers + (1 if on else -1), 0)
 	refresh()
-
-## Google's anchored adaptive banner height: in proportion to a 320 by 50 banner, never under 50 dp, and
-## never over 90 dp or 15% of the screen.
-static func adaptive_height_dp(width: float, height: float) -> float:
-	var most: float = maxf(50.0, minf(90.0, roundf(height * 0.15)))
-	return clampf(roundf(width * 50.0 / 320.0), 50.0, most)
 
 static func maybe_interstitial(on_done: Callable, after_guide: bool = false) -> void:
 	if after_guide or _busy or not live() or not interstitial_due() \
@@ -224,7 +224,7 @@ static func interstitial_due() -> bool:
 	return AdPacing.interstitial_due(solved(), _since, now(), _last_fullscreen, Supporter.active())
 
 ## Plays a video and gives the reward once it is watched through. With no video to play (house ads standing in,
-## offline, no fill, consent refused) the reward is simply given. A video closed early gives nothing.
+## offline, no fill) the reward is simply given. A video closed early gives nothing.
 static func rewarded(on_reward: Callable) -> void:
 	if _busy:
 		return
@@ -243,8 +243,7 @@ static func rewarded(on_reward: Callable) -> void:
 	if (bool(result[2]) or not shown) and on_reward.is_valid():
 		on_reward.call()
 
-## UMP says whether the player must be able to change their consent. Settings shows Privacy choices only
-## then.
+## Where the consent sheet is asked (Consent), Settings shows Privacy choices to change the answer.
 static func privacy_options_required() -> bool:
 	return live() and _backend.privacy_required()
 
@@ -309,7 +308,7 @@ static func _tell(owner: Dictionary, wanted: bool) -> void:
 	if on_height.is_valid():
 		on_height.call(room)
 
-## Desktop captures: a stand-in at the real adaptive size, drawn inside the owning screen so a capture's own
+## Desktop captures: a stand-in at the real banner's size, drawn inside the owning screen so a capture's own
 ## viewport shows it.
 static func _place_stand_in(wanted: bool) -> void:
 	var owner: Dictionary = _owner()
@@ -325,13 +324,18 @@ static func _place_stand_in(wanted: bool) -> void:
 			_stand_in.queue_free()
 		var view: Vector2 = host.get_viewport().get_visible_rect().size
 		var per_dp: float = view.x / PREVIEW_WIDTH_DP
-		_height = adaptive_height_dp(PREVIEW_WIDTH_DP, view.y / per_dp) * per_dp
+		_height = BANNER_DP * per_dp
 		_stand_in = CanvasLayer.new()
 		_stand_in.layer = BANNER_LAYER
 		host.add_child(_stand_in)
-		# With AdMob off the stand-in is the house banner itself, as a phone would show it.
-		var box: Control = _StandIn.new() if GameMonetize.ADMOB or Studio.others().is_empty() else HouseBanner.new()
+		# With ads off the stand-in is the house banner itself, as a phone would show it.
+		var box: Control = _StandIn.new() if GameMonetize.ADS or Studio.others().is_empty() else HouseBanner.new()
 		box.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+		if box is _StandIn:
+			# LevelPlay's banner is 320 dp wide, centred.
+			box.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+			box.offset_left = -160.0 * per_dp
+			box.offset_right = 160.0 * per_dp
 		box.offset_bottom = -banner_bottom(host)
 		box.offset_top = box.offset_bottom - _height
 		_stand_in.add_child(box)

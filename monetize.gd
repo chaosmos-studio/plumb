@@ -1,17 +1,23 @@
 class_name GameMonetize
 extends RefCounted
 
-## Ids ship inside the app, so none of them is a secret. Debug builds load Google's test units instead.
-## Keep the project setting admob/general/android/app_id equal to APP_ID: the AdMob plugin writes that
-## setting into the manifest, and a test checks the two agree.
+## Ids ship inside the app, so none of them is a secret. Debug builds and testers' phones ask for test ads
+## whatever they say (TestAds).
 
-## AdMob's ads, with the studio's own house banner filling the strip whenever AdMob has no banner to give, as
-## before the account is approved, and every reward free while it has no video. With false, the house banner alone.
-const ADMOB: bool = true
-const APP_ID: String = "ca-app-pub-3135321730568420~4276024954"
-const BANNER_ID: String = "ca-app-pub-3135321730568420/4401816337"
-const INTERSTITIAL_ID: String = "ca-app-pub-3135321730568420/1199928764"
-const REWARDED_ID: String = "ca-app-pub-3135321730568420/9789874380"
+## Unity LevelPlay's ads, with the studio's own house banner filling the strip whenever LevelPlay has no banner to
+## give, and every reward free while it has no video. With false, the house banner alone.
+const ADS: bool = true
+## Plumb's app and ad units in LevelPlay (platform.ironsrc.com, Shravan's account).
+const LEVELPLAY_APP_KEY: String = "29be3810d"
+const LEVELPLAY_BANNER_ID: String = "tcj6tlx7qhb23bln"
+const LEVELPLAY_INTERSTITIAL_ID: String = "byvlmfgnvbcz3uyz"
+## Its reward in the dashboard is "Hints", 3, as AdPacing.VIDEO_HINTS gives.
+const LEVELPLAY_REWARDED_ID: String = "5s41z91uj1rfif7x"
+## Unity Ads, the network LevelPlay calls, from the Unity dashboard. They are entered in LevelPlay when it
+## connects Unity Ads, never passed to the SDK: its bidding placements are filled only through LevelPlay.
+const UNITY_GAME_ID: String = "800447033"
+const UNITY_ORGANIZATION_CORE_ID: String = "13470005808211"
+const UNITY_PLACEMENTS: PackedStringArray = ["BP_Banner_Android", "BP_Interstitial_Android", "BP_Rewarded_Android"]
 ## Each must match a one-time product in Play Console (Monetize with Play, Products, One-time products).
 ## The Complete pack holds the other four.
 const SUPPORTER_ID: String = "supporter"

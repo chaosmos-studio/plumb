@@ -15,8 +15,12 @@ Section numbers below point there.
 | Listing text | `assets/store/listing.md` |
 | Graphics | `assets/store/` |
 | Latest build | [v1.4.1](https://github.com/chaosmos-studio/plumb/releases/tag/v1.4.1), on production |
-| AdMob app id | `ca-app-pub-3135321730568420~4276024954` |
-| AdMob units | banner `.../4401816337`, interstitial `.../1199928764`, rewarded `.../9789874380` (all in `monetize.gd`) |
+| LevelPlay app key | `29be3810d` (in `monetize.gd`) |
+| LevelPlay ad units | banner `tcj6tlx7qhb23bln` (refresh 25 s), interstitial `byvlmfgnvbcz3uyz`, rewarded `5s41z91uj1rfif7x` (reward "Hints", 3) |
+| Unity Ads | Game ID `800447033`, bidding placements `BP_Banner_Android`, `BP_Interstitial_Android`, `BP_Rewarded_Android`, filled only through LevelPlay |
+| Test devices | The A142 (advertising ID `0d07dc55-fc6a-4647-b4af-35d88134d4f0`) in LevelPlay and Unity Ads, 21 Nov 2026 |
+| Test ads on a phone | Debug builds and the tester switch (seven quick taps on the version line in About, from the next launch) ask LevelPlay's demo app, never Plumb's. A debug build on a registered test device can ask Plumb's own app for its test ads: `adb shell run-as com.shravangoswami.plumb.dev sh -c 'printf "[testing]\nown_app=true\n" > files/ads.cfg'`, and `rm files/ads.cfg` to undo. Never on any other phone. |
+| Consent sheet on any phone | Debug builds only: `adb shell run-as com.shravangoswami.plumb.dev sh -c 'printf "[debug]\nforce=true\n" > files/consent.cfg'`, then relaunch. |
 | Firebase | Android app in project `chaosmos-studio`, in `google-services.json` |
 | Upload key | `studio/release-keys/plumb-release.jks`, alias `plumb` (password in `plumb-key.properties`) |
 | Upload key SHA-1 | `95:E9:15:AA:36:6D:9E:D9:66:B2:D0:3C:5A:EA:02:EB:F2:3F:01:6F` |
@@ -37,7 +41,10 @@ Section numbers below point there.
 - [x] Applied for production (2.9), approved 2026-10-18
 - [x] Live on Play (2.10), 2026-10-19 with 1.3.1: https://play.google.com/store/apps/details?id=com.shravangoswami.plumb
 - [ ] Firebase key restricted with both SHA-1s (1.8)
-- [ ] AdMob linked to the listing and Ready (3.1)
+- [x] LevelPlay app and ad units, Unity Ads project and bidding placements, the A142 as a test device (21 Nov 2026)
+- [ ] Unity Ads connected as a network in LevelPlay, and turned on for each ad unit
+- [ ] Unity's lines in `chaosmos.studio/app-ads.txt`, and the Play listing linked in the Unity project
+- [ ] Privacy page, Data safety and the ads declarations updated for Unity before the first release with it
 
 ## Store listing (2.2)
 

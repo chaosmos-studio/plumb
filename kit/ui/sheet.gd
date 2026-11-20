@@ -167,7 +167,7 @@ func _fit_width() -> void:
 	_panel.offset_left = spare
 	_panel.offset_right = -spare
 
-## The banner can arrive, change height or go while the sheet is open (a house banner gives way to AdMob's).
+## The banner can arrive, change height or go while the sheet is open (a house banner gives way to LevelPlay's).
 func _fit_strip() -> void:
 	var strip: float = Ads.banner_room()
 	if is_equal_approx(strip, _strip):
