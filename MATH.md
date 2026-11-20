@@ -1203,3 +1203,62 @@ its first tilt, so every hint keeps the player on a winnable path.
   appears.
 - Pass `HINT_SEARCH / 10` to `way_back`: on late levels some winnable boards give up the search, so the walk goes
   further back than it needs to.
+
+---
+
+## 25. The rolling street
+
+Plumb 2.0's Home is a street that rolls toward the player like a small planet (`REVAMP_PLAN.md`). It is drawn in 2D
+with one small projection, `StreetProjection`, rather than a 3D camera, so the houses, the cast and their faces stay
+ordinary 2D drawings, always upright.
+
+**The street is a strip.** Every point on it has `s`, how far along the street it is, and `x`, how far across from the
+middle, both in design pixels. Doors stand every 230 pixels of `s`, on alternate sides (`StreetPath`). Scrolling only
+changes one number, `c`, the `s` at the bottom of the screen.
+
+**The strip lies over a drum.** Wrap the strip over a drum of radius R, seen from the side. A point `s - c` along it sits
+at the angle θ = (s - c) / R over the drum, and it shows at
+
+    y = near_y - R sin θ        depth z = R (1 - cos θ)        scale k = F / (F + z)        x_screen = mid_x + x k
+
+At θ = 0, the bottom edge, a point is full size. As θ grows the point climbs the screen ever more slowly, since sin θ
+flattens, and shrinks, since its depth grows. At θ = π/2 it reaches the horizon, R pixels above the bottom edge, and
+there it stops: the drum's surface turns away from the viewer. That slowing climb is the whole look. Near things
+spread out, far things crowd toward a horizon that never moves, and scrolling turns the drum so the next doors rise
+over it. Each constant has one visible effect: R is how tight the little world is, and F (the focal length) how
+quickly things shrink with depth. A last touch, a bow, sinks points toward the sides by `bow (x k)²`, so the street
+reads as a planet and not a log.
+
+**Flat when R is huge.** For a very large R, sin θ is θ and cos θ is 1, so y = near_y - (s - c) and k = 1: a plain
+scroll. Reduce motion uses exactly this, with no second drawing path.
+
+**The ground never moves.** The ground is a mesh of rows evenly spaced down the screen, each placed once by the
+projection, and its corners hold their strip coordinates (`s - c` and `x`). Scrolling changes no vertex. The ground
+shader adds `c` back and paints the grass and the road at `s`, the road's centre being the same sum of two sines the
+doors stand beside (`StreetPath.road_x`, its constants passed in as uniforms). The road and the doors cannot drift
+apart, since both read one function.
+
+**Rising over the crest.** Things a little past the horizon (θ up to π/2 + 0.4) are placed too, and drawn before the
+ground. Their foot is then below the horizon line, hidden by the ground drawn over it, and only the part above the
+crest shows. As the drum turns, a house rises over the hill top first and then walks forward. Everything nearer is
+drawn after the ground and sorted by screen height, which here is the same as sorting by depth.
+
+**The street under a finger.** To make the street follow a finger exactly, the map remembers the strip point under
+the finger as it goes down, `s0 = c + R asin((near_y - y) / R)`, and while it drags keeps that point under it:
+`c = s0 - R asin((near_y - y) / R)`. Near the horizon a pixel of finger movement turns the drum a long way, so the
+grab is held at θ = 1.25.
+
+**Measured on the A142** (Nothing Phone (2a), Mali-G610, 60 Hz, M1 on 20 November 2026, stand-in art drawn from one
+baked atlas): over three rounds of flings, a steady roll and rests, SurfaceFlinger presented the street at 60 frames a
+second with no missed refresh in 4,084 frames, in 8 to 18 draw calls. With the four cast marbles drawn by `Marble`,
+which draws its shapes one by one, draw calls rose to 32 to 179 and 13 of 4,308 frames missed one refresh. The
+stand-ins first drew in code, shape by shape, at 541 draw calls a screen. Baked into one texture they batch, which
+is why the painted art comes as cut-outs packed into an atlas.
+
+### Things to try
+
+- `RADIUS` in `scenes/street/map.gd` to 700: a tight little planet with a low horizon. To 100000: the flat scroll of
+  Reduce motion.
+- `FOCAL` to 400: things shrink much faster with depth, as through a wide lens.
+- `BOW` to 0: the street becomes a log rolling toward you instead of a planet.
+- `StreetPath.SWAY_A` to 0: the road runs almost straight up the middle.
