@@ -72,6 +72,8 @@ var gifts: PackedInt32Array = PackedInt32Array()
 var knockers: PackedInt32Array = PackedInt32Array()
 var street_owned: PackedStringArray = PackedStringArray()
 var worn: PackedInt32Array = PackedInt32Array([0, 0, 0, 0])
+## The day (Daily.today) whose daily puzzle Street last paid its coins for.
+var daily_paid: int = -1
 
 signal coins_changed(total: int)
 signal street_changed
@@ -319,6 +321,14 @@ func own_street(item: String) -> void:
 		store()
 		street_changed.emit()
 
+## Pays the day's puzzle's coins once, when it is solved, and answers whether it paid.
+func pay_daily(day: int, solved: bool) -> bool:
+	if not solved or daily_paid == day:
+		return false
+	daily_paid = day
+	add_coins(StreetRewards.DAILY)
+	return true
+
 ## Puts hat `hat` (1 and up, or 0 for none) on cast member `member`.
 func wear(member: int, hat: int) -> void:
 	worn[member] = hat
@@ -400,6 +410,7 @@ func restore() -> void:
 	street_owned = PackedStringArray(file.get_value("street", "owned", PackedStringArray()))
 	var hats: PackedInt32Array = PackedInt32Array(file.get_value("street", "worn", PackedInt32Array([0, 0, 0, 0])))
 	worn = hats if hats.size() == 4 else PackedInt32Array([0, 0, 0, 0])
+	daily_paid = int(file.get_value("street", "daily_paid", -1))
 
 func store() -> void:
 	var file: ConfigFile = ConfigFile.new()
@@ -440,4 +451,5 @@ func store() -> void:
 	file.set_value("street", "knockers", knockers)
 	file.set_value("street", "owned", street_owned)
 	file.set_value("street", "worn", worn)
+	file.set_value("street", "daily_paid", daily_paid)
 	file.save(path)

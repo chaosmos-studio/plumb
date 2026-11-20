@@ -193,6 +193,9 @@ func _ready() -> void:
 	Intro.play(self)
 	if not _measuring:
 		Ads.show_banner(self, _on_banner)
+		# The day's puzzle, solved, pays its coins on the way back here, counted up on the pill.
+		if Daily.is_open() and Save.pay_daily(Daily.today(), Daily.solved(Daily.today())):
+			Audio.play(&"clink", -6.0)
 	if _measuring:
 		_auto_scroll()
 	elif walked_from > 0 and walked_from + 1 == _current:

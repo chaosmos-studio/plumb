@@ -778,7 +778,7 @@ func _test_street_rewards() -> void:
 func _test_street_purse() -> void:
 	var save: Node = root.get_node("Save")
 	var real: String = save.get("path")
-	var fields: PackedStringArray = ["coins", "boosters", "gifts", "knockers", "street_owned", "worn"]
+	var fields: PackedStringArray = ["coins", "boosters", "gifts", "knockers", "street_owned", "worn", "daily_paid"]
 	var kept: Array[Variant] = []
 	for field: String in fields:
 		kept.append(save.get(field))
@@ -794,6 +794,12 @@ func _test_street_purse() -> void:
 	var first: bool = save.call("claim_gift", 5)
 	var again: bool = save.call("claim_gift", 5)
 	_check("a parcel opens once", first and not again)
+	var unsolved: bool = save.call("pay_daily", 400, false)
+	var paid: bool = save.call("pay_daily", 400, true)
+	var again_paid: bool = save.call("pay_daily", 400, true)
+	_check("the day's puzzle pays its coins once, when solved", not unsolved and paid and not again_paid
+		and int(save.get("coins")) == 25 + StreetRewards.DAILY)
+	save.set("coins", 25)
 	save.call("set_knocker", 7)
 	save.call("own_street", "hat_2")
 	save.call("wear", 1, 2)
