@@ -33,6 +33,20 @@ func _ready() -> void:
 	layer.add_child(_ring)
 	await _wait(START)
 	print("WOBBLE_DEMO_START")
+	# `-- scroll`: drag the street up several doors, so the houses travel down and out through the screen's foot,
+	# then back again.
+	if OS.get_cmdline_user_args().has("scroll"):
+		var size: Vector2 = get_viewport().get_visible_rect().size
+		for k: int in range(4):
+			await _drag(Vector2(size.x * 0.5, size.y * 0.3), Vector2(size.x * 0.5, size.y * 0.75), 1.1)
+			await _wait(0.5)
+		for k: int in range(2):
+			await _drag(Vector2(size.x * 0.5, size.y * 0.75), Vector2(size.x * 0.5, size.y * 0.25), 0.9)
+			await _wait(0.5)
+		await _wait(0.8)
+		print("WOBBLE_DEMO_DONE")
+		get_tree().quit()
+		return
 	for target: Callable in [_title, _sun, _tree, _house, _bush, _cast, _cast_other, _title, _door, _card, _card]:
 		var at: Vector2 = target.call()
 		print("WOBBLE_DEMO_CLICK ", target.get_method(), " ", at, " member ", (_map.get("_cast") as StreetCast).member_at(at),
@@ -44,6 +58,37 @@ func _ready() -> void:
 	await _wait(0.6)
 	print("WOBBLE_DEMO_DONE")
 	get_tree().quit()
+
+## A mouse drag from `a` to `b` over `seconds`, in the game's design space, its ring following the pointer.
+func _drag(a: Vector2, b: Vector2, seconds: float) -> void:
+	var to_window: Transform2D = get_viewport().get_final_transform()
+	var press: InputEventMouseButton = InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = to_window * a
+	press.global_position = press.position
+	Input.parse_input_event(press)
+	var t: float = 0.0
+	var last: Vector2 = a
+	while t < seconds:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+		var u: float = clampf(t / seconds, 0.0, 1.0)
+		var at: Vector2 = a.lerp(b, u * u * (3.0 - 2.0 * u))
+		_ring.show_at(at)
+		var move: InputEventMouseMotion = InputEventMouseMotion.new()
+		move.button_mask = MOUSE_BUTTON_MASK_LEFT
+		move.position = to_window * at
+		move.global_position = move.position
+		move.relative = to_window.basis_xform(at - last)
+		Input.parse_input_event(move)
+		last = at
+	var lift: InputEventMouseButton = InputEventMouseButton.new()
+	lift.button_index = MOUSE_BUTTON_LEFT
+	lift.pressed = false
+	lift.position = to_window * b
+	lift.global_position = lift.position
+	Input.parse_input_event(lift)
 
 ## Waits by counting frames, so the film's timing holds in the movie writer's fixed frame rate too.
 func _wait(seconds: float) -> void:
