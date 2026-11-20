@@ -45,12 +45,15 @@ static var STONE: Color = LIGHT["stone"]
 ## A bouncy block's lime, a hue no marble set, wall or tile wears, so it reads as jelly before anything else.
 static var JELLY: Color = LIGHT["jelly"]
 static var MARBLES: Array[Color] = Array(LIGHT["marbles"], TYPE_COLOR, &"", null)
+## The deeper edge along the tray's foot that gives Street's board its depth. Clear in Classic, which draws none.
+static var TRAY_RIM: Color = Color.TRANSPARENT
 
 static func marble(colour: int) -> Color:
 	return STONE if colour == TiltBoard.STONE else MARBLES[colour % MARBLES.size()]
 
 static func use(dark: bool) -> void:
 	var p: Dictionary = DARK if dark else LIGHT
+	TRAY_RIM = Color.TRANSPARENT
 	TRAY = p["tray"]
 	TRAY_SHADOW = p["tray_shadow"]
 	TILE = p["tile"]
@@ -62,6 +65,38 @@ static func use(dark: bool) -> void:
 	STONE = p["stone"]
 	JELLY = p["jelly"]
 	MARBLES.assign(GameLooks.marbles(dark, p["marbles"]))
+
+## Street's board, from the round 2 concept (build/review/revamp2/3-play.png): a sky-blue tray, pale blue tiles and
+## slate walls, with the game's own marble colours, so a hole's ring always matches its marble.
+const STREET: Dictionary = {
+	"tray": Color("6fcdf2"),
+	"tray_rim": Color("2f9fd3"),
+	"tray_shadow": Color(0.12, 0.33, 0.45, 0.28),
+	"tile": Color("d6f2fd"),
+	"wall": Color("3f5359"),
+	"wall_lip": Color("2c3b40"),
+	"hole": Color("2b3140"),
+	"pit": Color("16171d"),
+	"danger": Color("ff6b6b"),
+	"stone": Color("a39b8f"),
+	"jelly": Color("5aa62a"),
+	"marbles": [Color("ff6b6b"), Color("22b5a6"), Color("ffb020"), Color("7b6cf6")],
+}
+
+static func use_street() -> void:
+	var p: Dictionary = STREET
+	TRAY_RIM = p["tray_rim"]
+	TRAY = p["tray"]
+	TRAY_SHADOW = p["tray_shadow"]
+	TILE = p["tile"]
+	WALL = p["wall"]
+	WALL_LIP = p["wall_lip"]
+	HOLE = p["hole"]
+	PIT = p["pit"]
+	DANGER = p["danger"]
+	STONE = p["stone"]
+	JELLY = p["jelly"]
+	MARBLES.assign(p["marbles"])
 
 ## Walls are lighter than the floor by night and darker by day, as in the game's own palettes.
 static func use_theme(t: Dictionary, dark: bool) -> void:

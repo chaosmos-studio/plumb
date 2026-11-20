@@ -221,6 +221,9 @@ func _draw() -> void:
 	tray.shadow_size = int(cell * 0.28)
 	tray.shadow_offset = Vector2(0, cell * 0.12)
 	tray.anti_aliasing = true
+	if Palette.TRAY_RIM.a > 0.0:
+		tray.border_color = Palette.TRAY_RIM
+		tray.border_width_bottom = int(cell * 0.16)
 	draw_style_box(tray, bounds())
 	var gap: float = cell * TILE_GAP
 	var tile: StyleBoxFlat = StyleBoxFlat.new()
