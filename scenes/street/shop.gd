@@ -53,6 +53,7 @@ var _root: Control
 var _backdrop: TextureRect
 var _frame: _Back
 var _front: _Front
+var _items: _Items
 var _coins: StreetCoinPill
 var _close: StreetUI.RoundButton
 var _vendor: StreetCast
@@ -83,6 +84,9 @@ func _ready() -> void:
 	_front = _Front.new()
 	_front.shop = self
 	_frame.add_child(_front)
+	_items = _Items.new()
+	_items.shop = self
+	_frame.add_child(_items)
 	for i: int in range(SETS.size()):
 		var colours: Array = GameLooks.swatch(SETS[i])
 		var sample: Node2D = GameLooks.sample(SETS[i], colours[i % colours.size()], MARBLE * 0.5)
@@ -250,11 +254,11 @@ func _pick(tray: int, i: int) -> void:
 			Save.set_look(id)
 			GameLooks.use(id)
 			_wobbler.tap(_samples[i], StreetWobbler.Voice.CLINK, 1.4)
-			_front.puff(item_at(tray, i))
+			_items.puff(item_at(tray, i))
 		Tray.HELPERS:
 			# A helper is sold once its parcel has brought it; before that its slot only wobbles.
 			if not helper_open(i):
-				_front.bump(i)
+				_items.bump(i)
 				Audio.play(&"knock", -6.0)
 				return
 			if not _pay(tray):
@@ -262,7 +266,7 @@ func _pick(tray: int, i: int) -> void:
 			Save.add_booster(StreetRewards.BOOSTER_IDS[i], 1)
 			Analytics.event(&"shop_buy", {"item": StreetRewards.BOOSTER_IDS[i], "price": price_of(tray),
 				"currency": "coins"})
-			_front.bump(i)
+			_items.bump(i)
 			Audio.play(&"pop", -4.0, 1.3)
 
 ## The helpers' video: one of each open helper, given anyway when no video is ready (Ads.rewarded, decision 7).
@@ -282,7 +286,7 @@ func _video_reward() -> void:
 	for b: int in range(3):
 		if helper_open(b):
 			Save.add_booster(StreetRewards.BOOSTER_IDS[b], 1)
-			_front.bump(b)
+			_items.bump(b)
 	Audio.play(&"star", -6.0, 1.2)
 
 ## Spends a tray's price, or wiggles its pill and answers false when the coins fall short.
@@ -355,45 +359,34 @@ class _Back extends Node2D:
 			1.0 / StreetArt.DESIGN_PER_PIXEL)
 
 
-## The counter, the trays and what is on them, the price pills and the Supporter row, in front of the cast member.
+## The counter, the trays, the price pills and the Supporter row, in front of the cast member. They hold still, so
+## this layer is drawn again only while the stall enters or a pill wiggles; what lives on the trays is drawn by
+## _Items above it, every frame (the phone showed the shop missing frames when everything redrew each one).
 class _Front extends Node2D:
 	var shop: StreetShop
 	var _pills: Array[Jiggle] = [Jiggle.new(), Jiggle.new(), Jiggle.new()]
-	var _slots: Array[Jiggle] = [Jiggle.new(), Jiggle.new(), Jiggle.new()]
 	var _video: Jiggle = Jiggle.new()
+	var _t: float = 0.0
 
 	func wiggle_video() -> void:
 		if not Save.reduce_motion:
 			_video.kick(1.2)
-	var _puffs: Array[Vector3] = []
-	var _t: float = 0.0
+		queue_redraw()
 
 	func wiggle(tray: int) -> void:
 		if not Save.reduce_motion:
 			_pills[tray].kick(1.4)
-
-	func bump(slot: int) -> void:
-		if not Save.reduce_motion:
-			_slots[slot].kick(1.2)
-
-	## A soft puff of sparks where a marble set was chosen.
-	func puff(at: Vector2) -> void:
-		_puffs.append(Vector3(at.x, at.y, 0.0))
+		queue_redraw()
 
 	func _process(delta: float) -> void:
 		_t += delta
+		var moving: bool = false
 		for j: Jiggle in _pills:
-			j.step(delta)
-		for j: Jiggle in _slots:
-			j.step(delta)
-		_video.step(delta)
-		var i: int = _puffs.size() - 1
-		while i >= 0:
-			_puffs[i].z += delta
-			if _puffs[i].z > 0.5:
-				_puffs.remove_at(i)
-			i -= 1
-		queue_redraw()
+			moving = j.step(delta) or moving
+		moving = _video.step(delta) or moving
+		var back: _Back = get_parent()
+		if moving or back.enter < 1.0:
+			queue_redraw()
 
 	## Draws `piece` about its base point at `at`, `width` painting pixels wide.
 	func _fit(piece: String, at: Vector2, width: float, tint: Color = Color.WHITE) -> void:
@@ -415,9 +408,6 @@ class _Front extends Node2D:
 			var tint: Color = Color(1, 1, 1, a)
 			StreetArt.draw_nine(self, "shop_tray", Rect2(Vector2(StreetShop.TRAY_X, StreetShop.TRAYS_Y[tray] + lift),
 				StreetShop.TRAY_SIZE), 1.0 / StreetArt.DESIGN_PER_PIXEL, tint)
-			for i: int in range(StreetShop.count_of(tray)):
-				var bob: float = 0.0 if still else sin(_t * StreetShop.BOB_SPEED + float(i) * 1.3) * StreetShop.BOB
-				_item(tray, i, StreetShop.item_at(tray, i) + Vector2(0.0, lift + bob), tint)
 			# The tray's one quiet price pill: a coin and its price. Its wiggle squashes its box, since a nine-patch
 			# sets its own transform.
 			var pill: Rect2 = StreetShop.pill_rect(tray)
@@ -454,9 +444,64 @@ class _Front extends Node2D:
 				StreetUI.INK)
 		else:
 			_fit("icon_play", Vector2(row.get_center().x + 40.0, row.get_center().y), 64.0, StreetUI.INK)
+
+	## A green tick badge: worn, chosen or had.
+	func _tick(at: Vector2, a: float) -> void:
+		StreetUI.gloss_circle(self, at, 26.0, Color(0.3, 0.69, 0.23, a))
+		_fit("icon_tick", at, 34.0, Color(1, 1, 1, a))
+
+	## A small padlock: not the player's yet.
+	func _lock(at: Vector2, a: float) -> void:
+		StreetUI.gloss_circle(self, at, 22.0, Color(0.55, 0.56, 0.66, a))
+		_fit("icon_lock", at, 28.0, Color(1, 1, 1, a))
+
+	## A soft red heart for the Supporter row.
+	func _heart(c: Vector2, r: float) -> void:
+		var red: Color = StreetUI.RED
+		draw_circle(c + Vector2(-r * 0.5, -r * 0.2), r * 0.62, red, true, -1.0, true)
+		draw_circle(c + Vector2(r * 0.5, -r * 0.2), r * 0.62, red, true, -1.0, true)
+		draw_colored_polygon(PackedVector2Array([c + Vector2(-r * 1.08, 0.0), c + Vector2(r * 1.08, 0.0),
+			c + Vector2(0.0, r * 1.1)]), red)
+
+
+## What lives on the trays, drawn every frame above them: the hats, the marble sets' rings and locks, the helpers'
+## slots with their counts, each bobbing in its own time, and the puff when a set is chosen.
+class _Items extends _Front:
+	var _slots: Array[Jiggle] = [Jiggle.new(), Jiggle.new(), Jiggle.new()]
+	var _puffs: Array[Vector3] = []
+
+	func bump(slot: int) -> void:
+		if not Save.reduce_motion:
+			_slots[slot].kick(1.2)
+
+	## A soft puff of sparks where a marble set was chosen.
+	func puff(at: Vector2) -> void:
+		_puffs.append(Vector3(at.x, at.y, 0.0))
+
+	func _process(delta: float) -> void:
+		_t += delta
+		for j: Jiggle in _slots:
+			j.step(delta)
+		var i: int = _puffs.size() - 1
+		while i >= 0:
+			_puffs[i].z += delta
+			if _puffs[i].z > 0.5:
+				_puffs.remove_at(i)
+			i -= 1
+		queue_redraw()
+
+	func _draw() -> void:
+		var back: _Back = get_parent()
+		var still: bool = Save.reduce_motion
+		for tray: int in range(3):
+			var lift: float = back.lift(tray)
+			var tint: Color = Color(1, 1, 1, back.shown(tray))
+			for i: int in range(StreetShop.count_of(tray)):
+				var bob: float = 0.0 if still else sin(_t * StreetShop.BOB_SPEED + float(i) * 1.3) * StreetShop.BOB
+				_item(tray, i, StreetShop.item_at(tray, i) + Vector2(0.0, lift + bob), tint)
 		for p: Vector3 in _puffs:
 			var k: float = p.z / 0.5
-			_fit("sparks", Vector2(p.x, p.y + rise), 180.0 * (0.6 + k * 0.6), Color(1, 1, 1, 1.0 - k))
+			_fit("sparks", Vector2(p.x, p.y + back.rise()), 180.0 * (0.6 + k * 0.6), Color(1, 1, 1, 1.0 - k))
 
 	## One item: a hat, a marble set (its sample is a node of its own; this draws its ring) or a helper.
 	func _item(tray: int, i: int, c: Vector2, tint: Color) -> void:
@@ -492,21 +537,3 @@ class _Front extends Node2D:
 				draw_string(StreetArt.font(), badge + Vector2(-30.0, 15.0),
 					str(Save.booster_count(StreetRewards.BOOSTER_IDS[i])), HORIZONTAL_ALIGNMENT_CENTER, 60.0, 42,
 					Color(StreetUI.CREAM, tint.a))
-
-	## A green tick badge: worn, chosen or had.
-	func _tick(at: Vector2, a: float) -> void:
-		StreetUI.gloss_circle(self, at, 26.0, Color(0.3, 0.69, 0.23, a))
-		_fit("icon_tick", at, 34.0, Color(1, 1, 1, a))
-
-	## A small padlock: not the player's yet.
-	func _lock(at: Vector2, a: float) -> void:
-		StreetUI.gloss_circle(self, at, 22.0, Color(0.55, 0.56, 0.66, a))
-		_fit("icon_lock", at, 28.0, Color(1, 1, 1, a))
-
-	## A soft red heart for the Supporter row.
-	func _heart(c: Vector2, r: float) -> void:
-		var red: Color = StreetUI.RED
-		draw_circle(c + Vector2(-r * 0.5, -r * 0.2), r * 0.62, red, true, -1.0, true)
-		draw_circle(c + Vector2(r * 0.5, -r * 0.2), r * 0.62, red, true, -1.0, true)
-		draw_colored_polygon(PackedVector2Array([c + Vector2(-r * 1.08, 0.0), c + Vector2(r * 1.08, 0.0),
-			c + Vector2(0.0, r * 1.1)]), red)

@@ -46,13 +46,25 @@ static func gloss_pill(ci: CanvasItem, rect: Rect2, fill: Color) -> void:
 	_capsule(ci, Rect2(rect.position + Vector2(inset, rect.size.y * 0.1), Vector2(rect.size.x - inset * 2.0,
 		rect.size.y * 0.28)), Color(1, 1, 1, 0.28))
 
-## A capsule as one rounded box, so a translucent one never doubles up where its ends meet its middle.
+## A capsule as one rounded box, so a translucent one never doubles up where its ends meet its middle. The boxes are
+## kept by colour and radius, since pills redraw every frame (the coin pill's glint) and a new box each time is
+## garbage the phone feels.
+static var _capsules: Dictionary = {}
+
 static func _capsule(ci: CanvasItem, rect: Rect2, colour: Color) -> void:
-	var box: StyleBoxFlat = StyleBoxFlat.new()
-	box.bg_color = colour
-	box.set_corner_radius_all(int(rect.size.y * 0.5))
-	box.corner_detail = 12
-	box.anti_aliasing = true
+	var radius: int = int(rect.size.y * 0.5)
+	var key: String = "%s/%d" % [colour.to_html(), radius]
+	var box: StyleBoxFlat = _capsules.get(key, null)
+	if box == null:
+		# A fade makes a colour a frame, so the keep is kept small.
+		if _capsules.size() > 48:
+			_capsules.clear()
+		box = StyleBoxFlat.new()
+		box.bg_color = colour
+		box.set_corner_radius_all(radius)
+		box.corner_detail = 12
+		box.anti_aliasing = true
+		_capsules[key] = box
 	ci.draw_style_box(box, rect)
 
 ## The painted icon for each glyph name, where one differs from the name.
