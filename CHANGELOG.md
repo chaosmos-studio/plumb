@@ -16,6 +16,10 @@ The one file to edit to ship an update. The release workflow reads the newest se
 To ship: add a new section at the top, push, then Actions > Release Android > Run workflow.
 -->
 
+## 1.5.2
+
+- Fixed ad loading for optional hint videos and the bottom banner.
+
 ## 1.5.1
 
 - Stuck with no way home? The hint now takes back the tilts that went wrong and shows the way on from there.
