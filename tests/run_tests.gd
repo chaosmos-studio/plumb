@@ -1475,6 +1475,11 @@ func _test_dev_shots_stay_out_of_release() -> void:
 	_check("a shot's name stays in its folder", shots.call("valid_name", "update-card-2")
 		and not shots.call("valid_name", "../plumb") and not shots.call("valid_name", "shots/x")
 		and not shots.call("valid_name", "") and not shots.call("valid_name", "Card"))
+	_check("a request names one frame or a short burst", shots.call("parse", "card\n") == {"name": "card", "frames": 1}
+		and shots.call("parse", "pop 8") == {"name": "pop", "frames": 8}
+		and shots.call("parse", "pop 99") == {"name": "pop", "frames": int(shots.get("MAX_BURST"))}
+		and (shots.call("parse", "../pop 3") as Dictionary).is_empty() and (shots.call("parse", "pop x") as Dictionary).is_empty()
+		and (shots.call("parse", "a b c") as Dictionary).is_empty())
 
 ## Every script, scene, resource or project file under `dir` that holds `text`, leaving out what no export ships.
 func _files_naming(dir: String, text: String, into: PackedStringArray) -> void:
