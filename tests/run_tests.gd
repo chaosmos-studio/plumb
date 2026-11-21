@@ -110,6 +110,7 @@ func _initialize() -> void:
 	await _test_one_off_screens_carry_no_banner()
 	_test_interstitial_switch()
 	await _test_update_card()
+	_test_dev_shots_stay_out_of_release()
 	_test_chapter_ticks()
 	_test_streak_keeping()
 	_test_chapter_colours()
@@ -1431,6 +1432,63 @@ func _test_one_off_screens_carry_no_banner() -> void:
 	await process_frame
 	_check("and the opening keeps the banner back while it plays", during == covers + 1
 		and int(ads.get("_covers")) == covers)
+
+## The dev package's own screenshots (kit/debug/dev_shots.gd) never reach a player: every export preset but the dev
+## package's leaves kit/debug/ out, Save starts them only in a debug build with the dev_build feature, nothing else
+## names the file, and a shot's name cannot leave its folder.
+func _test_dev_shots_stay_out_of_release() -> void:
+	var presets: ConfigFile = ConfigFile.new()
+	_check("the export presets read", presets.load("res://export_presets.cfg") == OK)
+	var release_out: bool = true
+	var dev_presets: int = 0
+	var dev_kept: bool = false
+	for section: String in presets.get_sections():
+		if section.ends_with(".options"):
+			continue
+		var features: PackedStringArray = []
+		for part: String in String(presets.get_value(section, "custom_features", "")).split(","):
+			features.append(part.strip_edges())
+		var filters: PackedStringArray = []
+		for part: String in String(presets.get_value(section, "exclude_filter", "")).split(","):
+			filters.append(part.strip_edges())
+		if features.has("dev_build"):
+			dev_presets += 1
+			dev_kept = not filters.has("kit/debug/*") and String(presets.get_value(section + ".options",
+				"package/unique_name", "")).ends_with(".dev")
+		elif not filters.has("kit/debug/*"):
+			release_out = false
+	_check("every export preset but the dev package's leaves the dev screenshots out", release_out)
+	_check("and the one that keeps them is the dev package's", dev_presets == 1 and dev_kept)
+	var save: GDScript = load("res://autoload/save.gd")
+	_check("Save starts them only in a debug build with the dev_build feature", save.call("dev_shots_allowed", true, true)
+		and not save.call("dev_shots_allowed", false, true) and not save.call("dev_shots_allowed", true, false)
+		and not save.call("dev_shots_allowed", false, false))
+	var running: bool = false
+	for child: Node in root.get_node("Save").get_children():
+		var script: Script = child.get_script() as Script
+		running = running or (script != null and script.resource_path == String(save.get("DEV_SHOTS")))
+	_check("so this build, without the feature, takes none", not running)
+	var naming: PackedStringArray = []
+	_files_naming("res://", "res://kit/debug/", naming)
+	_check("and nothing shipped names the file but Save, by path", naming == PackedStringArray(["res://autoload/save.gd"]))
+	var shots: GDScript = load(String(save.get("DEV_SHOTS")))
+	_check("a shot's name stays in its folder", shots.call("valid_name", "update-card-2")
+		and not shots.call("valid_name", "../plumb") and not shots.call("valid_name", "shots/x")
+		and not shots.call("valid_name", "") and not shots.call("valid_name", "Card"))
+
+## Every script, scene, resource or project file under `dir` that holds `text`, leaving out what no export ships.
+func _files_naming(dir: String, text: String, into: PackedStringArray) -> void:
+	for sub: String in DirAccess.get_directories_at(dir):
+		var path: String = dir + sub + "/" if dir.ends_with("/") else dir + "/" + sub + "/"
+		if sub.begins_with(".") or path in ["res://tests/", "res://tools/", "res://build/", "res://kit/tools/",
+				"res://kit/debug/"]:
+			continue
+		_files_naming(path, text, into)
+	for file: String in DirAccess.get_files_at(dir):
+		if file.get_extension() in ["gd", "tscn", "tres", "godot", "cfg"]:
+			var path: String = dir + file
+			if FileAccess.get_file_as_string(path).contains(text):
+				into.append(path)
 
 ## A street of `n` doors picked for `player`, each solved at once.
 func _street_after(pool: StreetPool, n: int, player: String) -> Dictionary:

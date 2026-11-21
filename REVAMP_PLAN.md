@@ -686,6 +686,7 @@ Version 2.0.0 is Play's version code 20000.
 - **The feed** carries the card's note in the signed manifest (`app`: latest, line of at most 60 characters, urgent_below, a PNG listed by size and hash under `app/`), checked by `FeedCheck.app_note` and kept by `Feed.app_note`. `tools/publish_levels.py` takes `--app-latest`, `--app-line`, `--app-picture` and `--urgent-below`.
 - **Analytics:** `update_card` with `update` shown, start, later, downloaded, restart and installed, the offered `version` and the `mode`.
 - **Laptop and tests:** `PlayCore.fake` stands in for Play (an offer, then a download that fills over six seconds), which the tests and `tools/street_shots.gd` (`update`) use.
+- **Phone checks take no screen captures.** The dev package saves its own pictures (`kit/debug/dev_shots.gd`): a `user://shot_request` file holding a name makes it save the next frame of its own viewport to `user://shots/<name>.png`, pulled with `run-as`, so a notification or another app can never be in one. The native banner is not in the viewport, so each shot's `.json` and every change log the kit's banner state (`Ads.banner_state`, `DEV_BANNER` in logcat). Save starts it only in a debug build with the `dev_build` feature, and every other export preset leaves `kit/debug/` out, which a test checks.
 
 ## 15. Decisions and open questions
 

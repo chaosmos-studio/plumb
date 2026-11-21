@@ -4,6 +4,9 @@ extends Node
 # to defaults instead of failing to load.
 
 const PATH: String = "user://plumb.cfg"
+## The dev package's own screenshots for device checks, loaded by path and started only in a debug build with the
+## dev_build feature: every other export preset leaves kit/debug/ out.
+const DEV_SHOTS: String = "res://kit/debug/dev_shots.gd"
 
 ## Overridable so test robots never touch the player's real progress.
 var path: String = PATH
@@ -96,6 +99,8 @@ signal street_changed
 
 func _ready() -> void:
 	ScreenLock.start()
+	if dev_shots_allowed(OS.is_debug_build(), OS.has_feature("dev_build")):
+		add_child((load(DEV_SHOTS) as GDScript).new() as Node)
 	restore()
 	if player_id == "":
 		player_id = new_player_id()
@@ -114,6 +119,10 @@ func _ready() -> void:
 	Street.tell_analytics()
 	PlayCore.start()
 	PlayGames.start()
+
+## Whether this build takes its own screenshots on request (DEV_SHOTS): a debug build of the dev package only.
+static func dev_shots_allowed(debug: bool, dev_build: bool) -> bool:
+	return debug and dev_build
 
 ## Of the level in Pack's section now.
 func best(level: int) -> int:

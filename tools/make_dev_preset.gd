@@ -13,6 +13,8 @@ const PACKAGE: String = "com.shravangoswami.plumb.dev"
 const LABEL: String = "Plumb Dev"
 const FEATURES: String = "dev_build"
 const EXPORT_PATH: String = "build/android/plumb-dev.apk"
+## Every other preset leaves this out, and the dev build keeps it: its own screenshots for device checks.
+const DEV_ONLY: String = "kit/debug/*"
 ## Every build opens on the boot scene, which picks the chooser or a look's Home.
 const MAIN_SCENE: String = "res://scenes/boot/boot.tscn"
 
@@ -36,6 +38,11 @@ func _initialize() -> void:
 	presets.set_value(target, "runnable", false)
 	presets.set_value(target, "custom_features", FEATURES)
 	presets.set_value(target, "export_path", EXPORT_PATH)
+	var kept: PackedStringArray = []
+	for part: String in String(presets.get_value(target, "exclude_filter", "")).split(","):
+		if part.strip_edges() != DEV_ONLY:
+			kept.append(part.strip_edges())
+	presets.set_value(target, "exclude_filter", ", ".join(kept))
 	var options: String = target + ".options"
 	for key: String in presets.get_section_keys(source + ".options"):
 		presets.set_value(options, key, presets.get_value(source + ".options", key))

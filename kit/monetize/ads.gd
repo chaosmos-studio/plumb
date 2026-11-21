@@ -221,6 +221,20 @@ static func banner_height(host: Node) -> float:
 static func banner_room() -> float:
 	return _height + clearance() if _height > 0.0 and _showing else 0.0
 
+## The banner as the kit has it now, for a dev build's device checks (kit/debug/dev_shots.gd), since a native banner
+## is not in the game's own pictures: whether a screen wants it, whether it is on screen (nothing covering it), the
+## covers over it, its height, the backend, and whether that backend's own banner has loaded (LevelPlay's native
+## view, which otherwise leaves its strip to the house banner the game draws).
+static func banner_state() -> Dictionary:
+	var backend: String = ""
+	var loaded: bool = false
+	if is_instance_valid(_backend):
+		backend = (_backend.get_script() as Script).resource_path.get_file().get_basename()
+		if "_banner_loaded" in _backend:
+			loaded = bool(_backend.get("_banner_loaded"))
+	return {"wanted": _wanted, "showing": _showing, "covers": _covers, "height": snappedf(_height, 0.1),
+		"backend": backend, "native_loaded": loaded}
+
 ## A Sheet calls this as it opens and closes, so the banner is never on screen with one, except one that keeps
 ## it in a strip of its own below the panel (Sheet.keeps_banner).
 static func cover(on: bool) -> void:
