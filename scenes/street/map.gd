@@ -185,6 +185,11 @@ func _ready() -> void:
 	arrival = 0
 	var gift: int = gift_door if gift_door > 0 else _unclaimed()
 	gift_door = 0
+	# A parcel or milestone due after the walk: its pieces and backdrop load on a thread while the cast walks.
+	if gift > 0 and not _preview:
+		StreetArt.prefetch_page(StreetArt.TOWN)
+		StreetArt.prefetch_backdrop(StreetArt.WIN_BACKDROP if StreetRewards.is_milestone(gift)
+			else StreetArt.GIFT_BACKDROP, StreetLayout.wide(get_viewport_rect().size))
 	if walked_from > 0 and walked_from + 1 == _current and not _measuring:
 		_cast_s = StreetPath.door_s(walked_from) - CAST_BEFORE
 		_scroll = _scroll_for(walked_from)
@@ -378,6 +383,10 @@ func _build_hud() -> void:
 	shop.pressed.connect(_open_shop)
 	var settings: StreetUI.RoundButton = StreetUI.RoundButton.new(StreetUI.PURPLE, &"gear", BUTTON)
 	settings.pressed.connect(_open_settings)
+	# A finger coming down on either starts loading the rooms' page and that room's backdrop, so by the time it lifts
+	# most of the reading is done.
+	shop.button_down.connect(_prefetch_room.bind(StreetArt.SHOP_BACKDROP))
+	settings.button_down.connect(_prefetch_room.bind(StreetArt.SETTINGS_BACKDROP))
 	_coins = StreetCoinPill.new()
 	_coins.pressed.connect(_open_shop)
 	root.add_child(_coins)
@@ -543,6 +552,9 @@ func _wobble(prop: StreetProp) -> void:
 func _open_card(door: int) -> void:
 	_busy = true
 	_velocity = 0.0
+	# Play is likely next: its scene and backdrop start loading on a thread while the card drops and swings.
+	Screens.prefetch(StreetPlay.SCENE)
+	StreetArt.prefetch_backdrop(StreetArt.PLAY_BACKDROP, StreetLayout.wide(get_viewport_rect().size))
 	# The title makes way for the card's ribbon, and comes back when the card goes.
 	_title.create_tween().tween_property(_title, "modulate:a", 0.0, 0.2)
 	_card.open(door, Pack.board(door - 1), Pack.par(door - 1), Save.best_in(false, door - 1))
@@ -660,6 +672,12 @@ func _break_ribbon(n: int) -> void:
 			t.tween_property(half, "rotation", side * 0.7, 0.6)
 			t.tween_property(half, "modulate:a", 0.0, 0.3).set_delay(0.35)
 		t.chain().tween_callback(half.queue_free)
+
+func _prefetch_room(backdrop: String) -> void:
+	if _busy:
+		return
+	StreetArt.prefetch_page(StreetArt.ROOMS)
+	StreetArt.prefetch_backdrop(backdrop, StreetLayout.wide(get_viewport_rect().size))
 
 func _open_shop() -> void:
 	if _busy:

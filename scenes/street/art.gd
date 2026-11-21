@@ -20,8 +20,41 @@ const SETTINGS_BACKDROP: String = "res://assets/street/settings_backdrop.png"
 ## A whole-screen backdrop for a screen of this shape: its wide painting (`<name>_wide.png`) on a wide screen, where
 ## there is one.
 static func backdrop(path: String, wide: bool) -> Texture2D:
+	return fetched(backdrop_path(path, wide)) as Texture2D
+
+static func backdrop_path(path: String, wide: bool) -> String:
 	var wide_path: String = path.trim_suffix(".png") + "_wide.png"
-	return load(wide_path if wide and ResourceLoader.exists(wide_path) else path)
+	return wide_path if wide and ResourceLoader.exists(wide_path) else path
+
+## Resources asked for ahead on a loading thread, by path, while the street is idle (`prefetch`), so the screen that
+## needs them next finds them loaded instead of reading them from disk in the frame it opens.
+static var _fetching: Dictionary = {}
+
+## Starts loading `path` on a thread, unless it is loaded or on its way.
+static func prefetch(path: String) -> void:
+	if _fetching.has(path) or ResourceLoader.has_cached(path):
+		return
+	if ResourceLoader.load_threaded_request(path) == OK:
+		_fetching[path] = true
+
+## Starts loading a page ahead, unless it is in memory.
+static func prefetch_page(page: int) -> void:
+	texture()
+	if _textures[page] == null:
+		prefetch(PAGES[page] + ".png")
+
+## Starts loading a backdrop ahead for a screen of this shape.
+static func prefetch_backdrop(path: String, wide: bool) -> void:
+	prefetch(backdrop_path(path, wide))
+
+## `path`, taken from its thread if it was asked for ahead (waiting for it if it is still loading), else loaded now.
+static func fetched(path: String) -> Resource:
+	if _fetching.has(path):
+		_fetching.erase(path)
+		var got: Resource = ResourceLoader.load_threaded_get(path)
+		if got != null:
+			return got
+	return load(path)
 const DESIGN_PER_PIXEL: float = 720.0 / 1084.0
 const FONT: String = "res://assets/fonts/Baloo2.ttf"
 ## Baloo 2's heaviest weight, the concepts' chunky numbers.
@@ -52,7 +85,7 @@ static func texture() -> Texture2D:
 
 static func _page(page: int) -> Texture2D:
 	if _textures[page] == null:
-		_textures[page] = load(PAGES[page] + ".png")
+		_textures[page] = fetched(PAGES[page] + ".png") as Texture2D
 	return _textures[page]
 
 ## The town's and the rooms' pages, by number, which a screen lets go of when it closes.

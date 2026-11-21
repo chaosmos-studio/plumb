@@ -116,6 +116,8 @@ func _ready() -> void:
 	if level == 0 and not Save.tutorial_seen:
 		_teach()
 	_use_helpers()
+	# The win's backdrop loads on a thread while the board is played, so the homecoming opens without reading it.
+	StreetArt.prefetch_backdrop(StreetArt.WIN_BACKDROP, wide())
 
 ## Takes the picked helpers from the purse and sets them going.
 func _use_helpers() -> void:
@@ -465,6 +467,8 @@ func _teach() -> void:
 
 func _show_won() -> void:
 	finished = true
+	# The street comes next: its scene loads on a thread under the homecoming.
+	Screens.prefetch(StreetMap.SCENE)
 	var moves: int = history.size()
 	var earned: int = StreetRewards.stars(moves, par, _spare)
 	var before: int = Save.best(level)
