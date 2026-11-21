@@ -12,8 +12,10 @@ extends CanvasLayer
 
 signal closed
 
-enum Tab { GENERAL, ACCESSIBILITY }
-enum Row { SOUND, MUSIC, FACES, PETS, TILT, STREET, MORE, MOTION, COLOUR, HAPTICS }
+## MORE is not a tab but the board's second page, which More opens: How to play, About, Credits, Privacy choices
+## and Reset, in Street's own rows (M6 step 2), where they used to be the kit's Classic sheet.
+enum Tab { GENERAL, ACCESSIBILITY, MORE }
+enum Row { SOUND, MUSIC, FACES, PETS, TILT, STREET, MORE, MOTION, COLOUR, HAPTICS, HELP, ABOUT, CREDITS, PRIVACY, RESET }
 
 ## The composition, in the painting's pixels: the arch and its bow, the bunting under it, the cast's middle line and
 ## size, the board's corner and width, the tabs, the first row and the step between rows, a row's size and the toggle's
@@ -31,8 +33,17 @@ const TAB_SIZE: Vector2 = Vector2(410.0, 124.0)
 const ROWS_Y: float = 1060.0
 const ROW_STEP: float = 178.0
 const ROW_SIZE: Vector2 = Vector2(860.0, 154.0)
-const TOGGLE_X: float = 714.0
+## The row art's pill, inside its 860 px piece (the rest is its soft shadow): every label and toggle stays inside it.
+const PILL_LEFT: float = 62.0
+const PILL_RIGHT: float = 797.0
+const LABEL_X: float = PILL_LEFT + 40.0
 const TOGGLE_W: float = 208.0
+const TOGGLE_X: float = PILL_RIGHT - 34.0 - TOGGLE_W * 0.5
+## The smallest a label shrinks to, to fit its pill.
+const LABEL_MIN: int = 40
+## Colour help's little picture, its size and its middle's distance left of the toggle's.
+const SAMPLE_SCALE: float = 0.8
+const SAMPLE_X: float = 180.0
 const KNOB: float = 74.0
 const KNOB_SHIFT: float = 57.0
 const LABEL_SIZE: int = 60
@@ -52,6 +63,8 @@ var _cast: StreetCast
 var _close: StreetUI.RoundButton
 var _tab: Tab = Tab.GENERAL
 var _leaving: bool = false
+var _reset_armed: bool = false
+var _reset_done: bool = false
 
 func _ready() -> void:
 	layer = 6
@@ -97,6 +110,12 @@ func _exit_tree() -> void:
 
 ## The rows a tab shows, in order.
 func rows_of(tab: Tab) -> Array[Row]:
+	if tab == Tab.MORE:
+		var more: Array[Row] = [Row.HELP, Row.ABOUT, Row.CREDITS]
+		if Ads.privacy_options_required():
+			more.append(Row.PRIVACY)
+		more.append(Row.RESET)
+		return more
 	var out: Array[Row] = [Row.MOTION, Row.COLOUR, Row.HAPTICS]
 	if tab == Tab.ACCESSIBILITY:
 		return out
@@ -106,9 +125,9 @@ func rows_of(tab: Tab) -> Array[Row]:
 	out.append_array([Row.STREET, Row.MORE])
 	return out
 
-## The most rows either tab shows, which sets the board's height.
+## The most rows any page shows, which sets the board's height.
 func most_rows() -> int:
-	return maxi(rows_of(Tab.GENERAL).size(), rows_of(Tab.ACCESSIBILITY).size())
+	return maxi(maxi(rows_of(Tab.GENERAL).size(), rows_of(Tab.ACCESSIBILITY).size()), rows_of(Tab.MORE).size())
 
 func _layout() -> void:
 	var size: Vector2 = get_viewport().get_visible_rect().size
@@ -158,10 +177,16 @@ func _on_input(event: InputEvent) -> void:
 		return
 	var screen: Vector2 = (event as InputEventScreenTouch).position
 	var at: Vector2 = _board.get_global_transform_with_canvas().affine_inverse() * screen
-	for tab: int in range(2):
-		if _board.tab_rect(tab).has_point(at):
-			_choose_tab(tab)
+	# On More's page the track is one back button, to General.
+	if _tab == Tab.MORE:
+		if _board.track_rect().has_point(at):
+			_choose_tab(Tab.GENERAL)
 			return
+	else:
+		for tab: int in range(2):
+			if _board.tab_rect(tab).has_point(at):
+				_choose_tab(tab)
+				return
 	var rows: Array[Row] = rows_of(_tab)
 	for i: int in range(rows.size()):
 		if _board.row_rect(i).has_point(at):
@@ -178,16 +203,42 @@ func _choose_tab(tab: int) -> void:
 	if tab == _tab:
 		return
 	_tab = tab as Tab
+	_reset_armed = false
 	Audio.play(&"tap", -6.0)
 	Audio.buzz(StreetWobbler.BUZZ_MS, StreetWobbler.BUZZ)
 	_board.slide_tab(tab)
 
-## A tap on a row: its toggle flips, or More opens the kit's sheet with the rest.
+## A tap on a row: its toggle flips, More turns to its page, and More's rows open what they name.
 func _flip(row: Row, i: int) -> void:
-	if row == Row.MORE:
-		Audio.play(&"tap", -6.0)
-		Settings.open(self)
-		return
+	match row:
+		Row.MORE:
+			_choose_tab(Tab.MORE)
+			return
+		Row.HELP:
+			Audio.play(&"tap", -6.0)
+			StreetPlay.show_how_to_play()
+			return
+		Row.ABOUT:
+			Audio.play(&"tap", -6.0)
+			About.open(self)
+			return
+		Row.CREDITS:
+			Audio.play(&"tap", -6.0)
+			Credits.open(self)
+			return
+		Row.PRIVACY:
+			Audio.play(&"tap", -6.0)
+			Ads.open_privacy_options()
+			return
+		Row.RESET:
+			# Twice, as the kit's sheet asked: the first tap says what a second one does.
+			Audio.play(&"tap", -6.0)
+			if _reset_armed:
+				Save.reset()
+				_reset_done = true
+			_reset_armed = true
+			_board.queue_redraw()
+			return
 	var on: bool = not value_of(row)
 	match row:
 		Row.SOUND:
@@ -242,7 +293,24 @@ func value_of(row: Row) -> bool:
 
 static func label_of(row: Row) -> String:
 	return ["Sound", "Music", "Faces", "Pets", "Tilt your phone", "Street look", "More", "Reduce motion",
-		"Colour help", "Haptic feedback"][row]
+		"Colour help", "Haptic feedback", "How to play", "About", "Credits", "Privacy choices", "Reset progress"][row]
+
+## Reset's words: what it is, then what a second tap does, then done.
+func reset_label() -> String:
+	if _reset_done:
+		return "Progress reset"
+	return "Tap again to erase every star" if _reset_armed else "Reset progress"
+
+## Whether a row opens something rather than flipping a toggle.
+static func opens(row: Row) -> bool:
+	return row in [Row.MORE, Row.HELP, Row.ABOUT, Row.CREDITS, Row.PRIVACY, Row.RESET]
+
+## The largest size up to `size` at which `text` fits `width`, never below LABEL_MIN.
+static func fitted(font: Font, text: String, width: float, size: int) -> int:
+	var s: int = size
+	while s > LABEL_MIN and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, s).x > width:
+		s -= 2
+	return s
 
 
 ## The arch over the cast: its bow and the bunting under it. A tap swings the bow.
@@ -304,6 +372,10 @@ class _Board extends Node2D:
 		var track: Vector2 = StreetSettings.TABS_AT - StreetSettings.BOARD_AT
 		return Rect2(track + Vector2(10.0 + float(tab) * 430.0, 11.0), StreetSettings.TAB_SIZE)
 
+	## The whole tab track, which on More's page is its Back.
+	func track_rect() -> Rect2:
+		return Rect2(StreetSettings.TABS_AT - StreetSettings.BOARD_AT, Vector2(860.0, 148.0))
+
 	func row_rect(i: int) -> Rect2:
 		return Rect2(Vector2(StreetSettings.TABS_AT.x - StreetSettings.BOARD_AT.x, StreetSettings.ROWS_Y
 			- StreetSettings.BOARD_AT.y + float(i) * StreetSettings.ROW_STEP), StreetSettings.ROW_SIZE)
@@ -312,15 +384,17 @@ class _Board extends Node2D:
 	func slide_tab(tab: int) -> void:
 		_sync()
 		var rows: float = float(settings.rows_of(tab as StreetSettings.Tab).size())
+		# More's page has no pill of its own: the pill rests on General, where Back returns.
+		var pill_to: float = 0.0 if tab == StreetSettings.Tab.MORE else float(tab)
 		if Save.reduce_motion:
-			_tab_at = float(tab)
+			_tab_at = pill_to
 			_rows_drawn = rows
 			queue_redraw()
 			return
 		var slide: Callable = func(v: float) -> void:
 			_tab_at = v
 			queue_redraw()
-		create_tween().tween_method(slide, _tab_at, float(tab), 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		create_tween().tween_method(slide, _tab_at, pill_to, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		var grow: Callable = func(v: float) -> void:
 			_rows_drawn = v
 			queue_redraw()
@@ -357,32 +431,57 @@ class _Board extends Node2D:
 			height(_rows_drawn))), px)
 		var track: Vector2 = StreetSettings.TABS_AT - StreetSettings.BOARD_AT
 		StreetArt.draw_nine(self, "settings_tab_track", Rect2(track, Vector2(860.0, 148.0)), px)
-		var pill: Rect2 = tab_rect(0)
-		pill.position.x += _tab_at * 430.0
-		StreetArt.draw_nine(self, "settings_tab_selected", pill, px)
 		var font: Font = StreetArt.font()
-		for tab: int in range(2):
-			var r: Rect2 = tab_rect(tab)
-			var lit: float = 1.0 - absf(_tab_at - float(tab))
-			var ink: Color = StreetSettings.DARK.lerp(Color.WHITE, clampf(lit, 0.0, 1.0))
-			draw_string(font, Vector2(r.position.x, r.get_center().y + StreetSettings.TAB_LABEL_SIZE * 0.36),
-				["General", "Accessibility"][tab], HORIZONTAL_ALIGNMENT_CENTER, r.size.x, StreetSettings.TAB_LABEL_SIZE,
-				ink)
+		if settings._tab == StreetSettings.Tab.MORE:
+			# More's page: the whole track is Back, its arrow in the pill and the page's name beside it.
+			var back: Rect2 = tab_rect(0)
+			back.size.x = 150.0
+			StreetArt.draw_nine(self, "settings_tab_selected", back, px)
+			StreetUI.glyph(self, &"undo", back.get_center(), 70.0)
+			var title: Rect2 = Rect2(back.end.x + 20.0, back.position.y, 860.0 - back.size.x - 60.0, back.size.y)
+			draw_string(font, Vector2(title.position.x, title.get_center().y + StreetSettings.TAB_LABEL_SIZE * 0.36),
+				"More", HORIZONTAL_ALIGNMENT_CENTER, title.size.x, StreetSettings.TAB_LABEL_SIZE, StreetSettings.DARK)
+		else:
+			var pill: Rect2 = tab_rect(0)
+			pill.position.x += _tab_at * 430.0
+			StreetArt.draw_nine(self, "settings_tab_selected", pill, px)
+			for tab: int in range(2):
+				var r: Rect2 = tab_rect(tab)
+				var lit: float = 1.0 - absf(_tab_at - float(tab))
+				var ink: Color = StreetSettings.DARK.lerp(Color.WHITE, clampf(lit, 0.0, 1.0))
+				var words: String = ["General", "Accessibility"][tab]
+				var size: int = StreetSettings.fitted(font, words, r.size.x - 40.0, StreetSettings.TAB_LABEL_SIZE)
+				draw_string(font, Vector2(r.position.x, r.get_center().y + size * 0.36), words,
+					HORIZONTAL_ALIGNMENT_CENTER, r.size.x, size, ink)
 		var rows: Array[StreetSettings.Row] = settings.rows_of(settings._tab)
 		for i: int in range(rows.size()):
 			var r: Rect2 = row_rect(i)
 			StreetArt.draw_nine(self, "settings_row", r, px)
 			var row: StreetSettings.Row = rows[i]
-			draw_string(font, Vector2(r.position.x + 44.0, r.get_center().y + StreetSettings.LABEL_SIZE * 0.36),
-				StreetSettings.label_of(row), HORIZONTAL_ALIGNMENT_LEFT, -1, StreetSettings.LABEL_SIZE,
-				StreetSettings.DARK)
 			var c: Vector2 = Vector2(r.position.x + StreetSettings.TOGGLE_X, r.get_center().y)
-			if row == StreetSettings.Row.MORE:
-				StreetUI.gloss_circle(self, c + Vector2(40.0, 0.0), 44.0, StreetUI.TEAL)
-				StreetUI.glyph(self, &"play", c + Vector2(44.0, 0.0), 54.0)
+			# The label fills the pill up to what sits at its right: a toggle, Colour help's picture, or a chevron.
+			var right: float = c.x - StreetSettings.TOGGLE_W * 0.5 - 24.0
+			if row == StreetSettings.Row.COLOUR:
+				right = c.x - StreetSettings.SAMPLE_X - 108.0 * StreetSettings.SAMPLE_SCALE - 22.0
+			elif StreetSettings.opens(row):
+				right = r.position.x + StreetSettings.PILL_RIGHT - 130.0
+			var words: String = settings.reset_label() if row == StreetSettings.Row.RESET else StreetSettings.label_of(row)
+			var left: float = r.position.x + StreetSettings.LABEL_X
+			var size: int = StreetSettings.fitted(font, words, right - left, StreetSettings.LABEL_SIZE)
+			var ink: Color = StreetSettings.DARK
+			if row == StreetSettings.Row.RESET and settings._reset_armed and not settings._reset_done:
+				ink = Color("c0392b")
+			draw_string(font, Vector2(left, r.get_center().y + size * 0.36), words, HORIZONTAL_ALIGNMENT_LEFT, -1, size,
+				ink)
+			if StreetSettings.opens(row):
+				if row != StreetSettings.Row.RESET or not settings._reset_done:
+					var chevron: Vector2 = Vector2(r.position.x + StreetSettings.PILL_RIGHT - 70.0, r.get_center().y)
+					StreetUI.gloss_circle(self, chevron, 44.0, StreetUI.RED if row == StreetSettings.Row.RESET \
+						else StreetUI.TEAL)
+					StreetUI.glyph(self, &"play", chevron + Vector2(4.0, 0.0), 54.0)
 				continue
 			if row == StreetSettings.Row.COLOUR:
-				_colour_sample(c + Vector2(-210.0, 0.0))
+				_colour_sample(c + Vector2(-StreetSettings.SAMPLE_X, 0.0))
 			_toggle(c, _knobs[i], _pops[i])
 
 	## A toggle at `c`, its knob `v` of the way from off to on, its icon popping by `pop`.
@@ -401,6 +500,9 @@ class _Board extends Node2D:
 
 	## Colour help's little picture: a red marble with its triangle and a teal hole with its square.
 	func _colour_sample(c: Vector2) -> void:
+		# Drawn a little smaller than full size, so its row's label keeps the others' size.
+		draw_set_transform(c, 0.0, Vector2.ONE * StreetSettings.SAMPLE_SCALE)
+		c = Vector2.ZERO
 		var marble: Vector2 = c + Vector2(-62.0, 0.0)
 		StreetArt.draw(self, "marble_red", marble, 92.0 / StreetArt.size("marble_red").x)
 		ColourHelp.draw(self, 0, marble + Vector2(0.0, 18.0), 34.0, Palette.marble(0).darkened(0.55))
@@ -408,3 +510,4 @@ class _Board extends Node2D:
 		draw_circle(hole, 46.0, Palette.marble(1), true, -1.0, true)
 		draw_circle(hole, 32.0, Palette.HOLE, true, -1.0, true)
 		ColourHelp.draw(self, 1, hole, 30.0)
+		draw_set_transform(Vector2.ZERO)

@@ -41,6 +41,15 @@ const GHOST_FROM: float = 14.0
 static var helpers: PackedInt32Array = PackedInt32Array()
 ## The door to play, set by the map: its board comes from the street (Street.board).
 static var door: int = 1
+## Set by Settings' How to play: door 1 teaches again, as it did the first time (show_how_to_play).
+static var teach: bool = false
+
+## How to play, from Street's Settings: door 1 again with its finger, on Street's own play screen (the kit's guide
+## belongs to Classic's).
+static func show_how_to_play() -> void:
+	teach = true
+	door = 1
+	Screens.go(SCENE)
 
 ## The door's index from 0, as the kit's level signals and the hint gate count.
 var level: int = 0
@@ -122,7 +131,8 @@ func _ready() -> void:
 	_refresh()
 	Analytics.level_context = Street.analytics(door)
 	EventBus.level_started.emit(level)
-	if level == 0 and not Save.tutorial_seen:
+	if level == 0 and (teach or not Save.tutorial_seen):
+		teach = false
 		_teach()
 	_use_helpers()
 	# The win's backdrop loads on a thread while the board is played, so the homecoming opens without reading it.

@@ -112,6 +112,7 @@ func _initialize() -> void:
 	await _test_update_card()
 	_test_dev_shots_stay_out_of_release()
 	_test_web_build_is_classic()
+	_test_street_settings()
 	await _test_look_chooser()
 	_test_chapter_ticks()
 	_test_streak_keeping()
@@ -1512,6 +1513,40 @@ func _test_web_build_is_classic() -> void:
 	var crypto: String = save.call("new_player_id", true)
 	_check("a player id is 16 hex digits with or without Crypto", plain.length() == 16 and plain.is_valid_hex_number()
 		and crypto.length() == 16 and crypto.is_valid_hex_number() and plain != crypto)
+
+## Street's Settings (M6 step 2): every row's words fit inside its painted pill at the size they are drawn, with the
+## longest words a row ever shows, and More's page holds How to play, About, Credits and Reset in Street's own rows.
+func _test_street_settings() -> void:
+	var settings: GDScript = load("res://scenes/street/settings.gd")
+	var k: Dictionary = settings.get_script_constant_map()
+	var font: Font = (load("res://scenes/street/art.gd") as GDScript).call("font")
+	var left: float = k["LABEL_X"]
+	var beside_toggle: float = float(k["TOGGLE_X"]) - float(k["TOGGLE_W"]) * 0.5 - 24.0 - left
+	var beside_chevron: float = float(k["PILL_RIGHT"]) - 130.0 - left
+	var beside_sample: float = float(k["TOGGLE_X"]) - float(k["SAMPLE_X"]) - 108.0 * float(k["SAMPLE_SCALE"]) - 22.0 - left
+	var spills: PackedStringArray = []
+	var row_count: int = (k["Row"] as Dictionary).size()
+	for row: int in range(row_count):
+		var words: String = settings.call("label_of", row)
+		var room: float = beside_chevron if settings.call("opens", row) else beside_toggle
+		if words == "Colour help":
+			room = beside_sample
+		var all_words: Array[String] = [words]
+		if words == "Reset progress":
+			all_words.append_array(["Tap again to erase every star", "Progress reset"])
+		for w: String in all_words:
+			var size: int = settings.call("fitted", font, w, room, k["LABEL_SIZE"])
+			if font.get_string_size(w, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > room:
+				spills.append(w)
+	_check("every Settings row's words fit inside its pill (%s)" % ", ".join(spills), spills.is_empty())
+	var page: Node = settings.new()
+	var more: Array = page.call("rows_of", (k["Tab"] as Dictionary)["MORE"])
+	var names: PackedStringArray = []
+	for row: int in more:
+		names.append(settings.call("label_of", row))
+	page.free()
+	_check("More's page is Street's own rows (%s)" % ", ".join(names), names.has("How to play") and names.has("About")
+		and names.has("Credits") and names[names.size() - 1] == "Reset progress")
 
 ## The look chooser (Shravan, 21 November): Classic on the left and Street on the right, Street picked to begin with, a
 ## tap on a card picks it without leaving, Continue goes with the pick, and on every screen shape the cards, Continue,

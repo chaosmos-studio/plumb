@@ -382,6 +382,10 @@ func _settings() -> void:
 	settings.call("_choose_tab", 1)
 	await _seconds(0.7)
 	await _save(view, "21-settings-access")
+	# More's page, in Street's own rows.
+	settings.call("_choose_tab", 2)
+	await _seconds(0.7)
+	await _save(view, "21b-settings-more")
 	view.queue_free()
 	Save.colour_help = false
 	ColourHelp.on = false
