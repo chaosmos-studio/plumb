@@ -62,6 +62,8 @@ var _angle: float = 0.0
 var _spin: float = 0.0
 var _swinging: bool = false
 var _open: bool = false
+## On a wide screen the card reaches the foot, where the banner sits, so the banner steps aside while it is open.
+var _covering: bool = false
 var _shape: Shape = Shape.tall()
 ## The helpers picked for this board, by StreetRewards.Booster.
 var _chosen: PackedByteArray = PackedByteArray([0, 0, 0])
@@ -153,6 +155,7 @@ func _ready() -> void:
 		_reshape()
 		if _open:
 			var screen: Vector2 = _card.get_viewport_rect().size
+			_cover(StreetLayout.wide(screen))
 			_card.position = Vector2(screen.x * 0.5 - _shape.size.x * 0.5, _top()))
 
 ## Picks the card's form for the screen's shape.
@@ -212,6 +215,7 @@ func open(door: int, board: TiltBoard, par: int, best: int) -> void:
 	_open = true
 	_reshape()
 	var screen: Vector2 = _card.get_viewport_rect().size
+	_cover(StreetLayout.wide(screen))
 	var top: float = _top()
 	_card.position = Vector2(screen.x * 0.5 - _shape.size.x * 0.5, -_shape.size.y - 40.0)
 	_card.pivot_offset = Vector2(_shape.size.x * 0.5, -top)
@@ -232,6 +236,7 @@ func close() -> void:
 		return
 	_open = false
 	_swinging = false
+	_cover(false)
 	var t: Tween = create_tween().set_parallel()
 	t.tween_property(_card, "position:y", -_shape.size.y - 40.0, RISE_TIME).set_trans(Tween.TRANS_BACK) \
 		.set_ease(Tween.EASE_IN)
@@ -262,6 +267,15 @@ func _process(delta: float) -> void:
 	if absf(_angle) < 0.0005 and absf(_spin) < 0.002:
 		_card.rotation = 0.0
 		_swinging = false
+
+func _cover(on: bool) -> void:
+	if on == _covering:
+		return
+	_covering = on
+	Ads.cover(on)
+
+func _exit_tree() -> void:
+	_cover(false)
 
 func _on_play() -> void:
 	if not _open:
