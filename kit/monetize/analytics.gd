@@ -101,6 +101,9 @@ static func event(name: StringName, params: Dictionary = {}) -> void:
 	var sent: Dictionary = tagged(params)
 	if sink.is_valid():
 		sink.call(name, sent)
+	# A debug build on a phone never counts, so it says each event in the log instead, for a check with logcat.
+	if OS.is_debug_build() and OS.has_feature("android"):
+		print("ANALYTICS %s %s" % [name, JSON.stringify(for_ga(sent))])
 	if _counting:
 		_firebase.call("log_event", String(name), for_ga(sent))
 
