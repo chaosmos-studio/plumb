@@ -21,6 +21,8 @@ Section numbers below point there.
 | Test devices | The A142 (advertising ID `0d07dc55-fc6a-4647-b4af-35d88134d4f0`) in LevelPlay and Unity Ads, 21 Nov 2026 |
 | Test ads on a phone | Debug builds and the tester switch (seven quick taps on the version line in About, from the next launch) ask LevelPlay's demo app, never Plumb's. A debug build on a registered test device can ask Plumb's own app: `adb shell run-as com.shravangoswami.plumb.dev sh -c 'printf "[testing]\nown_app=true\n" > files/ads.cfg'`, and `rm files/ads.cfg` to undo. It serves live ads, even with Unity's test mode forced on, so use it for load-only checks and never show one on a studio phone. Never on any other phone. |
 | Consent sheet on any phone | Debug builds only: `adb shell run-as com.shravangoswami.plumb.dev sh -c 'printf "[debug]\nforce=true\n" > files/consent.cfg'`, then relaunch. |
+| Level feed | `https://levels.chaosmos.studio/plumb/v1/`, the R2 bucket `chaosmos-levels` in the Chaosmos Studio Cloudflare account. Sign with `tools/publish_levels.py` (key `studio/release-keys/plumb-feed-1.pem`) and upload with `tools/upload_feed.py` (REVAMP_PLAN.md 6.1). Live serial 1 since 21 Nov 2026: no episodes, interstitials off |
+| Feed on a dev build | Debug builds only: `files/feed_on` holding the feed's address turns the feed on, and `files/feed_key` holding a public key trusts it too |
 | Firebase | Android app in project `chaosmos-studio`, in `google-services.json` |
 | Upload key | `studio/release-keys/plumb-release.jks`, alias `plumb` (password in `plumb-key.properties`) |
 | Upload key SHA-1 | `95:E9:15:AA:36:6D:9E:D9:66:B2:D0:3C:5A:EA:02:EB:F2:3F:01:6F` |

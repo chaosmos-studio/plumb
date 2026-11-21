@@ -367,8 +367,8 @@ That is 17 more event-scoped dimensions (23 of the property's 50) and 11 more me
 
 ### 6.1 Where
 
-A public, read-only bucket in the Chaosmos Cloudflare account behind `https://levels.chaosmos.studio/plumb/v1/` (R2 with a custom domain, server side later).
-The manifest is cached for 5 minutes, episode files forever, since their names carry their hash.
+The R2 bucket `chaosmos-levels` (location hint Asia-Pacific) in the Chaosmos Studio Cloudflare account, public and read-only through its custom domain `levels.chaosmos.studio` (minimum TLS 1.2), so the game reads `https://levels.chaosmos.studio/plumb/v1/` and another game would read its own `/<game>/v1/`. No Worker: R2 serves the files as they are. Live since 21 November 2026 with serial 1 (no episodes, interstitials off).
+The manifest and its signature are cached for 5 minutes, and the files named by their hash for a year (`Cache-Control` set on each object at upload). Cloudflare's edge caches the pictures but not the JSON (not a default cacheable type), which R2's free reads easily cover at a check every 12 hours a player.
 
 ### 6.2 The format
 
@@ -424,8 +424,12 @@ Levels are data, not code. Google Play's policy limits code downloaded outside P
 7. **Offline:** nothing depends on the feed. The bundled pool and recycling (4.3) never run out.
 8. **The web build** leaves the feed off.
 
-The signing key is made once, kept in `studio/release-keys/` and the encrypted vault, never in a repo. The publishing tool (`tools/publish_levels.py`, M4) signs the manifest and writes the bucket's files for the server step later.
-Until the server exists, the client is tested against fixtures signed with a test key, and the smoke robot fetches from a local HTTP server in a debug build.
+The signing key is made once, kept in `studio/release-keys/` and the encrypted vault, never in a repo. The publishing tool (`tools/publish_levels.py`, M4) signs the manifest and writes the bucket's files, then `tools/upload_feed.py` puts them on R2 through Wrangler: the files named by their hash first, then the signature and the manifest, last and close together, and never a manifest whose serial is not above the live one (the game refuses a rollback). No key leaves the laptop: only what was signed goes up.
+
+    tools/publish_levels.py --episodes <folder> --out build/feed/plumb/v1 --key ../../studio/release-keys/plumb-feed-1.pem --interstitials off [--app-latest ...]
+    tools/upload_feed.py build/feed/plumb/v1 --apply
+
+The client is tested against fixtures signed with a test key, the smoke robot fetches from a local HTTP server in a debug build, and a dev build on the A142 fetched and verified the live serial 1 over the network (21 November, `feed_sync` ok).
 
 ### 6.4 Re-scoring from real play
 
@@ -668,7 +672,7 @@ Version 2.0.0 is Play's version code 20000.
 - **Extras:** 3 per main level from 6 to 180, then later rounds of 3 more for levels 30 to 130 and 131 to 180 where the simulated players ran short (`tools/generate_extras.gd`, 923 boards in `levels/pool.json`, 240 KB), each made in its level's chapter phase within -0.25 to +0.75 bits and new against every other board, measured into `levels/meta.json` with the rest. A later round only appends, so no id ever changes.
 - **The migration** pays the welcome purse (5 coins a star, once), starts the street at the furthest level solved or opened, and copies the old file to `user://plumb.layout2.cfg` first. The parcels and milestones behind the player count as opened (the purse stands for them, and those families already live on the street), and the first three parcels' helpers come with it, 3 of each. The switch from Classic does the same for the doors it brings. Marble-pack owners already own every set in Street's shop through `Looks.is_open`, so step 7 needed nothing.
 - **The cloud save** gained `CloudSave.rules()`, which merges the game's own rules (`Save.cloud_rules`), and hands rules it does not know to `Save.cloud_join`: both small, for porting back to the kit.
-- **The feed** has no server yet. `tools/publish_levels.py` writes a signed bucket, the fixtures in `tests/fixtures/feed/` are signed with a test key (its private half `plumb-feed-test.pem` beside the others), and the signing keys `plumb-feed-1.pem` (in use) and `plumb-feed-2.pem` (next) are in `studio/release-keys`. A debug build looks at the feed only when told to (a `--feed=` argument or a `user://feed_on` file), so tests and robots never reach the network.
+- **The feed** is live at `levels.chaosmos.studio` on R2 since 21 November (6.1). `tools/publish_levels.py` writes a signed bucket and `tools/upload_feed.py` puts it up, the fixtures in `tests/fixtures/feed/` are signed with a test key (its private half `plumb-feed-test.pem` beside the others), and the signing keys `plumb-feed-1.pem` (in use) and `plumb-feed-2.pem` (next) are in `studio/release-keys`. A debug build looks at the feed only when told to (a `--feed=` argument or a `user://feed_on` file), so tests and robots never reach the network.
 - **Analytics:** the level events carry the board, path, difficulty, rating, pick and replay through `Analytics.level_context`, and level_end how the solve went through `Analytics.solve_measures`. User properties go through `addons/analytics_user/AnalyticsUser.java`. `Ads.solved()` counts every board solved (pacing, the daily's gate, achievements), and `Ads.solved_here()` the section in play (the ending and `solved_all`).
 - **Left for later:** the update card (M5), the Data Studio pages and HQ (5.4), and the privacy page's new events.
 
@@ -708,7 +712,7 @@ Version 2.0.0 is Play's version code 20000.
 10. **The daily in Street.** Recommendation: the kit's daily screen for 2.0, reached from the calendar button, and a Street-styled daily with its calendar after.
 11. **The wordmark and icon.** Recommendation: keep today's. The concepts' chunky PLUMB is not adopted unless Shravan asks.
 12. **The families.** Decided by Shravan, 20 November: marble folk (`build/review/art/families-1.png`), round marbles like the cast in new colours, each family told apart by small props and the cast's faces. He gave creative freedom on the details. They are drawn in M3, after the M2 parity pass.
-13. **The feed's address and key.** `levels.chaosmos.studio` on R2, and the signing key in `release-keys` and the vault.
+13. **The feed's address and key.** Done 21 November: `levels.chaosmos.studio` on the R2 bucket `chaosmos-levels`, signed with `plumb-feed-1`. The signing keys are in `release-keys`, and still to go into the encrypted vault.
 14. **A dark look for Street.** Recommendation: light only in 2.0, with a dusk street (a tint and lit windows) after.
 15. **Lanterns and a daily post-box letter** from the study are left out of 2.0, since the brief did not ask for them.
 16. **A welcome purse** for players who were already playing, 5 coins a star.
