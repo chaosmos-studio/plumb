@@ -1776,17 +1776,19 @@ func _test_changelog() -> void:
 			"## 1.0.0\n-\n", "## 1.0.0\n- " + "x".repeat(Changelog.PLAY_LIMIT - 1)]:
 		_check("the release rules refuse \"%s\"" % bad.left(40).c_escape(), Changelog.parse(bad).error != "")
 
-# The sheet is asked in the EEA, the UK and Switzerland, guessed from the locale's region or a European clock.
+# The sheet is asked in the EEA, the UK and Switzerland, guessed from a European clock and a locale that agrees.
 func _test_consent() -> void:
 	var consent: GDScript = load("res://kit/monetize/consent.gd")
 	var status: Dictionary = consent.get_script_constant_map()["Status"]
 	for locale: String in ["de_DE", "en_GB", "fr_CH", "nb_NO", "sr_Latn_SI", "en_IE"]:
-		_check("a phone set to %s is asked" % locale, consent.call("needs", locale, 330))
-	for locale: String in ["en_IN", "hi_IN", "en_US", "pt_BR", "ja_JP", "en"]:
+		_check("a phone set to %s on Central European time is asked" % locale, consent.call("needs", locale, 60))
+	for locale: String in ["en_IN", "hi_IN", "en_US", "en_GB", "de_DE", "en"]:
 		_check("a phone set to %s on Indian time is not asked" % locale, not consent.call("needs", locale, 330))
 	_check("a European phone set to US English is asked by its clock", consent.call("needs", "en_US", 60))
 	_check("so is one on Lisbon's winter clock", consent.call("needs", "en_US", 0))
+	_check("and one whose locale names no country", consent.call("needs", "en", 120))
 	_check("but not one on New York's", not consent.call("needs", "en_US", -300))
+	_check("nor a South African phone on the same clock as Finland", not consent.call("needs", "en_ZA", 120))
 	_check("a locale's region is read whatever its script", consent.call("country", "sr_Latn_RS") == "RS")
 	_check("a locale with no region has none", consent.call("country", "en") == "")
 	var old_path: String = consent.get("path")

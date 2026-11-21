@@ -3,8 +3,9 @@ extends RefCounted
 
 ## Our own consent sheet, asked only where the law needs it (the EEA, the UK and Switzerland), and the answer it
 ## keeps. Ads pass it to LevelPlay, and Analytics counts only where no consent is needed or the player said yes.
-## The region is a guess from the phone's own settings: its region in the locale, or a clock set to Europe's
-## time zones, so a European phone set to US English is still asked.
+## The region is a guess from the phone's own settings: a clock on Europe's time zones, with a locale that names a
+## European country, no country, or the US English many phones keep. So a European phone set to US English is
+## asked, and an Indian phone set to UK English is not.
 
 enum Status { NOT_REQUIRED, UNKNOWN, GRANTED, DENIED }
 
@@ -26,7 +27,10 @@ static func required() -> bool:
 	return forced() or needs(OS.get_locale(), bias)
 
 static func needs(locale: String, bias_minutes: int) -> bool:
-	return REGIONS.has(country(locale)) or (bias_minutes >= EUROPE_BIAS.x and bias_minutes <= EUROPE_BIAS.y)
+	if bias_minutes < EUROPE_BIAS.x or bias_minutes > EUROPE_BIAS.y:
+		return false
+	var region: String = country(locale)
+	return region == "" or region == "US" or REGIONS.has(region)
 
 ## The region of a locale such as "en_GB" or "sr_Latn_RS", or "" when it names none.
 static func country(locale: String) -> String:
