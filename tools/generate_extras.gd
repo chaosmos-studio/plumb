@@ -13,9 +13,9 @@ extends SceneTree
 ## them in main-level order and writes the file. tools/generate_extras.sh runs the parts side by side. Then
 ## tools/level_meta.sh measures them into levels/meta.json.
 ##
-## A second round (`round=2`, `tools/generate_extras.sh 4 2`) adds PER_LEVEL more for each level from DENSE_FROM to
-## DENSE_TO, where the simulated players ran short, new against everything already in the file, and appends them with
-## the next ids, so no id given before ever changes.
+## A later round (`round=2`, `tools/generate_extras.sh 4 2`) adds PER_LEVEL more for each level of its stretch in
+## LATER_ROUNDS, where the simulated players ran short, new against everything already in the file, and appends them
+## with the next ids, so no id given before ever changes.
 
 const OUT: String = "res://levels/pool.json"
 const SEED: int = 20261121
@@ -24,10 +24,9 @@ const SEED: int = 20261121
 const OPENING_END: int = 6
 const RAMP_END: int = 180
 const PER_LEVEL: int = 3
-## The second round's stretch of the ramp, in main levels, and its seed.
-const DENSE_FROM: int = 30
-const DENSE_TO: int = 130
-const DENSE_SEED: int = 20261122
+## Each later round's stretch of the ramp, first and last main level, and its seed: slow climbers ran 1 to 2.5 bits
+## over their target along the first, strong ones jumped 1 to 2 bits along the second.
+const LATER_ROUNDS: Dictionary = {2: [30, 130, 20261122], 3: [131, 180, 20261123]}
 ## The bits window around a ramp level, below and above it.
 const BELOW: float = 0.25
 const ABOVE: float = 0.75
@@ -93,14 +92,16 @@ func _make(k: int, n: int) -> void:
 	var levels: Array = _reserve()
 	var made: Array = []
 	var mine: Array[TiltNovelty.Views] = []
-	var first: int = OPENING_END if _round == 1 else DENSE_FROM
-	var last: int = RAMP_END if _round == 1 else DENSE_TO + 1
-	for i: int in range(first - 1 + k, last - 1, n):
+	# Main levels from `first` to `last`, counted from 1.
+	var stretch: Array = [OPENING_END, RAMP_END, SEED] if _round == 1 else LATER_ROUNDS[_round]
+	var first: int = stretch[0]
+	var last: int = stretch[1]
+	for i: int in range(first - 1 + k, last, n):
 		var c: int = TiltGenerator.chapter_at(i)
 		var level: Dictionary = levels[i]
 		var board: TiltBoard = TiltBoard.from_dict(level)
 		var bits: float = TiltDifficulty.of(board, int(level["par"]), 400000).bits
-		var seed: int = hash([SEED, i]) if _round == 1 else hash([DENSE_SEED, i])
+		var seed: int = hash([int(stretch[2]), i])
 		var job: Dictionary = {"chapter": c, "phase": phase_index(i), "seed": seed, "last": {},
 			"lo": bits - BELOW, "hi": bits + ABOVE, "by_par": false}
 		job["cap"] = int(TiltGenerator.phase_of(c, int(job["phase"]))[8])
