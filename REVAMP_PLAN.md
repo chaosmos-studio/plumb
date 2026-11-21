@@ -113,7 +113,7 @@ Per the workspace's GodotPrompter rule, each system names its pattern, the alter
 | Scene | File | What it is |
 | --- | --- | --- |
 | Boot | `scenes/boot/boot.tscn` (the new main scene) | Reads the save and opens the chooser, Street's map or Classic's title. The studio beat plays over whichever comes first |
-| Look chooser | `scenes/street/chooser.tscn` | Two live previews, almost no words (3.3) |
+| Look chooser | `scenes/street/chooser.tscn` | Two live previews, Classic left and Street right, Street picked, one Continue (3.3) |
 | Map (Home) | `scenes/street/map.tscn` | The rolling street, the cast, the coin pill, three round buttons (daily, shop, settings), a pin back to the current door, and the banner at its foot |
 | Start card | `scenes/street/door_card.gd`, an overlay on the map | The door number on a ribbon, the board's marbles over their holes, par as footprints, three booster slots, Play. A tile's first board shows the tile large with its one line |
 | Play | `scenes/street/play.tscn` | The board (the shared `BoardView` and a shared play core, 3.4), a hanging street sign with the door number, a moves pill (`3/8`), a row of faces that turn happy as each marble gets home, round Undo, Restart and Hint buttons |
@@ -143,9 +143,10 @@ Street's flow state lives in `scripts/street/flow.gd`, so the order of moments i
 
 ### 3.3 The look chooser
 
-- Shown once, on the first launch of 2.0, to new players and to players updating, with no default (decision 3).
-- Two cards side by side, each a live `SubViewport` running a small slice of its look: Street's map rolling slowly with the cast, Classic's seesaw title.
-- The only words are none, or at most a tick on the chosen card. A tap picks: the chosen card grows to fill the screen and becomes the game, the other slides away.
+- Shown once, on the first launch of 2.0, to new players and to players updating (decision 3, with Shravan's change of 21 November below).
+- Two cards side by side, Classic on the left and Street on the right, each a live `SubViewport` running a small slice of its look: Street's map with its title and buttons, rolling slowly with the cast, and Classic's seesaw title.
+- Street is picked to begin with. A tap on a card picks it: a gold rim and a tick on the middle of its top edge, the card a little larger and the other a little smaller and dimmer (no size change under Reduce motion). One Continue button makes the pick the game: the picked card grows to fill the screen, the other slides away. "Continue" is the only word.
+- Portrait, Continue stands under the pair. Wide, the layout takes whichever row gives the larger cards: the pair and Continue side by side right of the title (a turned phone, a 16:9 or 21:9 desktop), or the pair below the title with Continue under it (a turned tablet). A test checks on five shapes that the cards, Continue, the title and the cast keep clear of each other.
 - Saved as `Save.app_look` (`"street"` or `"classic"`), sent as the user property `app_look` and the event `look_choose`.
   The name is `app_look` because `Save.look` already means the marble set.
 - Settings in both looks has a Look row with the same two pictures. Switching keeps all progress (4.5).
@@ -479,7 +480,7 @@ Every action, reward and transition is animated, at 60 frames a second on the A1
 | 18 | Booster unlocked | Its bubble flies to the card's slot, the padlock drops off and bounces | 0.6 s | A sparkle |
 | 19 | Shop | The stall slides up, its awning drops and bounces, trays slide in one by one. Buying: the pill counts down and the item flies to the cast (a hat lands with a squash, a marble set swaps with a puff). Too few coins: the price pill wiggles | 0.4 s, stagger 0.06 s | Coin ticks, a cash-free "ding" |
 | 20 | Settings | The notice board drops like the card. The tab pill slides. Toggles slide with overshoot, tick and cross swap with a pop. Turning on Reduce motion flattens the map behind, live | 0.25 to 0.45 s | Soft clicks |
-| 21 | Look chooser | Both previews bob gently out of phase. The chosen one grows to fill the screen, the other slides away | 0.5 s | A chime |
+| 21 | Look chooser | Both previews bob gently out of phase (still under Reduce motion). A tap picks a card with a springy grow, the other shrinks and dims. Continue squashes on the tap spring, then the picked one grows to fill the screen and the other slides away | 0.22 s, then 0.5 s | A tap, then a chime |
 | 22 | Update card | Drops like the card. While downloading, a ring fills round the post box. When ready, the badge pulses | 0.45 s | A soft bell |
 | 23 | Coin pill | Counts up with ticks, limited to 20 a second | per change | Ticks |
 | 24 | Round buttons | Press to 0.92, release overshoots to 1.06 and settles, the shadow shrinks while pressed | 0.06 s and 0.18 s | Tap, 10 ms tick |
@@ -694,7 +695,7 @@ Version 2.0.0 is Play's version code 20000.
 
 1. **"Never drops" is kept strictly in Street** (4.3). The next door's target is never below the last door's and par never falls, with no allowance. At the comfort ceiling it holds flat at the top and never falls below the band's floor. Classic keeps its current behaviour.
 2. **New tiles arrive by the climb**, not by door number.
-3. **Updating players see the look chooser once**, with no default: two live previews and almost no words.
+3. **Updating players see the look chooser once**: two live previews and almost no words. Changed by Shravan on 21 November: Classic on the left, Street on the right and picked to begin with, and one Continue to confirm (3.3).
 4. **Classic gets no adaptive levels.** It shares stars by id, and its play updates the rating.
 5. **Street sells only the Supporter pack for money.** Classic's shop stays as it is, and buyers keep everything in both looks. Level keys, Every level and the themes pack are not shown in Street.
 6. **Hard is a hill road** off the first milestone, its levels in their fixed order.

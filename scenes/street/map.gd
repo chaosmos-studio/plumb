@@ -96,10 +96,12 @@ const SCENE: String = AppLook.MAP_SCENE
 static var arrival: int = 0
 ## A door whose parcel or milestone the win just earned, opened once the cast has walked on, or 0.
 static var gift_door: int = 0
-## Set while the look chooser makes its live preview: no buttons, card, banner or intro, and a gentle roll on its own.
+## Set while the look chooser makes its live preview: the title, purse and buttons only to be seen (the preview takes no
+## input), no card, badge, banner or intro, and a gentle roll on its own.
 static var preview: bool = false
 ## The same, on the one map it was made for. The chooser builds its cards before they are in the tree, so the map's
-## _ready ran after `preview` was set back, and the preview showed the banner over the chooser.
+## _ready ran after `preview` was set back, and the preview showed the banner over the chooser. (That bug also showed
+## the title and buttons, which is how the preview reads as the game's home, so it keeps them.)
 var preview_only: bool = false
 ## How far the preview rolls each way from the current door, in strip pixels, and how fast.
 const PREVIEW_ROLL: float = 300.0
@@ -186,8 +188,7 @@ func _ready() -> void:
 	_probe = FrameProbe.new()
 	add_child(_probe)
 	_set_ground_uniforms()
-	if not _preview:
-		_build_hud()
+	_build_hud()
 	get_viewport().size_changed.connect(_layout)
 	EventBus.settings_changed.connect(_layout)
 	_layout()
@@ -399,11 +400,12 @@ func _build_hud() -> void:
 	shop.pressed.connect(_open_shop)
 	var settings: StreetUI.RoundButton = StreetUI.RoundButton.new(StreetUI.PURPLE, &"gear", BUTTON)
 	settings.pressed.connect(_open_settings)
-	# A newer version on Play wears a small badge on the gear until it is installed.
-	_badge = StreetUpdateBadge.new()
-	_badge.position = Vector2(BUTTON - StreetUpdateBadge.DIAMETER * 0.8, -StreetUpdateBadge.DIAMETER * 0.15)
-	_badge.opened.connect(_open_update.bind("badge"))
-	settings.add_child(_badge)
+	# A newer version on Play wears a small badge on the gear until it is installed (never on the chooser's preview).
+	if not _preview:
+		_badge = StreetUpdateBadge.new()
+		_badge.position = Vector2(BUTTON - StreetUpdateBadge.DIAMETER * 0.8, -StreetUpdateBadge.DIAMETER * 0.15)
+		_badge.opened.connect(_open_update.bind("badge"))
+		settings.add_child(_badge)
 	# A finger coming down on either starts loading the rooms' page and that room's backdrop, so by the time it lifts
 	# most of the reading is done.
 	shop.button_down.connect(_prefetch_room.bind(StreetArt.SHOP_BACKDROP))

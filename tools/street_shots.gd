@@ -118,6 +118,10 @@ func _chooser() -> void:
 	var view: SubViewport = _stage(LookChooser.SCENE)
 	await _seconds(1.5)
 	await _save(view, "1-chooser")
+	# And with Classic picked, as a tap on its card does.
+	(view.get_child(0) as LookChooser).pick(AppLook.CLASSIC)
+	await _seconds(0.6)
+	await _save(view, "1b-chooser-classic")
 	view.queue_free()
 
 func _map() -> void:

@@ -111,6 +111,7 @@ func _initialize() -> void:
 	_test_interstitial_switch()
 	await _test_update_card()
 	_test_dev_shots_stay_out_of_release()
+	await _test_look_chooser()
 	_test_chapter_ticks()
 	_test_streak_keeping()
 	_test_chapter_colours()
@@ -1488,6 +1489,62 @@ func _test_one_off_screens_carry_no_banner() -> void:
 	await process_frame
 	_check("and the opening keeps the banner back while it plays", during == covers + 1
 		and int(ads.get("_covers")) == covers)
+
+## The look chooser (Shravan, 21 November): Classic on the left and Street on the right, Street picked to begin with, a
+## tap on a card picks it without leaving, Continue goes with the pick, and on every screen shape the cards, Continue,
+## the title and the cast keep clear of each other and of the screen's edges.
+func _test_look_chooser() -> void:
+	var intro: GDScript = load("res://kit/ui/intro.gd")
+	var intro_was: bool = intro.get("enabled")
+	intro.set("enabled", false)
+	var save: Node = root.get_node("Save")
+	var look_was: String = save.get("app_look")
+	var shapes: Array[Vector2i] = [Vector2i(720, 1602), Vector2i(1602, 720), Vector2i(1280, 720), Vector2i(1707, 720),
+		Vector2i(1280, 960)]
+	var crowded: PackedStringArray = []
+	for shape: Vector2i in shapes:
+		var port: SubViewport = SubViewport.new()
+		port.size = shape
+		root.add_child(port)
+		var chooser: Control = (load("res://scenes/street/chooser.tscn") as PackedScene).instantiate()
+		port.add_child(chooser)
+		await process_frame
+		var cards: Array = chooser.get("_cards")
+		var button: Control = chooser.get("_continue")
+		var title: Node2D = chooser.get("_title")
+		var cast: Node2D = chooser.get("_cast")
+		var screen: Rect2 = Rect2(Vector2.ZERO, Vector2(shape))
+		var parts: Array[Rect2] = [(cards[0] as Control).get_rect(), (cards[1] as Control).get_rect(), button.get_rect()]
+		var clear: bool = not parts[0].intersects(parts[1]) and not parts[0].intersects(parts[2]) \
+			and not parts[1].intersects(parts[2])
+		for part: Rect2 in parts:
+			clear = clear and screen.encloses(part) and part.end.y <= cast.position.y - 90.0
+			for k: int in range(11):
+				var along: float = float(k) / 10.0
+				clear = clear and not title.call("hit", part.position + Vector2(part.size.x * along, 0.0)) \
+					and not title.call("hit", part.position + Vector2(0.0, part.size.y * along))
+		if not clear:
+			crowded.append("%dx%d" % [shape.x, shape.y])
+		if shape == shapes[0]:
+			var looks: PackedStringArray = chooser.get("_looks")
+			var marks: Array = chooser.get("_marks")
+			# The looks' names, "classic" and "street" (AppLook, which a test cannot name: it uses autoloads).
+			_check("the chooser has Classic on the left and Street on the right", looks[0] == "classic"
+				and looks[1] == "street" and (cards[0] as Control).position.x < (cards[1] as Control).position.x)
+			_check("with Street picked to begin with", chooser.get("picked") == "street" and marks[1].get("on")
+				and not marks[0].get("on"))
+			chooser.call("pick", "classic")
+			_check("a tap on Classic picks it and stays on the chooser", chooser.get("picked") == "classic"
+				and marks[0].get("on") and not marks[1].get("on") and not chooser.get("_chosen")
+				and save.get("app_look") == look_was)
+			button.emit_signal("pressed")
+			_check("and Continue goes with the pick", chooser.get("_chosen")
+				and chooser.get_child(chooser.get_child_count() - 1) == cards[0])
+		port.queue_free()
+		await process_frame
+	_check("on every screen shape the cards, Continue, the title and the cast keep clear (%s)" % [crowded],
+		crowded.is_empty())
+	intro.set("enabled", intro_was)
 
 ## The dev package's own screenshots (kit/debug/dev_shots.gd) never reach a player: every export preset but the dev
 ## package's leaves kit/debug/ out, Save starts them only in a debug build with the dev_build feature, nothing else
