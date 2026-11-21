@@ -119,8 +119,8 @@ change can never silently break the level set.
   With Pets on, walls are sleeping cats or dogs, by turns level by level, that wake when a marble stops
   against them. Pets is off by default: some players want calm, plain walls, so the extra character is opt-in.
 - **Settings**, a gear on every screen: sound, music, vibration, Faces, Pets, the theme (Auto, Light or Dark),
-  How to play, Support the game, About, Credits, Privacy choices (only where the consent message requires
-  them), and a guarded reset. Faces off gives the plain marbles, with no emotions or memorial. The two are
+  How to play, Support the game, About, Credits, Privacy choices (only where the consent sheet is asked),
+  and a guarded reset. Faces off gives the plain marbles, with no emotions or memorial. The two are
   separate: animals with faces off are allowed, the walls being a look of their own.
 - **The guide** on level 1, once, and again from How to play: the goal and the help buttons on two
   cards, then the swipe itself, drawn by a ghost finger in the direction the solver would tilt next.
@@ -142,52 +142,69 @@ than the floor so walls, floor and pits still read as three heights.
 
 ## 5. Monetization
 
-Built (kit/monetize/, shared by all three games). The rule is that nothing irritates: no ad during play,
+Built (`kit/monetize/`, shared by the kit games). The rule is that nothing irritates: no ad during play,
 over the board or before a new player has settled in, and the game never waits on one. Everything is in
-the Android build only; the web build and desktop runs have no ads and no pack, and every call there
+the Android build only. The web build and desktop runs have no ads and no pack, and every call there
 answers "not available" at once. The numbers are constants in `kit/monetize/pacing.gd` (`AdPacing`),
 tested on their edges in `tests/run_tests.gd`.
 
-- **While AdMob is off** (`GameMonetize.ADMOB` false, since 2026-10-18, until the AdMob account is
-  approved): the studio's house ads stand in. The banner shows the studio's other games in the same
-  places, there are no interstitials, and every video offer becomes "Try a quick game", a tiny playable
-  board of another game that closes any time and gives the reward anyway. Everything below still holds.
-- **Banner**: one anchored adaptive AdMob banner at the foot of the Levels screen and of the play screen,
-  never over the board and never on a guided level. It appears once 3 levels are solved and steps aside
-  while any sheet or the ending is open. The pager lifts clear of it with a 32 px gap, and the play
-  screen's bottom row and caption with a 48 px gap, holding that room from the first frame so the board
-  never moves when the ad loads (AdMob's accidental-click rules).
-- **Between levels**: an interstitial only when a solved level is left with Next level, and only once 12
-  levels are solved in all, 4 levels have been solved this session since the last one, 4 minutes have
-  passed since any full-screen ad and 3 since the app started. Never after level 1's guide, on the ending,
-  after a failure or mid-level. If none is loaded, Next simply goes on.
-- **Reviews and updates**: Google Play's own review card, with nothing of ours before it, at a few
-  milestones on Next level (it takes the interstitial's place) and as the ending closes. Play decides
-  whether it shows. About and the ending keep a Rate button that opens the Play page. A new version
-  downloads in the background once Play has asked, and the title or the level grid offers to restart into
-  it, never mid-level. Both through `addons/play_core/` and `kit/shell/play_core.gd`.
+- **The ad network**: Unity LevelPlay, mediating Unity Ads, through the studio's own open-source Godot
+  plugin, Intermission (`addons/intermission/`, its source in `studio/godot-intermission`), driven by
+  `kit/monetize/android/levelplay.gd`. AdMob is gone from every studio game (21 November 2026, after eight
+  refusals). The studio's house banner (`HouseAds`, another of its games) fills the banner's strip whenever
+  LevelPlay has none to give, and with `GameMonetize.ADS` false it stands in alone.
+- **Banner**: one 320 by 50 dp banner at the foot, never over the board. In Street it shows on the map only
+  (REVAMP_PLAN.md decision 7), never in play. In Classic it shows on the title, the level grid, the daily
+  puzzle and the play screen, never on a guided level. It appears once 3 levels are solved and steps aside
+  for every sheet and card, the studio's opening, the look chooser and the ending. It keeps 24 dp clear of
+  the system navigation and at least 48 dp from the screen's edge, so a swipe home never starts on it, and
+  each screen holds its room from the first frame, so nothing moves when the ad loads.
+- **Between levels: off.** Interstitials ship switched off (21 November 2026, on Shravan's "no irritating
+  ads": two real Unity interstitials on the A142 had no Close for over 4 minutes, and one opened Play's
+  install overlay by itself). One remote switch can turn them on without an update: the signed level
+  feed's manifest saying `"ads": {"interstitials": true}` (`Ads.interstitial_switch`, answered by
+  `Feed.interstitials_on`, written by `tools/publish_levels.py --interstitials on`). No feed, a bad
+  signature or a manifest that says nothing leaves them off. Switched on, one shows only right after a win,
+  on Street's Play tap on a start card or Classic's Next level, and only once 12 levels are solved in all,
+  4 have been solved this session since the last one, 4 minutes have passed since any full-screen ad and 3
+  since the app started. Never in the first launch, after level 1's guide, on the ending, after a failure
+  or mid-level, and never for 24 hours after one that left the app by itself or never ended. If none is
+  loaded, the game simply goes on.
+- **Rewarded videos**, always the player's choice: a hint past the free ones, Street's x2 parcel and a
+  helper from its shop, a past daily puzzle, a missed streak day, and Classic's offers (open a locked level,
+  one more try, a level key, a few hours with a pack). Whenever no video can play (offline, no fill,
+  consent refused), the reward is given anyway.
 - **Hints**: free and unlimited on the first 15 levels. After that, 3 free a day (by the phone's calendar,
   back at local midnight), shown as a badge on the hint button; then the button shows a play mark and asks
-  "Watch a short video for a hint?" (Watch, Not now). If no video can play (offline, no fill, consent
-  refused) the hint comes anyway with a short note. A hint the board cannot give (a marble down a pit, no
-  way home) costs nothing.
-- **Consent**: Google's UMP message runs at launch before the Mobile Ads SDK starts, and Settings offers
-  Privacy choices where it says they are required. Requests are rated PG at most and are not tagged
-  child-directed (the audience is 13+). Debug builds always use Google's test units.
+  "Watch a short video for 3 hints?", one video giving the hint now and two more for today. A hint the
+  board cannot give (a marble down a pit, no way home) costs nothing.
+- **Consent**: our own consent sheet (`kit/monetize/consent.gd`), no Google form. It is asked at launch,
+  before the ad SDK starts, only where the law needs it: the EEA, the UK and Switzerland, guessed from the
+  phone's time zone and locale. The answer is kept in `user://consent.cfg` and passed to LevelPlay, and
+  Analytics counts only where no consent is needed or the player said yes. Settings offers Privacy choices
+  wherever the sheet is asked, to change the answer. Requests are not tagged child-directed (the audience
+  is 13+).
+- **Reviews and updates**: Google Play's own review card, with nothing of ours before it, at a few
+  milestones on Next level and as the ending closes. Play decides whether it shows. About and the ending
+  keep a Rate button that opens the Play page. A new version is offered by the game's own update card
+  (Street's card on the map, Classic's sheet on its title and level grid), checked every launch: a
+  flexible download by default, an immediate one when it must go out, and a badge on the map's gear until
+  it is installed (REVAMP_PLAN.md section 7). Both through `addons/play_core/` and `kit/shell/play_core.gd`.
 - **The Supporter pack**: one non-consumable Play Billing product, `supporter`, priced by the owner in Play
   Console. It turns off the banner and the ads between levels and makes every hint free; it is also the
   thank-you (the ending and About thank Supporters). Purchases are acknowledged, restored at every launch
-  and from Restore purchase, and kept in the save so the pack holds offline. A Supporter's app never loads
-  an ad or shows the consent message.
+  and from Restore purchase, and kept in the save so the pack holds offline. A Supporter's app never starts
+  the ad SDK or asks the consent sheet.
 - **Sponsoring**: GitHub Sponsors, in the web build only (Settings, the ending). Google Play's Payments
   policy forbids pointing players to a way to pay outside its billing, so the Android build never links to
   it, and its About links only to the site's Privacy and Support pages, which carry no sponsor links.
 
-The ids live in `monetize.gd` (`GameMonetize`): the AdMob app id, the banner, interstitial and rewarded
-units, and the product id. They are the real AdMob ids; debug builds load Google's test units instead. The
-project setting `admob/general/android/app_id` must stay equal to the app id, and a test checks it. Still
-the owner's to do: the `supporter` product in Play Console with license testers, and linking the AdMob app
-to the Play listing once it is live.
+The ids live in `monetize.gd` (`GameMonetize`): the LevelPlay app key and its banner, interstitial and
+rewarded units, Unity Ads' game id and bidding placements (entered in LevelPlay, never passed to the SDK),
+and the product ids. Debug builds and testers' phones ask LevelPlay's demo app for test ads, never Plumb's.
+The game's own app serves live ads, so it is for load-only checks and never shows one on a studio phone
+(PUBLISHING.md). Still to do before the first release with Unity: the privacy page, Data safety and the ads
+declarations, and Unity's lines in `app-ads.txt` (PUBLISHING.md).
 
 ## 6. Project architecture
 
@@ -207,10 +224,11 @@ scenes/shell title.gd, seesaw.gd, levels.gd
 levels/      levels.json (the main path) and hard.json (the Hard levels), written by
              tools/generate_levels.gd, never hand-edited
 kit/         the shared UI kit: ui/, shell/ (levels, settings, about, credits, finale), tools/ (capture,
-             store, film), monetize/ (pacing, ads, supporter, hint gate; android/ holds the AdMob and
-             Play Billing backends, loaded on Android only)
-addons/      the AdMob plugin (Poing Studios 5.1.0, with its Android binaries) and GodotGooglePlayBilling
-             3.1.0, both used by the Android build only
+             store, film), monetize/ (pacing, ads, consent, supporter, hint gate; android/ holds the
+             LevelPlay, Play Billing and Play Games backends, loaded on Android only)
+addons/      intermission (the studio's ads plugin: LevelPlay with Unity Ads), GodotGooglePlayBilling 3.1,
+             play_core (reviews and updates), play_games, godotx_firebase and analytics_user (Analytics),
+             firebase_build and shrink_build (the build), all for the Android build only
 monetize.gd  the ad unit and product ids; credits.gd the About, Credits and ending words; brand.gd the look
 tools/       generate_levels.gd, make_sfx.py, make_icons.py, smoke (a robot player), shots (screenshots)
 web/         the loading page and icons for the web build
@@ -237,12 +255,13 @@ generator are Plumb's own.
   chapters 1 to 10 with stop pads, one-way gates, plugs, colour gates, paint and cracked floor: built.
   1.2 to 1.4, chapters 11 to 25: designed. Daily puzzles from a date seed may follow. Since the plateau the
   main path is 520 levels in 26 chapters, with bouncy blocks as chapter 10, and the old climb is the Hard levels.
-- **M4 - Monetization**: the Levels banner, paced interstitials on Next level, rewarded hints past the
-  free ones, UMP consent, and the Supporter pack through Play Billing. Built and tested headless (unit
-  tests and the smoke robot against a stand-in ad network); a CI dry run proves the Android build carries
-  both plugins. Still to do: real AdMob ids, the Play product, and a check on a real phone with test ads.
-- **M5 - Store prep and ship**: Android preset and AAB are done; the closed test with 12 testers for 14
-  days, and the Play Console's ads and data safety answers for AdMob and billing, remain.
+- **M4 - Monetization**: the banner, paced interstitials, rewarded hints past the free ones, consent, and
+  the Supporter pack through Play Billing. Built first on AdMob and Google's consent form, which never
+  served (the AdMob account was refused). Since 21 November 2026: LevelPlay with Unity Ads through the
+  Intermission plugin, our own consent sheet, and interstitials off behind the signed feed's switch
+  (section 5), checked on the A142 with test ads.
+- **M5 - Store prep and ship**: live on Google Play since 19 October 2026. Before the first release with
+  Unity's ads: the privacy page, Data safety and the ads declarations, and `app-ads.txt` (PUBLISHING.md).
 
 ## 8. What would kill this
 

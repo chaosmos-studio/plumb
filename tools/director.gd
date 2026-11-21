@@ -21,7 +21,7 @@ extends RefCounted
 ## The ads and the Supporter pack, as the Google Play build shows them unless the variant says web:
 ## levelsad (the grid with a stand-in banner of the real size), supporter[:web|:owned] (the support
 ## sheet), hintvideo:N (the video prompt on level N), hintbadge:N:K (level N's hint button after K of the
-## day's free hints), settings:privacy (Settings where the consent message asks for privacy choices),
+## day's free hints), settings:privacy (Settings where the consent sheet is asked, with Privacy choices),
 ## about:play and ending:play|web|owned|pack (pack: the Play ending with its Supporter sheet open). Store
 ## shots never use these.
 ##
@@ -459,7 +459,7 @@ func _after_win(seconds: float) -> float:
 func _wait(host: Node, seconds: float) -> void:
 	await host.get_tree().create_timer(seconds).timeout
 
-## Nothing to show, but ads count as possible and the consent message asks for privacy choices.
+## Nothing to show, but ads count as possible and the consent sheet is asked, so Settings offers Privacy choices.
 class _PreviewAds extends AdBackend:
 	func privacy_required() -> bool:
 		return true

@@ -40,7 +40,7 @@ Edits to Plumb's copy of the kit stay small and are listed in 2.3, so they can b
 | Service | Where | What changes |
 | --- | --- | --- |
 | Saving and the cloud save | `autoload/save.gd`, `kit/play_games/cloud_save.gd` | Progress by board id (save layout 3), the street, the rating, coins, boosters, the look choice, new merge rules |
-| Ads and their pacing, consent | `kit/monetize/ads.gd`, `pacing.gd`, `android/consent.gd` | `Ads.solved()` counts solves by id. Street calls the interstitial from the start card's Play (decision 7) |
+| Ads and their pacing, consent | `kit/monetize/ads.gd`, `pacing.gd`, `consent.gd`, `android/levelplay.gd` (LevelPlay with Unity Ads, through the Intermission plugin) | `Ads.solved()` counts solves by id. Street calls the interstitial from the start card's Play (decision 7), and interstitials stay off unless the signed feed turns them on |
 | Billing, Supporter, restore | `kit/monetize/supporter.gd`, `shop.gd`, `android/play_billing.gd` | None in billing. Street's shop presents only the Supporter pack for money |
 | The hint gate | `kit/monetize/hint_gate.gd` | None. Street passes its door number for the free-first-15 rule |
 | The daily's logic | `kit/daily/daily.gd` | None. The board stays the same for everyone |
@@ -298,7 +298,7 @@ No timers, no fake discounts, no offers between levels. Classic's shop stays as 
 
 ## 5. Analytics
 
-Firebase Analytics into GA4 property 558339480, under today's rules: counting only where Google's consent service says no consent is needed, never in debug builds, never for ads.
+Firebase Analytics into GA4 property 558339480, under today's rules: counting only where our own consent sheet (`kit/monetize/consent.gd`) is not needed or the player said yes, never in debug builds, never for ads.
 Level and other grouping parameters are sent as text, counts and measures as numbers (`game-analytics` skill).
 
 ### 5.1 User properties
@@ -581,7 +581,7 @@ The live Plumb (`com.shravangoswami.plumb`) is never installed over, cleared or 
 | The signing key | A lost key stops updates to the pool, a leaked one lets someone sign boards | Two embedded public keys for rotation, the private key only in `release-keys` and the vault, boards still checked by the solver before play |
 | Music quality | Free samples sound stiff on long notes | Write for short notes, Shravan's ear decides, commission the theme later if needed |
 | Painted art | Codex's pieces drift from the concepts or from each other | Full-size reviews beside the concept, one palette and outline in every brief, an atlas test |
-| Ads in a flow with nothing to press | An interstitial landing without a tap breaks AdMob's rules | The interstitial only after the Play tap on a card, with today's pacing. The banner on the map only (decision 7) |
+| Ads in a flow with nothing to press | An interstitial landing without a tap breaks the ad networks' rules and annoys players | The interstitial only after the Play tap on a card, with today's pacing. The banner on the map only (decision 7) |
 | Cloud save | Two phones grow different streets | The copy with more solved doors wins the street, stars join per id, coins take the larger side |
 | Update reach | 88% of players were still on 1.4.10 on 20 November, and the new card only ships with 2.0 | Nothing in-game can fix the old builds. Play's own auto-update and a Play "Events and offers" card for 2.0 |
 | The shared phone | The A142 is locked or in use | Ask the lead. Desktop measurements never stand in for the phone's |
