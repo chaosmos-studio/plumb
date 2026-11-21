@@ -85,6 +85,12 @@ func _ready() -> void:
 	root.modulate.a = 0.0
 	root.create_tween().tween_property(root, "modulate:a", 1.0, 0.25)
 	get_viewport().size_changed.connect(_on_resize)
+	# A full moment covers the street, so the banner steps away until it closes (the kit's rule for full sheets),
+	# and nothing of it sits under an ad.
+	Ads.cover(true)
+
+func _exit_tree() -> void:
+	Ads.cover(false)
 
 ## Puts the pill, the slots and the Play pill for the screen's shape.
 func _place_frame() -> void:

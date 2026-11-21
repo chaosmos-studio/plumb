@@ -98,6 +98,8 @@ func _ready() -> void:
 	_root.add_child(_close)
 	_layout()
 	get_viewport().size_changed.connect(_layout)
+	# The shop covers the street, so the banner steps away until it closes and never sits over a tray or a row.
+	Ads.cover(true)
 	Analytics.event(&"shop_open", {"from": "street"})
 	if Save.reduce_motion:
 		_root.modulate.a = 0.0
@@ -105,6 +107,9 @@ func _ready() -> void:
 	else:
 		_frame.enter = 0.0
 		_frame.create_tween().tween_property(_frame, "enter", 1.0, 0.9)
+
+func _exit_tree() -> void:
+	Ads.cover(false)
 
 ## The cast member shown behind the counter: the first wearing a hat, or Rosie.
 func _first_hatted() -> int:

@@ -79,6 +79,8 @@ func _ready() -> void:
 	_root.add_child(_close)
 	_layout()
 	get_viewport().size_changed.connect(_layout)
+	# Settings covers the street, so the banner steps away until it closes and never sits over a row.
+	Ads.cover(true)
 	# The board drops in from the top with an overshoot, as the start card does.
 	if Save.reduce_motion:
 		_root.modulate.a = 0.0
@@ -88,6 +90,9 @@ func _ready() -> void:
 		_board.position.y = -_board.height() * _board.scale.y
 		_board.create_tween().tween_property(_board, "position:y", rest, DROP_TIME).set_trans(Tween.TRANS_BACK) \
 			.set_ease(Tween.EASE_OUT)
+
+func _exit_tree() -> void:
+	Ads.cover(false)
 
 ## The rows a tab shows, in order.
 func rows_of(tab: Tab) -> Array[Row]:
