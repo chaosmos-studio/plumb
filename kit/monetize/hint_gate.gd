@@ -25,7 +25,8 @@ static func today() -> String:
 static func request(host: Node, level: int, give: Callable) -> Sheet:
 	give = _counted(give)
 	var price: AdPacing.Hint = cost(level)
-	Analytics.event(&"hint", {"level": level + 1, "cost": String(AdPacing.Hint.keys()[price]).to_lower()})
+	Analytics.event(&"hint", {"level": level + 1, "cost": String(AdPacing.Hint.keys()[price]).to_lower(),
+		"board": str(Analytics.level_context.get("board", ""))})
 	match price:
 		AdPacing.Hint.ALLOWANCE:
 			Save.set_hints(today(), used() + 1)

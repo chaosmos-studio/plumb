@@ -80,6 +80,10 @@ func _grant(times: int) -> Dictionary:
 		Save.add_coins(int(reward["coins"]) * times)
 	if int(reward["booster"]) >= 0:
 		Save.add_booster(StreetRewards.BOOSTER_IDS[int(reward["booster"])], int(reward["count"]) * times)
+		Analytics.event(&"booster_gain", {"booster": StreetRewards.BOOSTER_IDS[int(reward["booster"])], "how": "parcel",
+			"count": int(reward["count"]) * times})
+	Analytics.event(&"gift_open", {"gift": "parcel", "level": door, "coins": int(reward["coins"]) * times,
+		"doubled": "no"})
 	if int(reward["hat"]) >= 0:
 		var item: String = "hat_%d" % (int(reward["hat"]) + 1)
 		Save.own_street(item)
@@ -318,6 +322,9 @@ func _grant_again() -> void:
 	Save.add_coins(int(_reward["coins"]))
 	if int(_reward["booster"]) >= 0:
 		Save.add_booster(StreetRewards.BOOSTER_IDS[int(_reward["booster"])], int(_reward["count"]))
+		Analytics.event(&"booster_gain", {"booster": StreetRewards.BOOSTER_IDS[int(_reward["booster"])],
+			"how": "parcel", "count": int(_reward["count"])})
+	Analytics.event(&"gift_open", {"gift": "parcel", "level": door, "coins": int(_reward["coins"]), "doubled": "yes"})
 
 
 ## The "x2" pill: orange, a small play triangle for the video, and x2.

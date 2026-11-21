@@ -170,9 +170,13 @@ static func solves() -> int:
 static func plays_free(d: int) -> bool:
 	return d >= today() or solved(d) or opened(d) or not Ads.rewards() or not Ads.video_ready()
 
+## Day `d`'s board as analytics names it: "daily-2026-11-20".
+static func board_id(d: int) -> String:
+	return "daily-" + Time.get_date_string_from_unix_time(d * DailyDays.DAY)
+
 static func play(d: int) -> void:
 	day = d
-	Analytics.event(&"daily_start", {"days_ago": today() - d})
+	Analytics.event(&"daily_start", {"days_ago": today() - d, "board": board_id(d)})
 	Screens.go(Brand.GAME_SCENE)
 
 static func leave() -> void:
@@ -236,7 +240,7 @@ static func solved_now(host: Node) -> Sheet:
 	var ms: int = _clock.stop() if is_instance_valid(_clock) else 0
 	var result: Dictionary = record(day, ms)
 	Analytics.event(&"daily_end", {"seconds": floori(ms / 1000.0), "first": result["first"],
-		"late": not bool(result["on_time"])})
+		"late": not bool(result["on_time"]), "board": board_id(day)})
 	if bool(result["first"]) and bool(result["on_time"]):
 		PlayGames.submit(&"daily", ms)
 	PlayGames.solved(0, 0, ms / 1000.0, true)

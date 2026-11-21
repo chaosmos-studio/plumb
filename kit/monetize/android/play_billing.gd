@@ -81,6 +81,8 @@ func _on_purchase_updated(response: Dictionary) -> void:
 		BillingClient.BillingResponseCode.OK:
 			var states: Dictionary = _take(response.get("purchases", []))
 			for id: String in states:
+				if int(states[id]) == PURCHASED:
+					Analytics.event(&"shop_buy", {"item": id, "paid_with": "money"})
 				if int(states[id]) == PURCHASED and not Shop.is_consumable(id):
 					Shop.grant(id, true)
 					Supporter.say(_thanks(id))

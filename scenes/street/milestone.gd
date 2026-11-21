@@ -50,6 +50,10 @@ func _grant() -> Dictionary:
 	for b: int in range(3):
 		if StreetRewards.booster_open(b, door + 1):
 			Save.add_booster(StreetRewards.BOOSTER_IDS[b], int(reward["boosters"]))
+			Analytics.event(&"booster_gain", {"booster": StreetRewards.BOOSTER_IDS[b], "how": "milestone",
+				"count": int(reward["boosters"])})
+	Analytics.event(&"gift_open", {"gift": "milestone", "level": door, "coins": int(reward["coins"]), "doubled": "no"})
+	Analytics.event(&"milestone", {"level": door, "family": str(int(reward["family"]))})
 	return reward
 
 func _build() -> void:
