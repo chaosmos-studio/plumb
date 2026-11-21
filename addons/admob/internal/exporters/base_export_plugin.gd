@@ -33,7 +33,6 @@ const MEDIATION_LIBS: Array[String] = [
 	"dtexchange",
 	"imobile",
 	"inmobi",
-	"ironsource",
 	"line",
 	"maio",
 	"meta",
@@ -42,7 +41,6 @@ const MEDIATION_LIBS: Array[String] = [
 	"mytarget",
 	"pangle",
 	"pubmatic",
-	"unity_ads",
 	"vungle",
 	"vpon",
 	"zucks"

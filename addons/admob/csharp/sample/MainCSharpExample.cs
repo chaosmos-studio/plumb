@@ -26,10 +26,8 @@ using PoingStudios.AdMob.Api.Core;
 using PoingStudios.AdMob.Api.Listeners;
 using PoingStudios.AdMob.Mediation.Extras.Meta;
 using PoingStudios.AdMob.Mediation.Extras.Vungle;
-using PoingStudios.AdMob.Mediation.Extras.IronSource;
 using PoingStudios.AdMob.Mediation.Extras.AppLovin;
 using PoingStudios.AdMob.Mediation.Extras.BidMachine;
-using PoingStudios.AdMob.Mediation.Extras.UnityAds;
 using PoingStudios.AdMob.Mediation.Extras.Chartboost;
 using PoingStudios.AdMob.Mediation.Extras.DTExchange;
 using PoingStudios.AdMob.Sample;
@@ -169,11 +167,6 @@ public partial class MainCSharpExample : Control, ISampleLogger
 		Vungle.UpdateCcpaStatus(Vungle.Consent.OptedOut);
 		Vungle.UpdateConsentStatus(Vungle.Consent.OptedIn, "consent_message");
 
-		// IronSource setup example
-		IronSource.SetConsent(true);
-		IronSource.SetMetaData("do_not_sell", "false");
-		IronSource.SetUserId("unique_user_id_123");
-
 		// AppLovin setup example
 		AppLovin.SetHasUserConsent(true);
 		AppLovin.SetDoNotSell(false);
@@ -183,10 +176,6 @@ public partial class MainCSharpExample : Control, ISampleLogger
 		BidMachine.SetSubjectToGdpr(true);
 		BidMachine.SetConsentStatus(true);
 		BidMachine.SetUsPrivacyString("1YNN");
-
-		// Unity Ads setup example
-		UnityAds.SetConsent(true);
-		UnityAds.SetPrivacyConsent("user_privacy_data", true);
 
 		// Chartboost setup example
 		Chartboost.SetConsent(true);

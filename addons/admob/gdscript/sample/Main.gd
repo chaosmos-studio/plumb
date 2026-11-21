@@ -143,11 +143,6 @@ func _setup_mediation_adapters() -> void:
 	Vungle.update_ccpa_status(Vungle.Consent.OPTED_OUT)
 	Vungle.update_consent_status(Vungle.Consent.OPTED_IN, "consent_message")
 
-	# IronSource setup example
-	IronSource.set_consent(true)
-	IronSource.set_metadata("do_not_sell", "false")
-	IronSource.set_user_id("unique_user_id_123")
-
 	# AppLovin setup example
 	AppLovin.set_has_user_consent(true)
 	AppLovin.set_do_not_sell(false)
@@ -157,10 +152,6 @@ func _setup_mediation_adapters() -> void:
 	BidMachine.set_subject_to_gdpr(true)
 	BidMachine.set_consent_status(true)
 	BidMachine.set_us_privacy_string("1YNN")
-
-	# Unity Ads setup example
-	UnityAds.set_consent(true)
-	UnityAds.set_privacy_consent("user_privacy_data", true)
 
 	# Chartboost setup example
 	Chartboost.set_consent(true)

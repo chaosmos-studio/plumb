@@ -1,6 +1,6 @@
 ---
 name: godot-admob-mediation
-description: Provides instructions to configure, integrate, and verify third-party mediation networks (AppLovin, Meta Audience Network, Unity Ads, etc.) in GDScript and C#. Use when setting up mediation adapters.
+description: Provides instructions to configure, integrate, and verify third-party mediation networks (AppLovin, Meta Audience Network, etc.) in GDScript and C#. Use when setting up mediation adapters.
 metadata:
   version: 1.0.0
   category: GodotAdMob
@@ -11,7 +11,7 @@ Assists with configuring and integrating third-party ad networks (mediation) wit
 
 ## Mediation Workflow
 
-1.  **Select Mediation Partners**: Enable required partner adapters (e.g. AppLovin, ironSource, Unity Ads) in your Godot Project Settings under **Admob > Mediation**.
+1.  **Select Mediation Partners**: Enable required partner adapters (e.g. AppLovin, Meta Audience Network) in your Godot Project Settings under **Admob > Mediation**.
 2.  **Add Native Libraries**:
     *   **Android**: Check that the required AAR dependencies are configured in your custom build template.
     *   **iOS**: Check that the SPM/CocoaPods dependencies for the selected adapters are declared in the plugin configuration.
