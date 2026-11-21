@@ -166,9 +166,6 @@ func _play() -> void:
 	t.tween_callback(finish).set_delay(gifts_at + (0.1 if still else 1.4))
 
 func tap(at: Vector2) -> void:
-	if finished:
-		super.tap(at)
-		return
 	var local: Vector2 = (at - _folk.position) / maxf(_folk.scale.x, 0.01)
 	var member: int = _folk.member_at(local) if _folk.visible else -1
 	if member >= 0:

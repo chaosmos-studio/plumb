@@ -3,8 +3,9 @@ extends CanvasLayer
 
 ## What the parcel and the milestone share (REVAMP_PLAN.md section 8, moments 15 and 16): a painted backdrop for the
 ## screen's shape, the coin pill top right, the three helpers' slots with their counts, a wobbler for taps, and a
-## Play pill to go on that shows when the moment is over. A tap anywhere once it is over goes on too. The moment's
-## rewards are in the save before anything moves, so leaving early loses nothing. `done` fires as it closes.
+## Play pill to go on that shows when the moment is over (or the back key). Taps elsewhere only wobble things, so none
+## lands on the wrong thing. The moment's rewards are in the save before anything moves, so leaving early loses
+## nothing. `done` fires as it closes.
 
 signal done
 
@@ -154,7 +155,7 @@ func fly_helper(b: int, from: Vector2, n: int) -> float:
 		icon.queue_free())
 	return 0.6
 
-## The moment is over: the Play pill springs up, and a tap anywhere goes on.
+## The moment is over: the Play pill springs up.
 func finish() -> void:
 	finished = true
 	_go.visible = true
@@ -186,10 +187,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			hurry()
 
-## A tap on the moment at `at`: subclasses wobble what is under it. Once it is over, a tap goes on.
+## A tap on the moment at `at`: subclasses wobble what is under it. Only the Play pill (or the back key) goes on, so
+## a quick tap meant for something on screen never closes the moment by mistake.
 func tap(_at: Vector2) -> void:
-	if finished:
-		close()
+	pass
 
 ## Skips ahead: subclasses play out what is left at once.
 func hurry() -> void:

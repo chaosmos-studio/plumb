@@ -2,14 +2,17 @@ class_name StreetGift
 extends StreetMoment
 
 ## The parcel at every fifth door (REVAMP_PLAN.md section 8 moment 15, build/review/art/d1-gift.png): in front of the
-## door's house, its door open, the parcel drops and bounces until tapped, or opens itself after a while. The lid flies
-## off, its flaps fold open over slow rays, and what it holds rises (coins, a helper or a hat) and flies to where it
-## belongs. Then "x2" waits: a video doubles it, and with no video ready it doubles anyway (decision 7).
+## door's house, its door open, the parcel drops and waits for the player's tap, never opening by itself, so no tap
+## meant for something else can open it (the lead, 21 November). After a few seconds a soft glow and a hop invite the
+## tap. The lid flies off, its flaps fold open over slow rays, and what it holds rises (coins, a helper or a hat) and
+## flies to where it belongs. Then "x2" waits: a video doubles it, and with no video ready it doubles anyway
+## (decision 7).
 
-## The parcel opens itself after this long, and hops this often while it waits.
-const AUTO_OPEN: float = 3.0
-const HOP_EVERY: float = 0.8
-const HOP: float = 46.0
+## The parcel starts inviting a tap after this long, then hops this often, this high, with a glow behind it.
+const INVITE_AFTER: float = 2.5
+const HOP_EVERY: float = 1.6
+const HOP: float = 40.0
+const GLOW_SPEED: float = 3.0
 ## The concept's composition, as shares of the screen (portrait, then wide): the house's foot, the parcel's foot in
 ## front of its door, and each cast member's foot about the road. Then the house's and the parcel's widths, and how
 ## high the parcel's contents rise above it.
@@ -39,6 +42,7 @@ var _bow: StreetPiece
 var _back: StreetPiece
 var _front: StreetPiece
 var _rays: StreetPiece
+var _glow: StreetPiece
 ## The cast, one member each, scattered over the road as in the concept.
 var _cast: Array[StreetCast] = []
 var _house: StreetPiece
@@ -95,6 +99,10 @@ func _build() -> void:
 	_rays = StreetPiece.new("rays", 1.0 * u)
 	_rays.modulate.a = 0.0
 	stage.add_child(_rays)
+	# The glow that invites a tap: soft rays of light turning behind the parcel.
+	_glow = StreetPiece.new("rays", PARCEL * u * 2.6 / StreetArt.size("rays").x)
+	_glow.visible = false
+	stage.add_child(_glow)
 	_parcel = Node2D.new()
 	_parcel.position = size * (WIDE_PARCEL_AT if wide else PARCEL_AT)
 	stage.add_child(_parcel)
@@ -144,14 +152,20 @@ func _process(delta: float) -> void:
 	if _rays.modulate.a > 0.0 and not Save.reduce_motion:
 		_rays.rotation += 0.3 * delta
 	if _opened:
+		_glow.visible = false
 		return
 	_waited += delta
-	if _waited > AUTO_OPEN + 0.7:
-		_open()
+	if _waited < INVITE_AFTER:
 		return
-	# While it waits, it hops now and then, inviting a tap.
+	# Once it has waited a while, a soft glow breathes behind it, and it hops now and then, inviting the tap.
+	_glow.visible = true
+	_glow.position = _parcel.position + Vector2(0.0, -StreetArt.size("parcel_body").y * _body.k * 0.5)
+	_glow.modulate.a = clampf((_waited - INVITE_AFTER) * 2.0, 0.0, 1.0) \
+		* (1.0 if Save.reduce_motion else 0.8 + 0.2 * sin(_waited * GLOW_SPEED))
+	if not Save.reduce_motion:
+		_glow.rotation += 0.4 * delta
 	_hop += delta
-	if _hop > HOP_EVERY and _waited > 0.8 and not Save.reduce_motion:
+	if _hop > HOP_EVERY and not Save.reduce_motion:
 		_hop = 0.0
 		var t: Tween = _parcel.create_tween()
 		var y: float = _parcel.position.y
@@ -160,9 +174,6 @@ func _process(delta: float) -> void:
 		t.tween_callback(func() -> void: wobbler.tap(_parcel, StreetWobbler.Voice.POP, 0.6))
 
 func tap(at: Vector2) -> void:
-	if finished:
-		super.tap(at)
-		return
 	if not _opened:
 		var reach: float = PARCEL * u
 		if at.distance_to(_parcel.position + Vector2(0.0, -reach * 0.4)) < reach:

@@ -176,6 +176,8 @@ func _gift() -> void:
 		return n is StreetGift).front()
 	await _seconds(0.8)
 	await _save(view, "11-gift")
+	await _seconds(2.4)
+	await _save(view, "11b-gift-invite")
 	moment.call("_open")
 	await _seconds(1.0)
 	await _save(view, "12-gift-open")
