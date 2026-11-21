@@ -1398,3 +1398,88 @@ never opened (the app closed before the walk) opens the next time the street loa
 - `PARCEL_COINS` or `MILESTONE_COINS` in `rewards.gd`: watch the pill count the difference.
 - `BOOSTER_FIRST` to 5: each new helper arrives five at a time.
 - `WIN_CLEAN` to 20: clean solves become the way to earn.
+
+## 29. A street that fits the player: one scale, a climb and a picker
+
+Street has no fixed list of levels. Each door's board is picked for the player from a pool, so a quick player meets
+harder boards sooner and a slow one meets more boards at each step, and nobody ever sees how (`REVAMP_PLAN.md` 4.3
+and 4.4). Three small ideas do it, each a pure script: a rating (`scripts/street/rating.gd`), a climb and a picker
+(`picker.gd`), and a pool (`pool.gd`).
+
+**One scale for players and boards.** A board's difficulty `d` is in bits (section 5). Its rating is
+
+    R(d) = 1000 + 50 d
+
+so level 1 is about 1050 and the plateau about 1950. A player has a rating μ and a deviation φ, how sure the game is
+of μ. Glicko-1 says a player at μ does as well as
+
+    E = 1 / (1 + 10^(-g(φ_board) (μ - R) / 400))        g(φ) = 1 / sqrt(1 + 3 q² φ² / π²),  q = ln 10 / 400
+
+on a board of rating R. After an attempt with outcome `s` (0 to 1), μ moves by `q / (1/φ² + 1/d²) × g × (s - E)`
+and φ shrinks, where `1/d² = q² g² E (1 - E)` is how much one attempt can tell. A new player starts at 1100 with φ
+350, so the first doors move μ a lot. φ never drops under 50, so a player who gets better still moves, and it grows
+by 8 a day away (`rested`), so a long absence lets the next doors move it again. The test checks the code against
+Glickman's own worked example (1500 and 200 against three opponents come to 1464 and 151.4).
+
+**An outcome, not a win.** A solve at par, with no hint, helper or restart, in about the board's expected time
+(`6 + 4 × par` seconds), is 1. Each move over par takes 0.12, each hint 0.2, each helper 0.15, each restart 0.1, each
+doubling of the expected time 0.1, never below 0.1 for a solve. Leaving after 3 moves or 30 seconds is 0, and leaving
+at once costs nothing. Help therefore never pushes a player into harder boards. Replays do not count. Classic's play
+moves the same rating, so a player who switches looks arrives well estimated.
+
+**The climb.** The main path is the curriculum. A player has a climb position `p`, in main levels: the rules taught by
+`p` are the ones the main path has shown by then, and the reference difficulty there is the main path's, made never
+to fall (its running maximum, `StreetPool.ref_d`). After a first solve on the furthest door, `p` moves on by the pace
+
+    m = 2^((μ - R(ref_d(p)) - g0) / 200),  clamped to 0.6 .. 2.5
+
+where `g0` is the gap at which the player is expected to reach 0.75 on a board (`target_gap`, about 194 points or
+4 bits). A pace of 1 is the main path's own. A player 200 points stronger than that climbs twice as fast. Weaker
+ones meet more boards at each step, never fewer than 0.6 levels a door.
+
+**Never easier.** The target for the next door is the reference at `p`, never below the last target. No board below
+the floor (the hardest door so far) and no par below the last door's is ever picked. At the comfort ceiling, today's
+plateau band (18.85 to 20.35 bits, par 12 to 13, boards up to 7 by 8 with 5 marbles), the target holds at the band's
+top and the floor stays at the band's floor, so the street settles into the plateau instead of climbing forever.
+
+**The picker** takes every board in the pool not played, not retired, with every rule taught, inside the window
+`[floor, target + 0.6]`, and costs each by its distance from the target, with a tiny seeded random part to break
+ties. The seed is the player's id and the door's number, so a door's board is the same every time it is asked for,
+and once picked it is saved on the street for good. It asks in steps, each giving up one wish, and the step that
+chose is sent to analytics as `pick`:
+
+1. `fit`: a layout (size and marbles) unlike the last two doors', the feel (roomy or tight, by marbles per cell)
+   unlike the last door's, and while a rule is new (its first 4 doors), a board made to need it.
+2. `any_feel`: the layout and feel may repeat.
+3. `any_need`: any board with taught rules.
+4. `wide`: the window reaches 1.6 bits up instead of 0.6.
+5. `recycle`: the least recently played board at or above the floor, turned by one of the seven other symmetries of
+   the square and with its colours renamed (`main-0150~31` is main-0150 turned by symmetry 3 with colour order 1).
+   It plays exactly the same, so its par holds, which the tests check with the solver.
+
+The plan once widened the window first. On a thin pool that sent boards racing ahead of a slow climber, and since no
+door may be easier than the last, a door too hard stays that hard. The simulated players showed it, so widening
+comes last.
+
+**A pool thick enough.** The main path has one board at each step, and a slow climber needs several. So the pool
+holds extras (`levels/pool.json`, `tools/generate_extras.gd`): for each main level from 6 to 180, three more boards
+made by the generator in that level's chapter phase, within -0.25 to +0.75 bits of it, each new by the novelty test
+(section 7) against every main, Hard and other extra board. The plateau needs none: every band board with taught rules
+serves there. `StreetPool.coverage()` counts boards per rule set and per quarter bit, to see where it runs thin.
+
+**Updating players** start where they were (`scripts/street/migrate.gd`): doors 1 to K are main-0001 to main-K, K
+being the furthest main level solved or opened, `p` is K, the floor is the hardest of them solved, and μ is R(d_K)
+plus 50 with φ 200, sure enough to keep their place and loose enough to settle in a few doors.
+
+**Real play corrects the solver** (`tools/rescore.py`). If players of mean rating μ̄ solve a board a share p of the
+times they start it, the model says the board played at R = μ̄ + 400 log10((1 - p) / p). With n plays, the new value
+moves from the solver's by `n / (n + 20)` toward it, at most 3 bits, and its deviation narrows by `sqrt(1 - n/(n+20))`.
+The feed ships it, and the picker uses it for future picks only: a door keeps the difficulty it was played at.
+
+### Things to try
+
+- `PACE_DOUBLING` to 100 in `picker.gd`: strong players fly. Run the tests and read the "stronger player climbs
+  faster" line.
+- `TARGET_SUCCESS` to 0.6 in `rating.gd`: `g0` shrinks, so everyone climbs faster and meets harder boards.
+- `WINDOW` to 0.2: fewer boards fit, so more doors fall through to `any_feel` and `wide`.
+- `START_PHI` to 100: a new player's first doors barely move the rating, and the climb stays near pace 1 for longer.

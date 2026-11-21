@@ -80,7 +80,10 @@ Kept short so they port back to the skill's kit:
 
 - `analytics.gd`: `user_property(name, value)` through `AnalyticsUser`, sent only while counting, and `board`, `path`, `look` added to the text parameters in `for_ga()`.
 - `play_core.gd` and `PlayCore.java`: `checkUpdate` without the stale wait, the update's version code, priority, size and download progress, `startUpdate(immediate)`, and state for the card. `QUIET_SCENES` gains Street's map.
-- `ads.gd`: `solved()` reads a count from `Save` instead of walking `Pack` by index.
+- `ads.gd`: `solved()` reads a count from `Save` instead of walking `Pack` by index, and `solved_here()` keeps the walk for `finale.gd` and `solved_all`.
+- `cloud_save.gd`: `rules()` adds the game's own join rules (`Save.cloud_rules`), and an unknown rule goes to `Save.cloud_join`.
+- `analytics.gd`: also `level_context`, `solve_measures` and `in_level()` for the level events, the rounded measures, and the new text parameters.
+- `hint_gate.gd`, `daily.gd`, `play_billing.gd`: the board on `hint`, `daily_start` and `daily_end`, and `shop_buy` for money.
 - `unlocks.gd`, `levels.gd`, `cheers.gd`, `share_card.gd`, `finale.gd`: unchanged in logic, since they reach progress through `Save.best(level)`, which now maps Classic's index to a board id.
 - `settings.gd`: one Look row, through `game_options.gd` as today's Faces and Pets rows are added.
 
@@ -204,7 +207,7 @@ The cheapest wins, ties broken by the seeded generator.
 
 **Fixed opening.** Doors 1 to 5 are always `main-0001` to `main-0005`, the opening picked to be remembered (`MATH.md` section 12).
 
-**Fallbacks**, in order: widen the window upward, drop the tile-need preference, drop the feel preference, then recycle: the least recently played board at or above the floor, turned by one of the eight symmetries with its colours permuted (`TiltNovelty.transform` already does the turning), so the game never runs out offline.
+**Fallbacks**, in order (as built in M4, see "M4 as built"): drop the feel and layout preferences, drop the tile-need preference, widen the window upward, then recycle: the least recently played board at or above the floor, turned by one of the eight symmetries with its colours permuted (`TiltNovelty.transform` already does the turning), so the game never runs out offline.
 Each pick records which step chose it, for analytics (`pick` parameter).
 
 **Tiles.** A tile's first board opens with the start card's teaching variant (the tile drawn large, its one line from `CHAPTERS.md`). No chapter card, no chapter count.
@@ -324,7 +327,7 @@ New parameters on level events: `board` (id, text), `path` (`street`, `main`, `h
 | `gift_open` | `gift` (`parcel`, `milestone`), `level`, `coins`, `doubled` | Street |
 | `milestone` | `level`, `family` | Street |
 | `shop_open`, `shop_offer` | as today | Both |
-| `shop_buy` | `item`, `price`, `currency` (`coins`, `money`) | Both |
+| `shop_buy` | `item`, `price`, `paid_with` (`coins`, `money`; GA4 reserves `currency`) | Both |
 | `look_choose` | `look`, `how` (`first`, `settings`), `from` | Both |
 | `setting` | `setting` (`reduce_motion`, `colour_help`, `larger_text`, `haptics`, `music`, `sounds`), `value` | Both |
 | `update_card` | `update` (`shown`, `start`, `later`, `downloaded`, `restart`, `installed`), `version`, `mode` (`flexible`, `immediate`) | Both, replacing `update_offer` |
@@ -338,8 +341,9 @@ New parameters on level events: `board` (id, text), `path` (`street`, `main`, `h
 Through the GA4 Admin API with the `studio-ops` key, before the first build that sends them. Registration is not retroactive.
 
 - **User scope:** `app_look`, `player_id`, `rating_band`, `furthest_level`, `feed_serial`.
-- **Event scope (text):** `board`, `path`, `pick`, `booster`, `how`, `gift`, `family`, `look`, `from`, `setting`, `value`, `update`, `mode`, `version`, `feed`, `currency`, `replay`.
-- **Metrics (numbers):** `difficulty`, `rating`, `moves`, `par`, `hints`, `undos`, `restarts`, `boosters`, `coins`, `price`, `added`.
+- **Event scope (text):** `board`, `path`, `pick`, `booster`, `how`, `gift`, `family`, `look`, `from`, `setting`, `value`, `update`, `mode`, `version`, `feed`, `paid_with`, `replay`, and `ad_trouble`'s `kind`, `format` and `network`.
+- **Metrics (numbers):** `difficulty`, `rating`, `moves`, `par`, `hints`, `undos`, `restarts`, `boosters`, `coins`, `price`, `added`, `count`.
+- **Registered 21 November** with `tools/ga4_definitions.py --apply`: the property now has 26 event-scoped dimensions, 5 user-scoped and 14 metrics.
 
 That is 17 more event-scoped dimensions (23 of the property's 50) and 11 more metrics (13 of 50).
 
@@ -652,6 +656,19 @@ Version 2.0.0 is Play's version code 20000.
 - **The shop and Settings** are overlays too (`StreetShop`, `StreetSettings`), not scenes of their own, so the street stays loaded under them and closing them is instant. The shop sells hats (each worn by the cast member of its colour), the seven marble sets (one bought here is open in Classic as well, through `Looks.is_open`) and helpers, plus the Supporter row through the kit's own offer. Settings' General tab holds Sound, Music, Faces, Pets, phone tilt where the phone can feel it, the Street look and More (the kit's sheet: How to play, About, Credits, privacy, reset). Accessibility holds Reduce motion, Colour help (a shape per colour on marbles and holes, in both looks) and Haptic feedback.
 - **The daily** pays its 30 coins once a day, when the street next loads after it is solved (the daily screen stays the kit's).
 - **Left for later:** street decorations in the shop (no art or rules yet), Larger text, a wider shop for landscape screens (it fits the height today, so its trays are small on a turned phone), the welcome purse (question 16) and the cloud-save join for the new keys (M4).
+
+### M4 as built (21 November)
+
+- **Stars stay by position for the two fixed paths.** `best[id]` is kept only for boards off them (extras, feed and recycled boards, `progress/best`). A main or Hard board's id is its position (`main-0042` is `stars[41]`, `hard-0001` is `hard[180]`), so `Save.best_of(id)` and `Save.record_id(id)` read and write the same arrays Classic reads, and Classic and its kit code needed no change. The plan's `opened_ids` stays `opened` and `hard_opened` for the same reason.
+- **The street** is one Dictionary in `[street] state` (doors, each door's difficulty, par and pick step, `p`, the target, the floor, μ, φ, when it was last rated and the doors solved), so the cloud save brings a street and its rating together. The floor is the hardest door so far, which is the last door's for a street the picker made and the hardest solved for a migrated one.
+- **Glue, not autoloads, for the pool and the street.** `StreetPool.shared()` reads the bundled pool once, started on a worker thread at launch (`StreetPool.warm`), and `Street` (`scenes/street/street.gd`) is a static class over `Save`. Only `Feed` is a new autoload, after `Pack`.
+- **The picker's fallback order** is feel and layout first, then the tile need, then the wider window. Widening first sent boards racing ahead of slow simulated players on a thin pool, and since no door may be easier than the last, a door too hard stays that hard.
+- **Extras:** 3 per main level from 6 to 180 (`tools/generate_extras.gd`, about 520 boards in `levels/pool.json`), each made in its level's chapter phase within -0.25 to +0.75 bits, measured into `levels/meta.json` with the rest.
+- **The migration** pays the welcome purse (5 coins a star, once), starts the street at the furthest level solved or opened, and copies the old file to `user://plumb.layout2.cfg` first. Marble-pack owners already own every set in Street's shop through `Looks.is_open`, so step 7 needed nothing.
+- **The cloud save** gained `CloudSave.rules()`, which merges the game's own rules (`Save.cloud_rules`), and hands rules it does not know to `Save.cloud_join`: both small, for porting back to the kit.
+- **The feed** has no server yet. `tools/publish_levels.py` writes a signed bucket, the fixtures in `tests/fixtures/feed/` are signed with a test key (its private half `plumb-feed-test.pem` beside the others), and the signing keys `plumb-feed-1.pem` (in use) and `plumb-feed-2.pem` (next) are in `studio/release-keys`. A debug build looks at the feed only when told to (a `--feed=` argument or a `user://feed_on` file), so tests and robots never reach the network.
+- **Analytics:** the level events carry the board, path, difficulty, rating, pick and replay through `Analytics.level_context`, and level_end how the solve went through `Analytics.solve_measures`. User properties go through `addons/analytics_user/AnalyticsUser.java`. `Ads.solved()` counts every board solved (pacing, the daily's gate, achievements), and `Ads.solved_here()` the section in play (the ending and `solved_all`).
+- **Left for later:** the update card (M5), the Data Studio pages and HQ (5.4), and the privacy page's new events.
 
 ## 15. Decisions and open questions
 
