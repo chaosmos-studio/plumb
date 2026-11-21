@@ -62,6 +62,8 @@ const CARD_DELAY: float = 0.35
 const NUMBERED_AHEAD: int = 3
 ## The street can be scrolled this many doors past the current one, to see what is coming.
 const AHEAD: int = 6
+## The street has no end (the picker keeps finding boards): a door number no one reaches bounds the arithmetic.
+const LAST_DOOR: int = 99999
 ## The bottom row of buttons: their size, and their distance from the screen's foot.
 const BUTTON: float = 132.0
 const BUTTON_LIFT: float = 54.0
@@ -149,8 +151,8 @@ func _ready() -> void:
 	_preview = preview
 	Palette.use_street()
 	Pack.use(Pack.Section.MAIN)
-	_last = Pack.main_count()
-	_current = clampi(Save.main_frontier() + 1, 1, _last)
+	_last = LAST_DOOR
+	_current = Street.current()
 	_measuring = OS.is_debug_build() and (OS.get_cmdline_user_args().has("--auto-scroll")
 		or FileAccess.file_exists(MEASURE_FLAG))
 	if _measuring:
@@ -279,7 +281,7 @@ func _layout() -> void:
 		_recycle(_ribbons[n])
 	_ribbons.clear()
 	_rest = _scroll_for(_current)
-	_bounds = Vector2(_scroll_for(1), _scroll_for(mini(_current + AHEAD, _last)))
+	_bounds = Vector2(_scroll_for(1), _scroll_for(_far_door()))
 	if _buttons != null:
 		_place_hud()
 
@@ -557,11 +559,11 @@ func _open_card(door: int) -> void:
 	StreetArt.prefetch_backdrop(StreetArt.PLAY_BACKDROP, StreetLayout.wide(get_viewport_rect().size))
 	# The title makes way for the card's ribbon, and comes back when the card goes.
 	_title.create_tween().tween_property(_title, "modulate:a", 0.0, 0.2)
-	_card.open(door, Pack.board(door - 1), Pack.par(door - 1), Save.best_in(false, door - 1))
+	_card.open(door, Street.board(door), Street.par(door), Street.stars(door))
 
 func _on_play(door: int) -> void:
 	Pack.use(Pack.Section.MAIN)
-	Pack.current = door - 1
+	StreetPlay.door = door
 	StreetPlay.helpers = _card.chosen()
 	var go: Callable = func() -> void: Screens.go(StreetPlay.SCENE)
 	# Decision 7: an ad between levels comes only after a tap on Play, with the kit's usual spacing.
@@ -573,7 +575,7 @@ func _on_play(door: int) -> void:
 ## Rolls the street `by` doors on from the one at its resting height, back as far as door 1 and on to the newest.
 func _step(by: int) -> void:
 	var resting: int = StreetPath.door_near(_scroll + _rest_s_rel())
-	var to: int = clampi(resting + by, 1, mini(_current + AHEAD, _last))
+	var to: int = clampi(resting + by, 1, _far_door())
 	_velocity = 0.0
 	var t: Tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	t.tween_property(self, "_scroll", _scroll_for(to), 0.35)
@@ -637,7 +639,7 @@ func _unclaimed() -> int:
 	if _measuring or _preview:
 		return 0
 	for n: int in range(_current - 1, maxi(_current - 1 - StreetRewards.PARCEL_EVERY, 0), -1):
-		if (StreetRewards.has_parcel(n) or StreetRewards.is_milestone(n)) and Save.best_in(false, n - 1) > 0 \
+		if (StreetRewards.has_parcel(n) or StreetRewards.is_milestone(n)) and Street.stars(n) > 0 \
 				and not Save.gifts.has(n):
 			return n
 	return 0
@@ -739,7 +741,7 @@ func _place() -> void:
 		var house: StreetProp = _houses.get(door, null)
 		if house == null:
 			house = _take()
-			house.dress_house(door, _state(door), Save.best_in(false, door - 1), Save.knockers.has(door),
+			house.dress_house(door, _state(door), Street.stars(door), Save.knockers.has(door),
 				Save.gifts.has(door))
 			_houses[door] = house
 		_stand(house, s, StreetPath.door_x(door))
@@ -822,11 +824,18 @@ func _stand(prop: StreetProp, s: float, x: float) -> void:
 	prop.rotation = prop.wobble_turn() + (0.0 if Save.reduce_motion else prop.sway(_time))
 	prop.z_index = -1 if _proj.behind_crest(s - _scroll) else 0
 
+## The furthest door the street scrolls to: AHEAD past the lit one, or the last door already holding a board.
+func _far_door() -> int:
+	return mini(maxi(_current + AHEAD, (Save.street["doors"] as PackedStringArray).size()), _last)
+
 func _state(door: int) -> StreetProp.Door:
 	if door == _current:
 		return StreetProp.Door.CURRENT
 	if door < _current:
-		return StreetProp.Door.SOLVED if Save.best_in(false, door - 1) > 0 else StreetProp.Door.OPEN
+		return StreetProp.Door.SOLVED if Street.stars(door) > 0 else StreetProp.Door.OPEN
+	# A door past the lit one that already has its board was opened before Street, with a key or a chapter's gate.
+	if Street.id_of(door) != "" and not _measuring:
+		return StreetProp.Door.OPEN
 	return StreetProp.Door.LOCKED if door <= _current + NUMBERED_AHEAD else StreetProp.Door.FAR
 
 func _take() -> StreetProp:
@@ -850,7 +859,7 @@ func _auto_scroll() -> void:
 		"api": RenderingServer.get_video_adapter_api_version(), "screen": DisplayServer.screen_get_size(),
 		"viewport": get_viewport_rect().size, "refresh_hz": DisplayServer.screen_get_refresh_rate()}))
 	_buttons.visible = false
-	_bounds = Vector2(_scroll_for(1), _scroll_for(_last))
+	_bounds = Vector2(_scroll_for(1), _scroll_for(Pack.main_count()))
 	_scroll = _scroll_for(AUTO_DOOR)
 	await get_tree().create_timer(2.5).timeout
 	for round: int in range(AUTO_ROUNDS):

@@ -74,6 +74,17 @@ var street_owned: PackedStringArray = PackedStringArray()
 var worn: PackedInt32Array = PackedInt32Array([0, 0, 0, 0])
 ## The day (Daily.today) whose daily puzzle Street last paid its coins for.
 var daily_paid: int = -1
+## Save layout 3 (REVAMP_PLAN.md section 4.6, StreetMigrate): stars by id for every board off the two fixed paths
+## (extras, feed and recycled boards), the street with the rating (StreetPicker.fresh), whether the welcome purse
+## was paid, and the player's random id (16 hex characters, never personal) and when it was made.
+var best_ids: Dictionary = {}
+var street: Dictionary = StreetPicker.fresh()
+var welcomed: bool = false
+var player_id: String = ""
+var player_since: int = 0
+## The level feed's serial last taken and when it was last looked at, in Unix seconds (Feed).
+var feed_serial: int = 0
+var feed_checked_at: int = 0
 
 signal coins_changed(total: int)
 signal street_changed
@@ -81,11 +92,21 @@ signal street_changed
 func _ready() -> void:
 	ScreenLock.start()
 	restore()
+	if player_id == "":
+		player_id = new_player_id()
+		player_since = int(Time.get_unix_time_from_system())
+		store()
+	StreetPool.warm()
 	Looks.use_saved()
 	Appearance.apply(theme)
 	Supporter.start()
 	Ads.start()
 	Analytics.start()
+	# The user properties (REVAMP_PLAN.md section 5.1), each launch.
+	Analytics.user_property("player_id", player_id)
+	if look_chosen:
+		Analytics.user_property("app_look", app_look)
+	Street.tell_analytics()
 	PlayCore.start()
 	PlayGames.start()
 
@@ -130,24 +151,96 @@ func main_frontier() -> int:
 			return i
 	return count - 1
 
-## Both sections'.
+## Every board's: both sections' and the boards kept by id.
 func total_stars() -> int:
 	var n: int = 0
 	for s: int in stars:
 		n += s
 	for s: int in hard_stars:
 		n += s
+	for id: Variant in best_ids:
+		n += int(best_ids[id])
 	return n
+
+## Boards solved, every one counted once, in either look.
+func solved_count() -> int:
+	var n: int = 0
+	for s: int in stars:
+		n += 1 if s > 0 else 0
+	for s: int in hard_stars:
+		n += 1 if s > 0 else 0
+	for id: Variant in best_ids:
+		n += 1 if int(best_ids[id]) > 0 else 0
+	return n
+
+## The best stars on board `id` (REVAMP_PLAN.md section 4.1): the two fixed paths' boards read their arrays by position,
+## the rest the map by id.
+func best_of(id: String) -> int:
+	var index: int = _path_index(id)
+	if index >= 0:
+		return best_in(id.begins_with("hard-"), index)
+	return int(best_ids.get(id, 0))
+
+## Records stars on board `id`, and answers whether they beat the best.
+func record_id(id: String, earned: int) -> bool:
+	var index: int = _path_index(id)
+	if index < 0:
+		if earned <= int(best_ids.get(id, 0)):
+			return false
+		best_ids[id] = earned
+		store()
+		return true
+	var hard: bool = id.begins_with("hard-")
+	var of: PackedByteArray = hard_stars if hard else stars
+	if of.size() <= index:
+		of.resize(index + 1)
+	if earned <= of[index]:
+		return false
+	of[index] = earned
+	if hard:
+		hard_stars = of
+	else:
+		stars = of
+	store()
+	return true
+
+## A main or Hard board's index in its array, or -1 for a board kept by id.
+static func _path_index(id: String) -> int:
+	if id.contains("~") or id.length() != 9:
+		return -1
+	if id.begins_with("main-"):
+		return int(id.substr(5)) - 1
+	if id.begins_with("hard-"):
+		return HardShelf.FIRST + int(id.substr(5)) - 1
+	return -1
+
+## 16 random hex characters: a player's id for analytics and the picker's seed, made on the first launch.
+static func new_player_id() -> String:
+	var crypto: Crypto = Crypto.new()
+	return crypto.generate_random_bytes(8).hex_encode()
+
+func set_feed(serial: int, checked_at: int) -> void:
+	feed_serial = serial
+	feed_checked_at = checked_at
+	store()
+
+## The street changed (a door picked, a solve rated): kept at once.
+func set_street(state: Dictionary) -> void:
+	street = state
+	store()
+	street_changed.emit()
 
 ## Unlocks asks this rather than reading `opened`, so each section has its own.
 func was_opened(level: int) -> bool:
 	return (hard_opened if Pack.is_hard(level) else opened).has(level)
 
-## Forgets the stars only, and the knockers they earned: settings, purchases, keys, coins, opened parcels and the
-## levels they opened stay.
+## Forgets the stars only, with the street they made and the knockers they earned: settings, purchases, keys, coins,
+## opened parcels and the levels they opened stay.
 func reset() -> void:
 	stars = PackedByteArray()
 	hard_stars = PackedByteArray()
+	best_ids = {}
+	street = StreetPicker.fresh()
 	knockers = PackedInt32Array()
 	store()
 	EventBus.settings_changed.emit()
@@ -170,12 +263,18 @@ func hear_music_volume(volume: float) -> void:
 func set_sound_volume(volume: float) -> void:
 	hear_sound_volume(volume)
 	store()
+	_setting("sounds", "%.1f" % sound_volume)
 	EventBus.settings_changed.emit()
 
 func set_music_volume(volume: float) -> void:
 	hear_music_volume(volume)
 	store()
+	_setting("music", "%.1f" % music_volume)
 	EventBus.settings_changed.emit()
+
+## A setting changed, for analytics (REVAMP_PLAN.md section 5.2).
+static func _setting(name: String, value: String) -> void:
+	Analytics.event(&"setting", {"setting": name, "value": value})
 
 ## A volume as decibels, on a square law: the middle of a slider sounds about half as loud as the end.
 static func volume_db(volume: float) -> float:
@@ -184,6 +283,7 @@ static func volume_db(volume: float) -> float:
 func set_haptics(on: bool) -> void:
 	haptics_on = on
 	store()
+	_setting("haptics", "on" if on else "off")
 	EventBus.settings_changed.emit()
 
 func set_phone_tilt(on: bool) -> void:
@@ -199,12 +299,14 @@ func set_faces(on: bool) -> void:
 func set_reduce_motion(on: bool) -> void:
 	reduce_motion = on
 	store()
+	_setting("reduce_motion", "on" if on else "off")
 	EventBus.settings_changed.emit()
 
 func set_colour_help(on: bool) -> void:
 	colour_help = on
 	ColourHelp.on = on
 	store()
+	_setting("colour_help", "on" if on else "off")
 	EventBus.settings_changed.emit()
 
 func set_pets(on: bool) -> void:
@@ -341,18 +443,59 @@ func set_app_look(look: String) -> void:
 	var from: String = app_look if look_chosen else ""
 	app_look = look
 	look_chosen = true
+	# Each look picks up where the other left off (REVAMP_PLAN.md section 4.5).
+	if look == AppLook.STREET:
+		Street.absorb_classic()
+	else:
+		Street.open_in_classic()
 	store()
 	Analytics.event(&"look_choose", {"look": look, "from": from, "how": "settings" if from != "" else "first"})
+	Analytics.user_property("app_look", look)
 	EventBus.settings_changed.emit()
 
-## A save from before the Hard levels moves on to them once, here, and so does a copy from the cloud (CloudSave).
+## A save from before the Hard levels moves on to them once, here, then one from before Street to layout 3, and so
+## does a copy from the cloud (CloudSave).
 func upgrade(file: ConfigFile) -> bool:
-	return HardShelf.migrate(file, Unlocks.GATE)
+	var shelved: bool = HardShelf.migrate(file, Unlocks.GATE)
+	var streeted: bool = StreetMigrate.upgrade(file, StreetPool.shared())
+	return shelved or streeted
+
+## Where a save older than layout 3 is copied, once, before it moves on.
+func backup_path() -> String:
+	return path.get_basename() + ".layout2.cfg"
+
+## The cloud save's join rules for the keys layout 3 added, beside the kit's own (CloudSave.RULES): stars by id keep
+## the better, helpers and coins the larger (the generous side), opened gifts, knockers and things owned join, and the
+## street with its rating comes from the copy with more doors solved.
+func cloud_rules() -> Dictionary:
+	return {
+		"progress/best": &"most_each",
+		"street/state": &"street",
+		"street/coins": &"most",
+		"street/boosters": &"most_each",
+		"street/gifts": &"union",
+		"street/knockers": &"union",
+		"street/owned": &"words",
+		"street/welcomed": &"either",
+		"street/daily_paid": &"most",
+	}
+
+func cloud_join(rule: StringName, a: Variant, b: Variant) -> Variant:
+	match rule:
+		&"most_each":
+			return StreetMigrate.join_most_each(a, b)
+		&"street":
+			return StreetMigrate.join_street(a, b)
+		&"words":
+			return StreetMigrate.join_words(a, b)
+	return a
 
 func restore() -> void:
 	var file: ConfigFile = ConfigFile.new()
 	if file.load(path) != OK:
 		return
+	if int(file.get_value("progress", "layout", 1)) < StreetMigrate.LAYOUT and not FileAccess.file_exists(backup_path()):
+		DirAccess.copy_absolute(ProjectSettings.globalize_path(path), ProjectSettings.globalize_path(backup_path()))
 	if upgrade(file):
 		file.save(path)
 	var saved: Variant = file.get_value("progress", "stars", PackedByteArray())
@@ -411,10 +554,28 @@ func restore() -> void:
 	var hats: PackedInt32Array = PackedInt32Array(file.get_value("street", "worn", PackedInt32Array([0, 0, 0, 0])))
 	worn = hats if hats.size() == 4 else PackedInt32Array([0, 0, 0, 0])
 	daily_paid = int(file.get_value("street", "daily_paid", -1))
+	var by_id: Variant = file.get_value("progress", "best", {})
+	best_ids = by_id if by_id is Dictionary else {}
+	street = StreetPicker.fresh()
+	var saved_street: Variant = file.get_value("street", "state", {})
+	if saved_street is Dictionary:
+		street.merge(saved_street as Dictionary, true)
+	welcomed = bool(file.get_value("street", "welcomed", false))
+	player_id = str(file.get_value("player", "id", ""))
+	player_since = int(file.get_value("player", "since", 0))
+	feed_serial = int(file.get_value("feed", "serial", 0))
+	feed_checked_at = int(file.get_value("feed", "checked_at", 0))
 
 func store() -> void:
 	var file: ConfigFile = ConfigFile.new()
-	file.set_value("progress", "layout", HardShelf.LAYOUT)
+	file.set_value("progress", "layout", StreetMigrate.LAYOUT)
+	file.set_value("progress", "best", best_ids)
+	file.set_value("street", "state", street)
+	file.set_value("street", "welcomed", welcomed)
+	file.set_value("player", "id", player_id)
+	file.set_value("player", "since", player_since)
+	file.set_value("feed", "serial", feed_serial)
+	file.set_value("feed", "checked_at", feed_checked_at)
 	file.set_value("progress", "stars", stars)
 	file.set_value("progress", "hard", hard_stars)
 	file.set_value("progress", "hard_opened", hard_opened)

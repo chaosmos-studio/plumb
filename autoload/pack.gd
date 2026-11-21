@@ -91,6 +91,11 @@ func level_word(level: int) -> String:
 func level_tag(sent: int) -> String:
 	return "h%d" % number(sent - 1) if is_hard(sent - 1) else ""
 
+## The board id of a level of the section in play (REVAMP_PLAN.md section 4.1): main-0042 for the main path's 42nd,
+## hard-0001 for Hard's first.
+func id_of(level: int) -> String:
+	return "hard-%04d" % (level - hard_from + 1) if is_hard(level) else "main-%04d" % (level + 1)
+
 func board(level: int) -> TiltBoard:
 	return TiltBoard.from_dict(levels[level])
 

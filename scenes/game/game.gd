@@ -62,8 +62,14 @@ var _stars_before: int = 0
 var _praise: String = ""
 var _celebrating: bool = false
 var _hurry: bool = false
+## How the level went, for the rating Street shares (Street.rate_classic) and analytics.
+var _hints: int = 0
+var _restarts: int = 0
+var _undos: int = 0
+var _started_us: int = 0
 
 func _ready() -> void:
+	_started_us = Time.get_ticks_usec()
 	_daily = Daily.playing()
 	level = -1 if _daily else Pack.current
 	par = Daily.par() if _daily else Pack.par(level)
@@ -94,6 +100,7 @@ func _ready() -> void:
 	EventBus.settings_changed.connect(_dress_hint)
 	if _daily:
 		return
+	Analytics.level_context = Street.classic_analytics(level)
 	EventBus.level_started.emit(level)
 	if Coach.due(level):
 		_guide()
@@ -222,6 +229,7 @@ func _on_undo() -> void:
 	board = history.pop_back()
 	route.resize(history.size())
 	_retried = true
+	_undos += 1
 	finished = false
 	_close_sheet()
 	_view.sync(board)
@@ -235,6 +243,7 @@ func _on_restart() -> void:
 	history.clear()
 	route.clear()
 	_retried = true
+	_restarts += 1
 	board = start.copy()
 	finished = false
 	_close_sheet()
@@ -265,6 +274,8 @@ func _reveal_hint() -> void:
 	if path.is_empty():
 		return
 	_view.show_hint(path[0], board)
+	if _hinted != board:
+		_hints += 1
 	_hinted = board
 	Audio.play(&"hint", -4.0)
 	_dress_hint()
@@ -423,7 +434,11 @@ func _show_won() -> void:
 	_stars_before = Save.total_stars()
 	var was_open: bool = level + 1 < Pack.count() and Save.unlocked(level + 1)
 	Save.record(level, _earned)
+	Street.rate_classic(Pack.id_of(level), _won.before == 0, true, moves, par, _hints, _restarts, _seconds())
+	Analytics.solve_measures = {"moves": moves, "par": par, "hints": _hints, "undos": _undos, "restarts": _restarts}
 	EventBus.level_won.emit(level, moves, _earned)
+	if _won.before == 0:
+		Street.tell_analytics()
 	if not was_open and level + 1 < Pack.count() and Save.unlocked(level + 1):
 		Celebration.just_opened = level + 1
 	_praise = Celebration.praise(_earned)
@@ -552,8 +567,19 @@ func _advance() -> void:
 func _to_levels() -> void:
 	if _daily:
 		Daily.leave()
-	else:
-		Screens.go(Brand.LEVELS_SCENE)
+		return
+	if not finished and Save.best(level) == 0:
+		var seconds: float = _seconds()
+		if StreetRating.counts_as_quit(history.size(), seconds):
+			Analytics.event(&"level_quit", Analytics.in_level({"level": level + 1, "seconds": int(seconds),
+				"moves": history.size(), "hints": _hints, "undos": _undos}))
+		Street.rate_classic(Pack.id_of(level), true, false, history.size(), par, _hints, _restarts, seconds)
+		Street.tell_analytics()
+	Screens.go(Brand.LEVELS_SCENE)
+
+## Seconds since the level opened.
+func _seconds() -> float:
+	return float(Time.get_ticks_usec() - _started_us) / 1000000.0
 
 func _build_ui() -> void:
 	_ui = UI.root(self)

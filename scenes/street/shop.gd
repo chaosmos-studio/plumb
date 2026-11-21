@@ -170,7 +170,7 @@ static func video_rect() -> Rect2:
 
 ## Whether helper `b` is open yet: its parcel has come, at the door the player has reached.
 static func helper_open(b: int) -> bool:
-	return StreetRewards.booster_open(b, Save.main_frontier() + 1)
+	return StreetRewards.booster_open(b, Street.current())
 
 static func support_rect() -> Rect2:
 	return Rect2(Vector2(FRAME.x * 0.5, SUPPORT_Y) - SUPPORT_SIZE * 0.5, SUPPORT_SIZE)
@@ -241,7 +241,7 @@ func _pick(tray: int, i: int) -> void:
 				if not _pay(tray):
 					return
 				Save.own_street(item)
-				Analytics.event(&"shop_buy", {"item": item, "price": price_of(tray), "currency": "coins"})
+				Analytics.event(&"shop_buy", {"item": item, "price": price_of(tray), "paid_with": "coins"})
 			# Each hat is worn by the cast member of its colour, and a tap on a worn one takes it off.
 			Save.wear(i, 0 if Save.worn[i] == hat else hat)
 			_vendor.members = PackedInt32Array([i])
@@ -253,7 +253,7 @@ func _pick(tray: int, i: int) -> void:
 				if not _pay(tray):
 					return
 				Save.own_street("marbles_" + id)
-				Analytics.event(&"shop_buy", {"item": "marbles_" + id, "price": price_of(tray), "currency": "coins"})
+				Analytics.event(&"shop_buy", {"item": "marbles_" + id, "price": price_of(tray), "paid_with": "coins"})
 			Save.set_look(id)
 			GameLooks.use(id)
 			_wobbler.tap(_samples[i], StreetWobbler.Voice.CLINK, 1.4)
@@ -268,7 +268,8 @@ func _pick(tray: int, i: int) -> void:
 				return
 			Save.add_booster(StreetRewards.BOOSTER_IDS[i], 1)
 			Analytics.event(&"shop_buy", {"item": StreetRewards.BOOSTER_IDS[i], "price": price_of(tray),
-				"currency": "coins"})
+				"paid_with": "coins"})
+			Analytics.event(&"booster_gain", {"booster": StreetRewards.BOOSTER_IDS[i], "how": "shop", "count": 1})
 			_items.bump(i)
 			Audio.play(&"pop", -4.0, 1.3)
 
@@ -289,6 +290,7 @@ func _video_reward() -> void:
 	for b: int in range(3):
 		if helper_open(b):
 			Save.add_booster(StreetRewards.BOOSTER_IDS[b], 1)
+			Analytics.event(&"booster_gain", {"booster": StreetRewards.BOOSTER_IDS[b], "how": "video", "count": 1})
 			_items.bump(b)
 	Audio.play(&"star", -6.0, 1.2)
 

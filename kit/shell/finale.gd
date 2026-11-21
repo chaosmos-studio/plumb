@@ -20,7 +20,7 @@ var _words: Control
 
 ## Ask before the result is recorded: this solve is the last level still unsolved, wherever it sits.
 static func due(level: int) -> bool:
-	return Save.best(level) == 0 and Ads.solved() == Pack.count() - 1
+	return Save.best(level) == 0 and Ads.solved_here() == Pack.count() - 1
 
 ## Google Play treats a donation link in an app as a payment outside its billing, so the Play build offers
 ## the Supporter pack and never GitHub Sponsors.

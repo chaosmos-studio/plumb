@@ -20,6 +20,8 @@ func _ready() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Save.path))
 	Save.stars = PackedByteArray()
 	Save.hard_stars = PackedByteArray()
+	Save.best_ids = {}
+	Save.street = StreetPicker.fresh()
 	Save.gifts = PackedInt32Array()
 	Save.knockers = PackedInt32Array()
 	Save.boosters = {}
@@ -73,7 +75,7 @@ func _run() -> void:
 			_finish()
 			return
 		await _wait(0.8)
-		var route: PackedInt32Array = TiltSolver.new().solve(play.board, 30000)
+		var route: PackedInt32Array = TiltSolver.new().solve(play.board, 400000)
 		if route.is_empty():
 			_fail("door %d has no route" % door)
 			_finish()
@@ -208,8 +210,8 @@ func _finish() -> void:
 	for id: String in StreetRewards.BOOSTER_IDS:
 		if Save.booster_count(id) <= 0 and id != "footprints":
 			_fail("no %s after its parcel" % id)
-	if Save.main_frontier() < DOORS:
-		_fail("only %d doors won" % Save.main_frontier())
+	if Street.current() - 1 < DOORS:
+		_fail("only %d doors won" % (Street.current() - 1))
 	if _fails.is_empty():
 		print("STREET_SMOKE_OK coins %d boosters %s gifts %s knockers %d" % [Save.coins, Save.boosters, Save.gifts,
 			Save.knockers.size()])

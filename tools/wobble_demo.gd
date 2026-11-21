@@ -23,6 +23,7 @@ func _ready() -> void:
 	Save.look = ""
 	GameLooks.use("classic")
 	Save.stars = PackedByteArray([3, 3, 2, 3, 1, 3, 2, 3, 3, 2, 3])
+	Save.street = StreetMigrate.state_from(Save.stars, PackedInt32Array(), StreetPool.shared())
 	# Their parcels opened, so the street opens on the map rather than on a parcel.
 	Save.gifts = PackedInt32Array([5, 10])
 	AppLook.use(AppLook.STREET)

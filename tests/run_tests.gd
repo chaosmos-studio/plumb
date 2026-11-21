@@ -58,6 +58,9 @@ func _initialize() -> void:
 	_test_street_rewards()
 	_test_street_rating()
 	_test_street_picker()
+	_test_street_migration()
+	_test_street_doors()
+	_test_feed()
 	if not OS.get_cmdline_user_args().has("quick"):
 		_test_level_pack()
 	_test_opening()
@@ -780,7 +783,15 @@ func _test_street_picker() -> void:
 	var reached: Dictionary = {}
 	var fallback_early: bool = false
 	var pace_ok: bool = true
-	for skill: float in [1100.0, 1500.0, 1900.0]:
+	# Three players in the quick pass, and a crowd from 1000 to 2300 in the full one.
+	var skills: Array[float] = [1100.0, 1500.0, 1900.0]
+	if not OS.get_cmdline_user_args().has("quick"):
+		for s: int in range(1000, 2301, 50):
+			skills.append(float(s) + 7.0)
+	var steps: Dictionary = {}
+	# How far a strong player's boards stray above the target once past the opening, in bits.
+	var strong_gap: float = 0.0
+	for skill: float in skills:
 		var state: Dictionary = StreetPicker.fresh()
 		var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 		rng.seed = int(skill)
@@ -797,14 +808,19 @@ func _test_street_picker() -> void:
 					never_easier = false
 				if int(picked["par"]) < mini(last_par, StreetPicker.CEIL_PAR):
 					par_kept = false
-			if not StreetPicker._taught(pool.info(str(picked["id"])), pool.taught(maxf(float(state["p"]), 5.0))):
+			# Taught by the climb, or by where the floor already stands on the main path.
+			var reach: float = maxf(float(state["p"]), float(pool.level_at(float(state["floor"]))))
+			if not StreetPicker._taught(pool.info(str(picked["id"])), pool.taught(maxf(reach, 5.0))):
 				taught_first = false
 			if seen.has(picked["id"]):
 				unique = false
 			seen[picked["id"]] = true
 			if str(picked["step"]) == "recycle" and door < 60:
 				fallback_early = true
+			steps[picked["step"]] = int(steps.get(picked["step"], 0)) + 1
 			StreetPicker.record(state, pool, picked)
+			if skill >= 1900.0 and door > 30:
+				strong_gap = maxf(strong_gap, float(picked["d"]) - StreetPicker.target(state, pool))
 			# Play until solved: each attempt succeeds by the player's true skill, and every attempt is rated.
 			var d: float = float(picked["d"])
 			var solved: bool = false
@@ -819,6 +835,9 @@ func _test_street_picker() -> void:
 				pace_ok = false
 			state["p"] = float(state["p"]) + step
 		reached[skill] = float(state["p"])
+	print("picker: %d simulated players, steps %s, strong players at most %.2f bits above target" % [skills.size(),
+		steps, strong_gap])
+	_check("a strong player's boards stay within two bits of the target", strong_gap <= 2.0)
 	_check("doors 1 to 5 are always the opening", opening)
 	_check("no door is easier than the last (in the band, none below its floor)", never_easier)
 	_check("par never falls (in the band, never below its floor)", par_kept)
@@ -834,6 +853,348 @@ func _test_street_picker() -> void:
 	var turned: TiltBoard = pool.board("main-0150~31")
 	var turned_par: int = TiltSolver.new().solve(turned, 400000).size()
 	_check("a recycled board solves in its source's par", turned_par == pool.par_of("main-0150"))
+
+## Save layout 3 (REVAMP_PLAN.md sections 4.6 and 13): layouts 1 and 2 move on, every star stays on the board it was
+## won on, Hard, keys and gate-opened chapters carry over, the street starts where the player was, the welcome purse
+## comes once, and moving on twice changes nothing.
+func _test_street_migration() -> void:
+	var pool: StreetPool = StreetPool.shared()
+	var unlocks: GDScript = load("res://kit/monetize/unlocks.gd")
+	var gate: float = unlocks.get_script_constant_map()["GATE"]
+	# A 1.5 player: main levels 1 to 150 solved but 60, a key spent on 152, the old levels 181 to 200 solved in
+	# Hard, 3 keys left.
+	var stars: PackedByteArray = PackedByteArray()
+	stars.resize(150)
+	stars.fill(2)
+	stars[59] = 0
+	stars[149] = 3
+	var hard: PackedByteArray = PackedByteArray()
+	hard.resize(200)
+	for i: int in range(HardShelf.FIRST, 200):
+		hard[i] = 1
+	var two: ConfigFile = ConfigFile.new()
+	two.set_value("progress", "layout", 2)
+	two.set_value("progress", "stars", stars)
+	two.set_value("progress", "hard", hard)
+	two.set_value("progress", "opened", PackedInt32Array([151]))
+	two.set_value("progress", "hard_opened", PackedInt32Array([205]))
+	two.set_value("monetize", "keys", 3)
+	var file: ConfigFile = ConfigFile.new()
+	file.parse(two.encode_to_text())
+	_check("a layout 2 save moves on to layout 3", StreetMigrate.upgrade(file, pool)
+		and int(file.get_value("progress", "layout")) == StreetMigrate.LAYOUT)
+	_check("its stars stay by position: main and Hard keep theirs, nothing else moves",
+		file.get_value("progress", "stars") == stars and file.get_value("progress", "hard") == hard
+		and (file.get_value("progress", "best") as Dictionary).is_empty())
+	_check("keys and opened levels carry over", int(file.get_value("monetize", "keys")) == 3
+		and file.get_value("progress", "opened") == PackedInt32Array([151])
+		and file.get_value("progress", "hard_opened") == PackedInt32Array([205]))
+	var state: Dictionary = file.get_value("street", "state")
+	var doors: PackedStringArray = state["doors"]
+	var in_order: bool = doors.size() == 152
+	for i: int in range(doors.size()):
+		in_order = in_order and doors[i] == "main-%04d" % (i + 1)
+	_check("the street is main-0001 to the furthest level solved or opened, in order", in_order)
+	var hardest: float = 0.0
+	for i: int in range(150):
+		if stars[i] > 0:
+			hardest = maxf(hardest, pool.d_of("main-%04d" % (i + 1)))
+	_check("the climb is there, the floor the hardest solved, the rating that board's plus 50 and sure to 200",
+		float(state["p"]) == 152.0 and is_equal_approx(float(state["floor"]), hardest)
+		and is_equal_approx(float(state["mu"]), StreetRating.board_rating(pool.d_of("main-0152")) + 50.0)
+		and float(state["phi"]) == 200.0 and int(state["solved"]) == 149)
+	var total: int = 0
+	for s: int in stars:
+		total += s
+	for s: int in hard:
+		total += s
+	_check("the welcome purse pays 5 coins a star, once", int(file.get_value("street", "coins")) == 5 * total
+		and bool(file.get_value("street", "welcomed")))
+	var text: String = file.encode_to_text()
+	_check("and moving on twice changes nothing", not StreetMigrate.upgrade(file, pool) and file.encode_to_text() == text)
+	var get_best: Callable = func(id: String) -> int:
+		var index: int = int(id.substr(5)) - 1
+		var of: PackedByteArray = stars if id.begins_with("main-") else hard
+		var at: int = index + (HardShelf.FIRST if id.begins_with("hard-") else 0)
+		return of[at] if at < of.size() else 0
+	_check("the lit door is the one after the furthest solved, and a level skipped stays an open door behind it",
+		StreetDoors.current(state, get_best) == 151 and StreetDoors.id_of(state, 60) == "main-0060"
+		and int(get_best.call("main-0060")) == 0)
+	# Every star is on a board identical to the one it was won on: the pool's main and Hard boards are the levels
+	# Classic plays at those positions.
+	var levels: Array = (JSON.parse_string(FileAccess.get_file_as_string("res://levels/levels.json")) as Dictionary)["levels"]
+	var shelf: Array = (JSON.parse_string(FileAccess.get_file_as_string("res://levels/hard.json")) as Dictionary)["levels"]
+	var same: bool = true
+	for i: int in [0, 59, 149, 179, 519]:
+		same = same and JSON.stringify(pool.boards["main-%04d" % (i + 1)]) == JSON.stringify(levels[i])
+	for j: int in [0, 19, 319]:
+		same = same and JSON.stringify(pool.boards["hard-%04d" % (j + 1)]) == JSON.stringify(shelf[j])
+	_check("and every id names the board its position always held", same)
+	# A layout 1 save (before Hard) goes through both steps.
+	var one: ConfigFile = ConfigFile.new()
+	var old: PackedByteArray = PackedByteArray()
+	old.resize(230)
+	old.fill(1)
+	one.set_value("progress", "stars", old)
+	one.set_value("progress", "opened", PackedInt32Array([240]))
+	HardShelf.migrate(one, gate)
+	StreetMigrate.upgrade(one, pool)
+	var one_state: Dictionary = one.get_value("street", "state")
+	var main_opened: PackedInt32Array = one.get_value("progress", "opened")
+	_check("a layout 1 save goes through Hard's step and then Street's", int(one.get_value("progress", "layout")) == 3
+		and (one.get_value("progress", "hard") as PackedByteArray)[200] == 1
+		and (one_state["doors"] as PackedStringArray).size() == StreetMigrate.furthest(
+			one.get_value("progress", "stars"), main_opened) and main_opened.has(HardShelf.FIRST))
+	var fresh: ConfigFile = ConfigFile.new()
+	StreetMigrate.upgrade(fresh, pool)
+	_check("a new player's street is empty, at the start, with no purse",
+		(fresh.get_value("street", "state")["doors"] as PackedStringArray).is_empty()
+		and int(fresh.get_value("street", "coins", 0)) == 0)
+
+	# Through the save itself: the backup, the move, and the purse paid once.
+	var save: Node = root.get_node("Save")
+	var kept: Array = [save.get("path"), save.get("stars"), save.get("hard_stars"), save.get("opened"),
+		save.get("hard_opened"), save.get("coins"), save.get("street"), save.get("best_ids"), save.get("welcomed"),
+		save.get("keys")]
+	save.set("path", "user://test_layout3.cfg")
+	two.save("user://test_layout3.cfg")
+	var original: PackedByteArray = FileAccess.get_file_as_bytes("user://test_layout3.cfg")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(String(save.call("backup_path"))))
+	save.call("restore")
+	_check("the save keeps a copy of the old file before moving on",
+		FileAccess.get_file_as_bytes(String(save.call("backup_path"))) == original)
+	var moved: ConfigFile = ConfigFile.new()
+	moved.load("user://test_layout3.cfg")
+	_check("and moves on as it loads, kept that way", int(moved.get_value("progress", "layout")) == 3
+		and ((save.get("street") as Dictionary)["doors"] as PackedStringArray).size() == 152
+		and int(save.get("coins")) == 5 * total)
+	save.call("store")
+	save.call("restore")
+	_check("a second launch pays no second purse", int(save.get("coins")) == 5 * total)
+	_check("stars read by id: main by position, Hard from its first, the rest by id",
+		int(save.call("best_of", "main-0150")) == 3 and int(save.call("best_of", "main-0060")) == 0
+		and int(save.call("best_of", "hard-0001")) == 1 and int(save.call("best_of", "x-0001")) == 0)
+	save.call("record_id", "x-0001", 2)
+	save.call("record_id", "main-0060", 3)
+	save.call("record_id", "x-0001", 1)
+	_check("and recorded by id, keeping the best", int(save.call("best_of", "x-0001")) == 2
+		and (save.get("stars") as PackedByteArray)[59] == 3 and int(save.call("best", 59)) == 3)
+
+	# The cloud save, both ways: an old phone's layout 2 copy joins this one, and this one joins the old phone's.
+	var cloud: GDScript = load("res://kit/play_games/cloud_save.gd")
+	var mine: ConfigFile = ConfigFile.new()
+	mine.load("user://test_layout3.cfg")
+	mine.set_value("street", "boosters", {"ghosts": 2, "footprints": 0})
+	mine.set_value("street", "owned", PackedStringArray(["hat_1"]))
+	var theirs: ConfigFile = ConfigFile.new()
+	var more: PackedByteArray = stars.duplicate()
+	more.resize(170)
+	for i: int in range(150, 170):
+		more[i] = 3
+	theirs.set_value("progress", "layout", 2)
+	theirs.set_value("progress", "stars", more)
+	theirs.set_value("street", "boosters", {"footprints": 4})
+	theirs.set_value("street", "owned", PackedStringArray(["hat_2", "hat_1"]))
+	var theirs_too: ConfigFile = ConfigFile.new()
+	theirs_too.parse(theirs.encode_to_text())
+	cloud.call("merge", mine, theirs)
+	var joined: Dictionary = mine.get_value("street", "state")
+	_check("an old copy with more solved brings its street and rating", (joined["doors"] as PackedStringArray).size() == 170
+		and int(joined["solved"]) == 169)
+	_check("stars by id keep the better, helpers the larger of each, things owned join",
+		int((mine.get_value("progress", "best") as Dictionary).get("x-0001", 0)) == 2
+		and mine.get_value("street", "boosters") == {"ghosts": 2, "footprints": 4}
+		and (mine.get_value("street", "owned") as PackedStringArray).size() == 2)
+	var other: ConfigFile = ConfigFile.new()
+	other.load("user://test_layout3.cfg")
+	cloud.call("merge", theirs_too, other)
+	_check("and the other way round the same street wins", ((theirs_too.get_value("street", "state") as Dictionary)
+		["doors"] as PackedStringArray).size() == 170 and int((theirs_too.get_value("progress", "best") as Dictionary)
+		.get("x-0001", 0)) == 2)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_layout3.cfg"))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(String(save.call("backup_path"))))
+	for k: int in range(kept.size()):
+		save.set(["path", "stars", "hard_stars", "opened", "hard_opened", "coins", "street", "best_ids", "welcomed",
+			"keys"][k], kept[k])
+
+## The street's doors and the look switch (REVAMP_PLAN.md section 4.5): the lit door, Classic's progress joining the
+## street and the street's opening Classic, a solve and a quit rated once, and replays never.
+func _test_street_doors() -> void:
+	var pool: StreetPool = StreetPool.shared()
+	var state: Dictionary = StreetPicker.fresh()
+	for id: String in ["main-0001", "main-0002", "main-0003", "main-0004", "main-0005", "x-0001", "main-0007"]:
+		StreetPicker.record(state, pool, {"id": id, "d": pool.d_of(id), "par": pool.par_of(id), "step": "fit"})
+	var won: Dictionary = {"main-0001": 3, "main-0002": 2, "main-0003": 3, "main-0004": 1, "main-0005": 3, "x-0001": 2}
+	var best: Callable = func(id: String) -> int: return int(won.get(id, 0))
+	_check("the lit door is the one after the furthest solved", StreetDoors.current(state, best) == 7
+		and StreetDoors.highest_main(state) == 7)
+	var classic: PackedByteArray = PackedByteArray()
+	classic.resize(40)
+	for i: int in range(40):
+		classic[i] = 2 if i != 20 else 0
+	_check("Street to Classic opens every main level the street passed, unsolved there",
+		StreetDoors.open_in_classic(state, PackedByteArray([3, 3])) == PackedInt32Array([2, 3, 4, 5, 6]))
+	_check("Classic to Street brings every main board solved past the street's, in order",
+		StreetDoors.absorb_classic(state, classic, pool) and StreetDoors.id_of(state, 8) == "main-0008"
+		and StreetDoors.id_of(state, 39) == "main-0040" and (state["doors"] as PackedStringArray).size() == 39
+		and float(state["p"]) == 40.0 and not StreetDoors.absorb_classic(state, classic, pool))
+	var skip: Dictionary = StreetDoors.solved_off_street(classic, PackedByteArray(), HardShelf.FIRST)
+	var picked: Dictionary = StreetPicker.pick(pool, state, 40, "doors", skip)
+	_check("and the picker never offers a board solved in Classic as new", not skip.has(picked["id"])
+		and not (state["doors"] as PackedStringArray).has(str(picked["id"])))
+	var rated: Dictionary = StreetPicker.fresh()
+	StreetDoors.rate(rated, 4.0, 1.0, 1000000)
+	var mu: float = float(rated["mu"])
+	var phi: float = float(rated["phi"])
+	var rested: Dictionary = rated.duplicate()
+	StreetDoors.rate(rated, 4.0, 1.0, 1000000 + 86400)
+	StreetDoors.rate(rested, 4.0, 1.0, 1000000 + 86400 * 400)
+	_check("a rated attempt moves the rating, and a long rest first widens how sure it is",
+		mu > StreetRating.START_MU and phi < StreetRating.START_PHI and float(rested["phi"]) > float(rated["phi"]))
+	# Through the save: a first solve rates and climbs, a replay and a quit on a solved door change nothing.
+	var save: Node = root.get_node("Save")
+	var kept: Array = [save.get("path"), save.get("stars"), save.get("street"), save.get("best_ids"),
+		save.get("player_id")]
+	save.set("path", "user://test_street_doors.cfg")
+	save.set("stars", PackedByteArray())
+	save.set("best_ids", {})
+	save.set("street", StreetPicker.fresh())
+	save.set("player_id", "testdoors")
+	var street: GDScript = load("res://scenes/street/street.gd")
+	var first_id: String = street.call("board_id", 1)
+	_check("door 1 is picked as it is needed, and only the lit door is", first_id == "main-0001"
+		and String(street.call("board_id", 3)) == "" and int(street.call("current")) == 1)
+	var solved_first: bool = street.call("won", 1, 3, 2, 0, 0, 0, 8.0)
+	var after_win: Dictionary = (save.get("street") as Dictionary).duplicate()
+	var replayed: bool = street.call("won", 1, 3, 2, 0, 0, 0, 8.0)
+	street.call("quit", 1, 9, 60.0)
+	_check("a first solve rates and climbs, a replay or leaving a solved door does not", solved_first
+		and not replayed and float(after_win["p"]) > 1.0 and float(after_win["mu"]) > StreetRating.START_MU
+		and (save.get("street") as Dictionary)["mu"] == after_win["mu"] and int(street.call("current")) == 2)
+	street.call("board_id", 2)
+	street.call("quit", 2, 1, 4.0)
+	var leave_at_once: float = float((save.get("street") as Dictionary)["mu"])
+	street.call("quit", 2, 5, 40.0)
+	_check("leaving at once costs nothing, a quit after real play lowers the rating",
+		leave_at_once == float(after_win["mu"]) and float((save.get("street") as Dictionary)["mu"]) < leave_at_once)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_street_doors.cfg"))
+	for k: int in range(kept.size()):
+		save.set(["path", "stars", "street", "best_ids", "player_id"][k], kept[k])
+
+## The level feed (REVAMP_PLAN.md sections 6 and 13), on fixtures signed with a test key (tools/publish_levels.py):
+## a signed manifest taken and a flipped byte refused, rollback and oversize refused, unknown rules skipped, bad boards
+## refused, retire and rescore applied, writes atomic, and street boards kept when pruning.
+func _test_feed() -> void:
+	var keys: PackedStringArray = [FileAccess.get_file_as_string("res://tests/fixtures/feed/test_key.pub.pem")]
+	var bucket: String = "res://tests/fixtures/feed/bucket/"
+	var bytes: PackedByteArray = FileAccess.get_file_as_bytes(bucket + "manifest.json")
+	var signature: String = FileAccess.get_file_as_string(bucket + "manifest.json.sig")
+	var taken: Dictionary = FeedCheck.manifest(bytes, signature, keys, 0)
+	_check("a manifest signed with the key is taken", bool(taken["ok"]) and taken["why"] == "ok")
+	if not bool(taken["ok"]):
+		return
+	var flipped: PackedByteArray = bytes.duplicate()
+	flipped[20] = flipped[20] ^ 1
+	var game_keys: PackedStringArray = (load("res://autoload/feed.gd") as GDScript).get_script_constant_map()["KEYS"]
+	_check("a flipped byte is refused, and so is a key the game does not carry",
+		FeedCheck.manifest(flipped, signature, keys, 0)["why"] == "bad_signature"
+		and FeedCheck.manifest(bytes, signature, game_keys, 0)["why"] == "bad_signature"
+		and FeedCheck.manifest(bytes, "", keys, 0)["why"] == "bad_signature")
+	_check("an older serial is refused as a rollback, the same one needs nothing",
+		FeedCheck.manifest(bytes, signature, keys, 2)["why"] == "rollback"
+		and FeedCheck.manifest(bytes, signature, keys, 1)["why"] == "same")
+	var big: PackedByteArray = PackedByteArray()
+	big.resize(FeedCheck.MAX_BYTES + 1)
+	_check("an oversized manifest is refused", not bool(FeedCheck.manifest(big, signature, keys, 0)["ok"]))
+	# A manifest signed with the test key that lists a file outside the feed's folders.
+	_check("a listed file can never land outside the feed's folder", FeedCheck.manifest(
+		FileAccess.get_file_as_bytes("res://tests/fixtures/feed/traversal.json"),
+		FileAccess.get_file_as_string("res://tests/fixtures/feed/traversal.json.sig"), keys, 0)["why"] == "error")
+	var manifest: Dictionary = taken["manifest"]
+	var entry: Dictionary = (manifest["episodes"] as Array)[0]
+	var episode_bytes: PackedByteArray = FileAccess.get_file_as_bytes(bucket + str(entry["file"]))
+	_check("a file matching the signed manifest is taken, one byte short is not",
+		FeedCheck.file(episode_bytes, entry) == "" and FeedCheck.file(episode_bytes.slice(1), entry) == "bad_hash")
+	var episode: Dictionary = FeedCheck.episode(episode_bytes, entry)
+	_check("its boards pass", bool(episode["ok"]) and (episode["boards"] as Array).size() == 3)
+	var newer: Dictionary = entry.duplicate()
+	newer["rules"] = FeedCheck.RULES + 1
+	_check("an episode for rules this build does not know is skipped", FeedCheck.episode(episode_bytes, newer)["why"] == "rules")
+	var good: Dictionary = (episode["boards"] as Array)[0]
+	var bad: Array[Dictionary] = []
+	for i: int in range(8):
+		bad.append(good.duplicate(true))
+	var rows: Array = bad[0]["rows"]
+	for k: int in range(11):
+		rows.append(str(rows[0]))
+	bad[1]["marbles"] = [[0, 0, 0], [0, 0, 1]]
+	bad[2]["par"] = 31
+	bad[3]["tiles"] = [[0, 0, "laser", 0]]
+	bad[4]["id"] = "main-0001"
+	bad[5]["d"] = -1.0
+	var many: Array = []
+	for k: int in range(9):
+		many.append([k % 7, 0, 0])
+	bad[6]["marbles"] = many
+	bad[7]["set"] = ["teleport"]
+	var refused: bool = FeedCheck.board(good) == ""
+	for b: Dictionary in bad:
+		refused = refused and FeedCheck.board(b) != ""
+	_check("a sound board passes, and a board too big, overlapping, over par, with an unknown tile or rule, a wrong id or "
+		+ "difficulty, or too many marbles is refused", refused)
+	var twice: Dictionary = {"format": 1, "id": "ep0001", "boards": [good, good]}
+	_check("and an episode naming a board twice is refused",
+		FeedCheck.episode(JSON.stringify(twice).to_utf8_buffer(), {"id": "ep0001"})["why"] == "bad_board")
+	var rescore_bytes: PackedByteArray = FileAccess.get_file_as_bytes(bucket + str((manifest["rescore"] as Dictionary)["file"]))
+	var pool: StreetPool = StreetPool.bundled()
+	var added: int = FeedCheck.merge(pool, [{"boards": episode["boards"], "listed": true}], manifest["retired"],
+		FeedCheck.rescores(rescore_bytes), [])
+	_check("new boards join the pool, retired ids leave future picks, rescores apply", added == 3 and pool.has("ep0001-02")
+		and pool.retired.has("main-0101") and is_equal_approx(pool.d_of("main-0100"), 19.5)
+		and is_equal_approx(pool.d_of("ep0001-01"), float(good["d"])))
+	var retuned: Dictionary = good.duplicate(true)
+	retuned["rev"] = 2
+	retuned["par"] = 10
+	_check("a board joins once, and a higher revision replaces it",
+		FeedCheck.merge(pool, [{"boards": episode["boards"]}], [], {}, []) == 0
+		and FeedCheck.merge(pool, [{"boards": [retuned]}], [], {}, []) == 1 and pool.par_of("ep0001-01") == 10)
+	var kept_pool: StreetPool = StreetPool.bundled()
+	FeedCheck.merge(kept_pool, [{"boards": episode["boards"], "listed": false}], [], {}, ["ep0001-03"])
+	_check("an unlisted episode kept for the street stays playable but leaves future picks, a dropped board never joins",
+		kept_pool.has("ep0001-01") and kept_pool.retired.has("ep0001-01") and not kept_pool.has("ep0001-03"))
+
+	# The client's files: atomic writes, a half-written file never read, the kept feed merged, and pruning.
+	var feed: Node = root.get_node("Feed")
+	var was: Array = [feed.get("dir"), feed.get("keys")]
+	var dir: String = "user://test_feed/"
+	feed.set("dir", dir)
+	feed.set("keys", keys)
+	for file: String in ["manifest.json", "manifest.json.sig", str(entry["file"]),
+			str((manifest["rescore"] as Dictionary)["file"])]:
+		feed.call("write_atomic", dir + file, FileAccess.get_file_as_bytes(bucket + file))
+	_check("a file is written whole, with no part left behind",
+		FileAccess.get_file_as_bytes(dir + str(entry["file"])) == episode_bytes
+		and not FileAccess.file_exists(dir + str(entry["file"]) + ".part"))
+	var stale: FileAccess = FileAccess.open(dir + "episodes/ep0007-0badf00d.json.part", FileAccess.WRITE)
+	stale.store_string("{\"format\": 1, \"id\": \"ep00")
+	stale.close()
+	var stored_pool: StreetPool = StreetPool.bundled()
+	_check("the kept feed joins the pool as it loads, and a half-written file is never read",
+		int(feed.call("merge_stored", stored_pool)) == 3 and stored_pool.retired.has("main-0101")
+		and not FileAccess.file_exists(dir + "episodes/ep0007-0badf00d.json.part"))
+	feed.call("write_atomic", dir + "episodes/ep0002-aaaaaaaa.json", episode_bytes)
+	feed.call("write_atomic", dir + "episodes/ep0009-bbbbbbbb.json", episode_bytes)
+	feed.call("prune", manifest, PackedStringArray(["main-0001", "ep0002-05~31"]))
+	_check("pruning drops unlisted files but keeps an episode holding a board on the street",
+		FileAccess.file_exists(dir + "episodes/ep0002-aaaaaaaa.json")
+		and not FileAccess.file_exists(dir + "episodes/ep0009-bbbbbbbb.json")
+		and FileAccess.file_exists(dir + str(entry["file"])))
+	for folder: String in ["episodes", "rescore", ""]:
+		for file: String in DirAccess.get_files_at(dir + folder):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(dir + folder.path_join(file)))
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(dir + folder))
+	feed.set("dir", was[0])
+	feed.set("keys", was[1])
 
 ## A street of `n` doors picked for `player`, each solved at once.
 func _street_after(pool: StreetPool, n: int, player: String) -> Dictionary:
@@ -1813,6 +2174,9 @@ func _test_presets_and_plugins() -> void:
 		and enabled.has("res://addons/firebase_build/plugin.cfg"))
 	_check("the Play Core plugin is enabled, with the Java helper it builds in",
 		enabled.has("res://addons/play_core/plugin.cfg") and FileAccess.file_exists("res://addons/play_core/PlayCore.java"))
+	_check("the Analytics User plugin is enabled, with the Java helper it builds in",
+		enabled.has("res://addons/analytics_user/plugin.cfg")
+		and FileAccess.file_exists("res://addons/analytics_user/AnalyticsUser.java"))
 	_check("the shrink plugin is enabled, so release builds run R8", enabled.has("res://addons/shrink_build/plugin.cfg"))
 	_check("the Play Games plugin is enabled", enabled.has("res://addons/play_games/plugin.cfg"))
 	for module: String in ["firebase_core", "firebase_analytics"]:
@@ -1847,6 +2211,8 @@ func _test_presets_and_plugins() -> void:
 			_check("%s leaves the editor-only Firebase scripts out" % preset_name,
 				exclude.contains("addons/godotx_firebase/*") and exclude.contains("addons/firebase_build/*"))
 			_check("%s leaves the Play Core plugin's own files out" % preset_name, exclude.contains("addons/play_core/*"))
+			_check("%s leaves the Analytics User plugin's own files out" % preset_name,
+				exclude.contains("addons/analytics_user/*"))
 			_check("%s leaves the shrink plugin out" % preset_name, exclude.contains("addons/shrink_build/*"))
 			_check("%s leaves the Play Games plugin's own files out" % preset_name, exclude.contains("addons/play_games/*"))
 		elif presets.get_value(section, "platform") == "Web":
@@ -1989,6 +2355,36 @@ func _test_analytics() -> void:
 		and won["success"] == 1 and won["stars"] == 3 and won.has("seconds"))
 	if lost and heard.size() == 3:
 		_check("a loss is a failed level_end", heard[2][0] == &"level_end" and heard[2][1]["success"] == 0)
+	# Plumb 2.0's level events (REVAMP_PLAN.md section 5.2): the board, its path and difficulty, the rating, the pick.
+	heard.clear()
+	analytics.sink = func(event: StringName, params: Dictionary) -> void: heard.append([event, params])
+	analytics.set("level_context", {"board": "x-0042", "path": "street", "difficulty": 18.8567, "rating": 1544.6,
+		"pick": "fit", "replay": "no"})
+	bus.emit_signal(&"level_started", 40)
+	analytics.set("solve_measures", {"moves": 13, "par": 12, "hints": 1, "undos": 2, "restarts": 0, "boosters": 1,
+		"coins": 25})
+	bus.emit_signal(&"level_won", 40, 13, 2)
+	analytics.call("user_property", "rating_band", "1500")
+	analytics.call("user_property", "rating_band", "1500")
+	analytics.call("user_property", "furthest_level", "41")
+	analytics.sink = Callable()
+	var started: Dictionary = heard[0][1] if heard.size() > 0 else {}
+	var ended: Dictionary = heard[1][1] if heard.size() > 1 else {}
+	_check("a level's start carries its board, path, difficulty, the rating, the pick and whether it is a replay",
+		started.get("board") == "x-0042" and started.get("path") == "street" and started.get("pick") == "fit"
+		and started.get("replay") == "no" and started.get("level") == 41)
+	_check("and its end how the solve went, without the pick", ended.get("moves") == 13 and ended.get("par") == 12
+		and ended.get("hints") == 1 and ended.get("undos") == 2 and ended.get("coins") == 25
+		and ended.get("board") == "x-0042" and not ended.has("pick")
+		and (analytics.get("solve_measures") as Dictionary).is_empty())
+	var sent: Dictionary = analytics.for_ga(started)
+	_check("grouping parameters reach GA as text, the difficulty to hundredths and the rating whole",
+		sent["board"] == "x-0042" and sent["level"] == "41" and sent["replay"] == "no"
+		and is_equal_approx(float(sent["difficulty"]), 18.86) and sent["rating"] == 1545)
+	var props: Array = heard.filter(func(e: Array) -> bool: return e[0] == &"user_property")
+	_check("user properties are sent once a change, cut to GA's 36 characters", props.size() == 2
+		and props[0][1] == {"rating_band": "1500"} and props[1][1] == {"furthest_level": "41"})
+	analytics.set("level_context", {})
 
 func _test_saved_monetization() -> void:
 	var save: Node = root.get_node("Save")
@@ -3058,13 +3454,13 @@ func _test_hard_shelf() -> void:
 		and (early["opened"] as PackedInt32Array).is_empty() and (early["hard"] as PackedByteArray).is_empty())
 
 	var kept: Array = [save.get("path"), save.get("stars"), save.get("hard_stars"), save.get("opened"),
-		save.get("hard_opened"), int(pack.get("section"))]
+		save.get("hard_opened"), int(pack.get("section")), save.get("street"), save.get("coins"), save.get("best_ids")]
 	save.set("path", "user://test_hard_shelf.cfg")
 	old.save("user://test_hard_shelf.cfg")
 	save.call("restore")
 	var moved: ConfigFile = ConfigFile.new()
 	moved.load("user://test_hard_shelf.cfg")
-	_check("a save is moved on as it loads, and kept that way", int(moved.get_value("progress", "layout", 1)) == HardShelf.LAYOUT
+	_check("a save is moved on as it loads, and kept that way", int(moved.get_value("progress", "layout", 1)) >= HardShelf.LAYOUT
 		and (save.get("stars") as PackedByteArray).size() == first)
 	pack.call("use", 1)
 	var hard_from: int = int(pack.get("hard_from"))
@@ -3113,12 +3509,16 @@ func _test_hard_shelf() -> void:
 	pack.call("use", 1)
 	_check("Hard is open from the start", save.call("unlocked", hard_from) and not save.call("unlocked", hard_from + 1))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_hard_shelf.cfg"))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_hard_shelf.layout2.cfg"))
 	save.set("path", kept[0])
 	save.set("stars", kept[1])
 	save.set("hard_stars", kept[2])
 	save.set("opened", kept[3])
 	save.set("hard_opened", kept[4])
 	pack.call("use", kept[5])
+	save.set("street", kept[6])
+	save.set("coins", kept[7])
+	save.set("best_ids", kept[8])
 
 func _test_passes() -> void:
 	var passes: GDScript = load("res://kit/monetize/passes.gd")

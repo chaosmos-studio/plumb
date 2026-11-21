@@ -39,7 +39,10 @@ const GHOST_FROM: float = 14.0
 
 ## The helpers picked on the start card for the next board (StreetRewards.Booster values), used up as it opens.
 static var helpers: PackedInt32Array = PackedInt32Array()
+## The door to play, set by the map: its board comes from the street (Street.board).
+static var door: int = 1
 
+## The door's index from 0, as the kit's level signals and the hint gate count.
 var level: int = 0
 var par: int = 0
 var start: TiltBoard
@@ -76,6 +79,11 @@ var _ghosts: bool = false
 var _spare: bool = false
 var _helped: bool = false
 var _ghost_dir: int = -1
+## How the board went, for the rating (StreetRating.outcome) and analytics.
+var _hints: int = 0
+var _restarts: int = 0
+var _undos: int = 0
+var _helpers_used: int = 0
 var _celebrating: bool = false
 var _hurry: bool = false
 var _finger: _Finger
@@ -84,9 +92,9 @@ var _started_us: int = 0
 
 func _ready() -> void:
 	Palette.use_street()
-	level = Pack.current
-	par = Pack.par(level)
-	start = Pack.board(level)
+	level = door - 1
+	par = Street.par(door)
+	start = Street.board(door)
 	board = start.copy()
 	_started_us = Time.get_ticks_usec()
 	var backdrop: TextureRect = TextureRect.new()
@@ -112,6 +120,7 @@ func _ready() -> void:
 	if Save.faces:
 		Memorial.warm(self)
 	_refresh()
+	Analytics.level_context = Street.analytics(door)
 	EventBus.level_started.emit(level)
 	if level == 0 and not Save.tutorial_seen:
 		_teach()
@@ -128,6 +137,8 @@ func _use_helpers() -> void:
 		if Save.booster_count(id) <= 0:
 			continue
 		Save.add_booster(id, -1)
+		_helpers_used += 1
+		Analytics.event(&"booster_use", {"booster": id, "level": door, "board": Street.id_of(door)})
 		match b:
 			StreetRewards.Booster.FOOTPRINTS:
 				_footprints = TiltSolver.new().solve(board, HINT_SEARCH).slice(0, 2)
@@ -370,6 +381,7 @@ func _on_undo() -> void:
 	board = history.pop_back()
 	route.resize(history.size())
 	_retried = true
+	_undos += 1
 	_view.sync(board)
 	Audio.play(&"undo", -4.0)
 	_refresh()
@@ -381,6 +393,7 @@ func _on_restart() -> void:
 	route.clear()
 	_retried = true
 	_restarted = true
+	_restarts += 1
 	board = start.copy()
 	_view.sync(board)
 	Audio.play(&"undo", -4.0, 0.8)
@@ -406,6 +419,8 @@ func _reveal_hint() -> void:
 	if path.is_empty():
 		return
 	_view.show_hint(path[0], board)
+	if _hinted != board:
+		_hints += 1
 	_hinted = board
 	Audio.play(&"hint", -4.0)
 
@@ -471,14 +486,17 @@ func _show_won() -> void:
 	Screens.prefetch(StreetMap.SCENE)
 	var moves: int = history.size()
 	var earned: int = StreetRewards.stars(moves, par, _spare)
-	var before: int = Save.best(level)
-	Save.record(level, earned)
-	EventBus.level_won.emit(level, moves, earned)
+	var first: bool = Street.won(level + 1, earned, moves, _hints, _helpers_used, _restarts, _seconds())
 	# Every win pays (REVAMP_PLAN.md section 4.7), more for stars and a clean solve, and par with no hint and no
 	# restart puts the golden knocker on the door for good.
 	var hinted: bool = _hinted != null or _helped
 	var coins: int = StreetRewards.win_coins(earned, not _retried and not hinted)
 	var knocker: bool = StreetRewards.knocker(moves, par, hinted, _restarted)
+	Analytics.solve_measures = {"moves": moves, "par": par, "hints": _hints, "undos": _undos, "restarts": _restarts,
+		"boosters": _helpers_used, "coins": coins}
+	EventBus.level_won.emit(level, moves, earned)
+	if first:
+		Street.tell_analytics()
 	Save.add_coins(coins)
 	if knocker:
 		Save.set_knocker(level + 1)
@@ -506,10 +524,10 @@ func _show_won() -> void:
 	if not is_inside_tree():
 		return
 	# The street walks on from here only when this win opened the next door.
-	StreetMap.arrival = level + 1 if before == 0 else 0
-	var door: int = level + 1
-	if (StreetRewards.has_parcel(door) or StreetRewards.is_milestone(door)) and not Save.gifts.has(door):
-		StreetMap.gift_door = door
+	StreetMap.arrival = level + 1 if first else 0
+	var won_door: int = level + 1
+	if (StreetRewards.has_parcel(won_door) or StreetRewards.is_milestone(won_door)) and not Save.gifts.has(won_door):
+		StreetMap.gift_door = won_door
 	_celebrating = false
 	_to_street()
 
@@ -532,10 +550,17 @@ func _show_lost() -> void:
 
 func _to_street() -> void:
 	if not finished:
-		var seconds: int = int((Time.get_ticks_usec() - _started_us) / 1000000)
-		if history.size() >= 3 or seconds >= 30:
-			Analytics.event(&"level_quit", {"level": level + 1, "seconds": seconds, "moves": history.size()})
+		var seconds: float = _seconds()
+		if StreetRating.counts_as_quit(history.size(), seconds):
+			Analytics.event(&"level_quit", Analytics.in_level({"level": level + 1, "seconds": int(seconds),
+				"moves": history.size(), "hints": _hints, "undos": _undos}))
+		Street.quit(level + 1, history.size(), seconds)
+		Street.tell_analytics()
 	Screens.go(StreetMap.SCENE)
+
+## Seconds since the board opened.
+func _seconds() -> float:
+	return float(Time.get_ticks_usec() - _started_us) / 1000000.0
 
 
 ## The hanging sign with the door's number, the moves against par, and the level's faces. Measures are the concept's,

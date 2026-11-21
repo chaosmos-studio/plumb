@@ -94,7 +94,7 @@ func _card() -> void:
 
 func _play() -> void:
 	Pack.use(Pack.Section.MAIN)
-	Pack.current = SOLVED
+	StreetPlay.door = SOLVED + 1
 	var view: SubViewport = _stage(StreetPlay.SCENE)
 	await _seconds(1.4)
 	await _save(view, "4-play")
@@ -104,18 +104,18 @@ func _play() -> void:
 ## land, and leaves before the screen goes back to the street.
 func _win() -> void:
 	Pack.use(Pack.Section.MAIN)
-	Pack.current = SOLVED
+	StreetPlay.door = SOLVED + 1
 	var view: SubViewport = _stage(StreetPlay.SCENE)
 	await _seconds(1.0)
 	var play: StreetPlay = view.get_child(0)
-	for dir: int in TiltSolver.new().solve(play.board, 30000):
+	for dir: int in TiltSolver.new().solve(play.board, 400000):
 		await play.call("_tilt", dir)
 	await _seconds(1.75)
 	await _save(view, "5-win-home")
 	await _seconds(2.9)
 	await _save(view, "6-win-stars")
 	view.queue_free()
-	Save.stars = STARS.duplicate()
+	_street(STARS.size())
 
 ## The street after a win: the cast walks on to the next door, then its card drops in.
 func _walk() -> void:
@@ -141,6 +141,10 @@ func _street(solved: int) -> void:
 		if (i + 1) % 3 == 0:
 			Save.knockers.append(i + 1)
 	Save.stars = stars
+	Save.best_ids = {}
+	# The street as a player updating from 1.5 at that level would have it, picked on from there for one fixed player.
+	Save.player_id = "streetshots"
+	Save.street = StreetMigrate.state_from(stars, PackedInt32Array(), StreetPool.shared())
 	Save.coins = 245
 	Save.boosters = {"footprints": 2, "ghosts": 3, "spare_step": 1}
 	Save.worn = PackedInt32Array([0, 2, 0, 0])
@@ -202,7 +206,7 @@ func _helpers() -> void:
 	view.queue_free()
 	StreetPlay.helpers = PackedInt32Array([0, 2])
 	Pack.use(Pack.Section.MAIN)
-	Pack.current = 25
+	StreetPlay.door = 26
 	view = _stage(StreetPlay.SCENE)
 	await _seconds(1.6)
 	await _save(view, "18-play-helpers")
@@ -240,7 +244,7 @@ func _settings() -> void:
 func _colour() -> void:
 	ColourHelp.on = true
 	Pack.use(Pack.Section.MAIN)
-	Pack.current = SOLVED
+	StreetPlay.door = SOLVED + 1
 	var view: SubViewport = _stage(StreetPlay.SCENE)
 	await _seconds(1.4)
 	await _save(view, "22-colour-help")

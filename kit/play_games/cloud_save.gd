@@ -44,13 +44,23 @@ static func merge(mine: ConfigFile, theirs: ConfigFile) -> void:
 	if Save.has_method("upgrade"):
 		Save.call("upgrade", mine)
 		Save.call("upgrade", theirs)
-	for at: String in RULES:
+	var all: Dictionary = rules()
+	for at: String in all:
 		var section: String = at.get_slice("/", 0)
 		var key: String = at.get_slice("/", 1)
 		if not theirs.has_section_key(section, key):
 			continue
-		var ours: Variant = mine.get_value(section, key, null)
-		mine.set_value(section, key, join(RULES[at], ours, theirs.get_value(section, key)))
+		# A null default counts as none, and a missing key would print an error, so it is asked first.
+		var ours: Variant = mine.get_value(section, key) if mine.has_section_key(section, key) else null
+		mine.set_value(section, key, join(all[at], ours, theirs.get_value(section, key)))
+
+## The kit's rules, and the game's own for keys of its own (`Save.cloud_rules`), which name rules `Save.cloud_join`
+## knows.
+static func rules() -> Dictionary:
+	var all: Dictionary = RULES.duplicate()
+	if Save.has_method("cloud_rules"):
+		all.merge(Save.call("cloud_rules") as Dictionary, true)
+	return all
 
 static func join(rule: StringName, a: Variant, b: Variant) -> Variant:
 	if typeof(a) == TYPE_NIL:
@@ -77,6 +87,8 @@ static func join(rule: StringName, a: Variant, b: Variant) -> Variant:
 			return maxi(int(a), int(b))
 		&"daily":
 			return join_daily(a if a is Dictionary else {}, b if b is Dictionary else {})
+	if Save.has_method("cloud_join"):
+		return Save.call("cloud_join", rule, a, b)
 	return a
 
 ## Each day keeps its faster first solve, which was late only if it was late on every phone that solved it. Kept

@@ -25,6 +25,29 @@ var main_ref: PackedFloat64Array = PackedFloat64Array()
 var main_need: PackedStringArray = PackedStringArray()
 var main_sets: Array = []
 
+static var _shared: StreetPool = null
+static var _warming: StreetPool = null
+static var _task: int = -1
+
+## The game's own pool, read once and kept: the bundled boards, then the feed's as it merges them. If warm() is still
+## reading it, this waits for it.
+static func shared() -> StreetPool:
+	if _task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_task)
+		_task = -1
+		if _shared == null:
+			_shared = _warming
+		_warming = null
+	if _shared == null:
+		_shared = bundled()
+	return _shared
+
+## Starts reading the pool on a worker thread, so the first door's card never waits for it.
+static func warm() -> void:
+	if _shared != null or _task >= 0:
+		return
+	_task = WorkerThreadPool.add_task(func() -> void: StreetPool._warming = StreetPool.bundled(), false, "street pool")
+
 ## The bundled pool, read from the game's files.
 static func bundled() -> StreetPool:
 	var pool: StreetPool = StreetPool.new()
@@ -164,6 +187,19 @@ func ref_d(p: float) -> float:
 	var lo: int = int(floor(at)) - 1
 	var hi: int = mini(lo + 1, main_ref.size() - 1)
 	return lerpf(main_ref[lo], main_ref[hi], at - floor(at))
+
+## The furthest main level whose reference difficulty is at most `d`: where on the climb a board of `d` bits belongs.
+func level_at(d: float) -> int:
+	var lo: int = 0
+	var hi: int = main_ref.size()
+	while lo < hi:
+		@warning_ignore("integer_division")
+		var mid: int = (lo + hi) / 2
+		if main_ref[mid] <= d + 0.0001:
+			lo = mid + 1
+		else:
+			hi = mid
+	return lo
 
 ## The rules the main path has shown by climb position `p`: every rule on its boards up to there.
 func taught(p: float) -> Dictionary:

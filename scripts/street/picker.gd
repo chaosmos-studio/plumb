@@ -7,8 +7,8 @@ extends RefCounted
 ## The player has a climb position `p` on the main path, the curriculum: the rules taught by `p` are the ones its
 ## chapters have taught by then, and its reference difficulty is the main path's there, made never to fall. After a
 ## solve `p` moves on by the pace, which comes from the rating's gap to the reference. Difficulty never drops: the
-## target for the next door is never below the last one's, no board is easier than the last door's, and par never
-## falls, until the comfort ceiling, where boards stay in the band and never fall below its floor.
+## target for the next door is never below the last one's, no board is easier than the hardest door so far, and par
+## never falls, until the comfort ceiling, where boards stay in the band and never fall below its floor.
 
 ## Doors that always open the street: the opening chosen to be remembered.
 const OPENING: int = 5
@@ -26,6 +26,10 @@ const CEIL_MARBLES: int = 5
 ## How far above the target a board may be, normally and widened.
 const WINDOW: float = 0.6
 const WIDE: float = 1.6
+## What raising par by one move costs a candidate, in bits of distance from the target. Without it, simulated players
+## below 1700 ran 3 to 5 bits above their target by door 60: par ratchets too, and every raise shuts out the boards
+## at the floor with a lower par.
+const PAR_COST: float = 0.5
 ## A new rule's first doors, which prefer boards that need it.
 const TEACH_DOORS: int = 4
 ## How many recent doors' layouts a board may not repeat.
@@ -37,11 +41,14 @@ const RECENT: int = 2
 ## easier than the last, a door too hard stays that hard: the simulated players showed it.
 const STEPS: PackedStringArray = ["opening", "fit", "any_feel", "any_need", "wide", "recycle"]
 
-## The state a pick reads: the doors so far, each door's board id, difficulty and par when played, the climb position
-## and the last target. A Dictionary, so the save keeps it as it is.
+## The state a pick reads: the doors so far, each door's board id, difficulty and par when played, the climb position,
+## the last target and the floor (the hardest door so far, which no new door goes below). The rating rides along, with
+## when it last moved and how many doors are solved, so a cloud copy brings all of it together. A Dictionary, so the
+## save keeps it as it is.
 static func fresh() -> Dictionary:
-	return {"doors": PackedStringArray(), "door_d": PackedFloat64Array(), "door_par": PackedInt32Array(), "p": 1.0,
-		"target": 0.0, "mu": StreetRating.START_MU, "phi": StreetRating.START_PHI}
+	return {"doors": PackedStringArray(), "door_d": PackedFloat64Array(), "door_par": PackedInt32Array(),
+		"door_pick": PackedStringArray(), "p": 1.0, "target": 0.0, "floor": 0.0, "mu": StreetRating.START_MU,
+		"phi": StreetRating.START_PHI, "rated_at": 0, "solved": 0}
 
 ## The pace after a solve, in main levels a door: 1 is the main path's own. From the gap between the player's rating
 ## and the reference board's, centred where the player is expected to do as well as the target success.
@@ -60,8 +67,9 @@ static func target(state: Dictionary, pool: StreetPool) -> float:
 	var ref: float = minf(pool.ref_d(float(state["p"])), CEIL_TOP)
 	return maxf(ref, float(state["target"]))
 
-## Picks door `door`'s board: {"id", "d", "par", "step"}. `door` is 1 for the first door.
-static func pick(pool: StreetPool, state: Dictionary, door: int, player: String) -> Dictionary:
+## Picks door `door`'s board: {"id", "d", "par", "step"}. `door` is 1 for the first door. `skip` holds boards already
+## solved off the street (in Classic), which are not offered again as new.
+static func pick(pool: StreetPool, state: Dictionary, door: int, player: String, skip: Dictionary = {}) -> Dictionary:
 	if door <= OPENING:
 		var id: String = "main-%04d" % door
 		return {"id": id, "d": pool.d_of(id), "par": pool.par_of(id), "step": "opening"}
@@ -70,7 +78,7 @@ static func pick(pool: StreetPool, state: Dictionary, door: int, player: String)
 	var doors: PackedStringArray = state["doors"]
 	var door_d: PackedFloat64Array = state["door_d"]
 	var door_par: PackedInt32Array = state["door_par"]
-	var last_d: float = door_d[-1] if not door_d.is_empty() else 0.0
+	var last_d: float = maxf(door_d[-1] if not door_d.is_empty() else 0.0, float(state.get("floor", 0.0)))
 	var last_par: int = door_par[-1] if not door_par.is_empty() else 0
 	var aim: float = target(state, pool)
 	var at_ceiling: bool = last_d >= CEIL_FLOOR or aim >= CEIL_TOP
@@ -78,10 +86,12 @@ static func pick(pool: StreetPool, state: Dictionary, door: int, player: String)
 	var floor_d: float = minf(last_d, CEIL_FLOOR) if at_ceiling else last_d
 	var floor_par: int = mini(last_par, CEIL_PAR) if at_ceiling else last_par
 	var p: float = float(state["p"])
-	var taught: Dictionary = pool.taught(maxf(p, float(OPENING)))
+	# A floor ahead of the climb already plays boards from further along, so their rules count as taught too: else
+	# the few boards at the floor with only the climb's rules are used up one a door, and the floor runs on ahead.
+	var taught: Dictionary = pool.taught(maxf(maxf(p, float(pool.level_at(floor_d))), float(OPENING)))
 	var newest: Array = pool.newest(p)
 	var teaching: bool = str(newest[0]) != "" and p - float(newest[1]) < float(TEACH_DOORS)
-	var played: Dictionary = {}
+	var played: Dictionary = skip.duplicate()
 	for id: String in doors:
 		played[StreetPool.base_of(id)] = true
 	var recent: Array[String] = []
@@ -116,7 +126,8 @@ static func pick(pool: StreetPool, state: Dictionary, door: int, player: String)
 			var needs_new: bool = teaching and str(m.get("need", "")) == str(newest[0])
 			if teaching and step < 3 and not needs_new:
 				continue
-			var cost: float = absf(d - aim) + rng.randf() * 0.001
+			# Par never falls, so a board that raises it narrows every pick after: each step up costs PAR_COST.
+			var cost: float = absf(d - aim) + PAR_COST * float(par - floor_par) + rng.randf() * 0.001
 			if cost < best_cost:
 				best_cost = cost
 				best = id
@@ -174,4 +185,8 @@ static func record(state: Dictionary, pool: StreetPool, picked: Dictionary) -> v
 	var door_par: PackedInt32Array = state["door_par"]
 	door_par.append(int(picked["par"]))
 	state["door_par"] = door_par
+	var door_pick: PackedStringArray = state.get("door_pick", PackedStringArray())
+	door_pick.append(str(picked.get("step", "")))
+	state["door_pick"] = door_pick
+	state["floor"] = maxf(float(state.get("floor", 0.0)), float(picked["d"]))
 	state["target"] = maxf(float(state["target"]), minf(target(state, pool), CEIL_TOP))

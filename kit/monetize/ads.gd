@@ -124,7 +124,15 @@ static func rewards() -> bool:
 static func now() -> float:
 	return Time.get_ticks_msec() / 1000.0 + skew
 
+## Boards solved: every one, when the game keeps boards by id (`Save.solved_count`), else the levels of the section in
+## play. It paces ads and opens the daily.
 static func solved() -> int:
+	if Save.has_method("solved_count"):
+		return int(Save.call("solved_count"))
+	return solved_here()
+
+## Levels solved in the section in play: whether it is all done.
+static func solved_here() -> int:
 	var n: int = 0
 	for i: int in range(Pack.count()):
 		if Save.best(i) > 0:

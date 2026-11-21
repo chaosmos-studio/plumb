@@ -25,6 +25,8 @@ func _ready() -> void:
 	Save.tutorial_seen = true
 	Pack.use(Pack.Section.MAIN)
 	Pack.current = 11
+	StreetPlay.door = 1
+	Save.street = StreetPicker.fresh()
 	await get_tree().create_timer(0.5).timeout
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	var screen: Array = SCREENS[int(args[0]) if not args.is_empty() else 0]
@@ -37,6 +39,8 @@ func _ready() -> void:
 		Save.gifts = PackedInt32Array([5, 10, 15, 20, 25, 30, 35, 40].filter(func(n: int) -> bool:
 			return n <= int(args[1])))
 		Pack.current = int(args[1])
+		Save.street = StreetMigrate.state_from(stars, PackedInt32Array(), StreetPool.shared())
+		StreetPlay.door = int(args[1]) + 1
 	_read("empty")
 	var look: String = screen[1]
 	Save.app_look = look
