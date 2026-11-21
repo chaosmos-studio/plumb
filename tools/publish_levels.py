@@ -120,6 +120,8 @@ def main() -> None:
     a.add_argument("--retired", nargs="*", default=[], help="board ids to take out of future picks")
     a.add_argument("--rescore", type=Path, help='a rescore file, {"boards": {id: {"d": bits, "sd": bits}}}')
     a.add_argument("--issued", help="the issue time, ISO 8601 (default: now), so fixtures stay byte-stable")
+    a.add_argument("--interstitials", choices=["on", "off"],
+                   help="ads between levels: off unless a signed manifest says on (they ship off)")
     args = a.parse_args()
 
     out: Path = args.out
@@ -151,6 +153,8 @@ def main() -> None:
                 "episodes": episodes, "retired": sorted(args.retired)}
     if args.rescore:
         manifest["rescore"] = put(out, "rescore", "%04d" % serial, stable(json.loads(args.rescore.read_text())))
+    if args.interstitials:
+        manifest["ads"] = {"interstitials": args.interstitials == "on"}
     body = stable(manifest)
     key = serialization.load_pem_private_key(args.key.read_bytes(), None)
     if not isinstance(key, ec.EllipticCurvePrivateKey) or key.curve.name != "secp256r1":

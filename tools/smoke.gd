@@ -348,6 +348,9 @@ func _supporter() -> int:
 	Save.set_hints(HintGate.today(), AdPacing.DAILY_HINTS)
 	for k: int in range(AdPacing.INTERSTITIAL_EVERY):
 		EventBus.level_won.emit(k, 1, 3)
+	# As if the signed feed had turned ads between levels on, so the pack is what keeps them away.
+	var switch: Callable = Ads.interstitial_switch
+	Ads.interstitial_switch = func() -> bool: return true
 	var due: bool = Ads.interstitial_due() and HintGate.cost(30) == AdPacing.Hint.VIDEO
 	Supporter.grant(true)
 	var levels: Node = load(Brand.LEVELS_SCENE).instantiate()
@@ -365,6 +368,7 @@ func _supporter() -> int:
 	game.queue_free()
 	Supporter.grant(false)
 	failures += _report(Ads.live() and not Save.supporter and not fake.stopped, "a refunded pack brings the ads back")
+	Ads.interstitial_switch = switch
 	await get_tree().process_frame
 	return failures
 
@@ -429,6 +433,12 @@ func _interstitials() -> int:
 	get_tree().root.add_child(stage)
 	get_tree().current_scene = stage
 	var failures: int = 0
+	# Plumb ships them off: with no signed feed turning them on, none is ever due.
+	failures += _report(not Ads.interstitials_allowed() and not Ads.interstitial_due(),
+		"ads between levels stay off until the signed feed turns them on")
+	# The rest plays them as they would be once turned on, with every rule of their pacing.
+	var switch: Callable = Ads.interstitial_switch
+	Ads.interstitial_switch = func() -> bool: return true
 	var early: Vector2i = Vector2i.ZERO
 	for level: int in range(6):
 		early += await _through(fake, level)
@@ -456,6 +466,7 @@ func _interstitials() -> int:
 	var lost: Node = await _play_scene(21)
 	failures += _report(lost != null and not Ads.interstitial_due(), "and never once a level is left unwon")
 	Save.tutorial_seen = true
+	Ads.interstitial_switch = switch
 	var last: Node = get_tree().current_scene
 	if last != null and last != stage:
 		last.queue_free()

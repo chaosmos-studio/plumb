@@ -44,6 +44,8 @@ static func manifest(bytes: PackedByteArray, signature_b64: String, keys: Packed
 			return _no("error")
 	if m.has("rescore") and not _listed(m["rescore"]):
 		return _no("error")
+	if m.has("ads") and not ads_note(m["ads"]):
+		return _no("error")
 	if not (m.get("retired", []) is Array):
 		return _no("error")
 	if got == serial:
@@ -208,6 +210,13 @@ static func holds_street_board(file: String, street: PackedStringArray) -> bool:
 		if StreetPool.base_of(id).begins_with(episode_id + "-"):
 			return true
 	return false
+
+## The manifest's switches for ads: {"interstitials": bool}, so ads between levels can be turned on or off again
+## without an update. Anything but a plain true leaves them off.
+static func ads_note(ads: Variant) -> bool:
+	if not (ads is Dictionary):
+		return false
+	return not (ads as Dictionary).has("interstitials") or (ads as Dictionary)["interstitials"] is bool
 
 static func _listed(entry: Variant) -> bool:
 	if not (entry is Dictionary):

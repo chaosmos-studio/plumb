@@ -108,6 +108,7 @@ func _initialize() -> void:
 	await _test_board_follows_tilt()
 	await _test_walls_follow_pets()
 	await _test_one_off_screens_carry_no_banner()
+	_test_interstitial_switch()
 	_test_chapter_ticks()
 	_test_streak_keeping()
 	_test_chapter_colours()
@@ -1203,6 +1204,44 @@ func _test_feed() -> void:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(dir + folder))
 	feed.set("dir", was[0])
 	feed.set("keys", was[1])
+
+## Ads between levels ship off (21 November): they show only once the kept, signed feed turns them on, with the
+## pacing and the trouble pause as before. Off by default, on through a signed manifest, and a bad signature leaves
+## them off.
+func _test_interstitial_switch() -> void:
+	var ads: GDScript = load("res://kit/monetize/ads.gd")
+	var feed: Node = root.get_node("Feed")
+	var was: Array = [feed.get("dir"), feed.get("keys")]
+	var keys: PackedStringArray = [FileAccess.get_file_as_string("res://tests/fixtures/feed/test_key.pub.pem")]
+	feed.set("keys", keys)
+	var verdicts: Array[bool] = []
+	for bucket: String in ["none", "bucket_ads", "bucket_ads_badsig", "bucket"]:
+		var dir: String = "user://test_feed_ads_%s/" % bucket
+		feed.set("dir", dir)
+		if bucket != "none":
+			for file: String in ["manifest.json", "manifest.json.sig"]:
+				feed.call("write_atomic", dir + file,
+					FileAccess.get_file_as_bytes("res://tests/fixtures/feed/%s/%s" % [bucket, file]))
+		feed.call("forget")
+		verdicts.append(bool(ads.call("interstitials_allowed")))
+		for file: String in DirAccess.get_files_at(dir) if DirAccess.dir_exists_absolute(dir) else PackedStringArray():
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(dir + file))
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(dir))
+	feed.set("dir", was[0])
+	feed.set("keys", was[1])
+	feed.call("forget")
+	_check("Plumb's ads between levels answer to the feed", ads.get("interstitial_switch") == Callable(feed, "interstitials_on"))
+	_check("with no feed kept they are off", not verdicts[0])
+	_check("a signed manifest turns them on", verdicts[1])
+	_check("a bad signature leaves them off", not verdicts[2])
+	_check("and so does a signed manifest that says nothing of them", not verdicts[3])
+	_check("off, none is ever due, whatever the pacing", not ads.call("interstitial_due"))
+	_check("and a game without a switch keeps its pacing alone", (func() -> bool:
+		var switch: Callable = ads.get("interstitial_switch")
+		ads.set("interstitial_switch", Callable())
+		var open: bool = ads.call("interstitials_allowed")
+		ads.set("interstitial_switch", switch)
+		return open).call())
 
 ## Decision 7: the banner shows on the map only, never on a one-off screen. The look chooser's live street is a
 ## preview that asks for no banner, and the studio's opening keeps the banner back while it plays.

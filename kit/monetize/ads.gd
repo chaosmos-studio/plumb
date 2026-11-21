@@ -39,6 +39,8 @@ const STATE: String = "user://ads.cfg"
 static var state_path: String = STATE
 ## The first launch never shows an ad between levels. Set by start(), and by robots that stage a later one.
 static var first_session: bool = true
+## A remote switch for ads between levels (interstitials_allowed), set by a game that has one.
+static var interstitial_switch: Callable = Callable()
 
 static var _backend: AdBackend
 static var _since: int = 0
@@ -241,8 +243,14 @@ static func maybe_interstitial(on_done: Callable, after_guide: bool = false) -> 
 		on_done.call()
 
 static func interstitial_due() -> bool:
-	return AdPacing.interstitial_due(solved(), _since, now(), _last_fullscreen, Supporter.active(), first_session,
-		_won_last, interstitials_paused())
+	return interstitials_allowed() and AdPacing.interstitial_due(solved(), _since, now(), _last_fullscreen,
+		Supporter.active(), first_session, _won_last, interstitials_paused())
+
+## Whether ads between levels may show at all. A game may switch them remotely: with `interstitial_switch` set, one
+## shows only while it answers true (Plumb's: Feed.interstitials_on, off unless the signed level feed turns them on).
+## Unset, the pacing alone decides.
+static func interstitials_allowed() -> bool:
+	return not interstitial_switch.is_valid() or bool(interstitial_switch.call())
 
 ## A purchase sheet counts as a full-screen moment: no ad between levels comes right after one, bought or not.
 static func note_purchase() -> void:

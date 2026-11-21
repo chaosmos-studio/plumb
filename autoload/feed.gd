@@ -31,10 +31,15 @@ var dir: String = DIR
 var _http: HTTPRequest
 var _busy: bool = false
 var _told: bool = false
+## The kept manifest, verified, read once and again after each update of it.
+var _kept: Dictionary = {}
+var _read: bool = false
 
 signal updated(added: int)
 
 func _ready() -> void:
+	# Ads between levels stay off unless the kept, signed manifest turns them on (decision of 21 November).
+	Ads.interstitial_switch = interstitials_on
 	if OS.has_feature("web"):
 		return
 	if OS.is_debug_build():
@@ -130,6 +135,7 @@ func _fetch() -> Dictionary:
 	write_atomic(dir + "manifest.json.sig", signature[1])
 	write_atomic(dir + "dropped.json", JSON.stringify(_dropped().duplicate() + Array(dropped)).to_utf8_buffer())
 	prune(manifest, PackedStringArray(Save.street["doors"]))
+	forget()
 	Save.set_feed(int(manifest["serial"]), int(Time.get_unix_time_from_system()))
 	var added: int = merge_stored()
 	updated.emit(added)
@@ -211,6 +217,31 @@ func _dropped() -> Array:
 		return []
 	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(dir + "dropped.json"))
 	return data if data is Array else []
+
+## Whether ads between levels may show (Ads.interstitial_switch): only when the kept manifest, checked against the
+## game's keys, says `"ads": {"interstitials": true}`. No feed, a bad signature or anything else leaves them off.
+func interstitials_on() -> bool:
+	var ads: Variant = kept_manifest().get("ads", {})
+	return ads is Dictionary and (ads as Dictionary).get("interstitials", false) is bool \
+		and bool((ads as Dictionary).get("interstitials", false))
+
+## The kept manifest, verified against the game's keys, or {}.
+func kept_manifest() -> Dictionary:
+	if _read:
+		return _kept
+	_read = true
+	_kept = {}
+	if not FileAccess.file_exists(dir + "manifest.json"):
+		return _kept
+	var verdict: Dictionary = FeedCheck.manifest(FileAccess.get_file_as_bytes(dir + "manifest.json"),
+		FileAccess.get_file_as_string(dir + "manifest.json.sig"), keys, 0)
+	if bool(verdict["ok"]):
+		_kept = verdict["manifest"]
+	return _kept
+
+## Forgets what was read of the kept manifest, after it changes.
+func forget() -> void:
+	_read = false
 
 ## Deletes every kept file the manifest no longer lists, except an episode holding a board on the street.
 func prune(manifest: Dictionary, street: PackedStringArray) -> void:
