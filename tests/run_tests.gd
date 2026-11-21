@@ -1402,6 +1402,29 @@ func _test_update_card() -> void:
 		_check("Classic's card offers %s" % ("Update and Later" if urgent_below == 0 else "only Update when urgent"),
 			texts == (PackedStringArray(["Update", "Later"]) if urgent_below == 0 else PackedStringArray(["Update"])))
 	await process_frame
+	# The street offers it only once the studio's opening has gone (seen on the A142: the card popped up under it).
+	var intro: GDScript = load("res://kit/ui/intro.gd")
+	var intro_was: bool = intro.get("enabled")
+	intro.set("enabled", false)
+	core.set("fake", {"code": 20004, "flexible": true, "immediate": true, "running": 20001})
+	core.set("_carded", false)
+	var street: Node = (load("res://scenes/street/map.tscn") as PackedScene).instantiate()
+	root.add_child(street)
+	await process_frame
+	var opening: Node = intro.new()
+	street.add_child(opening)
+	street.set("_busy", false)
+	street.set("_time", 10.0)
+	street.call("_maybe_offer_update")
+	var under_opening: bool = not street.find_children("*", "StreetUpdateCard", false, false).is_empty()
+	opening.free()
+	street.call("_maybe_offer_update")
+	_check("the street holds the card until the studio's opening has gone, then offers it", not under_opening
+		and street.find_children("*", "StreetUpdateCard", false, false).size() == 1)
+	street.queue_free()
+	intro.set("enabled", intro_was)
+	await process_frame
+	await process_frame
 	core.set("fake", {})
 	core.set("note_source", Callable())
 	core.set("_carded", false)

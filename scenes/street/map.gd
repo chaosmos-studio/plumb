@@ -745,15 +745,22 @@ func _process(delta: float) -> void:
 
 ## The update card, when Play has a newer version (PlayCore, UpdatePolicy): offered once a day for each version, or
 ## every launch when it must go out, and the restart once it has downloaded. Only on a street at rest, with nothing
-## else open, a moment after it opens.
+## else open, a moment after it opens, and never while the studio's opening still plays over it.
 func _maybe_offer_update() -> void:
-	if _busy or _preview or _measuring or _time < UPDATE_AFTER or _dragging:
+	if _busy or _preview or _measuring or _time < UPDATE_AFTER or _dragging or _opening():
 		return
 	if PlayCore.update_ready() and not _restart_offered:
 		_restart_offered = true
 		_open_update()
 	elif PlayCore.card_due():
 		_open_update()
+
+## Whether the studio's opening (Intro, which Intro.play adds to this screen) is still on screen.
+func _opening() -> bool:
+	for child: Node in get_children():
+		if child is Intro:
+			return true
+	return false
 
 func _open_update() -> void:
 	if _busy:
