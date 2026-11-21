@@ -1461,6 +1461,14 @@ The plan once widened the window first. On a thin pool that sent boards racing a
 door may be easier than the last, a door too hard stays that hard. The simulated players showed it, so widening
 comes last.
 
+**Two ratchets eat the pool.** A slow player's target often sits under the floor, and then every pick is the
+easiest board left at or above it, so the floor climbs one board a door. Par ratchets too, and a board that raises
+par shuts out every board at the floor with a lower par. So each step up in par costs a candidate `PAR_COST` (half a
+bit) of distance, and a floor already ahead of the climb counts the rules of the main level it stands at as taught,
+since its boards are from there anyway. Without these, simulated players below 1700 ran 3 to 5 bits over their target
+by door 60. With them, players of 1900 and up stay on it and slower ones run 1 to 2.5 bits over: closing that needs
+more boards in the pool, since the floor may never fall.
+
 **A pool thick enough.** The main path has one board at each step, and a slow climber needs several. So the pool
 holds extras (`levels/pool.json`, `tools/generate_extras.gd`): for each main level from 6 to 180, three more boards
 made by the generator in that level's chapter phase, within -0.25 to +0.75 bits of it, each new by the novelty test
@@ -1482,4 +1490,5 @@ The feed ships it, and the picker uses it for future picks only: a door keeps th
   faster" line.
 - `TARGET_SUCCESS` to 0.6 in `rating.gd`: `g0` shrinks, so everyone climbs faster and meets harder boards.
 - `WINDOW` to 0.2: fewer boards fit, so more doors fall through to `any_feel` and `wide`.
+- `PAR_COST` to 0: the tests print how far strong players stray above their target, and the slow ones climb away.
 - `START_PHI` to 100: a new player's first doors barely move the rating, and the climb stays near pace 1 for longer.

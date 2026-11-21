@@ -789,8 +789,9 @@ func _test_street_picker() -> void:
 		for s: int in range(1000, 2301, 50):
 			skills.append(float(s) + 7.0)
 	var steps: Dictionary = {}
-	# How far a strong player's boards stray above the target once past the opening, in bits.
+	# How far a strong player's boards stray above the target once past the opening, in bits, on average.
 	var strong_gap: float = 0.0
+	var strong_doors: int = 0
 	for skill: float in skills:
 		var state: Dictionary = StreetPicker.fresh()
 		var rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -820,7 +821,8 @@ func _test_street_picker() -> void:
 			steps[picked["step"]] = int(steps.get(picked["step"], 0)) + 1
 			StreetPicker.record(state, pool, picked)
 			if skill >= 1900.0 and door > 30:
-				strong_gap = maxf(strong_gap, float(picked["d"]) - StreetPicker.target(state, pool))
+				strong_gap += float(picked["d"]) - StreetPicker.target(state, pool)
+				strong_doors += 1
 			# Play until solved: each attempt succeeds by the player's true skill, and every attempt is rated.
 			var d: float = float(picked["d"])
 			var solved: bool = false
@@ -835,9 +837,10 @@ func _test_street_picker() -> void:
 				pace_ok = false
 			state["p"] = float(state["p"]) + step
 		reached[skill] = float(state["p"])
-	print("picker: %d simulated players, steps %s, strong players at most %.2f bits above target" % [skills.size(),
+	strong_gap /= maxf(float(strong_doors), 1.0)
+	print("picker: %d simulated players, steps %s, strong players %.2f bits above target on average" % [skills.size(),
 		steps, strong_gap])
-	_check("a strong player's boards stay within two bits of the target", strong_gap <= 2.0)
+	_check("a strong player's boards stay near the target, under a bit above on average", strong_gap <= 0.75)
 	_check("doors 1 to 5 are always the opening", opening)
 	_check("no door is easier than the last (in the band, none below its floor)", never_easier)
 	_check("par never falls (in the band, never below its floor)", par_kept)
