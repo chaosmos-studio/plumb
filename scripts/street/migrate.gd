@@ -26,6 +26,12 @@ static func upgrade(file: ConfigFile, pool: StreetPool) -> bool:
 	var opened: PackedInt32Array = _ints(file.get_value("progress", "opened", PackedInt32Array()))
 	if not file.has_section_key("street", "state"):
 		file.set_value("street", "state", state_from(stars, opened, pool))
+		# The doors already behind the player: their parcels and milestones count as opened, with the first helpers.
+		var solved_to: int = furthest(stars, PackedInt32Array())
+		file.set_value("street", "gifts", past_gifts(PackedInt32Array(file.get_value("street", "gifts",
+			PackedInt32Array())), solved_to))
+		var helpers: Variant = file.get_value("street", "boosters", {})
+		file.set_value("street", "boosters", first_helpers(helpers if helpers is Dictionary else {}, solved_to))
 	# The welcome purse, once, for a player with stars to their name.
 	var total: int = 0
 	for s: int in stars:
@@ -62,6 +68,26 @@ static func state_from(stars: PackedByteArray, opened: PackedInt32Array, pool: S
 		state["phi"] = START_PHI
 		state["target"] = minf(pool.ref_d(float(k)), StreetPicker.CEIL_TOP)
 	return state
+
+## Every parcel and milestone door up to `solved_to` counts as opened, so a player arriving from Classic does not find
+## a street of unopened parcels and unbroken ribbons behind them: the welcome purse stands for those, and the families
+## of those milestones already live there.
+static func past_gifts(gifts: PackedInt32Array, solved_to: int) -> PackedInt32Array:
+	var out: PackedInt32Array = gifts.duplicate()
+	for n: int in range(StreetRewards.PARCEL_EVERY, solved_to + 1, StreetRewards.PARCEL_EVERY):
+		if not out.has(n):
+			out.append(n)
+	return out
+
+## The helpers the first parcels bring (StreetRewards.BOOSTER_AT), for each parcel door up to `solved_to`, so a
+## player arriving with those doors behind them has every helper in hand, as one who walked there would.
+static func first_helpers(boosters: Dictionary, solved_to: int) -> Dictionary:
+	var out: Dictionary = boosters.duplicate()
+	for b: int in range(StreetRewards.BOOSTER_IDS.size()):
+		var id: String = StreetRewards.BOOSTER_IDS[b]
+		if StreetRewards.BOOSTER_AT[b] <= solved_to:
+			out[id] = maxi(int(out.get(id, 0)), StreetRewards.BOOSTER_FIRST)
+	return out
 
 ## The furthest main level solved or opened, as a count: 0 for a new player.
 static func furthest(stars: PackedByteArray, opened: PackedInt32Array) -> int:

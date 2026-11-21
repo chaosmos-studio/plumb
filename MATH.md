@@ -1466,14 +1466,17 @@ easiest board left at or above it, so the floor climbs one board a door. Par rat
 par shuts out every board at the floor with a lower par. So each step up in par costs a candidate `PAR_COST` (half a
 bit) of distance, and a floor already ahead of the climb counts the rules of the main level it stands at as taught,
 since its boards are from there anyway. Without these, simulated players below 1700 ran 3 to 5 bits over their target
-by door 60. With them, players of 1900 and up stay on it and slower ones run 1 to 2.5 bits over: closing that needs
-more boards in the pool, since the floor may never fall.
+by door 60. With them, players of 1900 and up stay on it, and slower ones ran 1 to 2.5 bits over until the pool
+gained a second round of extras along levels 30 to 130: since the floor may never fall, only more boards close the
+gap, and with them every simulated player from 1100 to 1500 stays within half a bit of the target.
 
 **A pool thick enough.** The main path has one board at each step, and a slow climber needs several. So the pool
 holds extras (`levels/pool.json`, `tools/generate_extras.gd`): for each main level from 6 to 180, three more boards
 made by the generator in that level's chapter phase, within -0.25 to +0.75 bits of it, each new by the novelty test
-(section 7) against every main, Hard and other extra board. The plateau needs none: every band board with taught rules
-serves there. `StreetPool.coverage()` counts boards per rule set and per quarter bit, to see where it runs thin.
+(section 7) against every main, Hard and other extra board, and three more again for levels 30 to 130, where the
+simulated players ran short. The plateau needs none: every band board with taught rules serves there.
+`tools/pool_coverage.gd` prints `StreetPool.coverage()`, the boards per rule set and per quarter bit beside the main
+path's own, to see where it runs thin.
 
 **Updating players** start where they were (`scripts/street/migrate.gd`): doors 1 to K are main-0001 to main-K, K
 being the furthest main level solved or opened, `p` is K, the floor is the hardest of them solved, and μ is R(d_K)

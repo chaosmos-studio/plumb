@@ -913,6 +913,10 @@ func _test_street_migration() -> void:
 		total += s
 	_check("the welcome purse pays 5 coins a star, once", int(file.get_value("street", "coins")) == 5 * total
 		and bool(file.get_value("street", "welcomed")))
+	var gifts: PackedInt32Array = file.get_value("street", "gifts")
+	_check("the parcels and milestones behind the player count as opened, with the first helpers in hand",
+		gifts.size() == 30 and gifts.has(5) and gifts.has(140) and gifts.has(150) and not gifts.has(155)
+		and file.get_value("street", "boosters") == {"footprints": 3, "ghosts": 3, "spare_step": 3})
 	var text: String = file.encode_to_text()
 	_check("and moving on twice changes nothing", not StreetMigrate.upgrade(file, pool) and file.encode_to_text() == text)
 	var get_best: Callable = func(id: String) -> int:
@@ -1006,7 +1010,7 @@ func _test_street_migration() -> void:
 		and int(joined["solved"]) == 169)
 	_check("stars by id keep the better, helpers the larger of each, things owned join",
 		int((mine.get_value("progress", "best") as Dictionary).get("x-0001", 0)) == 2
-		and mine.get_value("street", "boosters") == {"ghosts": 2, "footprints": 4}
+		and mine.get_value("street", "boosters") == {"ghosts": 3, "footprints": 4, "spare_step": 3}
 		and (mine.get_value("street", "owned") as PackedStringArray).size() == 2)
 	var other: ConfigFile = ConfigFile.new()
 	other.load("user://test_layout3.cfg")

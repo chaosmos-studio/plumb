@@ -134,8 +134,13 @@ static func rate(d: float, outcome: float) -> void:
 ## Classic to Street: the main boards solved in Classic past the street's join it (StreetDoors.absorb_classic).
 static func absorb_classic() -> void:
 	var state: Dictionary = Save.street.duplicate(true)
-	if StreetDoors.absorb_classic(state, Save.stars, pool()):
-		Save.set_street(state)
+	if not StreetDoors.absorb_classic(state, Save.stars, pool()):
+		return
+	# The doors it brings are behind the player now, their parcels and milestones with them (StreetMigrate).
+	var solved_to: int = StreetDoors.furthest_solved(state, Save.best_of)
+	Save.gifts = StreetMigrate.past_gifts(Save.gifts, solved_to)
+	Save.boosters = StreetMigrate.first_helpers(Save.boosters, solved_to)
+	Save.set_street(state)
 
 ## Street to Classic: every main level up to the street's highest is opened there.
 static func open_in_classic() -> void:
