@@ -87,11 +87,14 @@ func _ready() -> void:
 	_items = _Items.new()
 	_items.shop = self
 	_frame.add_child(_items)
+	# Each marble set's sample rides in a holder that bobs, so the marble itself never moves: a moving marble thinks it
+	# is rolling and draws its tail and turning pattern again every frame (the shop missed frames on the phone).
 	for i: int in range(SETS.size()):
 		var colours: Array = GameLooks.swatch(SETS[i])
-		var sample: Node2D = GameLooks.sample(SETS[i], colours[i % colours.size()], MARBLE * 0.5)
-		_frame.add_child(sample)
-		_samples.append(sample)
+		var holder: Node2D = Node2D.new()
+		holder.add_child(GameLooks.sample(SETS[i], colours[i % colours.size()], MARBLE * 0.5))
+		_frame.add_child(holder)
+		_samples.append(holder)
 	_wobbler = StreetWobbler.new()
 	add_child(_wobbler)
 	_coins = StreetCoinPill.new()
