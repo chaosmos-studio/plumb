@@ -111,6 +111,7 @@ func _initialize() -> void:
 	_test_interstitial_switch()
 	await _test_update_card()
 	_test_dev_shots_stay_out_of_release()
+	_test_web_build_is_classic()
 	await _test_look_chooser()
 	_test_chapter_ticks()
 	_test_streak_keeping()
@@ -1489,6 +1490,28 @@ func _test_one_off_screens_carry_no_banner() -> void:
 	await process_frame
 	_check("and the opening keeps the banner back while it plays", during == covers + 1
 		and int(ads.get("_covers")) == covers)
+
+## The web build's slim engine (kit/web) has no crypto module and none of what Street needs, so the web build opens
+## Classic with no chooser and no way to Street, and makes its player id without Crypto (it once stopped at launch).
+func _test_web_build_is_classic() -> void:
+	var look: GDScript = load("res://scripts/street/app_look.gd")
+	var title: String = load("res://brand.gd").get_script_constant_map()["TITLE_SCENE"]
+	var was: bool = look.get("web")
+	look.set("web", true)
+	var web_ways: Array = [look.call("first_scene", "street", false), look.call("first_scene", "street", true),
+		look.call("home_scene", "street"), look.call("effective", "street"), look.call("street_available")]
+	look.set("web", false)
+	var app_ways: Array = [look.call("first_scene", "street", false), look.call("home_scene", "street")]
+	look.set("web", was)
+	_check("the web build opens Classic, with no chooser and no way to Street", web_ways == [title, title, title,
+		"classic", false])
+	_check("and the app still opens the chooser first and Street after", app_ways == [look.get("CHOOSER_SCENE"),
+		look.get("MAP_SCENE")])
+	var save: GDScript = load("res://autoload/save.gd")
+	var plain: String = save.call("new_player_id", false)
+	var crypto: String = save.call("new_player_id", true)
+	_check("a player id is 16 hex digits with or without Crypto", plain.length() == 16 and plain.is_valid_hex_number()
+		and crypto.length() == 16 and crypto.is_valid_hex_number() and plain != crypto)
 
 ## The look chooser (Shravan, 21 November): Classic on the left and Street on the right, Street picked to begin with, a
 ## tap on a card picks it without leaving, Continue goes with the pick, and on every screen shape the cards, Continue,

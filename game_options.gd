@@ -3,15 +3,16 @@ extends RefCounted
 static func rows() -> Array[Control]:
 	var lines: Array[Control] = []
 	# The new street look or today's (REVAMP_PLAN.md section 3.3). Switching keeps all progress and goes to that look's
-	# Home at once.
-	var street: Switch = Switch.new(Save.app_look == AppLook.STREET)
-	street.toggled.connect(func(on: bool) -> void:
-		Save.set_app_look(AppLook.STREET if on else AppLook.CLASSIC)
-		if not on:
-			Appearance.apply(Save.theme)
-		AppLook.use(Save.app_look)
-		Screens.go(AppLook.home_scene(Save.app_look)))
-	lines.append(_drawn_row("Street look", street, _House.new()))
+	# Home at once. The web build is Classic only (AppLook.street_available).
+	if AppLook.street_available():
+		var street: Switch = Switch.new(Save.app_look == AppLook.STREET)
+		street.toggled.connect(func(on: bool) -> void:
+			Save.set_app_look(AppLook.STREET if on else AppLook.CLASSIC)
+			if not on:
+				Appearance.apply(Save.theme)
+			AppLook.use(Save.app_look)
+			Screens.go(AppLook.home_scene(Save.app_look)))
+		lines.append(_drawn_row("Street look", street, _House.new()))
 	var faces: Switch = Switch.new(Save.faces)
 	faces.toggled.connect(func(on: bool) -> void: Save.set_faces(on))
 	lines.append(_drawn_row("Faces", faces, _Smile.new()))

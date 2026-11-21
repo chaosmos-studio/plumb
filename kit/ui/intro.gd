@@ -73,8 +73,10 @@ static func centre(stage: Control, name: String) -> Vector2:
 static func has_parts() -> bool:
 	return ResourceLoader.exists(GAME) and ResourceLoader.exists(PARTS + "ground.png")
 
+## The web build's slim engine (kit/web) has no SubViewportContainer, which the beat's player draws in, so the web build
+## opens on the icon instead of loading a script that cannot parse there.
 static func has_beat() -> bool:
-	return ResourceLoader.exists(BEAT) and ResourceLoader.exists(BEAT_PLAYER)
+	return not OS.has_feature("web") and ResourceLoader.exists(BEAT) and ResourceLoader.exists(BEAT_PLAYER)
 
 ## Loaded by path, so the kit runs the same in a game that has no res://intro/. False when the player cannot be
 ## made (a script error, such as a name a game's own class hides), and the icon plays instead.

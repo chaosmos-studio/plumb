@@ -229,9 +229,18 @@ static func _path_index(id: String) -> int:
 	return -1
 
 ## 16 random hex characters: a player's id for analytics and the picker's seed, made on the first launch.
-static func new_player_id() -> String:
-	var crypto: Crypto = Crypto.new()
-	return crypto.generate_random_bytes(8).hex_encode()
+static func new_player_id(with_crypto: bool = not OS.has_feature("web")) -> String:
+	# The web build's slim template has no crypto module, where Crypto.new() fails and stops the game at launch: there
+	# a generator seeded by the system stands in, which is plenty for an id that only tells players apart.
+	if with_crypto and ClassDB.can_instantiate(&"Crypto"):
+		var crypto: Crypto = Crypto.new()
+		return crypto.generate_random_bytes(8).hex_encode()
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.randomize()
+	var bytes: PackedByteArray = PackedByteArray()
+	for i: int in range(8):
+		bytes.append(rng.randi_range(0, 255))
+	return bytes.hex_encode()
 
 ## The update card was shown for version `code` on day `day`. Only the latest few versions are kept.
 func note_update_shown(code: int, day: String) -> void:
