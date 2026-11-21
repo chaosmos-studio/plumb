@@ -14,6 +14,8 @@ const SIZES: Array[Vector2i] = [Vector2i(1080, 2400), Vector2i(2400, 1080), Vect
 const SOLVED: int = 11
 var _pixels: Vector2i = SIZES[0]
 var _folder: String = OUT
+## Each picture's labels that run out of their boxes (overflows), kept for the audit.
+var _overflow: Dictionary = {}
 const STARS: PackedByteArray = [3, 3, 2, 3, 1, 3, 2, 3, 3, 2, 3]
 
 func _ready() -> void:
@@ -38,14 +40,22 @@ func _ready() -> void:
 	if sizes.is_empty():
 		sizes = SIZES.duplicate()
 	var shots: Array[Callable] = [_chooser, _map, _card, _play, _win, _walk, _plot, _family, _gift, _milestone, _helpers,
-		_shop, _settings, _colour, _update]
+		_shop, _settings, _colour, _update, _audit]
 	for pixels: Vector2i in sizes:
 		_pixels = pixels
 		_folder = OUT + "%dx%d/" % [pixels.x, pixels.y]
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_folder))
 		for shot: Callable in shots:
-			if names.is_empty() or names.has(shot.get_method().trim_prefix("_")):
+			var named: String = shot.get_method().trim_prefix("_")
+			# The audit runs only when asked for by name: it pictures the kit's sheets, not Street's own screens.
+			if (names.is_empty() and named != "audit") or names.has(named):
 				await shot.call()
+		if names.has("audit"):
+			var street: FileAccess = FileAccess.open("res://build/review/m6/audit/%dx%d/street-report.json" % [pixels.x,
+				pixels.y], FileAccess.WRITE)
+			street.store_string(JSON.stringify(_overflow, "\t"))
+			street.close()
+			_overflow.clear()
 	print("STREET_SHOTS_DONE")
 	get_tree().quit()
 
@@ -71,6 +81,7 @@ func _save(view: SubViewport, name: String) -> void:
 	var path: String = ProjectSettings.globalize_path(_folder + name + ".png")
 	view.get_texture().get_image().save_png(path)
 	print("STREET_SHOT ", path)
+	_overflow[name] = overflows(view)
 
 ## The update card, with Play stood in for (PlayCore.fake): offered on the street with the feed's line and picture,
 ## the badge on the gear filling as it downloads, then the restart.
@@ -113,6 +124,95 @@ func _update() -> void:
 	await _save(plain, "27-update-plain")
 	plain.queue_free()
 	PlayCore.fake = {}
+
+## M6's audit (REVAMP_PLAN.md, M6 step 1): every sheet and screen of the kit's that a player can reach from Street,
+## pictured into build/review/m6/audit/<size>/ beside a report.json that names each one's look and every label that runs
+## out of its box. Street's own screens are the other shots, and the overflow check runs on them too.
+## Run: DISPLAY=:0 godot --path . res://tools/street_shots.tscn -- audit chooser map card play win gift milestone helpers shop settings colour update
+func _audit() -> void:
+	var was: String = _folder
+	_folder = "res://build/review/m6/audit/%dx%d/" % [_pixels.x, _pixels.y]
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_folder))
+	var report: Array[Dictionary] = []
+	var sheets: Array[Array] = [
+		["k1-more", func(host: Node) -> void: Settings.open(host)],
+		["k2-colours", func(host: Node) -> void: Themes.open(host)],
+		["k3-marble-sets", func(host: Node) -> void: Looks.open(host)],
+		["k4-about", func(host: Node) -> void: About.open(host)],
+		["k5-credits", func(host: Node) -> void: Credits.open(host)],
+		["k6-privacy-choices", func(host: Node) -> void: Consent.choices(host, Callable())],
+		["k7-consent", func(host: Node) -> void: Consent.ask(host, Callable(), true)],
+		["k8-hint-video", func(host: Node) -> void: HintGate.ask(host, Callable())],
+		["k9-supporter", func(host: Node) -> void: Supporter.open(host)],
+		["k10-toast", func(host: Node) -> void: Toast.say(host, "The daily puzzle opens after level 20")],
+	]
+	for sheet: Array in sheets:
+		var view: SubViewport = _stage(StreetMap.SCENE)
+		await _seconds(0.6)
+		(sheet[1] as Callable).call(view.get_child(0))
+		await _seconds(1.0)
+		await _audit_shot(view, str(sheet[0]), report)
+		view.queue_free()
+		await _frames(2)
+	# How to play, and a marble's memorial, over Street's play screen.
+	Pack.use(Pack.Section.MAIN)
+	StreetPlay.door = SOLVED + 1
+	var play: SubViewport = _stage(StreetPlay.SCENE)
+	await _seconds(1.4)
+	Coach.open(play.get_child(0))
+	await _seconds(1.2)
+	await _audit_shot(play, "k11-how-to-play", report)
+	play.queue_free()
+	play = _stage(StreetPlay.SCENE)
+	await _seconds(1.4)
+	var size: Vector2 = Vector2(StreetLayout.design_size(Vector2(_pixels)))
+	Memorial.open(play.get_child(0), 0, StreetUI.RED, size * 0.5)
+	await _seconds(0.8)
+	await _audit_shot(play, "k12-memorial", report)
+	play.queue_free()
+	# The daily puzzle, the kit's own screen.
+	var daily: SubViewport = _stage(Daily.SCENE)
+	await _seconds(1.2)
+	await _audit_shot(daily, "k13-daily", report)
+	daily.queue_free()
+	var file: FileAccess = FileAccess.open(_folder + "report.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify(report, "\t"))
+	file.close()
+	_folder = was
+
+func _audit_shot(view: SubViewport, name: String, report: Array[Dictionary]) -> void:
+	await _save(view, name)
+	report.append({"name": name, "overflow": overflows(view)})
+
+## Every label and button in `root` whose text runs out of its own box, or out of the box it sits in when that box is not
+## a container (which would have grown for it): "text: why".
+static func overflows(root: Node) -> PackedStringArray:
+	var found: PackedStringArray = []
+	for node: Node in root.find_children("*", "Control", true, false):
+		var c: Control = node as Control
+		if not c.is_visible_in_tree() or not (c is Label or c is Button):
+			continue
+		var text: String = (c as Label).text if c is Label else (c as Button).text
+		if text.strip_edges() == "":
+			continue
+		var font: Font = c.get_theme_font(&"font")
+		var size: int = c.get_theme_font_size(&"font_size")
+		var need: Vector2 = font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size) \
+			if not (c is Label and (c as Label).autowrap_mode != TextServer.AUTOWRAP_OFF) \
+			else Vector2(0.0, (c as Label).get_line_count() * font.get_height(size))
+		var why: String = ""
+		if need.x > c.size.x + 2.0:
+			why = "%d px wide in %d" % [roundi(need.x), roundi(c.size.x)]
+		elif need.y > c.size.y + 4.0:
+			why = "%d px tall in %d" % [roundi(need.y), roundi(c.size.y)]
+		var parent: Control = c.get_parent() as Control
+		if why == "" and parent != null and not (parent is Container) and parent.clip_contents == false:
+			var inside: Rect2 = Rect2(Vector2.ZERO, parent.size).grow(2.0)
+			if not inside.encloses(Rect2(c.position, c.size)) and parent.size != Vector2.ZERO:
+				why = "out of its %s" % parent.get_class()
+		if why != "":
+			found.append("%s: %s" % [text.replace("\n", " ").left(40), why])
+	return found
 
 func _chooser() -> void:
 	var view: SubViewport = _stage(LookChooser.SCENE)
