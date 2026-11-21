@@ -12,6 +12,10 @@ extends SceneTree
 ## from K into user://extras_part_K.json, and `-- merge=N` joins them, drops any two that clash across parts, numbers
 ## them in main-level order and writes the file. tools/generate_extras.sh runs the parts side by side. Then
 ## tools/level_meta.sh measures them into levels/meta.json.
+##
+## A second round (`round=2`, `tools/generate_extras.sh 4 2`) adds PER_LEVEL more for each level from DENSE_FROM to
+## DENSE_TO, where the simulated players ran short, new against everything already in the file, and appends them with
+## the next ids, so no id given before ever changes.
 
 const OUT: String = "res://levels/pool.json"
 const SEED: int = 20261121
@@ -20,6 +24,10 @@ const SEED: int = 20261121
 const OPENING_END: int = 6
 const RAMP_END: int = 180
 const PER_LEVEL: int = 3
+## The second round's stretch of the ramp, in main levels, and its seed.
+const DENSE_FROM: int = 30
+const DENSE_TO: int = 130
+const DENSE_SEED: int = 20261122
 ## The bits window around a ramp level, below and above it.
 const BELOW: float = 0.25
 const ABOVE: float = 0.75
@@ -27,12 +35,14 @@ const ABOVE: float = 0.75
 const MAX_BATCHES: int = 90
 
 var _avoid: Array[TiltNovelty.Views] = []
+var _round: int = 1
 
 func _initialize() -> void:
 	var args: Dictionary = {}
 	for arg: String in OS.get_cmdline_user_args():
 		var parts: PackedStringArray = arg.split("=")
 		args[parts[0]] = parts[1] if parts.size() > 1 else ""
+	_round = int(args.get("round", "1"))
 	if args.has("merge"):
 		_merge(int(args["merge"]))
 	else:
@@ -40,11 +50,24 @@ func _initialize() -> void:
 		_make(int(spec[0]), int(spec[1]))
 	quit()
 
-## The views of every main and Hard level, which no extra may replay.
+func _part_path(k: int) -> String:
+	return "user://extras_part_%d.json" % k if _round == 1 else "user://extras_r%d_part_%d.json" % [_round, k]
+
+## The extras already in the file, which a later round keeps as they are.
+static func _existing() -> Array:
+	if not FileAccess.file_exists(OUT):
+		return []
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(OUT))
+	return (data as Dictionary).get("boards", []) if data is Dictionary else []
+
+## The views of every main and Hard level, and in a later round every extra already made, which no extra may replay.
 func _reserve() -> Array:
 	var levels: Array = (JSON.parse_string(FileAccess.get_file_as_string("res://levels/levels.json")) as Dictionary)["levels"]
 	var hard: Array = (JSON.parse_string(FileAccess.get_file_as_string("res://levels/hard.json")) as Dictionary)["levels"]
-	for level: Variant in levels + hard:
+	var taken: Array = levels + hard
+	if _round > 1:
+		taken.append_array(_existing())
+	for level: Variant in taken:
 		var board: TiltBoard = TiltBoard.from_dict(level as Dictionary)
 		_avoid.append(TiltNovelty.views(board, TiltSolver.new().solve(board, 200000)))
 	return levels
@@ -70,12 +93,15 @@ func _make(k: int, n: int) -> void:
 	var levels: Array = _reserve()
 	var made: Array = []
 	var mine: Array[TiltNovelty.Views] = []
-	for i: int in range(OPENING_END - 1 + k, RAMP_END, n):
+	var first: int = OPENING_END if _round == 1 else DENSE_FROM
+	var last: int = RAMP_END if _round == 1 else DENSE_TO + 1
+	for i: int in range(first - 1 + k, last - 1, n):
 		var c: int = TiltGenerator.chapter_at(i)
 		var level: Dictionary = levels[i]
 		var board: TiltBoard = TiltBoard.from_dict(level)
 		var bits: float = TiltDifficulty.of(board, int(level["par"]), 400000).bits
-		var job: Dictionary = {"chapter": c, "phase": phase_index(i), "seed": hash([SEED, i]), "last": {},
+		var seed: int = hash([SEED, i]) if _round == 1 else hash([DENSE_SEED, i])
+		var job: Dictionary = {"chapter": c, "phase": phase_index(i), "seed": seed, "last": {},
 			"lo": bits - BELOW, "hi": bits + ABOVE, "by_par": false}
 		job["cap"] = int(TiltGenerator.phase_of(c, int(job["phase"]))[8])
 		var found: int = 0
@@ -94,17 +120,19 @@ func _make(k: int, n: int) -> void:
 			if found >= PER_LEVEL:
 				break
 		print("GENERATE_EXTRAS level %d: %d of %d" % [i + 1, found, PER_LEVEL])
-	var file: FileAccess = FileAccess.open("user://extras_part_%d.json" % k, FileAccess.WRITE)
+	var file: FileAccess = FileAccess.open(_part_path(k), FileAccess.WRITE)
 	file.store_string(JSON.stringify(made))
 
 func _merge(n: int) -> void:
 	var all: Array = []
 	for k: int in range(n):
-		var part: Variant = JSON.parse_string(FileAccess.get_file_as_string("user://extras_part_%d.json" % k))
+		var part: Variant = JSON.parse_string(FileAccess.get_file_as_string(_part_path(k)))
 		if part is Array:
 			all.append_array(part as Array)
 	all.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["after"]) < int(b["after"]))
-	var kept: Array = []
+	# A later round keeps every extra already given an id, and numbers its own after them.
+	var kept: Array = _existing() if _round > 1 else []
+	var before: int = kept.size()
 	var views: Array[TiltNovelty.Views] = []
 	for entry: Variant in all:
 		var e: Dictionary = entry
@@ -119,4 +147,5 @@ func _merge(n: int) -> void:
 		kept.append(e)
 	var file: FileAccess = FileAccess.open(OUT, FileAccess.WRITE)
 	file.store_string(JSON.stringify({"format": 1, "seed": SEED, "boards": kept}) + "\n")
-	print("GENERATE_EXTRAS merged %d extras from %d made" % [kept.size(), all.size()])
+	print("GENERATE_EXTRAS merged %d new extras from %d made, %d in all" % [kept.size() - before, all.size(),
+		kept.size()])

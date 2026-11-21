@@ -18519,6 +18519,3834 @@
     "paint"
    ],
    "w": 7.0
+  },
+  "x-0487": {
+   "colours": 3.0,
+   "d": 8.1699,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 63.0,
+   "set": [],
+   "w": 5.0
+  },
+  "x-0488": {
+   "colours": 3.0,
+   "d": 7.585,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 59.0,
+   "set": [],
+   "w": 5.0
+  },
+  "x-0489": {
+   "colours": 3.0,
+   "d": 7.585,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 53.0,
+   "set": [],
+   "w": 5.0
+  },
+  "x-0490": {
+   "colours": 3.0,
+   "d": 8.2106,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 72.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0491": {
+   "colours": 3.0,
+   "d": 8.1699,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 47.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0492": {
+   "colours": 3.0,
+   "d": 8.3399,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 5.0,
+   "positions": 50.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0493": {
+   "colours": 3.0,
+   "d": 8.433,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 87.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0494": {
+   "colours": 3.0,
+   "d": 8.1699,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 40.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0495": {
+   "colours": 3.0,
+   "d": 8.1699,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 70.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0496": {
+   "colours": 3.0,
+   "d": 7.585,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 63.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0497": {
+   "colours": 3.0,
+   "d": 7.7549,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 5.0,
+   "positions": 48.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0498": {
+   "colours": 3.0,
+   "d": 8.3399,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 89.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0499": {
+   "colours": 3.0,
+   "d": 8.4654,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 94.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0500": {
+   "colours": 3.0,
+   "d": 8.1699,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 73.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0501": {
+   "colours": 3.0,
+   "d": 8.1699,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 103.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0502": {
+   "colours": 3.0,
+   "d": 8.433,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 99.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0503": {
+   "colours": 3.0,
+   "d": 8.1699,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 94.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0504": {
+   "colours": 3.0,
+   "d": 8.7549,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 69.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0505": {
+   "colours": 3.0,
+   "d": 8.7549,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 94.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0506": {
+   "colours": 3.0,
+   "d": 8.7549,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 59.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0507": {
+   "colours": 3.0,
+   "d": 8.7549,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 45.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0508": {
+   "colours": 3.0,
+   "d": 8.1699,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 66.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0509": {
+   "colours": 3.0,
+   "d": 8.3399,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 5.0,
+   "positions": 57.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0510": {
+   "colours": 3.0,
+   "d": 8.7549,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 82.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0511": {
+   "colours": 3.0,
+   "d": 8.1878,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 91.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0512": {
+   "colours": 3.0,
+   "d": 8.7549,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 59.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0513": {
+   "colours": 3.0,
+   "d": 8.3399,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 5.0,
+   "positions": 44.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0514": {
+   "colours": 3.0,
+   "d": 9.3399,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 59.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0515": {
+   "colours": 3.0,
+   "d": 9.1699,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 61.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0516": {
+   "colours": 3.0,
+   "d": 9.1699,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 26.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0517": {
+   "colours": 3.0,
+   "d": 8.7549,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 53.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0518": {
+   "colours": 3.0,
+   "d": 9.1699,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 53.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0519": {
+   "colours": 3.0,
+   "d": 8.7549,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 62.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0520": {
+   "colours": 3.0,
+   "d": 9.3399,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 30.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0521": {
+   "colours": 3.0,
+   "d": 9.3399,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 40.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0522": {
+   "colours": 3.0,
+   "d": 8.6029,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 63.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0523": {
+   "colours": 3.0,
+   "d": 9.3399,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 81.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0524": {
+   "colours": 3.0,
+   "d": 8.7549,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 78.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0525": {
+   "colours": 3.0,
+   "d": 9.1699,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 89.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0526": {
+   "colours": 3.0,
+   "d": 9.3399,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 35.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0527": {
+   "colours": 3.0,
+   "d": 9.3399,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 95.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0528": {
+   "colours": 3.0,
+   "d": 8.585,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 47.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0529": {
+   "colours": 3.0,
+   "d": 8.6394,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 57.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0530": {
+   "colours": 3.0,
+   "d": 9.3399,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 46.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0531": {
+   "colours": 3.0,
+   "d": 9.3399,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 61.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0532": {
+   "colours": 3.0,
+   "d": 9.3399,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 43.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0533": {
+   "colours": 3.0,
+   "d": 8.7549,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 58.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0534": {
+   "colours": 3.0,
+   "d": 9.7549,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 96.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0535": {
+   "colours": 3.0,
+   "d": 9.1699,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 65.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0536": {
+   "colours": 3.0,
+   "d": 9.7549,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 67.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0537": {
+   "colours": 3.0,
+   "d": 9.9248,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 19.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0538": {
+   "colours": 3.0,
+   "d": 9.1699,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 61.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0539": {
+   "colours": 3.0,
+   "d": 9.3399,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 30.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0540": {
+   "colours": 3.0,
+   "d": 9.3399,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 63.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0541": {
+   "colours": 3.0,
+   "d": 9.8093,
+   "feel": "roomy",
+   "h": 6.0,
+   "marble_count": 3.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 94.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0542": {
+   "colours": 3.0,
+   "d": 9.1699,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 29.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0543": {
+   "colours": 3.0,
+   "d": 9.1699,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 52.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0544": {
+   "colours": 3.0,
+   "d": 10.0179,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 242.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0545": {
+   "colours": 3.0,
+   "d": 9.3399,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 27.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0546": {
+   "colours": 3.0,
+   "d": 9.7549,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 100.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0547": {
+   "colours": 3.0,
+   "d": 9.3399,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 43.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0548": {
+   "colours": 3.0,
+   "d": 9.3399,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 6.0,
+   "positions": 40.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0549": {
+   "colours": 3.0,
+   "d": 10.1699,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 87.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0550": {
+   "colours": 3.0,
+   "d": 10.1699,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 29.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0551": {
+   "colours": 3.0,
+   "d": 10.0179,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 58.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0552": {
+   "colours": 3.0,
+   "d": 10.1699,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 45.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0553": {
+   "colours": 3.0,
+   "d": 9.9248,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 66.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0554": {
+   "colours": 3.0,
+   "d": 9.7549,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 36.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0555": {
+   "colours": 3.0,
+   "d": 10.7549,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 66.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0556": {
+   "colours": 3.0,
+   "d": 10.0179,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 64.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0557": {
+   "colours": 3.0,
+   "d": 10.3399,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 79.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0558": {
+   "colours": 3.0,
+   "d": 10.3399,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 62.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0559": {
+   "colours": 3.0,
+   "d": 10.9248,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 87.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0560": {
+   "colours": 3.0,
+   "d": 10.3399,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 35.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0561": {
+   "colours": 3.0,
+   "d": 10.3399,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 120.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0562": {
+   "colours": 3.0,
+   "d": 10.3399,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 30.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0563": {
+   "colours": 3.0,
+   "d": 10.3399,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 82.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0564": {
+   "colours": 3.0,
+   "d": 10.3399,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 86.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0565": {
+   "colours": 3.0,
+   "d": 10.7549,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 33.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0566": {
+   "colours": 3.0,
+   "d": 10.9248,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 101.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0567": {
+   "colours": 3.0,
+   "d": 10.3399,
+   "feel": "tight",
+   "h": 6.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 51.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0568": {
+   "colours": 4.0,
+   "d": 10.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 150.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0569": {
+   "colours": 4.0,
+   "d": 10.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 92.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0570": {
+   "colours": 4.0,
+   "d": 10.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 133.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0571": {
+   "colours": 4.0,
+   "d": 10.7549,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 96.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0572": {
+   "colours": 4.0,
+   "d": 11.5098,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 95.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0573": {
+   "colours": 4.0,
+   "d": 10.7549,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 27.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0574": {
+   "colours": 4.0,
+   "d": 11.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 46.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0575": {
+   "colours": 4.0,
+   "d": 10.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 191.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0576": {
+   "colours": 4.0,
+   "d": 11.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 65.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0577": {
+   "colours": 4.0,
+   "d": 11.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 93.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0578": {
+   "colours": 4.0,
+   "d": 11.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 113.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0579": {
+   "colours": 4.0,
+   "d": 11.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 81.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0580": {
+   "colours": 4.0,
+   "d": 10.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 89.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0581": {
+   "colours": 4.0,
+   "d": 10.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 7.0,
+   "positions": 63.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0582": {
+   "colours": 4.0,
+   "d": 11.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 71.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0583": {
+   "colours": 4.0,
+   "d": 11.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 144.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0584": {
+   "colours": 4.0,
+   "d": 11.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 174.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0585": {
+   "colours": 4.0,
+   "d": 11.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 80.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0586": {
+   "colours": 4.0,
+   "d": 11.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 163.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0587": {
+   "colours": 4.0,
+   "d": 11.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 158.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0588": {
+   "colours": 4.0,
+   "d": 11.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 123.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0589": {
+   "colours": 4.0,
+   "d": 11.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 99.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0590": {
+   "colours": 4.0,
+   "d": 11.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 54.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0591": {
+   "colours": 4.0,
+   "d": 11.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 90.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0592": {
+   "colours": 4.0,
+   "d": 11.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 180.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0593": {
+   "colours": 4.0,
+   "d": 11.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 50.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0594": {
+   "colours": 4.0,
+   "d": 11.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 160.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0595": {
+   "colours": 4.0,
+   "d": 12.5098,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 59.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0596": {
+   "colours": 4.0,
+   "d": 12.0947,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 93.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0597": {
+   "colours": 4.0,
+   "d": 11.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 152.0,
+   "set": [],
+   "w": 6.0
+  },
+  "x-0598": {
+   "colours": 4.0,
+   "d": 11.7549,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 69.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0599": {
+   "colours": 4.0,
+   "d": 11.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 115.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0600": {
+   "colours": 4.0,
+   "d": 11.9655,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 68.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0601": {
+   "colours": 4.0,
+   "d": 12.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 80.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0602": {
+   "colours": 4.0,
+   "d": 11.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 207.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0603": {
+   "colours": 4.0,
+   "d": 11.7549,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 141.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0604": {
+   "colours": 4.0,
+   "d": 11.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 80.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0605": {
+   "colours": 4.0,
+   "d": 11.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 182.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0606": {
+   "colours": 4.0,
+   "d": 12.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 117.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0607": {
+   "colours": 4.0,
+   "d": 12.7728,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 235.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0608": {
+   "colours": 4.0,
+   "d": 12.3399,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 202.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0609": {
+   "colours": 4.0,
+   "d": 12.3399,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 103.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0610": {
+   "colours": 4.0,
+   "d": 13.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 132.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0611": {
+   "colours": 4.0,
+   "d": 12.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 279.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0612": {
+   "colours": 4.0,
+   "d": 12.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 161.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0613": {
+   "colours": 4.0,
+   "d": 12.3399,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 274.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0614": {
+   "colours": 4.0,
+   "d": 12.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 225.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0615": {
+   "colours": 4.0,
+   "d": 12.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 133.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0616": {
+   "colours": 4.0,
+   "d": 12.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 139.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0617": {
+   "colours": 4.0,
+   "d": 12.3399,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 104.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0618": {
+   "colours": 4.0,
+   "d": 12.3399,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 251.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0619": {
+   "colours": 4.0,
+   "d": 12.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 109.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0620": {
+   "colours": 4.0,
+   "d": 12.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 364.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0621": {
+   "colours": 4.0,
+   "d": 12.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 8.0,
+   "positions": 272.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0622": {
+   "colours": 4.0,
+   "d": 13.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 47.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0623": {
+   "colours": 4.0,
+   "d": 12.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 286.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0624": {
+   "colours": 4.0,
+   "d": 12.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 332.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0625": {
+   "colours": 4.0,
+   "d": 12.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 297.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0626": {
+   "colours": 4.0,
+   "d": 13.3578,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 120.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0627": {
+   "colours": 4.0,
+   "d": 12.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "",
+   "par": 9.0,
+   "positions": 180.0,
+   "set": [],
+   "w": 7.0
+  },
+  "x-0628": {
+   "colours": 3.0,
+   "d": 12.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 152.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0629": {
+   "colours": 3.0,
+   "d": 13.7549,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 189.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0630": {
+   "colours": 3.0,
+   "d": 13.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 216.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0631": {
+   "colours": 3.0,
+   "d": 13.1699,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 8.0,
+   "positions": 118.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0632": {
+   "colours": 3.0,
+   "d": 13.1699,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 899.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0633": {
+   "colours": 3.0,
+   "d": 13.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 171.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0634": {
+   "colours": 3.0,
+   "d": 13.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 8.0,
+   "positions": 365.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0635": {
+   "colours": 3.0,
+   "d": 13.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 195.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0636": {
+   "colours": 3.0,
+   "d": 13.1699,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 8.0,
+   "positions": 195.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0637": {
+   "colours": 3.0,
+   "d": 13.7549,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 8.0,
+   "positions": 147.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0638": {
+   "colours": 3.0,
+   "d": 13.7549,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 8.0,
+   "positions": 156.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0639": {
+   "colours": 3.0,
+   "d": 13.7549,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 87.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0640": {
+   "colours": 3.0,
+   "d": 13.7549,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 8.0,
+   "positions": 182.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0641": {
+   "colours": 3.0,
+   "d": 13.7549,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 8.0,
+   "positions": 185.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0642": {
+   "colours": 3.0,
+   "d": 13.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 8.0,
+   "positions": 292.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0643": {
+   "colours": 3.0,
+   "d": 13.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 8.0,
+   "positions": 245.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0644": {
+   "colours": 3.0,
+   "d": 13.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 8.0,
+   "positions": 576.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0645": {
+   "colours": 3.0,
+   "d": 13.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 109.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0646": {
+   "colours": 3.0,
+   "d": 13.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 274.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0647": {
+   "colours": 3.0,
+   "d": 13.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 159.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0648": {
+   "colours": 3.0,
+   "d": 13.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 144.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0649": {
+   "colours": 3.0,
+   "d": 13.7549,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 368.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0650": {
+   "colours": 3.0,
+   "d": 13.585,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 8.0,
+   "positions": 224.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0651": {
+   "colours": 3.0,
+   "d": 13.7549,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 95.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0652": {
+   "colours": 3.0,
+   "d": 14.2244,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 537.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0653": {
+   "colours": 3.0,
+   "d": 13.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 449.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0654": {
+   "colours": 3.0,
+   "d": 14.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 605.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0655": {
+   "colours": 3.0,
+   "d": 14.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 475.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0656": {
+   "colours": 3.0,
+   "d": 13.5098,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 111.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0657": {
+   "colours": 3.0,
+   "d": 13.5098,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 58.0,
+   "set": [
+    "stop"
+   ],
+   "w": 6.0
+  },
+  "x-0658": {
+   "colours": 3.0,
+   "d": 13.7549,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 193.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0659": {
+   "colours": 3.0,
+   "d": 14.3399,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 141.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0660": {
+   "colours": 3.0,
+   "d": 13.6518,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 10.0,
+   "positions": 2184.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0661": {
+   "colours": 3.0,
+   "d": 14.585,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 542.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0662": {
+   "colours": 3.0,
+   "d": 14.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 289.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0663": {
+   "colours": 3.0,
+   "d": 14.3399,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 579.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0664": {
+   "colours": 3.0,
+   "d": 13.7549,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 8.0,
+   "positions": 666.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0665": {
+   "colours": 3.0,
+   "d": 13.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 402.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0666": {
+   "colours": 3.0,
+   "d": 14.3399,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 128.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0667": {
+   "colours": 3.0,
+   "d": 14.1699,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 8.0,
+   "positions": 512.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0668": {
+   "colours": 3.0,
+   "d": 13.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 365.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0669": {
+   "colours": 3.0,
+   "d": 14.3399,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 1016.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0670": {
+   "colours": 3.0,
+   "d": 14.6029,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 10.0,
+   "positions": 823.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0671": {
+   "colours": 3.0,
+   "d": 14.7549,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 10.0,
+   "positions": 1414.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0672": {
+   "colours": 3.0,
+   "d": 14.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 10.0,
+   "positions": 453.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0673": {
+   "colours": 3.0,
+   "d": 14.7549,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 505.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0674": {
+   "colours": 3.0,
+   "d": 14.3399,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 10.0,
+   "positions": 489.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0675": {
+   "colours": 3.0,
+   "d": 14.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 10.0,
+   "positions": 712.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0676": {
+   "colours": 3.0,
+   "d": 14.7549,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 8.0,
+   "positions": 474.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0677": {
+   "colours": 3.0,
+   "d": 14.3399,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 588.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0678": {
+   "colours": 3.0,
+   "d": 14.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 10.0,
+   "positions": 689.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0679": {
+   "colours": 3.0,
+   "d": 14.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 889.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0680": {
+   "colours": 3.0,
+   "d": 14.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 386.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0681": {
+   "colours": 3.0,
+   "d": 14.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 962.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0682": {
+   "colours": 3.0,
+   "d": 14.9862,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 10.0,
+   "positions": 534.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0683": {
+   "colours": 3.0,
+   "d": 14.3399,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 8.0,
+   "positions": 821.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0684": {
+   "colours": 3.0,
+   "d": 14.3626,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 1871.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0685": {
+   "colours": 3.0,
+   "d": 14.4654,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 10.0,
+   "positions": 1406.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0686": {
+   "colours": 3.0,
+   "d": 14.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 598.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0687": {
+   "colours": 3.0,
+   "d": 14.6029,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "stop",
+   "par": 9.0,
+   "positions": 555.0,
+   "set": [
+    "stop"
+   ],
+   "w": 7.0
+  },
+  "x-0688": {
+   "colours": 3.0,
+   "d": 15.0947,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 413.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0689": {
+   "colours": 3.0,
+   "d": 14.5098,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 89.0,
+   "set": [
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0690": {
+   "colours": 3.0,
+   "d": 14.7728,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 193.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0691": {
+   "colours": 3.0,
+   "d": 14.5098,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 88.0,
+   "set": [
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0692": {
+   "colours": 3.0,
+   "d": 15.0947,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 370.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0693": {
+   "colours": 3.0,
+   "d": 15.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 593.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0694": {
+   "colours": 3.0,
+   "d": 14.5325,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 218.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0695": {
+   "colours": 3.0,
+   "d": 14.6797,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 95.0,
+   "set": [
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0696": {
+   "colours": 3.0,
+   "d": 15.0947,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 136.0,
+   "set": [
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0697": {
+   "colours": 3.0,
+   "d": 15.0947,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 161.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0698": {
+   "colours": 3.0,
+   "d": 15.0179,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 9.0,
+   "positions": 312.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0699": {
+   "colours": 3.0,
+   "d": 15.0947,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 153.0,
+   "set": [
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0700": {
+   "colours": 3.0,
+   "d": 15.0947,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 256.0,
+   "set": [
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0701": {
+   "colours": 3.0,
+   "d": 15.7549,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 9.0,
+   "positions": 309.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0702": {
+   "colours": 3.0,
+   "d": 15.0947,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 85.0,
+   "set": [
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0703": {
+   "colours": 3.0,
+   "d": 15.0947,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 370.0,
+   "set": [
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0704": {
+   "colours": 3.0,
+   "d": 15.0947,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 1007.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0705": {
+   "colours": 3.0,
+   "d": 15.6797,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 206.0,
+   "set": [
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0706": {
+   "colours": 3.0,
+   "d": 15.0947,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 358.0,
+   "set": [
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0707": {
+   "colours": 3.0,
+   "d": 15.5098,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 276.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0708": {
+   "colours": 3.0,
+   "d": 14.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 229.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0709": {
+   "colours": 3.0,
+   "d": 15.3399,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 692.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0710": {
+   "colours": 3.0,
+   "d": 15.6797,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 79.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0711": {
+   "colours": 3.0,
+   "d": 15.1175,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 308.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0712": {
+   "colours": 3.0,
+   "d": 14.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 9.0,
+   "positions": 357.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0713": {
+   "colours": 3.0,
+   "d": 14.9248,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 262.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0714": {
+   "colours": 3.0,
+   "d": 15.2647,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 363.0,
+   "set": [
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0715": {
+   "colours": 3.0,
+   "d": 15.6797,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 223.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0716": {
+   "colours": 3.0,
+   "d": 15.6797,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 573.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0717": {
+   "colours": 3.0,
+   "d": 15.0179,
+   "feel": "roomy",
+   "h": 7.0,
+   "marble_count": 4.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 493.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 6.0
+  },
+  "x-0718": {
+   "colours": 3.0,
+   "d": 15.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 767.0,
+   "set": [
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0719": {
+   "colours": 3.0,
+   "d": 14.9793,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 1048.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0720": {
+   "colours": 3.0,
+   "d": 15.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 343.0,
+   "set": [
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0721": {
+   "colours": 3.0,
+   "d": 15.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 167.0,
+   "set": [
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0722": {
+   "colours": 3.0,
+   "d": 15.3399,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 898.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0723": {
+   "colours": 3.0,
+   "d": 15.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 9.0,
+   "positions": 763.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0724": {
+   "colours": 3.0,
+   "d": 15.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 681.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0725": {
+   "colours": 3.0,
+   "d": 15.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 1519.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0726": {
+   "colours": 3.0,
+   "d": 15.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 379.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0727": {
+   "colours": 3.0,
+   "d": 15.3399,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 265.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0728": {
+   "colours": 3.0,
+   "d": 15.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 151.0,
+   "set": [
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0729": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 144.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0730": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 321.0,
+   "set": [
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0731": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 176.0,
+   "set": [
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0732": {
+   "colours": 3.0,
+   "d": 15.9248,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 460.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0733": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 238.0,
+   "set": [
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0734": {
+   "colours": 3.0,
+   "d": 15.6797,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 301.0,
+   "set": [
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0735": {
+   "colours": 3.0,
+   "d": 15.7372,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 1022.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0736": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 669.0,
+   "set": [
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0737": {
+   "colours": 3.0,
+   "d": 15.3578,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 282.0,
+   "set": [
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0738": {
+   "colours": 3.0,
+   "d": 15.3399,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 198.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0739": {
+   "colours": 3.0,
+   "d": 15.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 9.0,
+   "positions": 544.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0740": {
+   "colours": 3.0,
+   "d": 15.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 1179.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0741": {
+   "colours": 3.0,
+   "d": 15.6797,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 814.0,
+   "set": [
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0742": {
+   "colours": 3.0,
+   "d": 15.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 114.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0743": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 293.0,
+   "set": [
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0744": {
+   "colours": 3.0,
+   "d": 15.7728,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 10.0,
+   "positions": 395.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0745": {
+   "colours": 3.0,
+   "d": 16.1699,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 359.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0746": {
+   "colours": 3.0,
+   "d": 16.2618,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 2595.0,
+   "set": [
+    "stop",
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0747": {
+   "colours": 3.0,
+   "d": 15.6797,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "gate",
+   "par": 11.0,
+   "positions": 417.0,
+   "set": [
+    "gate"
+   ],
+   "w": 7.0
+  },
+  "x-0748": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 545.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0749": {
+   "colours": 3.0,
+   "d": 15.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 214.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0750": {
+   "colours": 3.0,
+   "d": 15.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 139.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0751": {
+   "colours": 3.0,
+   "d": 15.6797,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 10.0,
+   "positions": 514.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0752": {
+   "colours": 3.0,
+   "d": 15.6797,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 10.0,
+   "positions": 259.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0753": {
+   "colours": 3.0,
+   "d": 15.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 190.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0754": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 256.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0755": {
+   "colours": 3.0,
+   "d": 15.5098,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 174.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0756": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 119.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0757": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 185.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0758": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 192.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0759": {
+   "colours": 3.0,
+   "d": 16.6797,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 351.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0760": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 145.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0761": {
+   "colours": 3.0,
+   "d": 15.9427,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 234.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0762": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 357.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0763": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 320.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0764": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 295.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0765": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 314.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0766": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 124.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0767": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 517.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0768": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 122.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0769": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 830.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0770": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 160.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0771": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 147.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0772": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 130.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0773": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 315.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0774": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 87.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0775": {
+   "colours": 3.0,
+   "d": 16.0947,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 573.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0776": {
+   "colours": 3.0,
+   "d": 16.6797,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 119.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
+  },
+  "x-0777": {
+   "colours": 3.0,
+   "d": 16.6797,
+   "feel": "tight",
+   "h": 7.0,
+   "marble_count": 5.0,
+   "need": "plug",
+   "par": 11.0,
+   "positions": 288.0,
+   "set": [
+    "plug"
+   ],
+   "w": 7.0
   }
  }
 }
