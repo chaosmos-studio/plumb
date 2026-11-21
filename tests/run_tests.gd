@@ -2174,9 +2174,9 @@ func _test_presets_and_plugins() -> void:
 	_check("the Play billing plugin is enabled", enabled.has("res://addons/GodotGooglePlayBilling/plugin.cfg"))
 	var export_plugin: GDScript = load("res://addons/intermission/export_plugin.gd")
 	for debug: bool in [true, false]:
-		for aar: String in export_plugin.call("libraries", "levelplay", debug):
-			_check("res://addons/%s is in place, so no build downloads it" % aar,
-				FileAccess.file_exists("res://addons/".path_join(aar)))
+		var aar: String = export_plugin.call("library", debug)
+		_check("res://addons/%s is in place, so no build downloads it" % aar,
+			FileAccess.file_exists("res://addons/".path_join(aar)))
 	_check("the Firebase plugins are enabled", enabled.has("res://addons/godotx_firebase/plugin.cfg")
 		and enabled.has("res://addons/firebase_build/plugin.cfg"))
 	_check("the Play Core plugin is enabled, with the Java helper it builds in",
@@ -3755,7 +3755,7 @@ func _test_levelplay_backend() -> void:
 	var calls: PackedStringArray = plugin.get("calls")
 	var key: String = GameMonetize.LEVELPLAY_APP_KEY
 	_check("consent and test mode go to the SDK before it starts (%s)" % ", ".join(calls), calls == PackedStringArray([
-		"overlong 75.0", "gdpr true", "coppa false", "test suite", "initialize %s true" % key]))
+		"overlong 75.0", "gdpr true", "coppa false", "initialize %s true" % key]))
 	_check("nothing is ready before the SDK is", not backend.video_ready())
 	plugin.emit_signal(&"initialized", true, "none", 0, "")
 	calls = plugin.get("calls")
@@ -3772,7 +3772,6 @@ func _test_levelplay_backend() -> void:
 	plugin.emit_signal(&"app_left", "rewarded", rewarded, false)
 	plugin.emit_signal(&"ad_overlong", "rewarded", rewarded, 75.5)
 	plugin.emit_signal(&"app_left", "rewarded", rewarded, true)
-	plugin.emit_signal(&"ad_rewarded", rewarded, "Hints", 3)
 	plugin.emit_signal(&"ad_closed", "rewarded", rewarded, true)
 	await process_frame
 	await process_frame

@@ -21,7 +21,7 @@ The web build ships none of these plugins (the Web preset excludes `addons/`).
 
 | Component | Author | Licence | Notes |
 | --- | --- | --- | --- |
-| Intermission 0.1.0 (`addons/intermission/`, with its four Android libraries in `addons/intermission/bin/`) | Shravan Goswami (Chaosmos), [chaosmos-studio/godot-intermission](https://github.com/chaosmos-studio/godot-intermission) | MIT (`addons/intermission/LICENSE`) | Unmodified, the addon zip its CI built from commit `faedd07`. The Android presets leave out its two editor scripts. |
+| Intermission 0.1.0 (`addons/intermission/`, with its debug and release Android libraries in `addons/intermission/bin/`) | Shravan Goswami (Chaosmos), [chaosmos-studio/godot-intermission](https://github.com/chaosmos-studio/godot-intermission) | MIT (`addons/intermission/LICENSE`) | Unmodified, the addon zip its CI built from commit `28e1950`. The Android presets leave out its two editor scripts. |
 | Unity LevelPlay 9.8.0 (`mediation-sdk`), Ad Quality SDK 9.12.1, Unity Ads 4.22.0 with its LevelPlay adapter 5.17.0, and coherencelib 0.3.0 | Unity Technologies | Unity's terms, including its Advertising Additional Terms | Fetched by Gradle at build time, not stored in the repo. |
 | Google Play services `play-services-ads-identifier` 18.3.0 and `play-services-appset` 16.1.0 | Google | Android Software Development Kit License | Asked for by LevelPlay. Fetched by Gradle at build time, not stored in the repo. |
 | GodotGooglePlayBilling 3.1.0 (`addons/GodotGooglePlayBilling/`) | Godot Engine contributors (Godot Foundation, godot-sdk-integrations) | MIT | Unmodified. |
