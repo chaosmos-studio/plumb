@@ -47,7 +47,7 @@ func _run() -> void:
 			return
 		await _moments(map)
 		var card: StreetDoorCard = map.get("_card")
-		if door == 3:
+		if door == 7:
 			# A player puts the card back up before going to the shop or Settings.
 			await _until(func() -> bool: return bool(card.get("_open")))
 			card.close()
@@ -128,11 +128,20 @@ func _visit_shop(map: StreetMap) -> void:
 		_fail("the shop did not open")
 		return
 	var before: int = Save.booster_count("footprints")
+	var ghosts: int = Save.booster_count("ghosts")
 	Save.add_coins(100)
 	shop.call("_pick", StreetShop.Tray.HELPERS, 0)
+	shop.call("_pick", StreetShop.Tray.HELPERS, 1)
 	shop.call("_pick", StreetShop.Tray.HATS, 1)
 	if Save.booster_count("footprints") != before + 1:
 		_fail("buying a helper did not add one")
+	if Save.booster_count("ghosts") != ghosts:
+		_fail("a helper not yet opened was sold")
+	# The video pill: with no video to show here, the helpers come free (decision 7).
+	shop.call("_video")
+	await _wait(0.3)
+	if Save.booster_count("footprints") != before + 2:
+		_fail("the helpers' video gave nothing")
 	if Save.worn[1] != 2:
 		_fail("a bought hat was not worn")
 	shop.close()

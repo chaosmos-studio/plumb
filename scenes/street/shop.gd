@@ -24,6 +24,10 @@ const TRAYS_Y: PackedFloat32Array = [977.0, 1285.0, 1593.0]
 const ITEMS_DY: float = 120.0
 const PILL_DY: float = 257.0
 const PILL_SIZE: Vector2 = Vector2(250.0, 86.0)
+## The helpers' tray has a second pill, a video for one of each open helper (free when no video is ready), its price
+## pill and this one side by side under the tray, this far from its middle.
+const VIDEO_SIZE: Vector2 = Vector2(210.0, 86.0)
+const PAIR_SHIFT: float = 122.0
 const VENDOR: Vector2 = Vector2(433.0, 808.0)
 const VENDOR_D: float = 231.0
 const PLANTERS: PackedFloat32Array = [198.0, 886.0]
@@ -55,6 +59,7 @@ var _vendor: StreetCast
 var _samples: Array[Node2D] = []
 var _wobbler: StreetWobbler
 var _leaving: bool = false
+var _watching: bool = false
 
 func _ready() -> void:
 	layer = 6
@@ -139,9 +144,19 @@ static func item_at(tray: int, i: int) -> Vector2:
 	var inner: float = TRAY_SIZE.x - 120.0
 	return Vector2(TRAY_X + 60.0 + inner * (float(i) + 0.5) / float(count_of(tray)), TRAYS_Y[tray] + ITEMS_DY)
 
-## The price pill's box under tray `tray`.
+## The price pill's box under tray `tray`: in the middle, or left of the video pill under the helpers.
 static func pill_rect(tray: int) -> Rect2:
-	return Rect2(Vector2(TRAY_X + TRAY_SIZE.x * 0.5, TRAYS_Y[tray] + PILL_DY) - PILL_SIZE * 0.5, PILL_SIZE)
+	var shift: float = -PAIR_SHIFT if tray == Tray.HELPERS else 0.0
+	return Rect2(Vector2(TRAY_X + TRAY_SIZE.x * 0.5 + shift, TRAYS_Y[tray] + PILL_DY) - PILL_SIZE * 0.5, PILL_SIZE)
+
+## The helpers' video pill's box.
+static func video_rect() -> Rect2:
+	return Rect2(Vector2(TRAY_X + TRAY_SIZE.x * 0.5 + PAIR_SHIFT, TRAYS_Y[Tray.HELPERS] + PILL_DY) - VIDEO_SIZE * 0.5,
+		VIDEO_SIZE)
+
+## Whether helper `b` is open yet: its parcel has come, at the door the player has reached.
+static func helper_open(b: int) -> bool:
+	return StreetRewards.booster_open(b, Save.main_frontier() + 1)
 
 static func support_rect() -> Rect2:
 	return Rect2(Vector2(FRAME.x * 0.5, SUPPORT_Y) - SUPPORT_SIZE * 0.5, SUPPORT_SIZE)
@@ -191,6 +206,9 @@ func _on_input(event: InputEvent) -> void:
 			_front.wiggle(tray)
 			Audio.play(&"pop", StreetWobbler.VOICE_DB)
 			return
+	if video_rect().has_point(at):
+		_video()
+		return
 	if support_rect().has_point(at):
 		Audio.play(&"tap", -6.0)
 		Supporter.open(self)
@@ -227,6 +245,11 @@ func _pick(tray: int, i: int) -> void:
 			_wobbler.tap(_samples[i], StreetWobbler.Voice.CLINK, 1.4)
 			_front.puff(item_at(tray, i))
 		Tray.HELPERS:
+			# A helper is sold once its parcel has brought it; before that its slot only wobbles.
+			if not helper_open(i):
+				_front.bump(i)
+				Audio.play(&"knock", -6.0)
+				return
 			if not _pay(tray):
 				return
 			Save.add_booster(StreetRewards.BOOSTER_IDS[i], 1)
@@ -234,6 +257,26 @@ func _pick(tray: int, i: int) -> void:
 				"currency": "coins"})
 			_front.bump(i)
 			Audio.play(&"pop", -4.0, 1.3)
+
+## The helpers' video: one of each open helper, given anyway when no video is ready (Ads.rewarded, decision 7).
+func _video() -> void:
+	if _watching or not helper_open(0):
+		_front.wiggle_video()
+		return
+	_watching = true
+	Audio.play(&"tap", -6.0)
+	_front.wiggle_video()
+	Ads.rewarded(_video_reward)
+
+func _video_reward() -> void:
+	_watching = false
+	if _leaving:
+		return
+	for b: int in range(3):
+		if helper_open(b):
+			Save.add_booster(StreetRewards.BOOSTER_IDS[b], 1)
+			_front.bump(b)
+	Audio.play(&"star", -6.0, 1.2)
 
 ## Spends a tray's price, or wiggles its pill and answers false when the coins fall short.
 func _pay(tray: int) -> bool:
@@ -310,6 +353,11 @@ class _Front extends Node2D:
 	var shop: StreetShop
 	var _pills: Array[Jiggle] = [Jiggle.new(), Jiggle.new(), Jiggle.new()]
 	var _slots: Array[Jiggle] = [Jiggle.new(), Jiggle.new(), Jiggle.new()]
+	var _video: Jiggle = Jiggle.new()
+
+	func wiggle_video() -> void:
+		if not Save.reduce_motion:
+			_video.kick(1.2)
 	var _puffs: Array[Vector3] = []
 	var _t: float = 0.0
 
@@ -331,6 +379,7 @@ class _Front extends Node2D:
 			j.step(delta)
 		for j: Jiggle in _slots:
 			j.step(delta)
+		_video.step(delta)
 		var i: int = _puffs.size() - 1
 		while i >= 0:
 			_puffs[i].z += delta
@@ -373,6 +422,17 @@ class _Front extends Node2D:
 			_fit("coin", Vector2(box.position.x + 54.0, box.get_center().y), 64.0, tint)
 			draw_string(font, Vector2(box.position.x + 88.0, box.get_center().y + 22.0), str(StreetShop.price_of(tray)),
 				HORIZONTAL_ALIGNMENT_CENTER, box.size.x - 110.0, 62, Color(StreetUI.CREAM, a))
+			if tray == StreetShop.Tray.HELPERS:
+				# The video pill beside it: a play triangle and +1, teal so it never reads as a price.
+				var video: Rect2 = StreetShop.video_rect()
+				video.position.y += lift
+				var vs: Vector2 = _video.squash()
+				var vbox: Rect2 = Rect2(video.get_center() - video.size * vs * 0.5, video.size * vs)
+				StreetUI.gloss_pill(self, vbox, Color(StreetUI.TEAL, a))
+				StreetUI.glyph(self, &"play", Vector2(vbox.position.x + 54.0, vbox.get_center().y - 2.0), 54.0,
+					Color(StreetUI.CREAM, a))
+				draw_string(font, Vector2(vbox.position.x + 84.0, vbox.get_center().y + 22.0), "+1",
+					HORIZONTAL_ALIGNMENT_CENTER, vbox.size.x - 104.0, 62, Color(StreetUI.CREAM, a))
 		# The Supporter row: a heart and its price, or a tick once it is the player's.
 		var row: Rect2 = StreetShop.support_rect()
 		row.position.y += rise
@@ -412,11 +472,15 @@ class _Front extends Node2D:
 			StreetShop.Tray.HELPERS:
 				var spring: Jiggle = _slots[i]
 				draw_set_transform(c, spring.tilt(), spring.squash())
-				var piece: String = StreetMoment.SLOT_PIECES[i]
-				_fit(piece, Vector2.ZERO, StreetShop.SLOT, StreetMoment.SLOT_TINTS[i] * tint)
+				var open: bool = StreetShop.helper_open(i)
+				var piece: String = StreetMoment.SLOT_PIECES[i] if open else "slot_grey"
+				_fit(piece, Vector2.ZERO, StreetShop.SLOT, (StreetMoment.SLOT_TINTS[i] if open else Color.WHITE) * tint)
 				_fit(StreetMoment.SLOT_ICONS[i], Vector2.ZERO, StreetShop.SLOT * 0.62, tint)
 				draw_set_transform(Vector2.ZERO)
 				var badge: Vector2 = c + Vector2(StreetShop.SLOT * 0.4, -StreetShop.SLOT * 0.4)
+				if not StreetShop.helper_open(i):
+					_lock(badge, tint.a)
+					return
 				StreetUI.gloss_circle(self, badge, 30.0, Color(StreetUI.RED, tint.a))
 				draw_string(StreetArt.font(), badge + Vector2(-30.0, 15.0),
 					str(Save.booster_count(StreetRewards.BOOSTER_IDS[i])), HORIZONTAL_ALIGNMENT_CENTER, 60.0, 42,
