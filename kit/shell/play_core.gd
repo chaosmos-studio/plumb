@@ -203,6 +203,8 @@ static func picture_of(the_note: Dictionary) -> Texture2D:
 	var image: Image = Image.new()
 	if image.load_png_from_buffer(FileAccess.get_file_as_bytes(path)) != OK:
 		return null
+	# Shown smaller than it is, it needs its mipmaps: sampled with mipmaps that are not there, it draws nothing.
+	image.generate_mipmaps()
 	return ImageTexture.create_from_image(image)
 
 static func _activity() -> Object:

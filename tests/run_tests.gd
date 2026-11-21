@@ -1300,6 +1300,10 @@ func _test_update_card() -> void:
 	_check("the kept feed gives the card its line, its urgent line and its picture", note.get("line") == "Snowy lane is open"
 		and int(note.get("latest", 0)) == 20003 and int(note.get("urgent_below", 0)) == 20000 and picture != null
 		and picture.get_size() == Vector2(320, 180))
+	# Drawn smaller than they are, pictures need mipmaps, or a phone draws nothing (seen on the A142, 21 November).
+	var fallback: Texture2D = load(load("res://scenes/street/update_card.gd").get_script_constant_map()["PICTURE_FILE"])
+	_check("the card's pictures carry their mipmaps, the feed's and its own", picture.get_image().has_mipmaps()
+		and fallback != null and fallback.get_image().has_mipmaps())
 	for folder: String in ["app", ""]:
 		for file: String in DirAccess.get_files_at(dir + folder):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(dir + folder.path_join(file)))

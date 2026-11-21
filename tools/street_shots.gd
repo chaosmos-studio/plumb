@@ -104,8 +104,15 @@ func _update() -> void:
 	await _save(title, "26-update-classic")
 	title.queue_free()
 	AppLook.use(AppLook.STREET)
-	PlayCore.fake = {}
+	# With no note from the feed: the plain line and the card's own picture.
 	PlayCore.note_source = Callable()
+	PlayCore._carded = false
+	Save.update_shown = {}
+	var plain: SubViewport = _stage(StreetMap.SCENE)
+	await _seconds(2.8)
+	await _save(plain, "27-update-plain")
+	plain.queue_free()
+	PlayCore.fake = {}
 
 func _chooser() -> void:
 	var view: SubViewport = _stage(LookChooser.SCENE)

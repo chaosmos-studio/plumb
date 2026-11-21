@@ -30,6 +30,8 @@ const LINE_MIN: int = 30
 ## The X that puts the card away, and how far it sits in from the frame's corner.
 const CLOSE: float = 92.0
 const CLOSE_IN: float = 18.0
+## The picture when the feed has none: a scene from the street, small and with its mipmaps.
+const PICTURE_FILE: String = "res://assets/street/update_picture.png"
 const POP_TIME: float = 0.4
 const FADE_TIME: float = 0.2
 const DIM: float = 0.18
@@ -53,6 +55,9 @@ func _ready() -> void:
 	var note: Dictionary = PlayCore.note()
 	_line = "" if ready_to_restart else UpdatePolicy.line(note, code)
 	_picture = PlayCore.picture_of(note) if int(note.get("latest", 0)) == code else null
+	# Held here, not loaded where it is drawn: a texture nothing holds is freed, and the card would draw nothing.
+	if _picture == null:
+		_picture = load(PICTURE_FILE) as Texture2D
 	_dim = ColorRect.new()
 	_dim.color = Color(0.04, 0.12, 0.2, 0.0)
 	_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -189,7 +194,7 @@ class _Card extends Control:
 		var pic: Rect2 = c.picture_rect()
 		StreetArt.draw_nine(self, "card_inset", pic)
 		var inner: Rect2 = pic.grow(-14.0)
-		var tex: Texture2D = c._picture if c._picture != null else StreetArt.backdrop(StreetArt.WIN_BACKDROP, true)
+		var tex: Texture2D = c._picture
 		if tex != null:
 			var src: Vector2 = Vector2(tex.get_size())
 			var k: float = maxf(inner.size.x / src.x, inner.size.y / src.y)
