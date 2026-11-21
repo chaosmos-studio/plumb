@@ -1473,7 +1473,7 @@ gap, and with them every simulated player from 1100 to 1500 stays within half a 
 **A pool thick enough.** The main path has one board at each step, and a slow climber needs several. So the pool
 holds extras (`levels/pool.json`, `tools/generate_extras.gd`): for each main level from 6 to 180, three more boards
 made by the generator in that level's chapter phase, within -0.25 to +0.75 bits of it, each new by the novelty test
-(section 7) against every main, Hard and other extra board, and three more again for levels 30 to 130, where the
+(section 7) against every main, Hard and other extra board, and three more again for levels 30 to 180, where the
 simulated players ran short. The plateau needs none: every band board with taught rules serves there.
 `tools/pool_coverage.gd` prints `StreetPool.coverage()`, the boards per rule set and per quarter bit beside the main
 path's own, to see where it runs thin.
