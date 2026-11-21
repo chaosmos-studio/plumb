@@ -710,6 +710,8 @@ The steps, in order. Anything visual is shown to the lead as a concept or a firs
 
 **For Shravan, through the lead:** coins for money or not (decision 5); helpers on the card or in play; how many board themes for 2.0 and how often they change (every 20 doors, with the milestones, is my suggestion); and the music direction once he has heard the samples.
 
+**Decided by the lead, 21 November:** the level card is option (b), helpers at the play screen's foot with the one-time bubble, and the card keeps the board, par and Play. Eight board themes for 2.0, one per street district, changing every 20 doors with the milestones and cycling after the eighth, all eight briefed to Codex. No coins for money for now (decision 5 stands), with the shop laid out so a coin pack could be added later without a redesign. The web build is Classic only (`AppLook.street_available`), since its slim engine has neither the crypto module nor what Street needs.
+
 ## 15. Decisions and open questions
 
 ### Decided by the lead, 20 November
