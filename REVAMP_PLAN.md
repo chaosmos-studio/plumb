@@ -671,6 +671,22 @@ Version 2.0.0 is Play's version code 20000.
 - **Analytics:** the level events carry the board, path, difficulty, rating, pick and replay through `Analytics.level_context`, and level_end how the solve went through `Analytics.solve_measures`. User properties go through `addons/analytics_user/AnalyticsUser.java`. `Ads.solved()` counts every board solved (pacing, the daily's gate, achievements), and `Ads.solved_here()` the section in play (the ending and `solved_all`).
 - **Left for later:** the update card (M5), the Data Studio pages and HQ (5.4), and the privacy page's new events.
 
+### After the M4 gate (21 November)
+
+- **Ads between levels ship off** (the lead's decision, 21 November, on Shravan's "no irritating ads": two real Unity interstitials on the A142 had no Close for over 4 minutes, and one opened Play's install overlay by itself). Rewarded videos and the map's banner stay. One remote switch turns them on: `Ads.interstitial_switch`, which Plumb's `Feed.interstitials_on` answers from the kept, signed manifest (`"ads": {"interstitials": true}`, `tools/publish_levels.py --interstitials on`). No feed, a bad signature or a manifest that says nothing leaves them off, and once on, the pacing and the 24-hour trouble pause apply as before.
+- **No banner on one-off screens** (decision 7): the look chooser's live street is a preview on its own instance (`StreetMap.preview_only`), since the static flag was set back before the card's map ran its `_ready` and the preview asked for the banner. The studio's opening (`Intro`) keeps the banner back while it plays. The consent sheet is a kit `Sheet`, which already does, and the welcome purse needs no screen of its own.
+
+### M5: the update card as built (21 November)
+
+- **Every launch** `PlayCore` asks Play through `PlayCore.java`'s `checkUpdate`, with no stale wait. The Java keeps the state (none, available, asking, downloading, downloaded, installing, installed, failed) and a small JSON of the offer (version code, priority, staleness, bytes, flows allowed), and starts either flow with `startUpdate`.
+- **The rules are pure** in `kit/shell/update_policy.gd` (`UpdatePolicy`): flexible by default, immediate when the running version is below the feed's `urgent_below` or Play's priority is 4 or more, once a day for each version (an urgent one every launch), and installed counted on the first launch of a version started from the card.
+- **Street's card** (`scenes/street/update_card.gd`) pops over the dimmed street on the map only, never in a level or over another card, a moment after the street opens. It shows the feed's picture and line (or a street scene and "A new version is ready"), one big button (an arrow into a tray, then a restart arrow once downloaded), and a small X for later, which an urgent update leaves out. It keeps the banner back, fades in under Reduce motion, and turns sideways on a wide screen.
+- **The badge** (`scenes/street/update_badge.gd`) sits on the gear while a version waits: red with the arrow on offer, teal with a ring that fills as it downloads, green with a tick when ready. A tap opens the card. There is no post box on the street, so the gear carries it.
+- **Classic** gets the kit's card on its title and level grid (`PlayCore.offer_card`, Update and Later, only Update when urgent), then the restart sheet as before.
+- **The feed** carries the card's note in the signed manifest (`app`: latest, line of at most 60 characters, urgent_below, a PNG listed by size and hash under `app/`), checked by `FeedCheck.app_note` and kept by `Feed.app_note`. `tools/publish_levels.py` takes `--app-latest`, `--app-line`, `--app-picture` and `--urgent-below`.
+- **Analytics:** `update_card` with `update` shown, start, later, downloaded, restart and installed, the offered `version` and the `mode`.
+- **Laptop and tests:** `PlayCore.fake` stands in for Play (an offer, then a download that fills over six seconds), which the tests and `tools/street_shots.gd` (`update`) use.
+
 ## 15. Decisions and open questions
 
 ### Decided by the lead, 20 November
