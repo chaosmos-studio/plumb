@@ -31,7 +31,9 @@ static func set_tester(on: bool) -> void:
 	file.save(path)
 
 ## Debug builds only, and only on a phone registered as a test device in the LevelPlay and Unity dashboards:
-## `own_app=true` under [testing] in user://ads.cfg (PUBLISHING.md) asks the game's own app for its test ads.
+## `own_app=true` under [testing] in user://ads.cfg (PUBLISHING.md) asks the game's own app. It serves LIVE ads, even
+## with Unity's test mode forced on (seen on 21 November), so it is for load-only checks: never show one on a studio
+## phone.
 static func own_app() -> bool:
 	return OS.is_debug_build() and bool(_file().get_value("testing", "own_app", false))
 
