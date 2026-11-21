@@ -90,9 +90,9 @@ func _card(look: String) -> Control:
 	holder.add_child(view)
 	frame.add_child(holder)
 	if look == AppLook.STREET:
-		StreetMap.preview = true
-		view.add_child((load(StreetMap.SCENE) as PackedScene).instantiate())
-		StreetMap.preview = false
+		var map: Node = (load(StreetMap.SCENE) as PackedScene).instantiate()
+		map.set("preview_only", true)
+		view.add_child(map)
 	else:
 		view.add_child(_ClassicPreview.new())
 	# A white rim over the preview, so each card reads as a card against the sky.

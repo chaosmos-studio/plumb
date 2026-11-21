@@ -103,6 +103,13 @@ static func _hold_music(on: bool) -> void:
 	if Audio.has_method("hold_music"):
 		Audio.call("hold_music", on)
 
+## The banner waits until the beat has played: the opening is a moment, not a screen to carry an ad.
+func _enter_tree() -> void:
+	Ads.cover(true)
+
+func _exit_tree() -> void:
+	Ads.cover(false)
+
 func _ready() -> void:
 	layer = LAYER
 	if has_beat() and _play_beat():

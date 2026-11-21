@@ -95,6 +95,9 @@ static var arrival: int = 0
 static var gift_door: int = 0
 ## Set while the look chooser makes its live preview: no buttons, card, banner or intro, and a gentle roll on its own.
 static var preview: bool = false
+## The same, on the one map it was made for. The chooser builds its cards before they are in the tree, so the map's
+## _ready ran after `preview` was set back, and the preview showed the banner over the chooser.
+var preview_only: bool = false
 ## How far the preview rolls each way from the current door, in strip pixels, and how fast.
 const PREVIEW_ROLL: float = 300.0
 const PREVIEW_SPEED: float = 0.4
@@ -148,7 +151,7 @@ var _title: StreetTitle
 var _wobbler: StreetWobbler
 
 func _ready() -> void:
-	_preview = preview
+	_preview = preview or preview_only
 	Palette.use_street()
 	Pack.use(Pack.Section.MAIN)
 	_last = LAST_DOOR

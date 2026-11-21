@@ -107,6 +107,7 @@ func _initialize() -> void:
 	_test_daily_records()
 	await _test_board_follows_tilt()
 	await _test_walls_follow_pets()
+	await _test_one_off_screens_carry_no_banner()
 	_test_chapter_ticks()
 	_test_streak_keeping()
 	_test_chapter_colours()
@@ -1202,6 +1203,27 @@ func _test_feed() -> void:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(dir + folder))
 	feed.set("dir", was[0])
 	feed.set("keys", was[1])
+
+## Decision 7: the banner shows on the map only, never on a one-off screen. The look chooser's live street is a
+## preview that asks for no banner, and the studio's opening keeps the banner back while it plays.
+func _test_one_off_screens_carry_no_banner() -> void:
+	var ads: GDScript = load("res://kit/monetize/ads.gd")
+	var before: int = (ads.get("_screens") as Array).size()
+	var chooser: Node = (load("res://scenes/street/chooser.tscn") as PackedScene).instantiate()
+	root.add_child(chooser)
+	await process_frame
+	await process_frame
+	_check("the look chooser, with its live street, asks for no banner", (ads.get("_screens") as Array).size() == before)
+	chooser.queue_free()
+	await process_frame
+	var covers: int = int(ads.get("_covers"))
+	var intro: Node = (load("res://kit/ui/intro.gd") as GDScript).new()
+	root.add_child(intro)
+	var during: int = int(ads.get("_covers"))
+	intro.queue_free()
+	await process_frame
+	_check("and the opening keeps the banner back while it plays", during == covers + 1
+		and int(ads.get("_covers")) == covers)
 
 ## A street of `n` doors picked for `player`, each solved at once.
 func _street_after(pool: StreetPool, n: int, player: String) -> Dictionary:
