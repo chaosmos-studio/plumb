@@ -402,7 +402,7 @@ func _build_hud() -> void:
 	# A newer version on Play wears a small badge on the gear until it is installed.
 	_badge = StreetUpdateBadge.new()
 	_badge.position = Vector2(BUTTON - StreetUpdateBadge.DIAMETER * 0.8, -StreetUpdateBadge.DIAMETER * 0.15)
-	_badge.opened.connect(_open_update)
+	_badge.opened.connect(_open_update.bind("badge"))
 	settings.add_child(_badge)
 	# A finger coming down on either starts loading the rooms' page and that room's backdrop, so by the time it lifts
 	# most of the reading is done.
@@ -762,13 +762,15 @@ func _opening() -> bool:
 			return true
 	return false
 
-func _open_update() -> void:
+## `from` is "auto" when the street offers the card, "badge" when the player tapped the badge.
+func _open_update(from: String = "auto") -> void:
 	if _busy:
 		return
 	_busy = true
 	_velocity = 0.0
 	var card: StreetUpdateCard = StreetUpdateCard.new()
 	card.ready_to_restart = PlayCore.update_ready()
+	card.from = from
 	card.closed.connect(func() -> void:
 		_busy = false
 		if _badge != null:

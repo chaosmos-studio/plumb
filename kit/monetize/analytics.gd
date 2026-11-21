@@ -122,8 +122,8 @@ static func tagged(params: Dictionary) -> Dictionary:
 ## Parameters GA4 reports as custom dimensions, which it fills only from text: sent as numbers they arrive as
 ## "(not set)". Stars, seconds and the other measures stay numbers, for their metrics.
 const AS_TEXT: Array[String] = ["level", "success", "room", "board", "path", "pick", "replay", "look", "from", "how",
-	"booster", "gift", "family", "setting", "value", "update", "mode", "version", "feed", "paid_with", "item", "kind",
-	"format", "network"]
+	"booster", "gift", "family", "setting", "value", "update", "mode", "version", "stage", "feed", "paid_with", "item",
+	"kind", "format", "network"]
 ## Measures sent as fractions, rounded so a report reads them: a board's difficulty to hundredths, a rating whole.
 const ROUNDED: Dictionary = {"difficulty": 100.0, "rating": 1.0}
 

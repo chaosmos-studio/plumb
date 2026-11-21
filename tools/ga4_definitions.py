@@ -24,7 +24,7 @@ ADMIN = "https://analyticsadmin.googleapis.com/v1beta/properties/%s/" % PROPERTY
 
 USER = ["app_look", "player_id", "rating_band", "furthest_level", "feed_serial"]
 EVENT = ["board", "path", "pick", "booster", "how", "gift", "family", "look", "from", "setting", "value", "update",
-         "mode", "version", "feed", "paid_with", "replay", "item", "kind", "format", "network"]
+         "mode", "version", "stage", "feed", "paid_with", "replay", "item", "kind", "format", "network"]
 METRICS = ["difficulty", "rating", "moves", "par", "hints", "undos", "restarts", "boosters", "coins", "price", "added",
            "count"]
 

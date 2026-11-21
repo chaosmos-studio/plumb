@@ -330,7 +330,7 @@ New parameters on level events: `board` (id, text), `path` (`street`, `main`, `h
 | `shop_buy` | `item`, `price`, `paid_with` (`coins`, `money`; GA4 reserves `currency`) | Both |
 | `look_choose` | `look`, `how` (`first`, `settings`), `from` | Both |
 | `setting` | `setting` (`reduce_motion`, `colour_help`, `larger_text`, `haptics`, `music`, `sounds`), `value` | Both |
-| `update_card` | `update` (`shown`, `start`, `later`, `downloaded`, `restart`, `installed`), `version`, `mode` (`flexible`, `immediate`) | Both, replacing `update_offer` |
+| `update_card` | `update` (`shown`, `start`, `later`, `downloaded`, `installed`), `version`, `mode` (`flexible`, `immediate`), and on a card's own events `stage` (`offer`, `restart`) and `from` (`auto`, `badge`) | Both, replacing `update_offer` |
 | `feed_sync` | `feed` (`ok`, `same`, `offline`, `bad_signature`, `bad_hash`, `bad_board`, `error`), `serial`, `added` | Both, at most once a launch |
 | `daily_start`, `daily_end`, `streak_kept`, `share`, `screen_view`, `house_ad`, `review_ask`, `solved_*` | as today, the daily's with `board` | Both |
 
@@ -684,7 +684,7 @@ Version 2.0.0 is Play's version code 20000.
 - **The badge** (`scenes/street/update_badge.gd`) sits on the gear while a version waits: red with the arrow on offer, teal with a ring that fills as it downloads, green with a tick when ready. A tap opens the card. There is no post box on the street, so the gear carries it.
 - **Classic** gets the kit's card on its title and level grid (`PlayCore.offer_card`, Update and Later, only Update when urgent), then the restart sheet as before.
 - **The feed** carries the card's note in the signed manifest (`app`: latest, line of at most 60 characters, urgent_below, a PNG listed by size and hash under `app/`), checked by `FeedCheck.app_note` and kept by `Feed.app_note`. `tools/publish_levels.py` takes `--app-latest`, `--app-line`, `--app-picture` and `--urgent-below`.
-- **Analytics:** `update_card` with `update` shown, start, later, downloaded, restart and installed, the offered `version` and the `mode`.
+- **Analytics:** `update_card` with `update` shown, start, later, downloaded and installed, the offered `version` and the `mode`. The cards' own events (shown, start, later) also carry `stage`, `offer` or `restart`, so the restart card counts the same way as the offer, and `from`, `auto` when a screen offered the card or `badge` when the player opened it from the badge, so a card opened again never counts as a fresh offer (the lead's decision after the M5 gate). A sheet put away by any means counts one `later`. `stage` is registered in GA4 (27 event dimensions).
 - **Laptop and tests:** `PlayCore.fake` stands in for Play (an offer, then a download that fills over six seconds), which the tests and `tools/street_shots.gd` (`update`) use.
 - **Phone checks take no screen captures.** The dev package saves its own pictures (`kit/debug/dev_shots.gd`): a `user://shot_request` file holding a name makes it save the next frame of its own viewport to `user://shots/<name>.png`, pulled with `run-as`, so a notification or another app can never be in one. The native banner is not in the viewport, so each shot's `.json` and every change log the kit's banner state (`Ads.banner_state`, `DEV_BANNER` in logcat). Save starts it only in a debug build with the `dev_build` feature, and every other export preset leaves `kit/debug/` out, which a test checks.
 

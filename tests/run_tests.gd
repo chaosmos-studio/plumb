@@ -1342,11 +1342,13 @@ func _test_update_card() -> void:
 	_check("the card opens with the feed's line, keeps the banner back, and is counted",
 		card.get("_line") == "Snowy lane is open" and int(ads.get("_covers")) == covers + 1 and heard.size() == 1
 		and heard[0].get("update") == "shown" and heard[0].get("version") == "20003" and heard[0].get("mode") == "flexible"
+		and heard[0].get("stage") == "offer" and heard[0].get("from") == "auto"
 		and not core.call("card_due") and str((save.get("update_shown") as Dictionary).get("20003", "")) != "")
 	_check("with a way to put it away for later", (card.get("_close") as Button).visible)
 	card.call("_on_go")
 	_check("Update starts the download, remembers the version and is counted", core.call("update_state") == "downloading"
-		and int(save.get("update_started")) == 20003 and heard.size() == 2 and heard[1].get("update") == "start")
+		and int(save.get("update_started")) == 20003 and heard.size() == 2 and heard[1].get("update") == "start"
+		and heard[1].get("stage") == "offer" and heard[1].get("from") == "auto")
 	var badge: Button = (load("res://scenes/street/update_badge.gd") as GDScript).new()
 	badge.call("refresh")
 	var downloading: bool = badge.get("phase") == "downloading" and badge.visible
@@ -1358,17 +1360,31 @@ func _test_update_card() -> void:
 	badge.free()
 	await process_frame
 	await process_frame
+	# The restart card counts like the offer, at its own stage: shown and put away when the street offers it, then
+	# shown and started from the badge.
+	var waiting: CanvasLayer = card_script.new()
+	waiting.set("ready_to_restart", true)
+	root.add_child(waiting)
+	await process_frame
+	waiting.call("_later")
+	_check("the restart card is counted shown and put away, at the restart stage", heard.size() == 5
+		and heard[3].get("update") == "shown" and heard[4].get("update") == "later"
+		and heard[3].get("stage") == "restart" and heard[4].get("stage") == "restart" and heard[4].get("from") == "auto")
+	await process_frame
+	await process_frame
 	var restart: CanvasLayer = card_script.new()
 	restart.set("ready_to_restart", true)
+	restart.set("from", "badge")
 	root.add_child(restart)
 	await process_frame
 	restart.call("_on_go")
-	_check("then the restart card finishes it, counted", core.call("update_state") == "installing"
-		and heard.size() == 4 and heard[3].get("update") == "restart")
+	_check("then, opened from the badge, it finishes the update, counted", core.call("update_state") == "installing"
+		and heard.size() == 7 and heard[5].get("update") == "shown" and heard[5].get("from") == "badge"
+		and heard[6].get("update") == "start" and heard[6].get("stage") == "restart" and heard[6].get("from") == "badge")
 	core.set("fake", {"code": 20003, "running": 20003, "state": "none"})
 	core.call("_launch")
-	_check("and its first launch counts it installed, once", heard.size() == 5 and heard[4].get("update") == "installed"
-		and int(save.get("update_started")) == 0 and int(save.get("last_code")) == 20003)
+	_check("and its first launch counts it installed, once", heard.size() == 8 and heard[7].get("update") == "installed"
+		and not heard[7].has("stage") and int(save.get("update_started")) == 0 and int(save.get("last_code")) == 20003)
 	await process_frame
 	await process_frame
 	# An urgent one: no way to put it away, and Play's immediate flow.
@@ -1401,6 +1417,23 @@ func _test_update_card() -> void:
 		host.free()
 		_check("Classic's card offers %s" % ("Update and Later" if urgent_below == 0 else "only Update when urgent"),
 			texts == (PackedStringArray(["Update", "Later"]) if urgent_below == 0 else PackedStringArray(["Update"])))
+	await process_frame
+	# Classic's offer and restart sheets count the same events, a put-away counted once however the sheet closes.
+	core.set("note_source", func() -> Dictionary: return {"latest": 20003, "urgent_below": 0})
+	var counted: Array[String] = []
+	for stage: String in ["offer", "restart"]:
+		var before: int = heard.size()
+		var holder: Control = Control.new()
+		root.add_child(holder)
+		var sheet: Node = core.call("offer_card" if stage == "offer" else "offer_update", holder)
+		sheet.emit_signal("closed")
+		sheet.emit_signal("closed")
+		for e: Dictionary in heard.slice(before):
+			counted.append("%s/%s/%s" % [e.get("update"), e.get("stage"), e.get("from")])
+		holder.free()
+	core.set("_offered", false)
+	_check("Classic's sheets count shown and later at their stage, once each (%s)" % [counted],
+		counted == ["shown/offer/auto", "later/offer/auto", "shown/restart/auto", "later/restart/auto"])
 	await process_frame
 	# The street offers it only once the studio's opening has gone (seen on the A142: the card popped up under it).
 	var intro: GDScript = load("res://kit/ui/intro.gd")

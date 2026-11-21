@@ -107,19 +107,24 @@ static func update_mode() -> String:
 static func card_due() -> bool:
 	return UpdatePolicy.due(Save.update_shown, int(update_info().get("code", 0)), _today(), update_mode(), _carded)
 
-## The card is up: remembered for the day, and counted.
-static func card_shown() -> void:
+## The card is up: remembered for the day, and counted. `from` is what opened it: "auto" when a screen offered it,
+## "badge" when the player tapped the badge, so a card opened again from the badge never counts as a fresh offer.
+static func card_shown(from: String = "auto") -> void:
 	_carded = true
 	var code: int = int(update_info().get("code", 0))
 	Save.note_update_shown(code, _today())
-	_tell("shown")
+	_tell("shown", "", "offer", from)
+
+## The restart card (or Classic's restart sheet) is up: counted like the offer, at the restart stage.
+static func restart_shown(from: String = "auto") -> void:
+	_tell("shown", "", "restart", from)
 
 ## Update was pressed on the card.
-static func start_update() -> void:
+static func start_update(from: String = "auto") -> void:
 	var how: String = update_mode()
 	var code: int = int(update_info().get("code", 0))
 	Save.note_update_started(code)
-	_tell("start", how)
+	_tell("start", how, "offer", from)
 	if not fake.is_empty():
 		fake["state"] = "installing" if how == "immediate" else "downloading"
 		fake["downloaded"] = 0
@@ -127,13 +132,14 @@ static func start_update() -> void:
 	if available():
 		_helper.call("startUpdate", _activity(), how == "immediate")
 
-## The card was put away without updating.
-static func later() -> void:
-	_tell("later")
+## A card was put away without going on: the offer ("offer") or the restart ("restart").
+static func later(stage: String = "offer", from: String = "auto") -> void:
+	_tell("later", "", stage, from)
 
-## Installs a downloaded update: Play's own screen, then the game opens again on the new version.
-static func complete_update() -> void:
-	_tell("restart")
+## Installs a downloaded update: Play's own screen, then the game opens again on the new version. Counted as the
+## restart card's start.
+static func complete_update(from: String = "auto") -> void:
+	_tell("start", "", "restart", from)
 	if not fake.is_empty():
 		fake["state"] = "installing"
 		return
@@ -152,14 +158,21 @@ static func offer_update(host: Node) -> Sheet:
 	why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	c.add_child(why)
 	c.add_child(UI.spacer(6))
+	var went: Array[bool] = [false]
 	var restart: Button = UI.button("Restart", UI.Style.PRIMARY)
 	restart.pressed.connect(func() -> void:
+		went[0] = true
 		complete_update()
 		sheet.close())
 	c.add_child(restart)
 	var later_button: Button = UI.button("Later", UI.Style.GHOST)
 	later_button.pressed.connect(sheet.close)
 	c.add_child(later_button)
+	# However it is put away (Later, a tap beside it, a drag), it is counted once.
+	sheet.closed.connect(func() -> void:
+		if not went[0]:
+			later("restart"), CONNECT_ONE_SHOT)
+	restart_shown()
 	return sheet
 
 ## Classic's update card: the picture, the line of what is new, Update, and a quiet Later unless it must go out.
@@ -181,17 +194,21 @@ static func offer_card(host: Node) -> Sheet:
 	what.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	c.add_child(what)
 	c.add_child(UI.spacer(6))
+	var went: Array[bool] = [false]
 	var go: Button = UI.button("Update", UI.Style.PRIMARY)
 	go.pressed.connect(func() -> void:
+		went[0] = true
 		start_update()
 		sheet.close())
 	c.add_child(go)
 	if how != "immediate":
 		var later_button: Button = UI.button("Later", UI.Style.GHOST)
-		later_button.pressed.connect(func() -> void:
-			later()
-			sheet.close())
+		later_button.pressed.connect(sheet.close)
 		c.add_child(later_button)
+	# However it is put away (Later, a tap beside it, a drag), it is counted once.
+	sheet.closed.connect(func() -> void:
+		if not went[0]:
+			later("offer"), CONNECT_ONE_SHOT)
 	card_shown()
 	return sheet
 
@@ -224,10 +241,16 @@ static func _go(then: Callable) -> void:
 static func _today() -> String:
 	return Time.get_date_string_from_system()
 
-## update_card for analytics (REVAMP_PLAN.md section 5.2): what happened, the version on offer and how it installs.
-static func _tell(what: String, how: String = "") -> void:
-	Analytics.event(&"update_card", {"update": what, "version": str(int(update_info().get("code", 0))),
-		"mode": how if how != "" else update_mode()})
+## update_card for analytics (REVAMP_PLAN.md section 5.2): what happened (shown, start, later, downloaded, installed),
+## the version on offer and how it installs, and for a card's own events its stage ("offer" or "restart") and what
+## opened it ("auto" or "badge").
+static func _tell(what: String, how: String = "", stage: String = "", from: String = "") -> void:
+	var params: Dictionary = {"update": what, "version": str(int(update_info().get("code", 0))),
+		"mode": how if how != "" else update_mode()}
+	if stage != "":
+		params["stage"] = stage
+		params["from"] = from
+	Analytics.event(&"update_card", params)
 
 ## Each launch: asks Play, and counts an update the player started from the card that is now running.
 static func _launch() -> void:

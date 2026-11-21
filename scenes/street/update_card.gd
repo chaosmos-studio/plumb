@@ -38,6 +38,8 @@ const DIM: float = 0.18
 
 ## Whether the card offers the download (false) or the restart into a downloaded one (true).
 var ready_to_restart: bool = false
+## What opened the card, for its events: "auto" (the street offered it) or "badge" (the player tapped the badge).
+var from: String = "auto"
 var _immediate: bool = false
 var _line: String = ""
 var _picture: Texture2D
@@ -79,8 +81,10 @@ func _ready() -> void:
 	# The banner steps aside while the card is up: it is a moment, not a screen to carry an ad (decision 7).
 	Ads.cover(true)
 	_open = true
-	if not ready_to_restart:
-		PlayCore.card_shown()
+	if ready_to_restart:
+		PlayCore.restart_shown(from)
+	else:
+		PlayCore.card_shown(from)
 	Audio.play(&"tap", -4.0, 0.9)
 	var t: Tween = create_tween().set_parallel()
 	t.tween_property(_dim, "color:a", DIM, FADE_TIME)
@@ -139,16 +143,15 @@ func _on_go() -> void:
 	Audio.play(&"pop", -4.0, 1.1)
 	Audio.buzz(14, 0.4)
 	if ready_to_restart:
-		PlayCore.complete_update()
+		PlayCore.complete_update(from)
 	else:
-		PlayCore.start_update()
+		PlayCore.start_update(from)
 	_dismiss()
 
 func _later() -> void:
 	if not _open or _immediate:
 		return
-	if not ready_to_restart:
-		PlayCore.later()
+	PlayCore.later("restart" if ready_to_restart else "offer", from)
 	Audio.play(&"tap", -8.0)
 	_dismiss()
 
