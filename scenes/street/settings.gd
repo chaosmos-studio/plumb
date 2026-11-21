@@ -24,18 +24,22 @@ const FRAME: Vector2 = Vector2(1084.0, 2412.0)
 const ARCH_AT: Vector2 = Vector2(120.0, 253.0)
 const BOW_AT: Vector2 = Vector2(386.0, 230.0)
 const BUNTING: Rect2 = Rect2(264.0, 430.0, 556.0, 96.0)
-const CAST_Y: float = 705.0
-const CAST_D: float = 176.0
+## The cast stands large on the path under the arch, as in the concept, its feet at the arch's foot.
+const CAST_D: float = 190.0
+const ARCH_FOOT: float = 880.0
+const CAST_Y: float = ARCH_FOOT - CAST_D - 6.0
 const BOARD_AT: Vector2 = Vector2(62.0, 776.0)
 const BOARD_W: float = 960.0
 const TABS_AT: Vector2 = Vector2(112.0, 874.0)
 const TAB_SIZE: Vector2 = Vector2(410.0, 124.0)
 const ROWS_Y: float = 1060.0
 const ROW_STEP: float = 178.0
-const ROW_SIZE: Vector2 = Vector2(860.0, 154.0)
+## Rows span the board's width, as the concept's do: the painted row's pill keeps its 62 px of soft shadow each side.
+const ROW_SIZE: Vector2 = Vector2(960.0, 154.0)
+const ROW_X: float = 0.0
 ## The row art's pill, inside its 860 px piece (the rest is its soft shadow): every label and toggle stays inside it.
 const PILL_LEFT: float = 62.0
-const PILL_RIGHT: float = 797.0
+const PILL_RIGHT: float = ROW_SIZE.x - 63.0
 const LABEL_X: float = PILL_LEFT + 40.0
 const TOGGLE_W: float = 208.0
 const TOGGLE_X: float = PILL_RIGHT - 34.0 - TOGGLE_W * 0.5
@@ -44,12 +48,25 @@ const LABEL_MIN: int = 40
 ## Colour help's little picture, its size and its middle's distance left of the toggle's.
 const SAMPLE_SCALE: float = 0.8
 const SAMPLE_X: float = 180.0
+## The picture's width at full size (a marble and a hole, from 108 left of its middle to 86 right), and the smallest it
+## shrinks to beside long words.
+const SAMPLE_W: float = 194.0
+const SAMPLE_MIN: float = 0.75
 const KNOB: float = 74.0
 const KNOB_SHIFT: float = 57.0
 const LABEL_SIZE: int = 60
 const TAB_LABEL_SIZE: int = 60
 ## The board's foot below its last row.
 const BOARD_FOOT: float = 70.0
+## The board fills the screen as the concept does (build/review/revamp2/7-settings.png): 94% of a portrait screen's
+## width, from under the cast to near the foot, and the same height on every page. Its rows share the room: a short page
+## gets taller rows, up to ROW_GROW times the painting's, and centres them if they still do not fill it.
+const PANEL_WIDTH: float = 0.94
+const PANEL_TOP: float = 0.315
+const PANEL_FOOT: float = 0.035
+const ROW_GROW: float = 1.4
+## A row's share of its step, the rest being the gap to the next.
+const ROW_FILL: float = 0.88
 ## The board's drop, and a toggle's slide.
 const DROP_TIME: float = 0.45
 const SLIDE_TIME: float = 0.28
@@ -136,22 +153,34 @@ func _layout() -> void:
 	_backdrop.size = size
 	_backdrop.texture = StreetArt.backdrop(StreetArt.SETTINGS_BACKDROP, wide)
 	var top: float = float(safe["top"])
+	var foot: float = size.y - float(safe["bottom"]) - size.y * PANEL_FOOT
+	# The arch's part of the painting, from the bow's top to the cast's feet, in its own pixels.
+	var arch_h: float = ARCH_FOOT - BOW_AT.y + 10.0
 	if wide:
-		# The arch on the left, the board on the right, each as large as the height allows.
-		# The board keeps clear of the close button in the top-right corner.
-		var board_s: float = (size.y - top - float(safe["bottom"]) - 40.0) / _board.height()
-		_board.scale = Vector2.ONE * board_s
+		# The board on the right, from near the top to near the foot, clear of the close button; the arch and the cast on
+		# the left, as large as their half allows.
 		var right: float = size.x - float(safe["right"]) - _close.size.x - 44.0
-		_board.position = Vector2(minf(size.x * 0.7 - BOARD_W * 0.5 * board_s, right - BOARD_W * board_s), top + 20.0)
-		var arch_s: float = minf(size.x * 0.42 / FRAME.x, size.y * 0.9 / 900.0)
+		var panel_top: float = top + size.y * 0.04
+		var board_s: float = minf((right - size.x * 0.47) / BOARD_W, (foot - panel_top) / _board.least())
+		_board.scale = Vector2.ONE * board_s
+		_board.panel_h = (foot - panel_top) / board_s
+		_board.position = Vector2(right - BOARD_W * board_s, panel_top)
+		var arch_s: float = minf(size.x * 0.44 / 844.0, (size.y - top) * 0.86 / arch_h)
 		_top.scale = Vector2.ONE * arch_s
-		_top.position = Vector2(size.x * 0.27 - FRAME.x * 0.5 * arch_s, size.y * 0.5 - 520.0 * arch_s)
+		_top.position = Vector2(size.x * 0.24 - FRAME.x * 0.5 * arch_s,
+			top + (size.y - top) * 0.5 - (BOW_AT.y + arch_h * 0.5) * arch_s)
 	else:
-		var s: float = minf(size.x / FRAME.x, (size.y - top) / (BOARD_AT.y + _board.height() + 40.0))
-		_top.scale = Vector2.ONE * s
-		_top.position = Vector2(size.x * 0.5 - FRAME.x * 0.5 * s, top)
-		_board.scale = Vector2.ONE * s
-		_board.position = _top.position + BOARD_AT * s
+		var panel_top: float = maxf(top + size.y * PANEL_TOP, top + 300.0)
+		var board_s: float = minf(size.x * PANEL_WIDTH / BOARD_W, (foot - panel_top) / _board.least())
+		var panel_w: float = BOARD_W * board_s
+		_board.scale = Vector2.ONE * board_s
+		_board.panel_h = (foot - panel_top) / board_s
+		_board.position = Vector2((size.x - panel_w) * 0.5, panel_top)
+		# The arch above, its cast standing on the path just over the board.
+		var arch_s: float = minf(size.x * 0.84 / 844.0, (panel_top - top + 12.0) / arch_h)
+		_top.scale = Vector2.ONE * arch_s
+		_top.position = Vector2(size.x * 0.5 - FRAME.x * 0.5 * arch_s, panel_top + 12.0 - ARCH_FOOT * arch_s)
+	_board.queue_redraw()
 	_close.position = Vector2(size.x - float(safe["right"]) - 22.0 - _close.size.x, top + 16.0)
 
 func close() -> void:
@@ -299,7 +328,29 @@ static func label_of(row: Row) -> String:
 func reset_label() -> String:
 	if _reset_done:
 		return "Progress reset"
-	return "Tap again to erase every star" if _reset_armed else "Reset progress"
+	return "Tap again to reset" if _reset_armed else "Reset progress"
+
+## A row's parts for a row `h` board pixels tall, grown from the painting's 154 px row: the label's left and size,
+## the toggle's width, middle and knob, Colour help's picture's place and scale, and the chevron's middle and size.
+static func row_parts(h: float) -> Dictionary:
+	var k: float = clampf(h / ROW_SIZE.y, 1.0, ROW_GROW)
+	var kt: float = minf(k, 1.4)
+	var toggle_w: float = TOGGLE_W * kt
+	return {"label_x": LABEL_X + 14.0 * (k - 1.0), "label_size": int(LABEL_SIZE * minf(k, 1.5)), "toggle_w": toggle_w,
+		"toggle_x": PILL_RIGHT - 34.0 - toggle_w * 0.5, "knob": KNOB * kt, "knob_shift": KNOB_SHIFT * kt,
+		"sample_x": SAMPLE_X * kt, "sample_scale": SAMPLE_SCALE * kt, "chevron_r": 44.0 * kt,
+		"chevron_x": PILL_RIGHT - 34.0 - 44.0 * kt}
+
+## The room a row's words have, from the label's left to whatever sits at their right.
+static func label_room(row: Row, h: float) -> float:
+	var p: Dictionary = row_parts(h)
+	var right: float = float(p["toggle_x"]) - float(p["toggle_w"]) * 0.5 - 24.0
+	if row == Row.COLOUR:
+		# Colour help's picture follows its words, as small as SAMPLE_MIN when the row is tight.
+		right -= SAMPLE_W * SAMPLE_MIN + 20.0
+	elif opens(row):
+		right = float(p["chevron_x"]) - float(p["chevron_r"]) - 24.0
+	return right - float(p["label_x"])
 
 ## Whether a row opens something rather than flipping a toggle.
 static func opens(row: Row) -> bool:
@@ -348,16 +399,29 @@ class _Board extends Node2D:
 	var _t: float = 0.0
 	## The rows the panel is drawn tall enough for, easing to the current tab's count as tabs change.
 	var _rows_drawn: float = 0.0
+	## The board's height in its own pixels, which the screen sets (StreetSettings._layout).
+	var panel_h: float = 0.0
 
 	func _ready() -> void:
 		_rows_drawn = float(settings.rows_of(settings._tab).size())
 		_sync()
 
 	## The board's height in its pixels for `rows` rows, by default the most rows a tab shows, which sets its scale.
-	func height(rows: float = -1.0) -> float:
-		var n: float = float(settings.most_rows()) if rows < 0.0 else rows
-		return StreetSettings.ROWS_Y - StreetSettings.BOARD_AT.y + (n - 1.0) * StreetSettings.ROW_STEP \
-			+ StreetSettings.ROW_SIZE.y + StreetSettings.BOARD_FOOT
+	## The board's height in its own pixels: the room the screen gives it (StreetSettings._layout), the same on every
+	## page, and at least what its longest page needs at the painting's row size.
+	func height(_rows: float = -1.0) -> float:
+		return maxf(panel_h, least())
+
+	## The least height that holds the longest page at the painting's row size.
+	func least() -> float:
+		return StreetSettings.ROWS_Y - StreetSettings.BOARD_AT.y + float(settings.most_rows()) * StreetSettings.ROW_STEP \
+			+ StreetSettings.BOARD_FOOT
+
+	## The rows' step on the current page: the room shared out, never more than ROW_GROW times the painting's.
+	func step() -> float:
+		var n: float = maxf(float(settings.rows_of(settings._tab).size()), 1.0)
+		var room: float = height() - (StreetSettings.ROWS_Y - StreetSettings.BOARD_AT.y) - StreetSettings.BOARD_FOOT
+		return minf(room / n, StreetSettings.ROW_STEP * StreetSettings.ROW_GROW)
 
 	func _sync() -> void:
 		var rows: Array[StreetSettings.Row] = settings.rows_of(settings._tab)
@@ -377,8 +441,13 @@ class _Board extends Node2D:
 		return Rect2(StreetSettings.TABS_AT - StreetSettings.BOARD_AT, Vector2(860.0, 148.0))
 
 	func row_rect(i: int) -> Rect2:
-		return Rect2(Vector2(StreetSettings.TABS_AT.x - StreetSettings.BOARD_AT.x, StreetSettings.ROWS_Y
-			- StreetSettings.BOARD_AT.y + float(i) * StreetSettings.ROW_STEP), StreetSettings.ROW_SIZE)
+		var s: float = step()
+		var n: float = float(settings.rows_of(settings._tab).size())
+		var room: float = height() - (StreetSettings.ROWS_Y - StreetSettings.BOARD_AT.y) - StreetSettings.BOARD_FOOT
+		# A page that does not fill the board sits in its middle.
+		var y: float = StreetSettings.ROWS_Y - StreetSettings.BOARD_AT.y + (room - s * n) * 0.5 + float(i) * s
+		var h: float = maxf(s * StreetSettings.ROW_FILL, StreetSettings.ROW_SIZE.y * 0.9)
+		return Rect2(Vector2(StreetSettings.ROW_X, y), Vector2(StreetSettings.ROW_SIZE.x, h))
 
 	## The tab pill slides to `tab`, its rows come in, and the board grows or shrinks to hold them.
 	func slide_tab(tab: int) -> void:
@@ -458,16 +527,13 @@ class _Board extends Node2D:
 			var r: Rect2 = row_rect(i)
 			StreetArt.draw_nine(self, "settings_row", r, px)
 			var row: StreetSettings.Row = rows[i]
-			var c: Vector2 = Vector2(r.position.x + StreetSettings.TOGGLE_X, r.get_center().y)
-			# The label fills the pill up to what sits at its right: a toggle, Colour help's picture, or a chevron.
-			var right: float = c.x - StreetSettings.TOGGLE_W * 0.5 - 24.0
-			if row == StreetSettings.Row.COLOUR:
-				right = c.x - StreetSettings.SAMPLE_X - 108.0 * StreetSettings.SAMPLE_SCALE - 22.0
-			elif StreetSettings.opens(row):
-				right = r.position.x + StreetSettings.PILL_RIGHT - 130.0
+			# Everything in a row grows with it (row_parts), and the label fills the pill up to what sits at its right: a
+			# toggle, Colour help's picture, or a chevron (label_room).
+			var p: Dictionary = StreetSettings.row_parts(r.size.y)
+			var c: Vector2 = Vector2(r.position.x + float(p["toggle_x"]), r.get_center().y)
 			var words: String = settings.reset_label() if row == StreetSettings.Row.RESET else StreetSettings.label_of(row)
-			var left: float = r.position.x + StreetSettings.LABEL_X
-			var size: int = StreetSettings.fitted(font, words, right - left, StreetSettings.LABEL_SIZE)
+			var left: float = r.position.x + float(p["label_x"])
+			var size: int = StreetSettings.fitted(font, words, StreetSettings.label_room(row, r.size.y), p["label_size"])
 			var ink: Color = StreetSettings.DARK
 			if row == StreetSettings.Row.RESET and settings._reset_armed and not settings._reset_done:
 				ink = Color("c0392b")
@@ -475,33 +541,42 @@ class _Board extends Node2D:
 				ink)
 			if StreetSettings.opens(row):
 				if row != StreetSettings.Row.RESET or not settings._reset_done:
-					var chevron: Vector2 = Vector2(r.position.x + StreetSettings.PILL_RIGHT - 70.0, r.get_center().y)
-					StreetUI.gloss_circle(self, chevron, 44.0, StreetUI.RED if row == StreetSettings.Row.RESET \
+					var chevron_r: float = p["chevron_r"]
+					var chevron: Vector2 = Vector2(r.position.x + float(p["chevron_x"]), r.get_center().y)
+					StreetUI.gloss_circle(self, chevron, chevron_r, StreetUI.RED if row == StreetSettings.Row.RESET \
 						else StreetUI.TEAL)
-					StreetUI.glyph(self, &"play", chevron + Vector2(4.0, 0.0), 54.0)
+					StreetUI.glyph(self, &"play", chevron + Vector2(chevron_r * 0.09, 0.0), chevron_r * 1.23)
 				continue
 			if row == StreetSettings.Row.COLOUR:
-				_colour_sample(c + Vector2(-StreetSettings.SAMPLE_X, 0.0))
-			_toggle(c, _knobs[i], _pops[i])
+				# In the middle of the room between the words and the toggle, as large as that room allows.
+				var from: float = left + font.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x + 20.0
+				var to: float = c.x - float(p["toggle_w"]) * 0.5 - 24.0
+				var k: float = clampf((to - from) / StreetSettings.SAMPLE_W, StreetSettings.SAMPLE_MIN, p["sample_scale"])
+				var mid: float = (from + to) * 0.5 + (108.0 - 97.0) * k
+				_colour_sample(Vector2(mid, c.y), k)
+			_toggle(c, _knobs[i], _pops[i], p)
 
-	## A toggle at `c`, its knob `v` of the way from off to on, its icon popping by `pop`.
-	func _toggle(c: Vector2, v: float, pop: float) -> void:
+	## A toggle at `c`, its knob `v` of the way from off to on, its icon popping by `pop`, sized for its row (`p`).
+	func _toggle(c: Vector2, v: float, pop: float, p: Dictionary) -> void:
 		var px: float = 1.0 / StreetArt.DESIGN_PER_PIXEL
-		var k: float = StreetSettings.TOGGLE_W / 220.0 * px
+		var w: float = p["toggle_w"]
+		var knob_d: float = p["knob"]
+		var shift: float = p["knob_shift"]
+		var k: float = w / 220.0 * px
 		var on: bool = v >= 0.5
 		var track: String = "toggle_on" if on else "toggle_off"
 		StreetArt.draw(self, track, c, k)
-		var knob: Vector2 = c + Vector2(lerpf(-StreetSettings.KNOB_SHIFT, StreetSettings.KNOB_SHIFT, v), 0.0)
-		StreetArt.draw(self, "toggle_thumb", knob, StreetSettings.KNOB / 88.0 * px)
+		var knob: Vector2 = c + Vector2(lerpf(-shift, shift, v), 0.0)
+		StreetArt.draw(self, "toggle_thumb", knob, knob_d / 88.0 * px)
 		var icon: String = "icon_tick" if on else "icon_close"
 		var grow: float = 1.0 + 0.35 * sin(pop * PI)
-		StreetArt.draw(self, icon, knob, 48.0 * grow / StreetArt.size(icon).x,
+		StreetArt.draw(self, icon, knob, knob_d * 0.65 * grow / StreetArt.size(icon).x,
 			Color("559e21") if on else Color("ed554e"))
 
 	## Colour help's little picture: a red marble with its triangle and a teal hole with its square.
-	func _colour_sample(c: Vector2) -> void:
+	func _colour_sample(c: Vector2, scale_by: float) -> void:
 		# Drawn a little smaller than full size, so its row's label keeps the others' size.
-		draw_set_transform(c, 0.0, Vector2.ONE * StreetSettings.SAMPLE_SCALE)
+		draw_set_transform(c, 0.0, Vector2.ONE * scale_by)
 		c = Vector2.ZERO
 		var marble: Vector2 = c + Vector2(-62.0, 0.0)
 		StreetArt.draw(self, "marble_red", marble, 92.0 / StreetArt.size("marble_red").x)

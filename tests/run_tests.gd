@@ -1520,25 +1520,28 @@ func _test_street_settings() -> void:
 	var settings: GDScript = load("res://scenes/street/settings.gd")
 	var k: Dictionary = settings.get_script_constant_map()
 	var font: Font = (load("res://scenes/street/art.gd") as GDScript).call("font")
-	var left: float = k["LABEL_X"]
-	var beside_toggle: float = float(k["TOGGLE_X"]) - float(k["TOGGLE_W"]) * 0.5 - 24.0 - left
-	var beside_chevron: float = float(k["PILL_RIGHT"]) - 130.0 - left
-	var beside_sample: float = float(k["TOGGLE_X"]) - float(k["SAMPLE_X"]) - 108.0 * float(k["SAMPLE_SCALE"]) - 22.0 - left
 	var spills: PackedStringArray = []
 	var row_count: int = (k["Row"] as Dictionary).size()
-	for row: int in range(row_count):
-		var words: String = settings.call("label_of", row)
-		var room: float = beside_chevron if settings.call("opens", row) else beside_toggle
-		if words == "Colour help":
-			room = beside_sample
-		var all_words: Array[String] = [words]
-		if words == "Reset progress":
-			all_words.append_array(["Tap again to erase every star", "Progress reset"])
-		for w: String in all_words:
-			var size: int = settings.call("fitted", font, w, room, k["LABEL_SIZE"])
-			if font.get_string_size(w, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > room:
-				spills.append(w)
-	_check("every Settings row's words fit inside its pill (%s)" % ", ".join(spills), spills.is_empty())
+	var row_h: Vector2 = k["ROW_SIZE"]
+	# At the painting's row height and at the tallest a short page grows to.
+	for h: float in [row_h.y, row_h.y * float(k["ROW_GROW"])]:
+		var parts: Dictionary = settings.call("row_parts", h)
+		var pill_right: float = k["PILL_RIGHT"]
+		if float(parts["toggle_x"]) + float(parts["toggle_w"]) * 0.5 > pill_right \
+				or float(parts["chevron_x"]) + float(parts["chevron_r"]) > pill_right:
+			spills.append("the toggle or chevron at %d" % roundi(h))
+		for row: int in range(row_count):
+			var words: String = settings.call("label_of", row)
+			var room: float = settings.call("label_room", row, h)
+			var all_words: Array[String] = [words]
+			if words == "Reset progress":
+				all_words.append_array(["Tap again to reset", "Progress reset"])
+			for w: String in all_words:
+				var size: int = settings.call("fitted", font, w, room, parts["label_size"])
+				if font.get_string_size(w, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > room:
+					spills.append("%s at %d" % [w, roundi(h)])
+	_check("every Settings row's words, toggle and chevron fit inside its pill (%s)" % ", ".join(spills),
+		spills.is_empty())
 	var page: Node = settings.new()
 	var more: Array = page.call("rows_of", (k["Tab"] as Dictionary)["MORE"])
 	var names: PackedStringArray = []
