@@ -257,6 +257,8 @@ func _radius_for(size: Vector2, bow: float) -> float:
 	return low
 
 func _layout() -> void:
+	# A street at rest stays at rest through a new layout (a banner, a turn, Reduce motion), on its new resting place.
+	var resting: bool = absf(_scroll - _rest) < 1.0 and _proj != null
 	var size: Vector2 = _world_size()
 	scale = Vector2.ONE * _world_scale()
 	# Reduce motion keeps the street dead flat, with no curve toward the sides.
@@ -282,6 +284,8 @@ func _layout() -> void:
 	_ribbons.clear()
 	_rest = _scroll_for(_current)
 	_bounds = Vector2(_scroll_for(1), _scroll_for(_far_door()))
+	if resting and not _busy and not _measuring:
+		_scroll = _rest
 	if _buttons != null:
 		_place_hud()
 
@@ -417,10 +421,13 @@ func _place_hud() -> void:
 	# The purse sits in the sky's top-right corner, above the title.
 	_coins.position = Vector2(size.x - float(safe["right"]) - COINS_EDGE - _coins.size.x, float(safe["top"]) + COINS_EDGE)
 	if StreetLayout.wide(size):
+		# The banner sits in the middle of the foot, clear of this column, so the column runs from under the purse
+		# down to the foot: lifted by the banner, its top button went under the purse on a turned phone.
+		var top: float = _coins.position.y + _coins.size.y + COINS_EDGE
 		_buttons.vertical = true
 		_buttons.add_theme_constant_override("separation", 36)
-		_buttons.size = Vector2(BUTTON, size.y - lift)
-		_buttons.position = Vector2(size.x - float(safe["right"]) - BUTTON_LIFT - BUTTON, 0.0)
+		_buttons.size = Vector2(BUTTON, size.y - float(safe["bottom"]) - BUTTON_LIFT * 0.5 - top)
+		_buttons.position = Vector2(size.x - float(safe["right"]) - BUTTON_LIFT - BUTTON, top)
 		_pin.position = Vector2(size.x * 0.5 - _pin.size.x * 0.5, size.y - lift - _pin.size.y)
 		return
 	_buttons.vertical = false
@@ -430,12 +437,9 @@ func _place_hud() -> void:
 	_pin.position = Vector2(size.x * 0.5 - _pin.size.x * 0.5, _buttons.position.y - _pin.size.y - 28.0)
 
 func _on_banner(height: float) -> void:
-	# The street's rest moves up with the buttons, and a street at rest follows it.
-	var resting: bool = absf(_scroll - _rest) < 1.0
+	# The street's rest moves up with the buttons, and a street at rest follows it (_layout).
 	_banner_room = height
 	_layout()
-	if resting and not _busy:
-		_scroll = _rest
 
 func _on_daily() -> void:
 	if Daily.is_open():
@@ -725,7 +729,11 @@ func _place() -> void:
 	var size: Vector2 = _world_size()
 	_ground_material.set_shader_parameter("scroll", _scroll)
 	var near: float = _scroll + _proj.near_s_rel(size.y)
-	var far: float = _scroll + _proj.far_s_rel(_sky.horizon_y if Save.reduce_motion else 0.0)
+	var far: float = _scroll + _proj.far_s_rel(0.0)
+	# Flat, nothing hides a far prop behind a crest, so a prop stands only on the ground under the sky line, and one
+	# that would reach into the title waits until it would not (_clear_of_title), so nothing floats in the sky.
+	if Save.reduce_motion:
+		far = _scroll + _proj.s_rel_at(_sky.horizon_y)
 	var first: int = clampi(StreetPath.door_near(near) - 1, 1, _last)
 	var last: int = clampi(StreetPath.door_near(far) + 1, 1, _last)
 	for n: Variant in _houses.keys():
@@ -745,6 +753,8 @@ func _place() -> void:
 				Save.gifts.has(door))
 			_houses[door] = house
 		_stand(house, s, StreetPath.door_x(door))
+		if Save.reduce_motion:
+			house.visible = _clear_of_title(house)
 		if house.state == StreetProp.Door.CURRENT:
 			house.pulse = _time
 			house.queue_redraw()
@@ -791,6 +801,8 @@ func _place() -> void:
 					prop.dress_scenery(int(spot.x), variety)
 					_scenery[key] = prop
 				_stand(prop, StreetPath.slot_s(slot), spot.y)
+				if Save.reduce_motion:
+					prop.visible = _clear_of_title(prop)
 	var cast_at: Vector3 = _proj.place(_cast_s - _scroll, _cast_x(_cast_s))
 	_cast.visible = not _cast_hidden and _cast_s > near and _cast_s < far and not _proj.behind_crest(_cast_s - _scroll)
 	# The cast keeps whole on the screen, however far the road swings.
@@ -823,6 +835,14 @@ func _stand(prop: StreetProp, s: float, x: float) -> void:
 	prop.scale = Vector2(at.z, at.z) * prop.wobble_scale()
 	prop.rotation = prop.wobble_turn() + (0.0 if Save.reduce_motion else prop.sway(_time))
 	prop.z_index = -1 if _proj.behind_crest(s - _scroll) else 0
+
+## Whether a prop as it stands now keeps out of the title, in world units: on the flat street a tall house or lamp
+## near the sky line would otherwise reach up into it.
+func _clear_of_title(prop: StreetProp) -> bool:
+	var b: Rect2 = prop.bounds()
+	var box: Rect2 = Rect2(prop.position + b.position * prop.scale.y, b.size * prop.scale.y)
+	var title: Rect2 = _title_box()
+	return not box.intersects(Rect2(title.position / scale.x, title.size / scale.x))
 
 ## The furthest door the street scrolls to: AHEAD past the lit one, or the last door already holding a board.
 func _far_door() -> int:
