@@ -9,6 +9,9 @@ extends Node
 var _failures: int = 0
 
 func _ready() -> void:
+	# The studio's opening keeps the banner back while it plays (tests/run_tests.gd checks that), so the screens here
+	# open as they do once it has played.
+	Intro.enabled = false
 	Save.path = "user://banner_check.cfg"
 	Save.supporter = false
 	var stars: PackedByteArray = PackedByteArray()
