@@ -207,6 +207,11 @@ func _ready() -> void:
 		await _open_gift(gift)
 		_busy = false
 
+## Leaving the street lets the town's page go (the families' houses, the plots and the moments' pieces), since play
+## never draws from it; the street loads it again when a milestone next comes into view.
+func _exit_tree() -> void:
+	StreetArt.release(StreetArt.TOWN)
+
 ## The world's scale on screen: 1 in portrait, and on a wide screen the share that fits WIDE_WORLD_HEIGHT in.
 func _world_scale() -> float:
 	var size: Vector2 = get_viewport_rect().size

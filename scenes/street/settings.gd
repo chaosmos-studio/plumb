@@ -93,6 +93,7 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	Ads.cover(false)
+	StreetArt.release(StreetArt.ROOMS)
 
 ## The rows a tab shows, in order.
 func rows_of(tab: Tab) -> Array[Row]:

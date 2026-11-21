@@ -110,6 +110,8 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	Ads.cover(false)
+	# Its page goes with it: the rooms' art is only ever drawn here and in Settings.
+	StreetArt.release(StreetArt.ROOMS)
 
 ## The cast member shown behind the counter: the first wearing a hat, or Rosie.
 func _first_hatted() -> int:

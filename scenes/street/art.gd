@@ -55,6 +55,21 @@ static func _page(page: int) -> Texture2D:
 		_textures[page] = load(PAGES[page] + ".png")
 	return _textures[page]
 
+## The town's and the rooms' pages, by number, which a screen lets go of when it closes.
+const TOWN: int = 2
+const ROOMS: int = 3
+
+## Lets go of page `page` (its nine-patches too), so its memory goes once nothing draws from it: the rooms' page
+## when the shop or Settings closes, the town's when the street is left. The next piece drawn from it loads it again.
+static func release(page: int) -> void:
+	if _textures.size() <= page or _textures[page] == null:
+		return
+	var texture: Texture2D = _textures[page]
+	_textures[page] = null
+	for piece: Variant in _nines.keys():
+		if (_nines[piece] as StyleBoxTexture).texture == texture:
+			_nines.erase(piece)
+
 static func has(piece: String) -> bool:
 	texture()
 	return _pieces.has(piece)
