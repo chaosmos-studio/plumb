@@ -52,7 +52,6 @@ func _ready() -> void:
 	_ads.ad_failed_to_load.connect(_on_load_failed)
 	_ads.ad_shown.connect(_on_shown)
 	_ads.ad_failed_to_show.connect(_on_show_failed)
-	_ads.ad_rewarded.connect(_on_rewarded)
 	_ads.ad_closed.connect(_on_closed)
 	_ads.app_left.connect(_on_app_left)
 	_ads.ad_overlong.connect(_on_overlong)
@@ -69,8 +68,6 @@ func _start_sdk() -> void:
 	_starting = true
 	_apply_consent()
 	_ads.set_child_directed(false)
-	if OS.is_debug_build():
-		_ads.enable_test_suite()
 	_ads.initialize(GameMonetize.LEVELPLAY_APP_KEY, TestAds.test_mode())
 
 ## Sent only where consent is asked for, so the SDK never treats a player elsewhere as having refused.
@@ -166,10 +163,6 @@ func _on_show_failed(format: Intermission.Format, _unit_id: String, _error: Inte
 		_message: String) -> void:
 	_end(_kind(format))
 
-func _on_rewarded(_unit_id: String, _reward: String, _amount: int) -> void:
-	if _showing == REWARDED:
-		_earned = true
-
 ## The plugin waits a moment after a rewarded close for a late reward, so `rewarded` is the answer.
 func _on_closed(format: Intermission.Format, _unit_id: String, rewarded: bool) -> void:
 	var kind: StringName = _kind(format)
@@ -215,7 +208,7 @@ func set_banner(on: bool) -> void:
 	if not _banner_asked:
 		_banner_asked = true
 		_ads.load_banner(_unit(&"banner"), Intermission.BannerSize.BANNER, PLACEMENTS[&"banner"])
-	_ads.show_banner(Intermission.Anchor.BOTTOM, Vector2(0.0, _clear_dp()))
+	_ads.show_banner(Intermission.Anchor.BOTTOM, _clear_dp())
 
 func _on_banner_loaded(_unit_id: String, size_dp: Vector2) -> void:
 	_retry.erase(&"banner")

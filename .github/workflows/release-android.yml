@@ -343,13 +343,12 @@ jobs:
               echo "the APK carries the Intermission addon's editor scripts, which its export filter should leave out" >&2
               exit 1
             fi
-            # R8 must keep the classes Godot and the plugin create by name. grep reads the whole stream, since an
-            # early exit would fail the pipe under pipefail.
+            # R8 must keep the plugin class, which Godot creates by name. grep reads the whole stream, since an early
+            # exit would fail the pipe under pipefail.
             kept="$(unzip -p "$APK" 'classes*.dex' | grep -a -o 'Lstudio/chaosmos/intermission/[A-Za-z/]*;' | sort -u)"
             echo "Intermission classes kept: $(echo $kept)"
-            for class in studio/chaosmos/intermission/IntermissionPlugin studio/chaosmos/intermission/levelplay/LevelPlayProvider; do
-              grep -qx "L$class;" <<< "$kept" || { echo "R8 renamed or dropped $class" >&2; exit 1; }
-            done
+            class=studio/chaosmos/intermission/IntermissionPlugin
+            grep -qx "L$class;" <<< "$kept" || { echo "R8 renamed or dropped $class" >&2; exit 1; }
           fi
 
       - name: Verify the AAB
@@ -378,10 +377,8 @@ jobs:
           if [ -d addons/intermission ]; then
             meta() { manifest "/manifest/application/meta-data[@android:name='$1']/@android:value"; }
             plugin="$(meta org.godotengine.plugin.v2.IntermissionAndroid)"
-            provider="$(meta studio.chaosmos.intermission.provider)"
-            echo "Intermission: ${plugin:-missing}, provider ${provider:-missing}"
+            echo "Intermission: ${plugin:-missing}"
             test "$plugin" = studio.chaosmos.intermission.IntermissionPlugin
-            test "$provider" = studio.chaosmos.intermission.levelplay.LevelPlayProvider
             # Unity Ads' full-screen ad activity arrives only with the SDK itself.
             test -n "$(manifest "/manifest/application/activity[@android:name='com.unity3d.ads.adplayer.FullScreenWebViewDisplay']/@android:name")"
             has_permission android.permission.INTERNET
