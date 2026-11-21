@@ -15,6 +15,9 @@ extends Node
 
 const REQUEST: String = "user://shot_request"
 const FOLDER: String = "user://shots"
+## "in" while the game has the screen's focus, "out" once anything takes it (the shade, a call, another app), so a
+## device check knows whether the game is in front without asking the system about any other app.
+const FOCUS: String = "user://dev_focus"
 ## A shot's name, which becomes its file name: nothing that could climb out of the folder.
 const NAME_PATTERN: String = "^[a-z0-9][a-z0-9-]{0,47}$"
 ## How often the request file is looked for, in seconds.
@@ -43,7 +46,22 @@ static func parse(request: String) -> Dictionary:
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	DirAccess.make_dir_recursive_absolute(FOLDER)
+	_focus(get_window().has_focus())
 	print("DEV_SHOTS ready")
+
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_APPLICATION_FOCUS_IN, NOTIFICATION_APPLICATION_RESUMED:
+			_focus(true)
+		NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED:
+			_focus(false)
+
+func _focus(on: bool) -> void:
+	var file: FileAccess = FileAccess.open(FOCUS, FileAccess.WRITE)
+	if file != null:
+		file.store_string("in" if on else "out")
+		file.close()
+	print("DEV_FOCUS ", "in" if on else "out")
 
 func _process(delta: float) -> void:
 	_watch_banner()
