@@ -28,6 +28,15 @@ func _ready() -> void:
 	await get_tree().create_timer(0.5).timeout
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	var screen: Array = SCREENS[int(args[0]) if not args.is_empty() else 0]
+	# A second argument wins that many doors first, so the street opens further along (19 puts a milestone in view).
+	if args.size() > 1:
+		var stars: PackedByteArray = PackedByteArray()
+		for i: int in range(int(args[1])):
+			stars.append(3)
+		Save.stars = stars
+		Save.gifts = PackedInt32Array([5, 10, 15, 20, 25, 30, 35, 40].filter(func(n: int) -> bool:
+			return n <= int(args[1])))
+		Pack.current = int(args[1])
 	_read("empty")
 	var look: String = screen[1]
 	Save.app_look = look
