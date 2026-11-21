@@ -7,10 +7,13 @@ const BANNER_AFTER: int = 3
 const INTERSTITIAL_AFTER: int = 12
 ## Levels solved this session before an ad between levels, counted again after each one.
 const INTERSTITIAL_EVERY: int = 4
-## Seconds after any full-screen ad, between levels or a video, before the next ad between levels.
+## Seconds after any full-screen ad, between levels or a video, or a purchase sheet, before the next ad between
+## levels.
 const FULLSCREEN_GAP: float = 240.0
 ## Seconds after the app starts before the first ad between levels.
 const LAUNCH_GAP: float = 180.0
+## Hours without ads between levels after one left the app by itself or never ended.
+const TROUBLE_PAUSE_HOURS: int = 24
 ## The first levels teach the game, so their hints are free and unlimited.
 const FREE_HINT_LEVELS: int = 15
 ## Free hints a day after those, counted by the phone's own calendar so they come back at local midnight.
@@ -24,9 +27,13 @@ static func banner_due(solved: int, supporter: bool) -> bool:
 	return not supporter and solved >= BANNER_AFTER
 
 ## `since` counts levels solved since the last ad between levels. `now` and `last_fullscreen` are seconds
-## since the app started, and `last_fullscreen` is negative until a full-screen ad has shown.
-static func interstitial_due(solved: int, since: int, now: float, last_fullscreen: float, supporter: bool) -> bool:
-	if supporter or solved < INTERSTITIAL_AFTER or since < INTERSTITIAL_EVERY or now < LAUNCH_GAP:
+## since the app started, and `last_fullscreen` is negative until a full-screen ad has shown. Only right after a
+## win, never in the player's first launch, and never while a misbehaving ad has paused them.
+static func interstitial_due(solved: int, since: int, now: float, last_fullscreen: float, supporter: bool,
+		first_session: bool = false, after_win: bool = true, paused: bool = false) -> bool:
+	if supporter or first_session or not after_win or paused:
+		return false
+	if solved < INTERSTITIAL_AFTER or since < INTERSTITIAL_EVERY or now < LAUNCH_GAP:
 		return false
 	return last_fullscreen < 0.0 or now - last_fullscreen >= FULLSCREEN_GAP
 

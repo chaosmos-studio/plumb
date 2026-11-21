@@ -186,6 +186,7 @@ func _end(kind: StringName) -> void:
 	_load(kind)
 
 ## About the app's health, never advertising: an ad that sent the player away by itself, or one that never ends.
+## Such an ad between levels also pauses them for this player (Ads.pause_interstitials).
 func _on_app_left(format: Intermission.Format, _unit_id: String, clicked: bool) -> void:
 	if not clicked:
 		_trouble("left_app", format, 0.0)
@@ -197,6 +198,8 @@ func _trouble(what: String, format: Intermission.Format, seconds: float) -> void
 	var formats: PackedStringArray = ["interstitial", "rewarded", "banner"]
 	Analytics.event(&"ad_trouble", {"kind": what, "format": formats[format] if format >= 0 else "unknown",
 		"network": _network, "seconds": int(seconds), "test": int(_ads.is_test_mode())})
+	if format == Intermission.Format.INTERSTITIAL:
+		Ads.pause_interstitials()
 
 func set_banner(on: bool) -> void:
 	_banner_on = on and not _stopped
