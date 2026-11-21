@@ -169,6 +169,13 @@ static func glyph(ci: CanvasItem, name: StringName, c: Vector2, s: float, colour
 			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-0.36, -0.02) * s, c + Vector2(0, -0.36) * s,
 				c + Vector2(0.36, -0.02) * s]), colour)
 			ci.draw_rect(Rect2(c + Vector2(-0.26, -0.04) * s, Vector2(0.52, 0.36) * s), colour)
+		&"update":
+			# An arrow down into a tray: something new to bring in.
+			ci.draw_line(c + Vector2(0, -0.38) * s, c + Vector2(0, 0.06) * s, colour, w * 1.5, true)
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-0.22, -0.04) * s, c + Vector2(0.22, -0.04) * s,
+				c + Vector2(0, 0.2) * s]), colour)
+			ci.draw_polyline(PackedVector2Array([c + Vector2(-0.34, 0.1) * s, c + Vector2(-0.34, 0.32) * s,
+				c + Vector2(0.34, 0.32) * s, c + Vector2(0.34, 0.1) * s]), colour, w * 1.3, true)
 
 
 ## A round, glossy button with a glyph, which squashes when pressed and springs back.

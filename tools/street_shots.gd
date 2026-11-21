@@ -38,7 +38,7 @@ func _ready() -> void:
 	if sizes.is_empty():
 		sizes = SIZES.duplicate()
 	var shots: Array[Callable] = [_chooser, _map, _card, _play, _win, _walk, _plot, _family, _gift, _milestone, _helpers,
-		_shop, _settings, _colour]
+		_shop, _settings, _colour, _update]
 	for pixels: Vector2i in sizes:
 		_pixels = pixels
 		_folder = OUT + "%dx%d/" % [pixels.x, pixels.y]
@@ -71,6 +71,41 @@ func _save(view: SubViewport, name: String) -> void:
 	var path: String = ProjectSettings.globalize_path(_folder + name + ".png")
 	view.get_texture().get_image().save_png(path)
 	print("STREET_SHOT ", path)
+
+## The update card, with Play stood in for (PlayCore.fake): offered on the street with the feed's line and picture,
+## the badge on the gear filling as it downloads, then the restart.
+func _update() -> void:
+	PlayCore.fake = {"code": 20003, "flexible": true, "immediate": true, "running": 20001, "bytes": 4000000}
+	PlayCore.note_source = func() -> Dictionary: return {"latest": 20003, "line": "Snowy lane is open",
+		"urgent_below": 0, "picture": "res://tests/fixtures/feed/bucket_app/app/20003-5ba5651a.png"}
+	PlayCore._carded = false
+	StreetMap._restart_offered = false
+	Save.update_shown = {}
+	var view: SubViewport = _stage(StreetMap.SCENE)
+	await _seconds(2.8)
+	await _save(view, "23-update-card")
+	for child: Node in view.get_child(0).get_children():
+		if child is StreetUpdateCard:
+			child.call("_on_go")
+	await _seconds(2.6)
+	await _save(view, "24-update-downloading")
+	PlayCore.fake["state"] = "downloaded"
+	await _seconds(2.0)
+	await _save(view, "25-update-restart")
+	view.queue_free()
+	# Classic's card, the kit's, on its title.
+	PlayCore.fake = {"code": 20003, "flexible": true, "immediate": true, "running": 20001}
+	PlayCore._carded = false
+	AppLook.use(AppLook.CLASSIC)
+	var title: SubViewport = _stage(Brand.TITLE_SCENE)
+	await _seconds(0.8)
+	PlayCore.offer_card(title.get_child(0))
+	await _seconds(1.0)
+	await _save(title, "26-update-classic")
+	title.queue_free()
+	AppLook.use(AppLook.STREET)
+	PlayCore.fake = {}
+	PlayCore.note_source = Callable()
 
 func _chooser() -> void:
 	var view: SubViewport = _stage(LookChooser.SCENE)

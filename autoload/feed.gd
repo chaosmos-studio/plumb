@@ -31,9 +31,11 @@ var dir: String = DIR
 var _http: HTTPRequest
 var _busy: bool = false
 var _told: bool = false
-## The kept manifest, verified, read once and again after each update of it.
+## The kept manifest, verified, read once and again after each update of it, and the update card's note from it.
 var _kept: Dictionary = {}
 var _read: bool = false
+var _note: Dictionary = {}
+var _noted: bool = false
 
 signal updated(added: int)
 
@@ -42,6 +44,8 @@ func _ready() -> void:
 	Ads.interstitial_switch = interstitials_on
 	if OS.has_feature("web"):
 		return
+	# The update card's line and picture come from the kept manifest, whatever this launch fetches.
+	PlayCore.note_source = app_note
 	if OS.is_debug_build():
 		var told: bool = FileAccess.file_exists("user://feed_on")
 		if told:
@@ -107,6 +111,8 @@ func _fetch() -> Dictionary:
 	var listed: Array = (manifest.get("episodes", []) as Array).duplicate()
 	if manifest.has("rescore"):
 		listed.append(manifest["rescore"])
+	if (manifest.get("app", {}) as Dictionary).has("picture"):
+		listed.append((manifest["app"] as Dictionary)["picture"])
 	for entry: Variant in listed:
 		var e: Dictionary = entry
 		if int(e.get("rules", 1)) > FeedCheck.RULES:
@@ -218,6 +224,25 @@ func _dropped() -> Array:
 	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(dir + "dropped.json"))
 	return data if data is Array else []
 
+## The kept manifest's note for the update card (PlayCore.note): {"latest", "line", "urgent_below", "picture"}, the
+## picture the path of its file when it matches the signed manifest. {} with no feed kept.
+func app_note() -> Dictionary:
+	if _noted:
+		return _note
+	_noted = true
+	_note = {}
+	var app: Dictionary = kept_manifest().get("app", {})
+	if app.is_empty():
+		return _note
+	_note = {"latest": int(app.get("latest", 0)), "line": str(app.get("line", "")),
+		"urgent_below": int(app.get("urgent_below", 0)), "picture": ""}
+	if app.has("picture"):
+		var entry: Dictionary = app["picture"]
+		var path: String = dir + str(entry["file"])
+		if FileAccess.file_exists(path) and FeedCheck.file(FileAccess.get_file_as_bytes(path), entry) == "":
+			_note["picture"] = path
+	return _note
+
 ## Whether ads between levels may show (Ads.interstitial_switch): only when the kept manifest, checked against the
 ## game's keys, says `"ads": {"interstitials": true}`. No feed, a bad signature or anything else leaves them off.
 func interstitials_on() -> bool:
@@ -242,6 +267,7 @@ func kept_manifest() -> Dictionary:
 ## Forgets what was read of the kept manifest, after it changes.
 func forget() -> void:
 	_read = false
+	_noted = false
 
 ## Deletes every kept file the manifest no longer lists, except an episode holding a board on the street.
 func prune(manifest: Dictionary, street: PackedStringArray) -> void:
@@ -250,7 +276,9 @@ func prune(manifest: Dictionary, street: PackedStringArray) -> void:
 		keep[str((entry as Dictionary)["file"])] = true
 	if manifest.has("rescore"):
 		keep[str((manifest["rescore"] as Dictionary)["file"])] = true
-	for folder: String in ["episodes", "rescore"]:
+	if (manifest.get("app", {}) as Dictionary).has("picture"):
+		keep[str(((manifest["app"] as Dictionary)["picture"] as Dictionary)["file"])] = true
+	for folder: String in ["episodes", "rescore", "app"]:
 		for file: String in _files(dir + folder):
 			var at: String = folder + "/" + file
 			if keep.has(at):
@@ -272,7 +300,7 @@ func write_atomic(path: String, bytes: PackedByteArray) -> bool:
 
 ## A ".part" left by an app killed mid-write is never read, and goes.
 func _clear_parts() -> void:
-	for folder: String in ["", "episodes", "rescore"]:
+	for folder: String in ["", "episodes", "rescore", "app"]:
 		for file: String in _files(dir + folder):
 			if file.ends_with(".part"):
 				DirAccess.remove_absolute(ProjectSettings.globalize_path(dir + folder.path_join(file)))

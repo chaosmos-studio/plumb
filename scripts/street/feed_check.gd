@@ -19,7 +19,9 @@ const MAX_PAR: int = 30
 const MAX_BITS: float = 60.0
 ## Where a listed file may live in the bucket: one folder deep, plain names, so a stored copy can never land outside
 ## user://feed/.
-const FILE_PATTERN: String = "^(episodes|rescore)/[a-z0-9-]{1,64}\\.json$"
+const FILE_PATTERN: String = "^((episodes|rescore)/[a-z0-9-]{1,64}\\.json|app/[a-z0-9-]{1,64}\\.png)$"
+## The update card's line from the manifest's `app` note: at most this many characters.
+const MAX_LINE: int = 60
 const EPISODE_ID: String = "^ep[0-9]{4}$"
 const BOARD_ID: String = "^ep[0-9]{4}-[0-9]{2,3}$"
 
@@ -43,6 +45,8 @@ static func manifest(bytes: PackedByteArray, signature_b64: String, keys: Packed
 		if not _listed(entry) or not RegEx.create_from_string(EPISODE_ID).search(str((entry as Dictionary).get("id", ""))):
 			return _no("error")
 	if m.has("rescore") and not _listed(m["rescore"]):
+		return _no("error")
+	if m.has("app") and not app_note(m["app"]):
 		return _no("error")
 	if m.has("ads") and not ads_note(m["ads"]):
 		return _no("error")
@@ -210,6 +214,21 @@ static func holds_street_board(file: String, street: PackedStringArray) -> bool:
 		if StreetPool.base_of(id).begins_with(episode_id + "-"):
 			return true
 	return false
+
+## The manifest's note for the update card (REVAMP_PLAN.md section 6.2): {"latest": version code, "line": what is
+## new, "urgent_below": version code, "picture": a listed PNG}, each optional but sound when present.
+static func app_note(app: Variant) -> bool:
+	if not (app is Dictionary):
+		return false
+	var a: Dictionary = app
+	if int(a.get("latest", 0)) < 0 or int(a.get("urgent_below", 0)) < 0:
+		return false
+	var line: Variant = a.get("line", "")
+	if not (line is String) or (line as String).length() > MAX_LINE:
+		return false
+	if a.has("picture") and (not _listed(a["picture"]) or not str((a["picture"] as Dictionary)["file"]).begins_with("app/")):
+		return false
+	return true
 
 ## The manifest's switches for ads: {"interstitials": bool}, so ads between levels can be turned on or off again
 ## without an update. Anything but a plain true leaves them off.

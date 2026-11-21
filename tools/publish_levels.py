@@ -101,9 +101,9 @@ def stable(data: object) -> bytes:
     return (json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()
 
 
-def put(out: Path, folder: str, stem: str, body: bytes) -> dict:
+def put(out: Path, folder: str, stem: str, body: bytes, ext: str = "json") -> dict:
     digest = hashlib.sha256(body).hexdigest()
-    name = "%s/%s-%s.json" % (folder, stem, digest[:8])
+    name = "%s/%s-%s.%s" % (folder, stem, digest[:8], ext)
     if len(body) > MAX_BYTES:
         sys.exit("%s is %d bytes, over the %d the game takes" % (name, len(body), MAX_BYTES))
     (out / folder).mkdir(parents=True, exist_ok=True)
@@ -120,6 +120,10 @@ def main() -> None:
     a.add_argument("--retired", nargs="*", default=[], help="board ids to take out of future picks")
     a.add_argument("--rescore", type=Path, help='a rescore file, {"boards": {id: {"d": bits, "sd": bits}}}')
     a.add_argument("--issued", help="the issue time, ISO 8601 (default: now), so fixtures stay byte-stable")
+    a.add_argument("--app-latest", type=int, help="the update card's version code: the newest build on Play")
+    a.add_argument("--app-line", help="the update card's one line of what is new, at most 60 characters")
+    a.add_argument("--app-picture", type=Path, help="the update card's picture, a PNG")
+    a.add_argument("--urgent-below", type=int, help="versions below this code update at once (Play's immediate flow)")
     a.add_argument("--interstitials", choices=["on", "off"],
                    help="ads between levels: off unless a signed manifest says on (they ship off)")
     args = a.parse_args()
@@ -153,6 +157,17 @@ def main() -> None:
                 "episodes": episodes, "retired": sorted(args.retired)}
     if args.rescore:
         manifest["rescore"] = put(out, "rescore", "%04d" % serial, stable(json.loads(args.rescore.read_text())))
+    if args.app_latest is not None:
+        line = (args.app_line or "").strip()
+        if len(line) > 60 or ";" in line:
+            sys.exit("the card's line is one short sentence: at most 60 characters, no semicolons")
+        app = {"latest": args.app_latest, "line": line, "urgent_below": args.urgent_below or 0}
+        if args.app_picture:
+            body = args.app_picture.read_bytes()
+            if not body.startswith(b"\x89PNG\r\n\x1a\n"):
+                sys.exit("the card's picture must be a PNG")
+            app["picture"] = put(out, "app", str(args.app_latest), body, "png")
+        manifest["app"] = app
     if args.interstitials:
         manifest["ads"] = {"interstitials": args.interstitials == "on"}
     body = stable(manifest)

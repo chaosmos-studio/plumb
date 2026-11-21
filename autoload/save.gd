@@ -85,6 +85,11 @@ var player_since: int = 0
 ## The level feed's serial last taken and when it was last looked at, in Unix seconds (Feed).
 var feed_serial: int = 0
 var feed_checked_at: int = 0
+## The update card (PlayCore, UpdatePolicy): the day each offered version was last shown (by version code, as text),
+## the version an update was started for from the card (0 for none), and the version code running last launch.
+var update_shown: Dictionary = {}
+var update_started: int = 0
+var last_code: int = 0
 
 signal coins_changed(total: int)
 signal street_changed
@@ -218,6 +223,22 @@ static func _path_index(id: String) -> int:
 static func new_player_id() -> String:
 	var crypto: Crypto = Crypto.new()
 	return crypto.generate_random_bytes(8).hex_encode()
+
+## The update card was shown for version `code` on day `day`. Only the latest few versions are kept.
+func note_update_shown(code: int, day: String) -> void:
+	update_shown[str(code)] = day
+	while update_shown.size() > 4:
+		update_shown.erase(update_shown.keys()[0])
+	store()
+
+func note_update_started(code: int) -> void:
+	update_started = code
+	store()
+
+func note_running(code: int) -> void:
+	if code != last_code:
+		last_code = code
+		store()
 
 func set_feed(serial: int, checked_at: int) -> void:
 	feed_serial = serial
@@ -565,6 +586,10 @@ func restore() -> void:
 	player_since = int(file.get_value("player", "since", 0))
 	feed_serial = int(file.get_value("feed", "serial", 0))
 	feed_checked_at = int(file.get_value("feed", "checked_at", 0))
+	var shown: Variant = file.get_value("update", "shown", {})
+	update_shown = shown if shown is Dictionary else {}
+	update_started = int(file.get_value("update", "started", 0))
+	last_code = int(file.get_value("update", "last_code", 0))
 
 func store() -> void:
 	var file: ConfigFile = ConfigFile.new()
@@ -576,6 +601,9 @@ func store() -> void:
 	file.set_value("player", "since", player_since)
 	file.set_value("feed", "serial", feed_serial)
 	file.set_value("feed", "checked_at", feed_checked_at)
+	file.set_value("update", "shown", update_shown)
+	file.set_value("update", "started", update_started)
+	file.set_value("update", "last_code", last_code)
 	file.set_value("progress", "stars", stars)
 	file.set_value("progress", "hard", hard_stars)
 	file.set_value("progress", "hard_opened", hard_opened)

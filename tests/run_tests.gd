@@ -109,6 +109,7 @@ func _initialize() -> void:
 	await _test_walls_follow_pets()
 	await _test_one_off_screens_carry_no_banner()
 	_test_interstitial_switch()
+	await _test_update_card()
 	_test_chapter_ticks()
 	_test_streak_keeping()
 	_test_chapter_colours()
@@ -1242,6 +1243,169 @@ func _test_interstitial_switch() -> void:
 		var open: bool = ads.call("interstitials_allowed")
 		ads.set("interstitial_switch", switch)
 		return open).call())
+
+## The update card (REVAMP_PLAN.md section 7): when and how it offers a newer version, the feed's line and picture, the
+## card itself through a whole flexible update with Play stood in for, the urgent case, the badge, Reduce motion,
+## Classic's card, and the update_card events.
+func _test_update_card() -> void:
+	# Loaded, not named: PlayCore uses autoloads, which a test script cannot name when it compiles.
+	var core: GDScript = load("res://kit/shell/play_core.gd")
+	_check("an update installs flexibly by default", UpdatePolicy.mode({"code": 20003, "flexible": true,
+		"immediate": true}, 20001, 0) == "flexible")
+	_check("and at once when the running version is below the feed's urgent line, or Play's priority says so",
+		UpdatePolicy.mode({"code": 20003, "flexible": true, "immediate": true}, 20001, 20002) == "immediate"
+		and UpdatePolicy.mode({"code": 20003, "flexible": true, "immediate": true, "priority": 4}, 20001, 0) == "immediate")
+	_check("only the flows Play allows, and nothing for a version already running",
+		UpdatePolicy.mode({"code": 20003, "immediate": true}, 20001, 0) == "immediate"
+		and UpdatePolicy.mode({"code": 20003}, 20001, 0) == "" and UpdatePolicy.mode({"code": 20001, "flexible": true},
+		20001, 0) == "")
+	_check("the card shows once a day for each version, an urgent one every launch, never twice in a launch",
+		UpdatePolicy.due({}, 20003, "2026-11-21", "flexible", false)
+		and not UpdatePolicy.due({"20003": "2026-11-21"}, 20003, "2026-11-21", "flexible", false)
+		and UpdatePolicy.due({"20003": "2026-11-20"}, 20003, "2026-11-21", "flexible", false)
+		and UpdatePolicy.due({"20003": "2026-11-21"}, 20003, "2026-11-21", "immediate", false)
+		and not UpdatePolicy.due({}, 20003, "2026-11-21", "immediate", true)
+		and not UpdatePolicy.due({}, 20003, "2026-11-21", "", false))
+	_check("an update started from the card counts as installed once, on the first launch of it",
+		UpdatePolicy.installed(20003, 20001, 20003) and not UpdatePolicy.installed(20001, 20001, 20003)
+		and not UpdatePolicy.installed(20003, 20003, 20003) and not UpdatePolicy.installed(20003, 20001, 0))
+	_check("the line is the feed's for that version, else a plain one",
+		UpdatePolicy.line({"latest": 20003, "line": "Snowy lane is open"}, 20003) == "Snowy lane is open"
+		and UpdatePolicy.line({"latest": 20004, "line": "Snowy lane is open"}, 20003) == UpdatePolicy.FALLBACK_LINE
+		and UpdatePolicy.line({}, 20003) == UpdatePolicy.FALLBACK_LINE)
+	# The feed's note for the card: signed with the rest of the manifest, its picture tied to it by its hash.
+	var keys: PackedStringArray = [FileAccess.get_file_as_string("res://tests/fixtures/feed/test_key.pub.pem")]
+	var bucket: String = "res://tests/fixtures/feed/bucket_app/"
+	var bytes: PackedByteArray = FileAccess.get_file_as_bytes(bucket + "manifest.json")
+	var verdict: Dictionary = FeedCheck.manifest(bytes, FileAccess.get_file_as_string(bucket + "manifest.json.sig"),
+		keys, 0)
+	_check("a manifest with a note for the card is taken", bool(verdict["ok"]))
+	_check("and a note with too long a line, or a picture outside app/, is not", not FeedCheck.app_note({"line":
+		"x".repeat(FeedCheck.MAX_LINE + 1)}) and not FeedCheck.app_note({"picture": {"file": "episodes/a.png",
+		"bytes": 10, "sha256": "0".repeat(64)}}) and FeedCheck.app_note({"latest": 20003, "line": "Snowy lane is open"}))
+	var feed: Node = root.get_node("Feed")
+	var was: Array = [feed.get("dir"), feed.get("keys")]
+	var dir: String = "user://test_feed_app/"
+	feed.set("dir", dir)
+	feed.set("keys", keys)
+	var picture_file: String = ""
+	for file: String in ["manifest.json", "manifest.json.sig"]:
+		feed.call("write_atomic", dir + file, FileAccess.get_file_as_bytes(bucket + file))
+	for file: String in DirAccess.get_files_at(bucket + "app"):
+		picture_file = "app/" + file
+		feed.call("write_atomic", dir + picture_file, FileAccess.get_file_as_bytes(bucket + picture_file))
+	feed.call("forget")
+	var note: Dictionary = feed.call("app_note")
+	var picture: Texture2D = core.call("picture_of", note)
+	_check("the kept feed gives the card its line, its urgent line and its picture", note.get("line") == "Snowy lane is open"
+		and int(note.get("latest", 0)) == 20003 and int(note.get("urgent_below", 0)) == 20000 and picture != null
+		and picture.get_size() == Vector2(320, 180))
+	for folder: String in ["app", ""]:
+		for file: String in DirAccess.get_files_at(dir + folder):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(dir + folder.path_join(file)))
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(dir + folder))
+	feed.set("dir", was[0])
+	feed.set("keys", was[1])
+	feed.call("forget")
+
+	# The card through a flexible update, with Play stood in for.
+	var save: Node = root.get_node("Save")
+	var kept: Array = [save.get("path"), save.get("update_shown"), save.get("update_started"), save.get("last_code"),
+		save.get("reduce_motion")]
+	save.set("path", "user://test_update.cfg")
+	save.set("update_shown", {})
+	save.set("update_started", 0)
+	save.set("last_code", 20001)
+	save.set("reduce_motion", false)
+	var heard: Array[Dictionary] = []
+	var analytics: GDScript = load("res://kit/monetize/analytics.gd")
+	analytics.sink = func(event: StringName, params: Dictionary) -> void:
+		if event == &"update_card":
+			heard.append(params)
+	var ads: GDScript = load("res://kit/monetize/ads.gd")
+	var covers: int = int(ads.get("_covers"))
+	core.set("fake", {"code": 20003, "flexible": true, "immediate": true, "running": 20001, "bytes": 4000000})
+	core.set("note_source", func() -> Dictionary: return {"latest": 20003, "line": "Snowy lane is open",
+		"urgent_below": 0})
+	core.set("_carded", false)
+	_check("Play's offer makes the card due, flexibly", core.call("update_mode") == "flexible"
+		and core.call("card_due"))
+	var card_script: GDScript = load("res://scenes/street/update_card.gd")
+	var card: CanvasLayer = card_script.new()
+	root.add_child(card)
+	await process_frame
+	_check("the card opens with the feed's line, keeps the banner back, and is counted",
+		card.get("_line") == "Snowy lane is open" and int(ads.get("_covers")) == covers + 1 and heard.size() == 1
+		and heard[0].get("update") == "shown" and heard[0].get("version") == "20003" and heard[0].get("mode") == "flexible"
+		and not core.call("card_due") and str((save.get("update_shown") as Dictionary).get("20003", "")) != "")
+	_check("with a way to put it away for later", (card.get("_close") as Button).visible)
+	card.call("_on_go")
+	_check("Update starts the download, remembers the version and is counted", core.call("update_state") == "downloading"
+		and int(save.get("update_started")) == 20003 and heard.size() == 2 and heard[1].get("update") == "start")
+	var badge: Button = (load("res://scenes/street/update_badge.gd") as GDScript).new()
+	badge.call("refresh")
+	var downloading: bool = badge.get("phase") == "downloading" and badge.visible
+	for second: int in range(7):
+		core.call("_tick", 1.0)
+	badge.call("refresh")
+	_check("the badge fills while it downloads, and turns to ready", downloading and badge.get("phase") == "ready"
+		and core.call("update_ready") and heard.size() == 3 and heard[2].get("update") == "downloaded")
+	badge.free()
+	await process_frame
+	await process_frame
+	var restart: CanvasLayer = card_script.new()
+	restart.set("ready_to_restart", true)
+	root.add_child(restart)
+	await process_frame
+	restart.call("_on_go")
+	_check("then the restart card finishes it, counted", core.call("update_state") == "installing"
+		and heard.size() == 4 and heard[3].get("update") == "restart")
+	core.set("fake", {"code": 20003, "running": 20003, "state": "none"})
+	core.call("_launch")
+	_check("and its first launch counts it installed, once", heard.size() == 5 and heard[4].get("update") == "installed"
+		and int(save.get("update_started")) == 0 and int(save.get("last_code")) == 20003)
+	await process_frame
+	await process_frame
+	# An urgent one: no way to put it away, and Play's immediate flow.
+	core.set("fake", {"code": 20003, "flexible": true, "immediate": true, "running": 20001})
+	core.set("note_source", func() -> Dictionary: return {"latest": 20003, "line": "", "urgent_below": 20002})
+	core.set("_carded", false)
+	save.set("reduce_motion", true)
+	var urgent: CanvasLayer = card_script.new()
+	root.add_child(urgent)
+	await process_frame
+	urgent.call("_later")
+	_check("an urgent update has no Later, and a tap beside it changes nothing", not (urgent.get("_close") as Button).visible
+		and bool(urgent.get("_open")) and urgent.get("_line") == UpdatePolicy.FALLBACK_LINE)
+	_check("under Reduce motion the card fades in where it stands", (urgent.get("_card") as Control).scale == Vector2.ONE)
+	urgent.call("_on_go")
+	_check("and it goes straight to Play's own screen", core.call("update_state") == "installing"
+		and heard.back().get("mode") == "immediate")
+	await process_frame
+	await process_frame
+	# Classic's card, in the kit's look.
+	core.set("fake", {"code": 20003, "flexible": true, "immediate": true, "running": 20001})
+	for urgent_below: int in [0, 20002]:
+		core.set("note_source", func() -> Dictionary: return {"latest": 20003, "urgent_below": urgent_below})
+		var host: Control = Control.new()
+		root.add_child(host)
+		core.call("offer_card", host)
+		var texts: PackedStringArray = PackedStringArray()
+		for b: Node in host.find_children("*", "Button", true, false):
+			texts.append((b as Button).text)
+		host.free()
+		_check("Classic's card offers %s" % ("Update and Later" if urgent_below == 0 else "only Update when urgent"),
+			texts == (PackedStringArray(["Update", "Later"]) if urgent_below == 0 else PackedStringArray(["Update"])))
+	await process_frame
+	core.set("fake", {})
+	core.set("note_source", Callable())
+	core.set("_carded", false)
+	core.set("_told_download", false)
+	analytics.sink = Callable()
+	_check("and every card gave the banner back", int(ads.get("_covers")) == covers)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_update.cfg"))
+	for k: int in range(kept.size()):
+		save.set(["path", "update_shown", "update_started", "last_code", "reduce_motion"][k], kept[k])
 
 ## Decision 7: the banner shows on the map only, never on a one-off screen. The look chooser's live street is a
 ## preview that asks for no banner, and the studio's opening keeps the banner back while it plays.
@@ -3076,7 +3240,8 @@ func _test_play_core() -> void:
 	_check("PlayCore looks for the helper's own package and class",
 		java.contains("package %s;" % helper[0]) and java.contains("public final class %s " % helper[1]))
 	var missing: PackedStringArray = PackedStringArray()
-	for method: String in ["requestReview", "reviewState", "checkForUpdate", "updateState", "completeUpdate"]:
+	for method: String in ["requestReview", "reviewState", "checkUpdate", "startUpdate", "updateState", "updateInfo",
+			"completeUpdate", "versionCode"]:
 		if not core.source_code.contains('"%s"' % method) or RegEx.create_from_string(
 				"public static \\w+ %s\\(" % method).search(java) == null:
 			missing.append(method)

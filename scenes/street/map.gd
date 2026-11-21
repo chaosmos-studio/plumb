@@ -64,6 +64,9 @@ const NUMBERED_AHEAD: int = 3
 const AHEAD: int = 6
 ## The street has no end (the picker keeps finding boards): a door number no one reaches bounds the arithmetic.
 const LAST_DOOR: int = 99999
+## The update card waits this long after the street opens, and looks this often.
+const UPDATE_AFTER: float = 1.5
+const UPDATE_EVERY: float = 1.0
 ## The bottom row of buttons: their size, and their distance from the screen's foot.
 const BUTTON: float = 132.0
 const BUTTON_LIFT: float = 54.0
@@ -149,6 +152,10 @@ var _drum_radius: float = FLAT_RADIUS
 ## The title in the sky, and what wobbles it and the buttons' neighbours.
 var _title: StreetTitle
 var _wobbler: StreetWobbler
+## The update's badge on the gear, the time to the next look for an update, and whether the restart was offered.
+var _badge: StreetUpdateBadge
+var _update_wait: float = 0.0
+static var _restart_offered: bool = false
 
 func _ready() -> void:
 	_preview = preview or preview_only
@@ -392,6 +399,11 @@ func _build_hud() -> void:
 	shop.pressed.connect(_open_shop)
 	var settings: StreetUI.RoundButton = StreetUI.RoundButton.new(StreetUI.PURPLE, &"gear", BUTTON)
 	settings.pressed.connect(_open_settings)
+	# A newer version on Play wears a small badge on the gear until it is installed.
+	_badge = StreetUpdateBadge.new()
+	_badge.position = Vector2(BUTTON - StreetUpdateBadge.DIAMETER * 0.8, -StreetUpdateBadge.DIAMETER * 0.15)
+	_badge.opened.connect(_open_update)
+	settings.add_child(_badge)
 	# A finger coming down on either starts loading the rooms' page and that room's backdrop, so by the time it lifts
 	# most of the reading is done.
 	shop.button_down.connect(_prefetch_room.bind(StreetArt.SHOP_BACKDROP))
@@ -726,6 +738,35 @@ func _process(delta: float) -> void:
 			_velocity *= exp(-SPRING * delta)
 	_place()
 	_probe.note(float(Time.get_ticks_usec() - started_us) / 1000.0)
+	_update_wait -= delta
+	if _update_wait <= 0.0:
+		_update_wait = UPDATE_EVERY
+		_maybe_offer_update()
+
+## The update card, when Play has a newer version (PlayCore, UpdatePolicy): offered once a day for each version, or
+## every launch when it must go out, and the restart once it has downloaded. Only on a street at rest, with nothing
+## else open, a moment after it opens.
+func _maybe_offer_update() -> void:
+	if _busy or _preview or _measuring or _time < UPDATE_AFTER or _dragging:
+		return
+	if PlayCore.update_ready() and not _restart_offered:
+		_restart_offered = true
+		_open_update()
+	elif PlayCore.card_due():
+		_open_update()
+
+func _open_update() -> void:
+	if _busy:
+		return
+	_busy = true
+	_velocity = 0.0
+	var card: StreetUpdateCard = StreetUpdateCard.new()
+	card.ready_to_restart = PlayCore.update_ready()
+	card.closed.connect(func() -> void:
+		_busy = false
+		if _badge != null:
+			_badge.refresh())
+	add_child(card)
 
 ## Puts everything in view where the drum shows it, recycling what has left the view.
 func _place() -> void:
