@@ -31,8 +31,10 @@ const CAST_Y: float = ARCH_FOOT - CAST_D - 6.0
 const BOARD_AT: Vector2 = Vector2(62.0, 776.0)
 const BOARD_W: float = 960.0
 const TABS_AT: Vector2 = Vector2(112.0, 874.0)
-const TAB_SIZE: Vector2 = Vector2(410.0, 124.0)
-const ROWS_Y: float = 1060.0
+## The tabs, about 1.4 times the painting's, as chunky as the concept's, and the track holding them.
+const TAB_SIZE: Vector2 = Vector2(410.0, 174.0)
+const TRACK_SIZE: Vector2 = Vector2(860.0, 206.0)
+const ROWS_Y: float = 1119.0
 const ROW_STEP: float = 178.0
 ## Rows span the board's width, as the concept's do: the painted row's pill keeps its 62 px of soft shadow each side.
 const ROW_SIZE: Vector2 = Vector2(960.0, 154.0)
@@ -55,7 +57,7 @@ const SAMPLE_MIN: float = 0.75
 const KNOB: float = 74.0
 const KNOB_SHIFT: float = 57.0
 const LABEL_SIZE: int = 60
-const TAB_LABEL_SIZE: int = 60
+const TAB_LABEL_SIZE: int = 80
 ## The board's foot below its last row.
 const BOARD_FOOT: float = 70.0
 ## The board fills the screen as the concept does (build/review/revamp2/7-settings.png): 94% of a portrait screen's
@@ -64,7 +66,9 @@ const BOARD_FOOT: float = 70.0
 const PANEL_WIDTH: float = 0.94
 const PANEL_TOP: float = 0.315
 const PANEL_FOOT: float = 0.035
-const ROW_GROW: float = 1.4
+const ROW_GROW: float = 2.0
+## Every toggle's size against the painting's.
+const TOGGLE_GROW: float = 1.35
 ## A row's share of its step, the rest being the gap to the next.
 const ROW_FILL: float = 0.88
 ## The board's drop, and a toggle's slide.
@@ -131,7 +135,7 @@ func rows_of(tab: Tab) -> Array[Row]:
 		var more: Array[Row] = [Row.HELP, Row.ABOUT, Row.CREDITS]
 		if Ads.privacy_options_required():
 			more.append(Row.PRIVACY)
-		more.append(Row.RESET)
+		more.append_array([Row.STREET, Row.RESET])
 		return more
 	var out: Array[Row] = [Row.MOTION, Row.COLOUR, Row.HAPTICS]
 	if tab == Tab.ACCESSIBILITY:
@@ -139,7 +143,7 @@ func rows_of(tab: Tab) -> Array[Row]:
 	out = [Row.SOUND, Row.MUSIC, Row.FACES, Row.PETS]
 	if PhoneTilt.can_feel():
 		out.append(Row.TILT)
-	out.append_array([Row.STREET, Row.MORE])
+	out.append(Row.MORE)
 	return out
 
 ## The most rows any page shows, which sets the board's height.
@@ -334,7 +338,8 @@ func reset_label() -> String:
 ## the toggle's width, middle and knob, Colour help's picture's place and scale, and the chevron's middle and size.
 static func row_parts(h: float) -> Dictionary:
 	var k: float = clampf(h / ROW_SIZE.y, 1.0, ROW_GROW)
-	var kt: float = minf(k, 1.4)
+	# One toggle size on every page, as large as the shortest row allows, so General's match Accessibility's.
+	var kt: float = TOGGLE_GROW
 	var toggle_w: float = TOGGLE_W * kt
 	return {"label_x": LABEL_X + 14.0 * (k - 1.0), "label_size": int(LABEL_SIZE * minf(k, 1.5)), "toggle_w": toggle_w,
 		"toggle_x": PILL_RIGHT - 34.0 - toggle_w * 0.5, "knob": KNOB * kt, "knob_shift": KNOB_SHIFT * kt,
@@ -434,18 +439,16 @@ class _Board extends Node2D:
 
 	func tab_rect(tab: int) -> Rect2:
 		var track: Vector2 = StreetSettings.TABS_AT - StreetSettings.BOARD_AT
-		return Rect2(track + Vector2(10.0 + float(tab) * 430.0, 11.0), StreetSettings.TAB_SIZE)
+		return Rect2(track + Vector2(10.0 + float(tab) * 430.0, 16.0), StreetSettings.TAB_SIZE)
 
 	## The whole tab track, which on More's page is its Back.
 	func track_rect() -> Rect2:
-		return Rect2(StreetSettings.TABS_AT - StreetSettings.BOARD_AT, Vector2(860.0, 148.0))
+		return Rect2(StreetSettings.TABS_AT - StreetSettings.BOARD_AT, StreetSettings.TRACK_SIZE)
 
 	func row_rect(i: int) -> Rect2:
 		var s: float = step()
-		var n: float = float(settings.rows_of(settings._tab).size())
-		var room: float = height() - (StreetSettings.ROWS_Y - StreetSettings.BOARD_AT.y) - StreetSettings.BOARD_FOOT
-		# A page that does not fill the board sits in its middle.
-		var y: float = StreetSettings.ROWS_Y - StreetSettings.BOARD_AT.y + (room - s * n) * 0.5 + float(i) * s
+		# Under the tabs, a short page's rows growing to fill the board rather than floating in its middle.
+		var y: float = StreetSettings.ROWS_Y - StreetSettings.BOARD_AT.y + float(i) * s
 		var h: float = maxf(s * StreetSettings.ROW_FILL, StreetSettings.ROW_SIZE.y * 0.9)
 		return Rect2(Vector2(StreetSettings.ROW_X, y), Vector2(StreetSettings.ROW_SIZE.x, h))
 
@@ -499,7 +502,7 @@ class _Board extends Node2D:
 		StreetArt.draw_nine(self, "settings_panel", Rect2(Vector2.ZERO, Vector2(StreetSettings.BOARD_W,
 			height(_rows_drawn))), px)
 		var track: Vector2 = StreetSettings.TABS_AT - StreetSettings.BOARD_AT
-		StreetArt.draw_nine(self, "settings_tab_track", Rect2(track, Vector2(860.0, 148.0)), px)
+		StreetArt.draw_nine(self, "settings_tab_track", Rect2(track, StreetSettings.TRACK_SIZE), px)
 		var font: Font = StreetArt.font()
 		if settings._tab == StreetSettings.Tab.MORE:
 			# More's page: the whole track is Back, its arrow in the pill and the page's name beside it.

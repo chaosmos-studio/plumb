@@ -1549,7 +1549,7 @@ func _test_street_settings() -> void:
 		names.append(settings.call("label_of", row))
 	page.free()
 	_check("More's page is Street's own rows (%s)" % ", ".join(names), names.has("How to play") and names.has("About")
-		and names.has("Credits") and names[names.size() - 1] == "Reset progress")
+		and names.has("Credits") and names.has("Street look") and names[names.size() - 1] == "Reset progress")
 
 ## The look chooser (Shravan, 21 November): Classic on the left and Street on the right, Street picked to begin with, a
 ## tap on a card picks it without leaving, Continue goes with the pick, and on every screen shape the cards, Continue,
