@@ -15,8 +15,8 @@ Section numbers below point there.
 | Listing text | `assets/store/listing.md` |
 | Graphics | `assets/store/` |
 | Latest build | [v1.4.1](https://github.com/chaosmos-studio/plumb/releases/tag/v1.4.1), on production |
-| AdMob app id | `ca-app-pub-3135321730568420~4276024954` |
-| AdMob units | banner `.../4401816337`, interstitial `.../1199928764`, rewarded `.../9789874380` (all in `monetize.gd`) |
+| AdMob app id | `ca-app-pub-5770823300506480~2563568558` |
+| AdMob units | banner `.../3924751687`, interstitial `.../6468647838`, rewarded `.../3150938097` (all in `monetize.gd`) |
 | Firebase | Android app in project `chaosmos-studio`, in `google-services.json` |
 | Upload key | `studio/release-keys/plumb-release.jks`, alias `plumb` (password in `plumb-key.properties`) |
 | Upload key SHA-1 | `95:E9:15:AA:36:6D:9E:D9:66:B2:D0:3C:5A:EA:02:EB:F2:3F:01:6F` |

@@ -8,10 +8,10 @@ extends RefCounted
 ## AdMob's ads, with the studio's own house banner filling the strip whenever AdMob has no banner to give, as
 ## before the account is approved, and every reward free while it has no video. With false, the house banner alone.
 const ADMOB: bool = true
-const APP_ID: String = "ca-app-pub-3135321730568420~4276024954"
-const BANNER_ID: String = "ca-app-pub-3135321730568420/4401816337"
-const INTERSTITIAL_ID: String = "ca-app-pub-3135321730568420/1199928764"
-const REWARDED_ID: String = "ca-app-pub-3135321730568420/9789874380"
+const APP_ID: String = "ca-app-pub-5770823300506480~2563568558"
+const BANNER_ID: String = "ca-app-pub-5770823300506480/3924751687"
+const INTERSTITIAL_ID: String = "ca-app-pub-5770823300506480/6468647838"
+const REWARDED_ID: String = "ca-app-pub-5770823300506480/3150938097"
 ## Each must match a one-time product in Play Console (Monetize with Play, Products, One-time products).
 ## The Complete pack holds the other four.
 const SUPPORTER_ID: String = "supporter"
