@@ -70,13 +70,15 @@ func _start_sdk() -> void:
 	_ads.set_child_directed(false)
 	_ads.initialize(GameMonetize.LEVELPLAY_APP_KEY, TestAds.test_mode())
 
-## Sent only where consent is asked for, so the SDK never treats a player elsewhere as having refused.
+## The consent answer, sent only where consent is asked for, so the SDK never treats a player elsewhere as having
+## refused, and everyone's US choice not to have data sold or shared. Before the SDK starts, and on every change.
 func _apply_consent() -> void:
 	match Consent.status():
 		Consent.Status.GRANTED:
 			_ads.set_gdpr_consent(true)
 		Consent.Status.DENIED, Consent.Status.UNKNOWN:
 			_ads.set_gdpr_consent(false)
+	_ads.set_us_privacy_opt_out(Consent.us_opt_out())
 
 func _on_initialized(ok: bool, _error: Intermission.AdError, _code: int, _message: String) -> void:
 	_starting = false
@@ -251,13 +253,14 @@ func _design_height(height_dp: float) -> float:
 	var window: float = float(DisplayServer.window_get_size().y)
 	return pixels * view / window if window > 0.0 else pixels
 
+## Privacy choices on every phone with LevelPlay's ads: the US choice is everyone's to make.
 func privacy_required() -> bool:
-	return Consent.required()
+	return true
 
 func open_privacy() -> void:
-	Consent.ask(get_tree().root, func() -> void:
+	Consent.choices(get_tree().root, func() -> void:
 		_apply_consent()
-		Analytics.refresh(), true)
+		Analytics.refresh())
 
 func stop() -> void:
 	_stopped = true

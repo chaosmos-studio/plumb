@@ -54,6 +54,17 @@ static func status() -> Status:
 static func counts(state: Status) -> bool:
 	return state == Status.NOT_REQUIRED or state == Status.GRANTED
 
+## A US player's choice not to have their data sold or shared, which Google's consent tool used to offer: asked of
+## nobody, off until turned on in Privacy choices, and kept with the consent answer. Ads pass it to LevelPlay before it
+## starts and again on every change.
+static func us_opt_out() -> bool:
+	return bool(_file().get_value("us_privacy", "opt_out", false))
+
+static func set_us_opt_out(on: bool) -> void:
+	var file: ConfigFile = _file()
+	file.set_value("us_privacy", "opt_out", on)
+	file.save(path)
+
 static func answer(granted: bool) -> void:
 	var file: ConfigFile = _file()
 	file.set_value("consent", "answer", "granted" if granted else "denied")
@@ -99,6 +110,36 @@ static func ask(host: Node, on_done: Callable, dismissable: bool) -> Sheet:
 				on_done.call())
 		row.add_child(button)
 	c.add_child(row)
+	var policy: Button = UI.button("Privacy policy", UI.Style.GHOST)
+	policy.pressed.connect(func() -> void: OS.shell_open(GameCredits.PRIVACY))
+	c.add_child(policy)
+	return sheet
+
+## Settings' Privacy choices, on every phone that loads ads: for everyone the choice not to have data sold or shared,
+## and where the consent sheet is asked, a way back to it. `on_change` hears every change.
+static func choices(host: Node, on_change: Callable) -> Sheet:
+	var sheet: Sheet = Sheet.open(host)
+	var c: VBoxContainer = sheet.content
+	c.add_child(UI.title("Privacy choices", 52))
+	var row: HBoxContainer = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 24)
+	var words: Label = UI.label("Do not sell or share my data", 32)
+	words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	words.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(words)
+	var opt_out: Switch = Switch.new(us_opt_out())
+	opt_out.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	opt_out.toggled.connect(func(on: bool) -> void:
+		set_us_opt_out(on)
+		if on_change.is_valid():
+			on_change.call())
+	row.add_child(opt_out)
+	c.add_child(row)
+	if required():
+		var ads_and_stats: Button = UI.button("Ads and stats", UI.Style.SECONDARY)
+		ads_and_stats.pressed.connect(func() -> void: ask(host, on_change, true))
+		c.add_child(ads_and_stats)
 	var policy: Button = UI.button("Privacy policy", UI.Style.GHOST)
 	policy.pressed.connect(func() -> void: OS.shell_open(GameCredits.PRIVACY))
 	c.add_child(policy)

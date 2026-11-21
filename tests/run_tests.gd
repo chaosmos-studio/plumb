@@ -2700,6 +2700,31 @@ func _test_consent() -> void:
 		texts.has("Allow") and texts.has("Don't allow") and texts.has("Privacy policy"))
 	_check("the launch sheet cannot be swiped away unanswered", not bool(sheet.get("dismissable")))
 	host.free()
+	# The US choice not to have data sold or shared, which Google's consent tool used to give: everyone's, off until
+	# turned on, and kept beside the consent answer.
+	var off_at_first: bool = not consent.call("us_opt_out")
+	consent.call("set_us_opt_out", true)
+	var kept: ConfigFile = ConfigFile.new()
+	kept.load(consent.get("path"))
+	var on_kept: bool = consent.call("us_opt_out") and bool(kept.get_value("us_privacy", "opt_out", false))
+	consent.call("set_us_opt_out", false)
+	_check("the US choice is off until turned on, and kept either way", off_at_first and on_kept
+		and not consent.call("us_opt_out") and consent.call("status") == status["GRANTED"])
+	var choices_host: Node = Node.new()
+	var heard_change: Array[int] = [0]
+	consent.call("choices", choices_host, func() -> void: heard_change[0] += 1)
+	var toggles: Array[Node] = choices_host.find_children("*", "Switch", true, false)
+	var labels: PackedStringArray = []
+	for l: Node in choices_host.find_children("*", "Label", true, false):
+		labels.append((l as Label).text)
+	var asked_here: bool = false
+	for b: Node in choices_host.find_children("*", "Button", true, false):
+		asked_here = asked_here or (b as Button).text == "Ads and stats"
+	_check("Privacy choices offers the US choice as one switch, and the consent answer where it is asked",
+		toggles.size() == 1 and labels.has("Do not sell or share my data") and asked_here)
+	(toggles[0] as BaseButton).button_pressed = true
+	_check("and turning it on keeps it and is heard", consent.call("us_opt_out") and heard_change[0] == 1)
+	choices_host.free()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(consent.get("path")))
 	consent.set("path", old_path)
 
@@ -2855,10 +2880,10 @@ func _test_settings_variants() -> void:
 	var plain: PackedStringArray = _labels(settings, "open")
 	_check("settings offers the colours, the looks and a way to support the game", plain.has("Colours")
 		and plain.has(GameLooks.TITLE) and plain.has("SUPPORT"))
-	_check("and no privacy choices where the consent sheet is not asked", not plain.has("Privacy choices"))
+	_check("and no privacy choices where no ads load", not plain.has("Privacy choices"))
 	var consent: _ConsentAds = _ConsentAds.new()
 	ads.call("use", consent)
-	_check("privacy choices appear where the consent sheet is asked", _labels(settings, "open").has("Privacy choices"))
+	_check("privacy choices appear where an ad network loads", _labels(settings, "open").has("Privacy choices"))
 	save.set("supporter", true)
 	var supporter: PackedStringArray = _labels(settings, "open")
 	_check("a Supporter still finds a way to support the game", supporter.has("SUPPORT"))
@@ -4160,8 +4185,19 @@ func _test_levelplay_backend() -> void:
 	ads.call("use", backend)
 	var calls: PackedStringArray = plugin.get("calls")
 	var key: String = GameMonetize.LEVELPLAY_APP_KEY
-	_check("consent and test mode go to the SDK before it starts (%s)" % ", ".join(calls), calls == PackedStringArray([
-		"overlong 75.0", "gdpr true", "coppa false", "initialize %s true" % key]))
+	_check("consent, the US choice and test mode go to the SDK before it starts (%s)" % ", ".join(calls),
+		calls == PackedStringArray(["overlong 75.0", "gdpr true", "ccpa false", "coppa false", "initialize %s true" % key]))
+	_check("and Privacy choices are offered wherever LevelPlay's ads load", backend.call("privacy_required"))
+	# Turned on in Privacy choices, the US choice goes to the SDK at once.
+	backend.call("open_privacy")
+	var choice_toggles: Array[Node] = root.find_children("*", "Switch", true, false)
+	(choice_toggles.back() as BaseButton).button_pressed = true
+	_check("turning the US choice on tells the SDK at once", (plugin.get("calls") as PackedStringArray).has("ccpa true")
+		and consent_script.call("us_opt_out"))
+	(choice_toggles.back() as BaseButton).button_pressed = false
+	for open: Node in root.find_children("*", "Sheet", true, false):
+		open.get_parent().queue_free()
+	await process_frame
 	_check("nothing is ready before the SDK is", not backend.video_ready())
 	plugin.emit_signal(&"initialized", true, "none", 0, "")
 	calls = plugin.get("calls")

@@ -315,7 +315,8 @@ static func rewarded(on_reward: Callable) -> void:
 	if (bool(result[2]) or not shown) and on_reward.is_valid():
 		on_reward.call()
 
-## Where the consent sheet is asked (Consent), Settings shows Privacy choices to change the answer.
+## Wherever LevelPlay's ads load, Settings shows Privacy choices (Consent.choices): the US choice not to have data
+## sold or shared, and where the consent sheet is asked, a way to change the answer.
 static func privacy_options_required() -> bool:
 	return live() and _backend.privacy_required()
 

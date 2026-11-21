@@ -182,8 +182,10 @@ tested on their edges in `tests/run_tests.gd`.
   before the ad SDK starts, only where the law needs it: the EEA, the UK and Switzerland, guessed from the
   phone's time zone and locale. The answer is kept in `user://consent.cfg` and passed to LevelPlay, and
   Analytics counts only where no consent is needed or the player said yes. Settings offers Privacy choices
-  wherever the sheet is asked, to change the answer. Requests are not tagged child-directed (the audience
-  is 13+).
+  on every phone that loads LevelPlay's ads: a switch, "Do not sell or share my data", off until turned on
+  and sent to LevelPlay before it starts and on every change (the US choice Google's consent tool used to
+  give), and where the sheet is asked, a way back to it. Requests are not tagged child-directed (the
+  audience is 13+).
 - **Reviews and updates**: Google Play's own review card, with nothing of ours before it, at a few
   milestones on Next level and as the ending closes. Play decides whether it shows. About and the ending
   keep a Rate button that opens the Play page. A new version is offered by the game's own update card
