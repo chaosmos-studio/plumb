@@ -42,9 +42,21 @@ func _ready() -> void:
 	Save.app_look = look
 	if look == AppLook.CLASSIC:
 		Appearance.apply(Save.theme)
-	add_child((load(str(screen[2])) as PackedScene).instantiate())
+	var opened: Node = (load(str(screen[2])) as PackedScene).instantiate()
+	add_child(opened)
 	await get_tree().create_timer(SETTLE).timeout
 	_read(str(screen[0]))
+	# A third argument "rooms" visits the shop and Settings and closes them, to see what stays behind.
+	if args.size() > 2 and args[2] == "rooms" and opened is StreetMap:
+		for open: String in ["_open_shop", "_open_settings"]:
+			opened.call(open)
+			await get_tree().create_timer(1.5).timeout
+			for child: Node in opened.get_children():
+				if child is StreetShop or child is StreetSettings:
+					child.call("close")
+			await get_tree().create_timer(1.0).timeout
+		await get_tree().create_timer(SETTLE).timeout
+		_read(str(screen[0]) + " after the shop and Settings")
 	print("LOOK_MEMORY_DONE")
 	get_tree().quit()
 
