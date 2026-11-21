@@ -8,7 +8,9 @@ extends Node
 ##
 ## A debug build looks only when told to, so tests and robots never reach the network: with
 ## `-- --feed=http://127.0.0.1:8765/plumb/v1/` (a local server) and `--feed-key=res://tests/fixtures/feed/test_key.pub.pem`
-## to trust the test key as well, or on a phone with a file at user://feed_on holding the address.
+## to trust the test key as well, or on a phone with a file at user://feed_on holding the address and one at
+## user://feed_key holding a public key to trust as well. A key file alone lets a phone check the update card's note
+## from a test manifest put into user://feed/ by hand, with no fetching.
 
 const BASE: String = "https://levels.chaosmos.studio/plumb/v1/"
 ## The keys a manifest may be signed with: the one in use and the next, for rotation. Their private halves are in
@@ -50,6 +52,8 @@ func _ready() -> void:
 		var told: bool = FileAccess.file_exists("user://feed_on")
 		if told:
 			base = FileAccess.get_file_as_string("user://feed_on").strip_edges()
+		if FileAccess.file_exists("user://feed_key"):
+			keys.append(FileAccess.get_file_as_string("user://feed_key"))
 		for arg: String in OS.get_cmdline_user_args():
 			if arg.begins_with("--feed="):
 				base = arg.trim_prefix("--feed=")
