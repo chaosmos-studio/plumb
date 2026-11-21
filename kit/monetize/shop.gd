@@ -93,6 +93,7 @@ static func price(id: String) -> String:
 	return String(prices.get(id, ""))
 
 static func buy(id: String) -> void:
+	Ads.note_purchase()
 	if is_instance_valid(_store):
 		_store.buy(id)
 	else:

@@ -11,6 +11,10 @@ const HARD_LEVELS: Array[int] = [180, 499]
 func _ready() -> void:
 	Save.path = "user://smoke.cfg"
 	Save.stars = PackedByteArray()
+	# A later launch than the first, with no ad paused: the robot plays the ads a returning player meets.
+	Ads.state_path = "user://smoke_ads.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Ads.state_path))
+	Ads.first_session = false
 	var failures: int = 0
 	for level: int in LEVELS:
 		Pack.current = level
@@ -445,8 +449,12 @@ func _interstitials() -> int:
 		await _through(fake, level)
 	Coach.enabled = true
 	Save.tutorial_seen = false
-	failures += _report(await _through(fake, 0, true) == Vector2i.ZERO and Ads.interstitial_due(),
-		"never after level 1's guide, though one was due")
+	var shown: Vector2i = await _through(fake, 0, true)
+	# Asked once the next level has begun, when only the spacing, not the win just before, can still say due.
+	var spaced: bool = AdPacing.interstitial_due(Ads.solved(), Ads._since, Ads.now(), Ads._last_fullscreen, false)
+	failures += _report(shown == Vector2i.ZERO and spaced, "never after level 1's guide, though one was due")
+	var lost: Node = await _play_scene(21)
+	failures += _report(lost != null and not Ads.interstitial_due(), "and never once a level is left unwon")
 	Save.tutorial_seen = true
 	var last: Node = get_tree().current_scene
 	if last != null and last != stage:

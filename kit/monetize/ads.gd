@@ -34,10 +34,18 @@ const FLOOR_DP: float = 48.0
 static var preview: bool = false
 ## Lets a robot skip the pacing gaps without waiting.
 static var skew: float = 0.0
+## What outlives a launch: the launches counted, and a pause on ads between levels. Tests point it elsewhere.
+const STATE: String = "user://ads.cfg"
+static var state_path: String = STATE
+## The first launch never shows an ad between levels. Set by start(), and by robots that stage a later one.
+static var first_session: bool = true
 
 static var _backend: AdBackend
 static var _since: int = 0
 static var _last_fullscreen: float = -1.0
+static var _launch_counted: bool = false
+## Whether the last level played was won, so an ad between levels only ever follows a win.
+static var _won_last: bool = false
 static var _busy: bool = false
 static var _covers: int = 0
 ## A banner drawn by the game (the house banner, the capture's stand-in) sits above sheets, as the plugin's native
@@ -60,6 +68,10 @@ static var _stand_in: CanvasLayer
 static func start() -> void:
 	if not EventBus.level_won.is_connected(_on_solved):
 		EventBus.level_won.connect(_on_solved)
+		EventBus.level_started.connect(_on_started)
+	if not _launch_counted:
+		_launch_counted = true
+		first_session = count_launch() == 1
 	# A cloud save restored after launch can make the banner due on the screen already open.
 	if not EventBus.settings_changed.is_connected(refresh):
 		EventBus.settings_changed.connect(refresh)
@@ -221,7 +233,37 @@ static func maybe_interstitial(on_done: Callable, after_guide: bool = false) -> 
 		on_done.call()
 
 static func interstitial_due() -> bool:
-	return AdPacing.interstitial_due(solved(), _since, now(), _last_fullscreen, Supporter.active())
+	return AdPacing.interstitial_due(solved(), _since, now(), _last_fullscreen, Supporter.active(), first_session,
+		_won_last, interstitials_paused())
+
+## A purchase sheet counts as a full-screen moment: no ad between levels comes right after one, bought or not.
+static func note_purchase() -> void:
+	_last_fullscreen = now()
+	_since = 0
+
+## Counts this launch and answers how many there have been, this one included.
+static func count_launch() -> int:
+	var file: ConfigFile = _state()
+	var launches: int = int(file.get_value("pacing", "launches", 0)) + 1
+	file.set_value("pacing", "launches", launches)
+	file.save(state_path)
+	return launches
+
+## An ad between levels that left the app by itself or never ended stops them for this player for a while
+## (AdPacing.TROUBLE_PAUSE_HOURS), across launches. Videos and the banner stay, since a video is the player's choice.
+static func pause_interstitials() -> void:
+	var file: ConfigFile = _state()
+	var until: int = int(Time.get_unix_time_from_system()) + AdPacing.TROUBLE_PAUSE_HOURS * 3600
+	file.set_value("pacing", "interstitials_from", until)
+	file.save(state_path)
+
+static func interstitials_paused() -> bool:
+	return Time.get_unix_time_from_system() < float(_state().get_value("pacing", "interstitials_from", 0))
+
+static func _state() -> ConfigFile:
+	var file: ConfigFile = ConfigFile.new()
+	file.load(state_path)
+	return file
 
 ## Plays a video and gives the reward once it is watched through. With no video to play (house ads standing in,
 ## offline, no fill) the reward is simply given. A video closed early gives nothing.
@@ -278,6 +320,10 @@ static func _on_banner(height: float) -> void:
 
 static func _on_solved(_level: int, _count: int, _stars: int) -> void:
 	_since += 1
+	_won_last = true
+
+static func _on_started(_level: int) -> void:
+	_won_last = false
 
 ## The newest screen that asked for the banner and is still in the tree, or {}.
 static func _owner() -> Dictionary:
