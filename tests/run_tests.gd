@@ -56,6 +56,8 @@ func _initialize() -> void:
 	_test_street_layout()
 	_test_jiggle()
 	_test_street_rewards()
+	_test_street_rating()
+	_test_street_picker()
 	if not OS.get_cmdline_user_args().has("quick"):
 		_test_level_pack()
 	_test_opening()
@@ -737,6 +739,110 @@ func _test_street_path() -> void:
 		absf(float(filled) / (4000.0 * 2.0 * 4.0) * 100.0 - StreetPath.FAR_SHARE) < 3.0)
 
 # Street's rewards (REVAMP_PLAN.md section 4.7): generous, on a steady rhythm, and help is never sold as power.
+# Glicko-1 (MATH.md section 29): Glickman's own worked example, the outcome's order, and the deviation shrinking.
+func _test_street_rating() -> void:
+	var after: PackedFloat64Array = StreetRating.update(1500.0, 200.0,
+		[[1400.0, 30.0, 1.0], [1550.0, 100.0, 0.0], [1700.0, 300.0, 0.0]])
+	_check("Glickman's example comes to 1464 and 151.4", absf(after[0] - 1464.0) < 1.0 and absf(after[1] - 151.4) < 0.5)
+	var clean: float = StreetRating.outcome(true, 8, 8, 0, 0, 0, 20.0)
+	var over: float = StreetRating.outcome(true, 10, 8, 0, 0, 0, 20.0)
+	var hinted: float = StreetRating.outcome(true, 10, 8, 1, 0, 0, 20.0)
+	var slow: float = StreetRating.outcome(true, 8, 8, 0, 0, 0, 400.0)
+	_check("a clean solve scores 1, help and over-par and slowness less, never under 0.1", clean == 1.0
+		and over < clean and hinted < over and slow < clean and StreetRating.outcome(true, 40, 8, 5, 3, 9, 9000.0) == 0.1)
+	_check("a quit after real play scores 0, and leaving at once does not count", StreetRating.outcome(false, 3, 8,
+		0, 0, 0, 5.0) == 0.0 and StreetRating.counts_as_quit(3, 5.0) and not StreetRating.counts_as_quit(1, 10.0))
+	var mu: float = StreetRating.START_MU
+	var phi: float = StreetRating.START_PHI
+	for i: int in range(12):
+		var next: PackedFloat64Array = StreetRating.after(mu, phi, 3.0 + i, 1.0)
+		mu = next[0]
+		phi = next[1]
+	_check("wins raise the rating and narrow the deviation", mu > StreetRating.START_MU and phi < 150.0)
+	_check("a long absence widens it again", StreetRating.rested(phi, 365.0) > phi
+		and StreetRating.rested(phi, 10000.0) == StreetRating.MAX_PHI)
+	_check("the band is the rating's hundred, as text", StreetRating.band(1287.4) == "1200")
+
+# The picker on simulated players of known skill (REVAMP_PLAN.md section 13): the opening fixed, never an easier board
+# (in the band, never below its floor), par never falling, rules only once taught, no board twice, the same street for
+# the same seed, the pace tracking skill and never under its least, fallbacks only when needed, and a recycled board
+# solving in its source's par.
+func _test_street_picker() -> void:
+	var pool: StreetPool = StreetPool.bundled()
+	if pool.main_ref.is_empty() or pool.d_of("main-0100") <= 0.0:
+		_check("the bundled boards carry their metadata (levels/meta.json)", false)
+		return
+	var opening: bool = true
+	var never_easier: bool = true
+	var par_kept: bool = true
+	var taught_first: bool = true
+	var unique: bool = true
+	var reached: Dictionary = {}
+	var fallback_early: bool = false
+	var pace_ok: bool = true
+	for skill: float in [1100.0, 1500.0, 1900.0]:
+		var state: Dictionary = StreetPicker.fresh()
+		var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+		rng.seed = int(skill)
+		var seen: Dictionary = {}
+		for door: int in range(1, 121):
+			var picked: Dictionary = StreetPicker.pick(pool, state, door, "sim%d" % int(skill))
+			if door <= StreetPicker.OPENING and str(picked["id"]) != "main-%04d" % door:
+				opening = false
+			var doors: PackedStringArray = state["doors"]
+			if not doors.is_empty():
+				var last_d: float = (state["door_d"] as PackedFloat64Array)[-1]
+				var last_par: int = (state["door_par"] as PackedInt32Array)[-1]
+				if float(picked["d"]) < minf(last_d, StreetPicker.CEIL_FLOOR) - 0.0001:
+					never_easier = false
+				if int(picked["par"]) < mini(last_par, StreetPicker.CEIL_PAR):
+					par_kept = false
+			if not StreetPicker._taught(pool.info(str(picked["id"])), pool.taught(maxf(float(state["p"]), 5.0))):
+				taught_first = false
+			if seen.has(picked["id"]):
+				unique = false
+			seen[picked["id"]] = true
+			if str(picked["step"]) == "recycle" and door < 60:
+				fallback_early = true
+			StreetPicker.record(state, pool, picked)
+			# Play until solved: each attempt succeeds by the player's true skill, and every attempt is rated.
+			var d: float = float(picked["d"])
+			var solved: bool = false
+			while not solved:
+				solved = rng.randf() < StreetRating.expected(skill, StreetRating.board_rating(d), 0.0)
+				var next: PackedFloat64Array = StreetRating.after(float(state["mu"]), float(state["phi"]), d,
+					1.0 if solved else 0.0)
+				state["mu"] = next[0]
+				state["phi"] = next[1]
+			var step: float = StreetPicker.climbed(state, pool) - float(state["p"])
+			if step < StreetPicker.PACE_MIN - 0.0001 or step > StreetPicker.PACE_MAX + 0.0001:
+				pace_ok = false
+			state["p"] = float(state["p"]) + step
+		reached[skill] = float(state["p"])
+	_check("doors 1 to 5 are always the opening", opening)
+	_check("no door is easier than the last (in the band, none below its floor)", never_easier)
+	_check("par never falls (in the band, never below its floor)", par_kept)
+	_check("a board's rules are always taught first", taught_first)
+	_check("no board twice on a street", unique)
+	_check("the pace stays between its least and its most", pace_ok)
+	_check("a stronger player climbs faster", float(reached[1900.0]) > float(reached[1500.0])
+		and float(reached[1500.0]) > float(reached[1100.0]))
+	_check("recycling only when the pool runs dry", not fallback_early)
+	var a: Dictionary = StreetPicker.pick(pool, _street_after(pool, 30, "same"), 31, "same")
+	var b: Dictionary = StreetPicker.pick(pool, _street_after(pool, 30, "same"), 31, "same")
+	_check("the same player and door always get the same board", a["id"] == b["id"])
+	var turned: TiltBoard = pool.board("main-0150~31")
+	var turned_par: int = TiltSolver.new().solve(turned, 400000).size()
+	_check("a recycled board solves in its source's par", turned_par == pool.par_of("main-0150"))
+
+## A street of `n` doors picked for `player`, each solved at once.
+func _street_after(pool: StreetPool, n: int, player: String) -> Dictionary:
+	var state: Dictionary = StreetPicker.fresh()
+	for door: int in range(1, n + 1):
+		StreetPicker.record(state, pool, StreetPicker.pick(pool, state, door, player))
+		state["p"] = StreetPicker.climbed(state, pool)
+	return state
+
 func _test_street_rewards() -> void:
 	_check("a win pays 10, 5 a star and 5 more when clean", StreetRewards.win_coins(3, true) == 30
 		and StreetRewards.win_coins(1, false) == 15)
